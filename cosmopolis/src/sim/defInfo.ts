@@ -41,6 +41,9 @@ export interface DefInfo {
   /** growables: mixed use — homes above shops / shops in towers, at the typical level */
   extraHousing: number;
   extraJobs: number;
+  /** growables: the def's own consumption at its typical level (0 = use the sim's zone table) */
+  growPower: number;
+  growWater: number;
   coverage: Coverage[];
   pollution: number;
   noise: number;
@@ -229,6 +232,8 @@ function build(def: ItemDef): DefInfo {
     housing: def.growable ? 0 : pos(e.housing),
     jobs: def.growable ? 0 : pos(e.jobs),
     ...growSize(def, zone, family),
+    growPower: def.growable ? neg(e.power) : 0,
+    growWater: def.growable ? neg(e.water) : 0,
     coverage: def.coverage ?? [],
     pollution: e.pollution ?? 0,
     noise: e.noise ?? 0,

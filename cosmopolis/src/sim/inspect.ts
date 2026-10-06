@@ -44,8 +44,9 @@ export function inspectBuilding(sim: Simulation, id: number): InspectRow[] {
     if (info.growable) row('Collapses in', `~${Math.max(1, Math.round(45 + r.h * 40 - r.abandonDays))} days unless conditions improve`, { tone: 'warn' });
   } else if (b.state === BuildingState.Ruined) row('Ruins', 'Bulldoze to clear the lot', { tone: 'bad' });
   if (r.problems) {
-    const list = PROBLEM_INFO.filter((x) => r.problems & x.bit);
-    row('Problems', list.map((x) => `${x.icon} ${x.label}`).join(' · '), { tone: list.some((x) => x.severe) ? 'bad' : 'warn' });
+    const list = problemsByImpact(r.problems);
+    const shown = list.slice(0, 3).map((x) => `${x.icon} ${x.label}`).join(' · ') + (list.length > 3 ? ` · +${list.length - 3}` : '');
+    row('Problems', shown, { tone: list.some((x) => x.severe) ? 'bad' : 'warn' });
     row('Fix', list[0].fix, { tone: 'neutral' });
   }
 
@@ -129,7 +130,7 @@ export function inspectBuilding(sim: Simulation, id: number): InspectRow[] {
   // a voice from inside
   if ((r.residents > 0 || r.workers > 0) && active) {
     const rng = new SimRng(id * 7919 + Math.floor(sim.day / 15));
-    const first = PROBLEM_INFO.find((x) => r.problems & x.bit);
+    const first = problemsByImpact(r.problems)[0];
     const quote = residentQuote(rng, r.happiness, first?.id ?? null, { city: p.city.name });
     const age = 18 + Math.floor(rng.next() * 60);
     row(isHome ? 'Resident' : 'Employee', `${quote} — ${citizenName(rng)}, ${age}, ${citizenJob(rng)}`);
@@ -149,6 +150,12 @@ const SERVICE_LABEL: Record<string, string> = {
   police: 'Police', fire: 'Fire', health: 'Health', education: 'Education', research: 'Research', leisure: 'Leisure', transit: 'Transit',
   deathcare: 'Deathcare', garbage: 'Garbage pickup', data: 'Data', tourism: 'Tourism', spiritual: 'Spiritual',
 };
+
+/** Display order: emergencies first, then what hurts the most, symptoms ("very unhappy") last. */
+const IMPACT = ['fire', 'flood', 'radiation', 'goo', 'oxygen', 'power', 'water', 'garbage', 'jobs', 'customers', 'workers', 'educated', 'crime', 'health', 'pollution', 'traffic', 'noise', 'taxes', 'data', 'road', 'frozen', 'unhappy'];
+function problemsByImpact(bits: number) {
+  return PROBLEM_INFO.filter((x) => bits & x.bit).sort((a, b) => IMPACT.indexOf(a.id) - IMPACT.indexOf(b.id));
+}
 
 function flagsOf(sim: Simulation, r: BRec): number {
   let f = 0;

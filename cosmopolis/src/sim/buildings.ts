@@ -177,9 +177,11 @@ export function updateRec(sim: Simulation, r: BRec): void {
   const evPower = sim.eventMods.powerUse, evWater = sim.eventMods.waterUse;
   let powerUse = 0, waterUse = 0;
   if (zp) {
+    // the content's own (budget-calibrated) figures at the type's typical level, scaled with level; else the zone table
     const size = fpMul * info.sizeMul;
-    powerUse = zp.power[lvl] * size * mods.powerUse * evPower;
-    waterUse = zp.power[lvl] * size * WATER_PER_POWER * mods.waterUse * evWater;
+    const lvlRatio = zp.capacity[lvl] / zp.capacity[info.typLevel - 1];
+    powerUse = (info.growPower > 0 ? info.growPower * lvlRatio : zp.power[lvl] * size) * mods.powerUse * evPower;
+    waterUse = (info.growWater > 0 ? info.growWater * lvlRatio : zp.power[lvl] * size * WATER_PER_POWER) * mods.waterUse * evWater;
   } else if (info.consumer) {
     powerUse = info.powerUse * mods.powerUse * evPower;
     waterUse = info.waterUse * mods.waterUse * evWater;
