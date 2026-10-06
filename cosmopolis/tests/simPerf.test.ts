@@ -37,8 +37,10 @@ it('simulates 5k buildings on 16k tiles within budget', () => {
   h.days(15); // warm up the JIT
   const sim = h.sim as unknown as { fields: { pass(ctx: unknown): Generator }; fieldCtx(): unknown; finishDay(): void };
   // CPU time (not wall clock) and best of 3, so parallel test workers / GC don't distort the budget check
+  const proc = (globalThis as unknown as { process?: { cpuUsage(): { user: number; system: number } } }).process;
   const cpuMs = () => {
-    const u = process.cpuUsage();
+    if (!proc) return performance.now();
+    const u = proc.cpuUsage();
     return (u.user + u.system) / 1000;
   };
   let fieldMs = Infinity, steps = 0;
