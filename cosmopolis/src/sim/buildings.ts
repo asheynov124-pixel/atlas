@@ -494,7 +494,7 @@ export function levelTarget(sim: Simulation, r: BRec, pr: number): number {
       break;
   }
   if (pr & P.Traffic) s -= 10;
-  let lvl = 1 + Math.floor(s / 17);
+  let lvl = 1 + Math.floor(s / 15);
   // hard requirements
   if (pr & (P.NoWater | P.NoPower)) lvl = Math.min(lvl, 1);
   if (pr & P.Garbage) lvl = Math.min(lvl, 2);

@@ -122,7 +122,7 @@ function defaultZone(d: number, i: number): Zone {
 /** Place a ploppable on the first free road-adjacent tile at distance ≥ minD from centre. */
 export function plop(h: Harness, defId: string, center: number, minD = 3): number {
   const g = h.planet.grid;
-  for (let r = minD; r < 14; r++) {
+  for (let r = minD; r < minD + 14; r++) {
     for (const t of g.ring(center, r)) {
       if (h.planet.building[t] >= 0 || h.planet.road[t]) continue;
       if (!h.planet.hasRoadAccess(t)) continue;

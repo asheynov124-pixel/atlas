@@ -214,6 +214,7 @@ export class Simulation implements System {
   private catVer = -1;
   private fieldsRestored = false;
   private lastPausedRefresh = 0;
+  private policySig = '';
   /** buildings changed since the last utilities resolve */
   private utilDirty = false;
   private realNotes = new Map<string, number>();
@@ -674,6 +675,12 @@ export class Simulation implements System {
   private finishDay(): void {
     const p = this.planet!;
     if (this.catVer !== catalogVersion()) this.onCatalogChanged();
+    // policies may also be edited directly on planet.districts (UI, districts created / deleted)
+    const sig = this.policySignature();
+    if (sig !== this.policySig) {
+      this.policySig = sig;
+      this.recomputeMods();
+    }
     // 1. finish the rolling building pass
     while (this.cursor < this.recs.length) updateRec(this, this.recs[this.cursor++]);
     this.cursor = 0;
@@ -815,9 +822,21 @@ export class Simulation implements System {
 
   // ───────────────────────────── policies & mods
 
+  private policySignature(): string {
+    const p = this.planet;
+    if (!p) return '';
+    let sig = '';
+    for (let i = 0; i < p.districts.length; i++) {
+      const d = p.districts[i];
+      if (d && d.policies.length) sig += i + ':' + d.policies.join(',') + '|';
+    }
+    return sig;
+  }
+
   private recomputeMods(): void {
     const p = this.planet;
     if (!p) return;
+    this.policySig = this.policySignature();
     const city = p.districts[0]?.policies ?? [];
     this.cityMods = modsFor(city);
     this.districtMods = [];
