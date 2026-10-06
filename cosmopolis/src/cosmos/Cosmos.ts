@@ -452,6 +452,11 @@ export class Cosmos implements System {
       const g = this.game;
       const cur = this.currentId();
       const prevLevel = cx.level.value;
+      // the star-map button / M key toggle: asking for the system view while it is already up returns to the city
+      if (kind === 'system' && !focusId && prevLevel === 'system' && g.activeView === this.sysView && !this.blend) {
+        this.backToPlanet();
+        return;
+      }
       const fromPlanet = !prevLevel || g.activeView === g.planetView;
       const curSys = this.systemOf(cur);
       let next: CosmosView | null = null;

@@ -649,6 +649,59 @@ export function CosmosHud() {
       labelHost.sink = null;
     };
   }, []);
+  // desktop keys while the star map is up: +/- zoom · arrows orbit · Backspace / PageUp level up · PageDown /
+  // Enter go in (the global M / Esc keys are ui-core's)
+  useEffect(() => {
+    if (!inCosmos || warping) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if ((e.key === 'Enter' || e.key === ' ') && t?.tagName === 'BUTTON') return;
+      if (ui.panel.value || ui.confirm.value) return;
+      const c = cosmos();
+      if (!c) return;
+      let used = true;
+      switch (e.key) {
+        case '+':
+        case '=':
+          c.zoom(0.8);
+          break;
+        case '-':
+        case '_':
+          c.zoom(1.25);
+          break;
+        case 'ArrowLeft':
+          c.rotate(-40, 0);
+          break;
+        case 'ArrowRight':
+          c.rotate(40, 0);
+          break;
+        case 'ArrowUp':
+          c.rotate(0, -30);
+          break;
+        case 'ArrowDown':
+          c.rotate(0, 30);
+          break;
+        case 'Backspace':
+        case 'PageUp':
+          c.levelUp();
+          break;
+        case 'PageDown':
+        case 'Enter': {
+          const sel = cx.selected.value;
+          if (sel) c.activate(sel.id);
+          else c.zoomIn();
+          break;
+        }
+        default:
+          used = false;
+      }
+      if (used) e.preventDefault();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [inCosmos, !!warping]);
   useLayer(inCosmos && !warping, () => {
     const c = cosmos();
     if (!c) return;

@@ -204,7 +204,7 @@ export function ColoniesPanel(_p: { onClose: () => void }) {
       )}
 
       <div class="cl-foot">
-        <Button variant="secondary" icon="map" block onClick={() => (closePanel(), c.openView('system'))}>
+        <Button variant="secondary" icon="map" block onClick={() => (closePanel(), c.openView('system', game.planet?.spec.id))}>
           Open the star map
         </Button>
         {sandbox && (
