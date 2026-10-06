@@ -37,6 +37,12 @@ export class OrganicSkin extends Skin {
     return p;
   }
 
+  protected override drawFence(rc: RC, x: number, z: number, w: number): void {
+    const { b, p } = rc;
+    b.box(w, 0.05, 0.04, { color: 0x7aa060, x, z, y: G, top: 0x8ab070, ...DET });
+    b.sphere(0.022, { color: p.accent2, mat: Mat.Glow, wSeg: 4, hSeg: 2, x: x + w * 0.3, z, y: G + 0.06, ...DET });
+  }
+
   override outline(_rc: RC, w: number, d: number): V2[] | null {
     return ellipse(w, d, 10);
   }
@@ -77,12 +83,29 @@ export class OrganicSkin extends Skin {
     b.sphere(0.028, { color, mat: Mat.Glow, wSeg: 4, hSeg: 2, x: e[0], y: e[1], z: e[2], ...DET });
   }
 
-  /** Egg pod with mushroom-shell cap (≈ 80 triangles); returns its top. */
-  private eggPod(rc: RC, x: number, z: number, r: number, h: number, y: number, wall: number, cap = true): number {
+  /** Egg pod with mushroom-shell cap and a membrane window band per storey; returns its top. */
+  private eggPod(rc: RC, x: number, z: number, r: number, h: number, y: number, wall: number, cap = true, floors = 1): number {
     const { b, p } = rc;
-    b.lathe(podProfile(r, h), { color: wall, mat: Mat.WindowSmall, seg: 8, x, z, y });
+    const prof = podProfile(r, h);
+    b.lathe(prof, { color: wall, seg: 7, x, z, y });
+    // window bands hug the shell (cylinders sized to the profile at their height)
+    const radiusAt = (yy: number): number => {
+      for (let i = 1; i < prof.length; i++) {
+        if (yy <= prof[i][1]) {
+          const t = (yy - prof[i - 1][1]) / Math.max(1e-6, prof[i][1] - prof[i - 1][1]);
+          return prof[i - 1][0] + (prof[i][0] - prof[i - 1][0]) * t;
+        }
+      }
+      return prof[prof.length - 1][0];
+    };
+    for (let f = 0; f < floors; f++) {
+      const y0 = f * FL + 0.07;
+      if (y0 + 0.1 > h * 0.64) break;
+      const r0 = radiusAt(y0) + 0.008, r1 = radiusAt(y0 + 0.1) + 0.008;
+      b.cyl(r1, r0, 0.1, { color: mix(wall, 0xffffff, 0.15), mat: Mat.WindowSmall, seg: 7, x, z, y: y + y0, capTop: false });
+    }
     if (!cap) return y + h;
-    b.lathe([[r * 1.1, h * 0.58], [r * 0.6, h * 0.92], [0.001, h * 1.06]], { color: p.roof, seg: 8, x, z, y });
+    b.lathe([[r * 1.1, h * 0.58], [r * 0.6, h * 0.92], [0.001, h * 1.06]], { color: p.roof, seg: 7, x, z, y });
     return y + h * 1.06;
   }
 
@@ -95,7 +118,7 @@ export class OrganicSkin extends Skin {
     let top = 0;
     b.group({ x: o.x ?? 0, y: o.y ?? 0, z: o.z ?? 0, ry: o.ry ?? 0 }, () => {
       b.group({ sx: stretch }, () => {
-        top = this.eggPod(rc, 0, 0, r, h, G, o.color ?? p.wall);
+        top = this.eggPod(rc, 0, 0, r, h, G, o.color ?? p.wall, true, o.floors);
       });
       if (o.door !== false) {
         b.sphere(0.07, { color: DOOR, wSeg: 6, hSeg: 2, z: r * 0.84, y: G + 0.06, sy: 1.6, sz: 0.45 });

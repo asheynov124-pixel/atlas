@@ -51,6 +51,12 @@ export class CrystalSkin extends Skin {
     return p;
   }
 
+  protected override drawFence(rc: RC, x: number, z: number, w: number): void {
+    const { b, p } = rc;
+    b.box(w, 0.04, 0.02, { color: mix(p.glass, 0xffffff, 0.4), mat: Mat.Glass, x, z, y: G, ...DET });
+    b.box(w, 0.006, 0.006, { color: p.accent, mat: Mat.Glow, x, z, y: G + 0.04, ...DET });
+  }
+
   override outline(_rc: RC, w: number, d: number): V2[] | null {
     return chamferRect(w, d, Math.min(w, d) * 0.28);
   }

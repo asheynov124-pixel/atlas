@@ -16,7 +16,7 @@ import type { Rng } from '../../../../core/rng';
 import type { StyleId } from '../../../../core/types';
 import type { StylePalette } from '../../../styles';
 import {
-  FL, G, LOT, Mat, antenna, bladeSign, bush, columns, ellipse, glyphs, hexPoly, hip, lamp, planter, polyTop, room, roundRect, shade, mix, tree,
+  FL, G, LOT, Mat, antenna, bladeSign, bush, columns, ellipse, glyphs, hedge, hexPoly, hip, lamp, planter, polyTop, room, roundRect, shade, mix, tree,
   type TreeKind, type V2,
 } from './common';
 
@@ -225,9 +225,20 @@ export abstract class Skin {
   /** Hexagonal lot plate (+ optional front path). Top surface only — it sits flush on the terrace. */
   lot(rc: RC, kind: LotKind, path = 0): void {
     const { b, p } = rc;
-    const col = kind === 'lawn' || kind === 'garden' ? p.ground : kind === 'pave' ? p.pave : kind === 'plaza' ? p.plaza : p.asphalt;
+    const base = kind === 'lawn' || kind === 'garden' ? p.ground : kind === 'pave' ? p.pave : kind === 'plaza' ? p.plaza : p.asphalt;
+    const col = shade(base, 0.95 + (rc.seed % 7) * 0.016);
     polyTop(b, hexPoly(LOT), { color: col, paint: false, y: G });
     if (path > 0) b.plane(path, LOT * 0.62, { color: p.pave, paint: false, z: LOT * 0.55, y: G + 0.002, detail: true });
+  }
+
+  /** Garden boundary segment along X (hedge by default; styles swap in pickets, adobe walls, snow banks…). */
+  fence(rc: RC, x: number, z: number, w: number, d = 0.05): void {
+    if (rc.lo || !fits(rc, 12)) return;
+    this.drawFence(rc, x, z, w, d);
+  }
+
+  protected drawFence(rc: RC, x: number, z: number, w: number, d: number): void {
+    hedge(rc.b, x, z, w, d, shade(rc.p.green, 0.9));
   }
 
   /** Style tree — skipped when the triangle budget is spent (decor never breaks the budget). */

@@ -34,6 +34,12 @@ export class CyberSkin extends Skin {
     return p;
   }
 
+  protected override drawFence(rc: RC, x: number, z: number, w: number): void {
+    const { b, p } = rc;
+    b.box(w, 0.08, 0.008, { color: 0x5a5f6e, mat: Mat.Metal, x, z, y: G, ...DET });
+    b.box(w, 0.006, 0.01, { color: p.accent, mat: Mat.Glow, x, z, y: G + 0.08, ...DET });
+  }
+
   override outline(): V2[] | null {
     return null;
   }

@@ -29,6 +29,12 @@ export class NeoSkin extends Skin {
     return p;
   }
 
+  protected override drawFence(rc: RC, x: number, z: number, w: number): void {
+    const { b, p } = rc;
+    b.box(w, 0.05, 0.03, { color: WHITE, x, z, y: G, ...DET, paint: true });
+    b.box(w * 0.9, 0.006, 0.006, { color: p.accent, mat: Mat.Glow, x, z: z + 0.016, y: G + 0.035, ...DET });
+  }
+
   override outline(_rc: RC, w: number, d: number): V2[] | null {
     return roundRect(w, d, Math.min(w, d) * 0.3, 2);
   }

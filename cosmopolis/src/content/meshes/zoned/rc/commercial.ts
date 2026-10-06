@@ -293,7 +293,7 @@ export const deptStore = factory((rc) => {
 });
 
 export const tradeTower = factory((rc) => {
-  const { b, sk, vr, L, p } = rc;
+  const { b, sk, vr, L } = rc;
   const tw = vr.range(0.74, 0.84), td = vr.range(0.64, 0.72);
   const fl = byL(L, [10, 14, 20, 26, 32]);
   const ph = storeys(2, 0);

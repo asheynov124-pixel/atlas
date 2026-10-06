@@ -11,19 +11,19 @@
  * Budget: `need()` reserves triangles for mandatory parts still to come, so optional trims/decor drawn
  * earlier never push the total over the 400-triangle growable budget.
  */
-import { FL, G, Mat, byL, hedge, hovercar, lerpL, ngon, polyTop, pool, shade, storeys } from './common';
+import { FL, G, Mat, byL, hovercar, lerpL, ngon, polyTop, pool, shade, storeys } from './common';
 import { factory } from './rc';
 import { DET, fits, need, type RC } from './skin';
 
 const prest = (L: number): number => (L - 1) / 4;
 const side = (rc: RC): number => (rc.vr.chance(0.5) ? 1 : -1);
 
-/** Small hedge line framing a front garden (optional decor). */
+/** Garden boundary framing a front garden, either side of the path (style fence; optional decor). */
 function frontHedges(rc: RC, z: number, gap: number, span = 0.78): void {
-  if (!fits(rc, 20)) return;
+  if (!fits(rc, 24)) return;
   const w = (span - gap) / 2;
-  hedge(rc.b, -gap / 2 - w / 2, z, w, 0.05, shade(rc.p.green, 0.9));
-  hedge(rc.b, gap / 2 + w / 2, z, w, 0.05, shade(rc.p.green, 0.9));
+  rc.sk.fence(rc, -gap / 2 - w / 2, z, w);
+  rc.sk.fence(rc, gap / 2 + w / 2, z, w);
 }
 
 // ═══════════════════════════════════════════════════════════════ LOW DENSITY
@@ -100,7 +100,7 @@ export const duplex = factory((rc) => {
   sk.house(rc, { x: -0.23, z: -0.12, w: 0.44, d, floors: fl, roof, color: p.wall, prestige: prest(L) * 0.6 });
   need(rc);
   sk.house(rc, { x: 0.23, z: -0.12, w: 0.44, d, floors: fl, roof, color: p.wall2, prestige: prest(L) * 0.6 });
-  if (fits(rc, 10)) hedge(rc.b, 0, 0.42, 0.04, 0.5, shade(p.green, 0.9));
+  rc.b.group({ z: 0.42, ry: Math.PI / 2 }, () => sk.fence(rc, 0, 0, 0.5));
   sk.tree(rc, -0.56, 0.36, 0.85);
   if (L >= 2) sk.tree(rc, 0.56, 0.36, 0.8);
   if (L >= 3) sk.shrub(rc, -0.1, 0.62, 1);
@@ -149,7 +149,7 @@ export const villa = factory((rc) => {
   if (L >= 4 && fits(rc, 20)) for (let i = 0; i < 2; i++) b.box(0.07, 0.025, 0.13, { color: 0xf4f0e8, x: -f * (-0.24 + i * 0.12), z: 0.52, y: G, ...DET });
   if (L >= 4) sk.tree(rc, -f * 0.56, 0.42, 0.85);
   if (L >= 5) sk.lamp(rc, f * 0.2, 0.6, 0.24);
-  if (fits(rc, 10)) hedge(b, 0, -0.66, 0.9, 0.05, shade(p.green, 0.85), 0.09);
+  sk.fence(rc, 0, -0.66, 0.9);
 });
 
 export const estate = factory((rc) => {
@@ -174,7 +174,7 @@ export const estate = factory((rc) => {
   if (fits(rc, 10)) b.cyl(0.012, 0.018, 0.1, { color: 0xe8e4dc, seg: 4, z: 0.34, y: G + 0.05, ...DET });
   for (const s of [-1, 1]) {
     sk.tree(rc, s * 0.36, 0.42, 0.9);
-    if (fits(rc, 10)) hedge(b, s * 0.5, 0.22, 0.22, 0.05, shade(p.green, 0.85));
+    sk.fence(rc, s * 0.5, 0.22, 0.22);
   }
   for (const s of [-1, 1]) sk.lamp(rc, s * 0.13, 0.62, 0.22);
   if (L >= 5) sk.tree(rc, 0.62, 0.0, 0.8);
@@ -224,10 +224,10 @@ export const terraceRow = factory((rc) => {
   for (let i = 0; i < n; i++) {
     const x = (i - (n - 1) / 2) * uw;
     if (fits(rc, 10)) b.box(0.03, 0.03, 0.02, { color: 0xffd890, mat: Mat.Light, x: x + 0.02, z: -0.2 + d / 2 + 0.01, y: FL, ...DET });
-    if (i > 0 && fits(rc, 10)) hedge(b, x - uw / 2, 0.38, 0.03, 0.42, shade(p.green, 0.9));
+    if (i > 0) b.group({ x: x - uw / 2, z: 0.38, ry: Math.PI / 2 }, () => sk.fence(rc, 0, 0, 0.42));
     if (L >= 2) sk.shrub(rc, x + 0.06, 0.3, 0.9);
   }
-  if (fits(rc, 10)) hedge(b, 0, 0.62, 1.1, 0.04, shade(p.green, 0.85), 0.06);
+  sk.fence(rc, 0, 0.62, 1.1);
   if (L >= 3) sk.tree(rc, -0.6, 0.2, 0.8);
 });
 
@@ -280,7 +280,7 @@ export const courtyard = factory((rc) => {
   b.group({ z: -0.25 }, () => sk.balconies(rc, { w: 0.46, y0: FL, y1: h - FL, every: 1, cols: 2 }));
   sk.tree(rc, 0.14, -0.14, 0.75);
   if (L >= 3) sk.shrub(rc, 0.12, 0.34, 1);
-  if (fits(rc, 10)) hedge(b, 0, 0.66, 0.5, 0.04, shade(p.green, 0.85));
+  sk.fence(rc, 0, 0.66, 0.5);
 });
 
 export const midrise = factory((rc) => {

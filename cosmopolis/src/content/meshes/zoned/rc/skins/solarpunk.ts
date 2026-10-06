@@ -30,6 +30,12 @@ export class SolarpunkSkin extends Skin {
     return p;
   }
 
+  protected override drawFence(rc: RC, x: number, z: number, w: number): void {
+    const { b, p } = rc;
+    b.box(w, 0.025, 0.02, { color: TIMBER, x, z, y: G + 0.04, ...DET, paint: true });
+    b.box(w * 0.94, 0.05, 0.04, { color: p.green, x, z, y: G, top: p.green2, ...DET });
+  }
+
   override outline(): V2[] | null {
     return null;
   }
@@ -139,7 +145,7 @@ export class SolarpunkSkin extends Skin {
   }
 
   override roof(rc: RC, o: RoofOpts): void {
-    const { b, p } = rc;
+    const { b } = rc;
     const x = o.x ?? 0, z = o.z ?? 0, y = o.y;
     if (o.kind === 'pitched') {
       b.group({ x, z }, () => this.greenGable(rc, o.w, Math.min(o.w, o.d) * 0.36, o.d, y, o.d > o.w * 1.2 ? 'front' : 'gable'));

@@ -25,6 +25,13 @@ export class ClassicSkin extends Skin {
     return p;
   }
 
+  protected override drawFence(rc: RC, x: number, z: number, w: number): void {
+    // white picket fence: rail + pickets suggested by a post at each end
+    const { b } = rc;
+    b.box(w, 0.06, 0.012, { color: 0xf6f4ee, x, z, y: G, ...DET });
+    b.box(0.02, 0.08, 0.02, { color: 0xffffff, x: x - w / 2, z, y: G, ...DET });
+  }
+
   override outline(): V2[] | null {
     return null;
   }

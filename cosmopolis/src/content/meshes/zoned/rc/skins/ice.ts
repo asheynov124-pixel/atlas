@@ -31,6 +31,10 @@ export class IceSkin extends Skin {
     return p;
   }
 
+  protected override drawFence(rc: RC, x: number, z: number, w: number): void {
+    rc.b.cyl(0.035, 0.035, w, { color: SNOW, seg: 4, arc: Math.PI, rz: Math.PI / 2, x: x + w / 2, z, y: G, ...DET, paint: true });
+  }
+
   override outline(_rc: RC, w: number, d: number): V2[] | null {
     return roundRect(w, d, Math.min(w, d) * 0.46, 2);
   }
