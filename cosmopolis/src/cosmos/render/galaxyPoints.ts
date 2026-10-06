@@ -231,7 +231,7 @@ export function buildGalaxyCloud(g: Galaxy, seed: number, R: number, count: numb
     dg.setAttribute('position', new BufferAttribute(dp, 3));
     dg.setAttribute('color', new BufferAttribute(dc, 3));
     dg.setAttribute('aSize', new BufferAttribute(ds, 1));
-    const dm = new ShaderMaterial({ vertexShader: VERT, fragmentShader: DUST_FRAG, uniforms: { ...uniforms, uMaxPx: { value: 34 }, uDust: { value: 0.2 } }, blending: NormalBlending, transparent: true, depthWrite: false });
+    const dm = new ShaderMaterial({ vertexShader: VERT, fragmentShader: DUST_FRAG, uniforms: { ...uniforms, uMaxPx: { value: 30 }, uDust: { value: 0.15 } }, blending: NormalBlending, transparent: true, depthWrite: false });
     dust = new Points(dg, dm);
     dust.frustumCulled = false;
     dust.renderOrder = 2;

@@ -31,7 +31,7 @@ import { notify, ui, type GoalView } from '../ui/store';
 import { game as liveGame } from '../game/instance';
 import { CATEGORY_INFO, GOALS, TIERS, TIER_NAMES as NAMES, TIER_POP as POPS, type GoalCtx, type GoalDef, type Reward } from './goals';
 import { ADDITIVE_KEYS, SIM_KEYS, TECHS, TECH_MAP, type TechDef } from './techs';
-import { findGalaxy, findPlanet, findSystem, idParts, type Galaxy, type PlanetEntry, type StarSystem } from './Universe';
+import { HOME_PLANET_ID as HOME_ID, findGalaxy, findPlanet, findSystem, idParts, type Galaxy, type PlanetEntry, type StarSystem } from './Universe';
 
 export const TIER_NAMES = NAMES;
 export const TIER_POP = POPS;
@@ -129,6 +129,14 @@ export class Progression implements System {
   private goalSig = '';
   private offs: (() => void)[] = [];
   private ctx: GoalCtx;
+  /** bumps whenever the tech bonus table is recomputed (drives the sim patch) */
+  private bonusVersion = 0;
+  /** the tech patch currently multiplied into the sim's city modifiers (see applySimTech) */
+  private simPatch: { obj: Record<string, unknown> | null; vals: Record<string, number>; version: number } = { obj: null, vals: {}, version: -1 };
+  /** construction refunds per building id (clawed back if the placement is undone) */
+  private buildRefunds = new Map<number, number>();
+  /** construction savings since the last monthly report */
+  private buildSavings = 0;
 
   constructor(private game: Game) {
     this.ctx = this.makeCtx();
@@ -154,6 +162,18 @@ export class Progression implements System {
       }),
       bus.on('planet:loaded', ({ planet }) => this.onLanded(planet.spec.id)),
       bus.on('sim:month', () => this.monthly()),
+      bus.on('building:added', ({ id }) => this.onBuilt(id)),
+      bus.on('building:removed', ({ id, cause }) => {
+        const r = this.buildRefunds.get(id);
+        if (r === undefined) return;
+        this.buildRefunds.delete(id);
+        // undo returns the full price, so the Nanofab discount goes back too
+        if (cause === 'undo' && !g.empire.sandbox) {
+          g.empire.s.money -= r;
+          this.buildSavings -= r;
+        }
+      }),
+      bus.on('planet:unloading', () => this.buildRefunds.clear()),
       bus.on('catalog:changed', () => (this.tagAvailVersion = -1)),
     );
   }
@@ -192,6 +212,11 @@ export class Progression implements System {
         this.evaluate();
       } catch (e) {
         console.error('[progression] evaluate failed', e);
+      }
+      try {
+        this.applySimTech();
+      } catch (e) {
+        console.error('[progression] tech patch failed', e);
       }
     }
     if (this.toastQueue.length && (this.toastTimer -= dt) <= 0) {
@@ -248,6 +273,53 @@ export class Progression implements System {
     if (def?.planetEnding) this.bump('cosmos.planetEnding');
   }
 
+  /** Construction discount tech (e.g. Nanofab): refund part of a ploppable's price right after it is placed. */
+  private onBuilt(id: number): void {
+    const g = this.game;
+    if (g.empire.sandbox) return;
+    const mult = this.techBonus('constructionCost');
+    if (mult >= 0.999) return;
+    const b = g.planet?.buildings.get(id);
+    const def = b ? getItem(b.defId) : undefined;
+    if (!def || def.growable || def.cost <= 0) return;
+    const refund = Math.round(def.cost * (1 - mult));
+    if (refund <= 0) return;
+    g.empire.earn(refund);
+    this.buildRefunds.set(id, refund);
+    this.buildSavings += refund;
+  }
+
+  /**
+   * Research effects on the city: multiply the tech modifiers into the sim's public city modifiers (cityMods) —
+   * re-applied whenever the sim rebuilds that object (policies, seasons, a new planet) or the techs change, and
+   * un-applied first when only the techs changed. A sim that merges `techMods()` itself sets `techModsMerged`.
+   */
+  private applySimTech(): void {
+    const sim = this.game.sim as unknown as { cityMods?: Record<string, unknown>; techModsMerged?: boolean } | undefined;
+    if (!sim || sim.techModsMerged) return;
+    const mods = sim.cityMods;
+    if (!mods || typeof mods !== 'object') return;
+    if (this.bonusDirty) this.recomputeBonus();
+    const p = this.simPatch;
+    if (mods === p.obj && p.version === this.bonusVersion) return;
+    if (mods === p.obj) {
+      for (const k in p.vals) {
+        const v = p.vals[k];
+        const cur = mods[k];
+        if (typeof cur !== 'number') continue;
+        if (ADDITIVE_KEYS.has(k)) mods[k] = cur - v;
+        else if (v !== 0) mods[k] = cur / v;
+      }
+    }
+    const vals = this.techMods();
+    for (const k in vals) {
+      const cur = mods[k];
+      if (typeof cur !== 'number') continue;
+      mods[k] = ADDITIVE_KEYS.has(k) ? cur + vals[k] : cur * vals[k];
+    }
+    this.simPatch = { obj: mods, vals, version: this.bonusVersion };
+  }
+
   private onSurvive(powerId: string): void {
     const pop = this.metric('population');
     if (!this.game.planet || pop <= 0) return;
@@ -301,6 +373,14 @@ export class Progression implements System {
     let total = this.metric('population');
     for (const c of Object.values(this.game.empire.s.colonies ?? {})) if (c && c.planetId !== cur) total += c.population || 0;
     return total;
+  }
+
+  /** citizens on every colony except the homeworld */
+  colonyPop(): number {
+    const cur = this.game.planet?.spec.id;
+    let n = cur && cur !== HOME_ID ? this.metric('population') : 0;
+    for (const c of Object.values(this.game.empire.s.colonies ?? {})) if (c && c.planetId !== cur && c.planetId !== HOME_ID) n += c.population || 0;
+    return n;
   }
 
   private systemIdOf(planetId: string): string | null {
@@ -379,6 +459,7 @@ export class Progression implements System {
       },
       metric: (id) => self.metric(id),
       totalPop: () => self.totalPop(),
+      colonyPop: () => self.colonyPop(),
       colonies: () => self.colonyIds().length,
       coloniesOfType: (t) => self.colonyIds().filter((id) => self.specOf(id)?.type === t && !(self.specOf(id)?.tags ?? []).includes('giant')).length,
       moonColonies: () => self.colonyIds().filter((id) => /\.m\d+$/.test(id) || (self.specOf(id)?.tags ?? []).includes('moon')).length,
@@ -639,6 +720,7 @@ export class Progression implements System {
       }
     }
     this.bonusDirty = false;
+    this.bonusVersion++;
   }
 
   /** Multiplier for a tech effect key (1 = none). Additive keys return 1 + sum. */
@@ -688,7 +770,10 @@ export class Progression implements System {
     research = Math.round(research);
     if (money > 0) g.empire.earn(money);
     if (research > 0) g.empire.s.research += research;
-    this.ext().lastDividend = { money, research, day: Math.floor(g.clock.day) };
+    // construction refunds were paid as they happened — report them with the dividends
+    const saved = Math.max(0, Math.round(this.buildSavings));
+    this.buildSavings = 0;
+    this.ext().lastDividend = { money: money + saved, research, day: Math.floor(g.clock.day) };
   }
 
   lastDividend(): { money: number; research: number; day: number } | null {
@@ -791,12 +876,15 @@ export class Progression implements System {
     e.s.tier = n;
     e.unlock('tier:' + n);
     this.grant(t.reward);
-    const newItems = allItems().filter((d) => d.tier === n && !d.hidden && !d.growable).length;
+    const fresh = allItems().filter((d) => d.tier === n && !d.hidden && !d.growable);
+    // headline the most impressive new blueprints (priciest first)
+    const stars = [...fresh].sort((a, b) => b.cost - a.cost).slice(0, 3).map((d) => d.name);
     const mult = this.techBonus('goalRewards');
-    const parts = [rewardText(t.reward, mult), newItems ? `${newItems} new blueprints` : ''].filter(Boolean).join(' · ');
+    const parts = [rewardText(t.reward, mult), fresh.length ? `${fresh.length} new blueprints` : ''].filter(Boolean).join(' · ');
     ui.tier.value = n;
     bus.emit('unlock', { kind: 'tier', id: 'tier:' + n });
     notify({ title: `${t.name}!`, body: `${t.opens}${parts ? ' ' + parts : ''}`, kind: 'milestone', icon: 'crown' });
+    if (stars.length) this.toastQueue.push({ title: 'New blueprints in the Build menu', body: `${stars.join(', ')}${fresh.length > stars.length ? ` and ${fresh.length - stars.length} more` : ''}.`, icon: 'build', kind: 'info' });
     this.bonusDirty = true;
     this.evalTimer = 1.2;
   }

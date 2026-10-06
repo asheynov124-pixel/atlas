@@ -81,9 +81,10 @@ ${NOISE}
 void main() {
   vec2 d = vUv - 0.5;
   float r = length(d) * 2.0;
-  float n = fbm3(vec3(d * 3.2, uSeed + uTime * 0.01)) * 0.5 + 0.5;
-  float a = smoothstep(1.0, 0.1, r) * smoothstep(0.35, 0.8, n);
-  gl_FragColor = vec4(uColor * a * 0.55, 1.0);
+  float n = fbm3(vec3(d * 2.4, uSeed + uTime * 0.008)) * 0.5 + 0.5;
+  float fall = 1.0 - smoothstep(0.0, 1.0, r);
+  float a = fall * fall * (0.35 + 0.65 * smoothstep(0.3, 0.85, n));
+  gl_FragColor = vec4(uColor * a * 0.32, 1.0);
   ${OUTPUT}
 }
 `;
@@ -201,10 +202,15 @@ export class GalaxyView extends CosmosView {
   protected tick(dt: number): void {
     this.disc.rotation.y += dt * this.spin;
     this.disc.updateMatrixWorld();
-    this.galaxy.systems.forEach((s, i) => this.systemPos[i].set(s.pos[0], s.pos[1], s.pos[2]).applyMatrix4(this.disc.matrixWorld));
+    const systems = this.galaxy.systems;
+    let idx = -1;
+    for (let i = 0; i < systems.length; i++) {
+      const sp = systems[i].pos;
+      this.systemPos[i].set(sp[0], sp[1], sp[2]).applyMatrix4(this.disc.matrixWorld);
+      if (systems[i].id === this.focusId) idx = i;
+    }
     this.sky.update(this.camera, this.time);
     setCloudScale(this.cloud, this.height, this.camera.fov, this.ctx.pixelRatio);
-    const idx = this.focusId ? this.galaxy.systems.findIndex((s) => s.id === this.focusId) : -1;
     const target = idx >= 0 ? this.systemPos[idx] : ZERO;
     this.flyT = Math.min(1, this.flyT + dt / 1.0);
     const k = 1 - Math.pow(1 - this.flyT, 3);

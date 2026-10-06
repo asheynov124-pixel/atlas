@@ -91,9 +91,9 @@ export class UniverseView extends CosmosView {
       group.rotation.set(g.tilt, (g.pos[0] * 0.013) % 6.28, g.tilt * 0.3);
       const spin = new Group();
       group.add(spin);
-      const cloud = buildGalaxyCloud(g, ctx.seed ^ g.id.charCodeAt(1) * 7919, GAL_R, ctx.lowPower ? 5000 : 8500, ctx.pixelRatio, { dust: false, brightness: 0.9, maxPx: 10 });
+      const cloud = buildGalaxyCloud(g, ctx.seed ^ g.id.charCodeAt(1) * 7919, GAL_R, ctx.lowPower ? 7000 : 12000, ctx.pixelRatio, { dust: false, brightness: 1.25, maxPx: 7 });
       spin.add(cloud.stars);
-      const coreMat = new ShaderMaterial({ vertexShader: BILLBOARD_VERT, fragmentShader: CORE_FRAG, uniforms: { uColor: { value: new Color(g.colors[0]).lerp(new Color(0xffffff), 0.3) }, uIntensity: { value: 0.9 }, uScale: { value: GAL_R * (g.kind === 'elliptical' ? 1.3 : 0.7) } }, blending: AdditiveBlending, transparent: true, depthWrite: false });
+      const coreMat = new ShaderMaterial({ vertexShader: BILLBOARD_VERT, fragmentShader: CORE_FRAG, uniforms: { uColor: { value: new Color(g.colors[0]).lerp(new Color(0xffffff), 0.3) }, uIntensity: { value: 0.55 }, uScale: { value: GAL_R * (g.kind === 'elliptical' ? 1.2 : 0.6) } }, blending: AdditiveBlending, transparent: true, depthWrite: false });
       const core = new Mesh(planeGeo(), coreMat);
       core.frustumCulled = false;
       group.add(core);
@@ -158,8 +158,8 @@ export class UniverseView extends CosmosView {
       r.state = this.ctx.galaxyState(r.g);
       const locked = r.state === 'locked';
       const u = (r.cloud.stars.material as ShaderMaterial).uniforms;
-      u.uAlpha.value = locked ? 0.32 : 1;
-      r.coreMat.uniforms.uIntensity.value = locked ? 0.3 : 0.9;
+      u.uAlpha.value = locked ? 0.5 : 1;
+      r.coreMat.uniforms.uIntensity.value = locked ? 0.22 : 0.55;
       labels.push({ id: r.g.id, name: r.g.name, sub: this.ctx.galaxySub(r.g), state: r.state, kind: 'galaxy', priority: r.state === 'current' ? 0 : 1 });
       this.labelPos.push(r.pos);
     }
@@ -173,7 +173,8 @@ export class UniverseView extends CosmosView {
     const k = this.height / (2 * Math.tan((this.camera.fov * Math.PI) / 360));
     for (const r of this.gals) setCloudScale(r.cloud, this.height, this.camera.fov, this.ctx.pixelRatio);
     this.webMat.uniforms.uK.value = k;
-    const target = this.focusId ? this.gals.find((r) => r.g.id === this.focusId)?.pos ?? this.zero : this.zero;
+    let target = this.zero;
+    if (this.focusId) for (const r of this.gals) if (r.g.id === this.focusId) target = r.pos;
     this.flyT = Math.min(1, this.flyT + dt / 1.1);
     const e = 1 - Math.pow(1 - this.flyT, 3);
     this.cam.goalTarget.copy(target);

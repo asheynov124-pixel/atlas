@@ -14,6 +14,8 @@ export interface GoalCtx {
   metric(id: string): number;
   /** total population across every colony */
   totalPop(): number;
+  /** population of every colony except the homeworld */
+  colonyPop(): number;
   /** colonies founded (incl. the homeworld) */
   colonies(): number;
   coloniesOfType(t: PlanetTypeId): number;
@@ -109,8 +111,8 @@ export const TIERS: TierDef[] = [
     pop: 5_000,
     blurb: 'Big enough to dream about the moon.',
     reward: { money: 50_000, research: 250 },
-    signature: { id: 'sig.parks', title: 'Civic pride', description: 'Build at least 3 parks or leisure spots.', icon: 'park', measure: (c) => [c.metric('parks'), 3], unit: 'parks' },
-    opens: 'High density, spaceports — and your moon, Selene.',
+    signature: { id: 'sig.spaceport', title: 'Ground control', description: 'Build a spaceport — the moon will not colonise itself.', icon: 'rocket', measure: (c) => [c.tagCount('spaceport'), 1], unit: 'spaceport', tag: 'spaceport' },
+    opens: 'High density, orbital launches — and your moon, Selene.',
   },
   {
     tier: 4,
@@ -127,7 +129,7 @@ export const TIERS: TierDef[] = [
     pop: 25_000,
     blurb: 'Traffic now has its own weather system.',
     reward: { money: 200_000, research: 700 },
-    signature: { id: 'sig.spaceports', title: 'Space lanes', description: 'Operate 2 spaceports across your empire.', icon: 'rocket', measure: (c) => [c.tagCount('spaceport'), 2], unit: 'spaceports', tag: 'spaceport' },
+    signature: { id: 'sig.colonypop', title: 'Second homes', description: 'Grow your off-world colonies to 2 500 citizens in total.', icon: 'planet', measure: (c) => [c.colonyPop(), 2_500], unit: 'colonists' },
     opens: 'The moons of Titanus — Ignis and Thalassa — and orbital industry.',
   },
   {

@@ -69,6 +69,9 @@ export abstract class CosmosView implements View {
   private lf = new Float32Array(0);
   private lorder: number[] = [];
   private lorderKey = '';
+  private lorderN = -1;
+  private lorderSel: string | null = null;
+  private lorderFocus: string | null = null;
 
   constructor(fov: number, near: number, far: number) {
     this.baseFov = fov;
@@ -97,6 +100,7 @@ export abstract class CosmosView implements View {
 
   /** Re-send labels (after data changes, or when the UI mounts late). */
   refreshLabels(): void {
+    this.lorderKey = '';
     if (this.active) labelHost.sink?.setLabels(this.labels, this.selected);
   }
 
@@ -172,9 +176,11 @@ export abstract class CosmosView implements View {
       this.lf[i] = this.labelFade(i, d);
     }
     // declutter: most important first, later labels that collide with a placed one are hidden
-    const key = `${n}|${this.selected}|${this.focusId}`;
-    if (key !== this.lorderKey) {
-      this.lorderKey = key;
+    if (this.lorderN !== n || this.lorderSel !== this.selected || this.lorderFocus !== this.focusId || this.lorderKey !== 'ok') {
+      this.lorderKey = 'ok';
+      this.lorderN = n;
+      this.lorderSel = this.selected;
+      this.lorderFocus = this.focusId;
       const rank = (i: number) => {
         const l = this.labels[i];
         if (l.id === this.selected) return -3;

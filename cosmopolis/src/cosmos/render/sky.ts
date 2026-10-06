@@ -93,7 +93,7 @@ export function makeStarfield(seed: number, count: number, radius: number, pixel
 const nebulaCache = new Map<string, CanvasTexture>();
 
 /** Bake (or fetch) an equirect nebula texture. colors: [primary, secondary, dust]. */
-export function nebulaTexture(seed: number, colors: [number, number, number], intensity = 1, w = 384, h = 192): CanvasTexture | null {
+export function nebulaTexture(seed: number, colors: [number, number, number], intensity = 1, w = 288, h = 144): CanvasTexture | null {
   const key = `${seed}|${colors.join(',')}|${intensity}|${w}`;
   const hit = nebulaCache.get(key);
   if (hit) return hit;
@@ -145,6 +145,12 @@ export function nebulaTexture(seed: number, colors: [number, number, number], in
   tex.magFilter = LinearFilter;
   tex.generateMipmaps = false;
   nebulaCache.set(key, tex);
+  // keep the GPU footprint bounded: every star system has its own sky, so evict the oldest bakes
+  if (nebulaCache.size > 8) {
+    const oldest = nebulaCache.keys().next().value as string;
+    nebulaCache.get(oldest)?.dispose();
+    nebulaCache.delete(oldest);
+  }
   return tex;
 }
 

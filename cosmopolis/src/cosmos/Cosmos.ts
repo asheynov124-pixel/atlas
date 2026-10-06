@@ -176,6 +176,9 @@ export class Cosmos implements System {
     this.galaxies = buildUniverse(this.seed);
     this.custom.clear();
     this.forged.clear();
+    // views built for the previous universe (another save) must not be reused
+    this.disposeViews(null);
+    this.planetPose = null;
     const ext = this.ext();
     for (const spec of (ext.forged ?? []) as PlanetSpec[]) if (spec && spec.id) this.addForged(spec, (ext.forgedSystems ?? {})[spec.id]);
   }
@@ -453,13 +456,14 @@ export class Cosmos implements System {
         if (!v) return;
         const planetFocus = focusId && v.bodies.has(focusId) ? focusId : fromPlanet && v.bodies.has(cur) ? cur : null;
         if (fromPlanet && planetFocus === cur) {
-          // start tight on the current world, then pull back to reveal the system
+          // start tight on the current world, then pull back to reveal its moons and orbit ("you are here" is
+          // labelled; the card opens on tap so the first look at the system is unobstructed)
           v.focus(cur, true);
           const size = v.bodies.get(cur)!.entry.size;
           v.cam.dist = size * 2.1;
           v.cam.goalDist = size * 6.5 + 2;
-          v.select(cur);
-          cx.selected.value = { kind: 'planet', id: cur };
+          v.select(null);
+          cx.selected.value = null;
         } else if (planetFocus) {
           v.focus(planetFocus, false);
           v.select(planetFocus);
@@ -505,8 +509,13 @@ export class Cosmos implements System {
         const v = this.makeUniverseView();
         const gid = (focusId && this.galaxyOf(focusId)?.id) || cx.galaxyId.value || this.galaxyOf(cur)?.id || 'g0';
         v.refreshStates();
-        v.focus(gid, prevLevel !== 'universe');
-        if (prevLevel === 'galaxy') v.cam.dist = 90;
+        if (prevLevel === 'universe') v.focus(null, false);
+        else {
+          // start at the galaxy we came from, then pull back until all six are in view
+          v.focus(gid, true);
+          v.cam.dist = prevLevel === 'galaxy' ? 90 : 160;
+          v.focus(null, false);
+        }
         // the big picture: frame where you came from, cards open on tap
         v.select(null);
         cx.selected.value = null;
