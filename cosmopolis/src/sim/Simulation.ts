@@ -54,11 +54,11 @@ import { Growth, roadFacing } from './growth';
 import { Hazards, resistanceAt } from './hazards';
 import { SV_DATA, SV_GARBAGE, SV_OXYGEN, SV_POWER, SV_WATER, updateRec } from './buildings';
 import { computeDemand, type Fam } from './demand';
-import { computeReport, departmentUpkeep, invalidateEconomyCache, loanOffers, payLoans, annuity, LENDERS, type EconomyContext } from './economy';
+import { computeReport, departmentUpkeep, invalidateEconomyCache, loanOffers, payLoans, annuity, LENDERS, INCOME_LABELS, EXPENSE_LABELS, type EconomyContext } from './economy';
 import { makeLenses } from './lenses';
 import { inspectBuilding, inspectTile } from './inspect';
 import { SimRng, hash01 } from './rng';
-import { CHARACTERS, line, randomPersona, type Persona } from './chatter';
+import { CHARACTERS, citizenJob, line, randomPersona, residentQuote, type Persona } from './chatter';
 import { CITY_EVENTS } from './cityEvents';
 
 export interface LensDef {
@@ -91,7 +91,7 @@ export { DEPARTMENTS, PROBLEM_INFO };
 const HISTORY_MAX = 240;
 const SAVE_VERSION = 1;
 /** max ms of field-pass work per frame */
-const FIELD_BUDGET_MS = 1.4;
+const FIELD_BUDGET_MS = 1.0;
 
 interface SavedState {
   v: number;
@@ -133,6 +133,9 @@ export class Simulation implements System {
   taxes = { R: DEFAULT_TAX, C: DEFAULT_TAX, I: DEFAULT_TAX, O: DEFAULT_TAX };
   budget: Record<string, number> = defaultBudget();
   readonly departments = DEPARTMENTS;
+  /** display names for MonthReport.income / .expenses keys (budget panel) */
+  readonly incomeLabels = INCOME_LABELS;
+  readonly expenseLabels = EXPENSE_LABELS;
   lastMonth: MonthReport | null = null;
   loans: Loan[] = [];
   rules: SandboxRules = { freeUtilities: false, noAbandon: false, fastGrowth: false, maxDemand: false };
@@ -202,6 +205,7 @@ export class Simulation implements System {
   private lastAbandonNotice = -999;
   private abandonedToday = 0;
   private catVer = -1;
+  private fieldsRestored = false;
   private realNotes = new Map<string, number>();
 
   constructor(private game: Game) {
@@ -274,6 +278,7 @@ export class Simulation implements System {
     this.nets.rebuild();
     this.hazards.scanAll();
     this.fields.computeLvBase();
+    this.fieldsRestored = false;
     if (state?.fields) this.restoreFields(state.fields);
     this.settle();
     this.liveRef = { toJSON: () => this.serialize() };
@@ -344,8 +349,8 @@ export class Simulation implements System {
         this.fields!.roadsDirty = true;
         this.fieldsDirty = true;
       }),
-      bus.on('tiles:terrain', () => {
-        this.fields!.lvBaseDirty = true;
+      bus.on('tiles:terrain', ({ tiles }) => {
+        this.fields!.terrainChanged(tiles);
         this.growth!.dirty = true;
       }),
       bus.on('planet:sea', () => {
@@ -545,6 +550,9 @@ export class Simulation implements System {
         this.cursor = 0;
       }
     }
+    // stay locked to the global calendar (months are shared by every colony)
+    const cal = Math.floor(this.game.clock?.day ?? this.day);
+    if (cal > this.day) this.day = cal;
   }
 
   private swapAgg(): void {
@@ -660,7 +668,7 @@ export class Simulation implements System {
     if (this.day % 30 === 0) this.monthEnd();
     else if (this.day % 5 === 0) this.projected = this.report(false);
     // 8. fields cadence
-    if (this.fieldJob && this.day - this.fieldJobDay >= 3) this.flushFields(false);
+    if (this.fieldJob && this.day - this.fieldJobDay >= 8) this.flushFields(false);
     if (!this.fieldJob && (this.fieldsDirty || this.day >= this.nextFieldDay)) this.startFieldJob();
     // 9. voice of the people
     this.dailyChatter();
@@ -731,6 +739,7 @@ export class Simulation implements System {
       };
     }
     const c = this.ctx;
+    c.freeze = this.settling && this.fieldsRestored;
     c.planet = this.planet!;
     c.recs = this.recs;
     c.budget = this.budget;
@@ -742,7 +751,9 @@ export class Simulation implements System {
   private startFieldJob(): void {
     this.fieldJob = this.fields!.pass(this.fieldCtx());
     this.fieldJobDay = this.day;
-    this.nextFieldDay = this.day + 3;
+    // fields drift slowly: refresh every 3 sim days, stretched at high speed so it stays ~2 passes per second
+    const speed = this.game.clock?.speed ?? 1;
+    this.nextFieldDay = this.day + (speed >= 4 ? 6 : speed >= 3 ? 4 : 3);
     this.fieldsDirty = false;
   }
 
@@ -774,6 +785,7 @@ export class Simulation implements System {
       const def = CITY_EVENTS.find((x) => x.id === e.id);
       if (def) applyPatch(this.eventMods, def.mods);
     }
+    if (this.fields) this.fields.fullNext = true;
   }
 
   isPolicyOn(id: string, district = 0): boolean {
@@ -1211,6 +1223,29 @@ export class Simulation implements System {
     return out;
   }
 
+  /**
+   * A random citizen of this city, for "meet the citizens" moments: name, age, job, home, mood and a quote
+   * that reflects their building's real situation.
+   */
+  citizenSpotlight(): { name: string; age: number; job: string; buildingId: number; tile: number; mood: number; quote: string; icon: string } | null {
+    const homes = this.recs.filter((r) => r.residents > 0);
+    if (!homes.length) return null;
+    const r = homes[Math.floor(this.rng.next() * homes.length)];
+    const rng = new SimRng(r.id * 31 + this.day);
+    const first = PROBLEM_INFO.find((x) => r.problems & x.bit);
+    const persona = randomPersona(rng);
+    return {
+      name: persona.author,
+      age: 18 + Math.floor(rng.next() * 70),
+      job: citizenJob(rng),
+      buildingId: r.id,
+      tile: r.b.tile,
+      mood: Math.round(r.happiness),
+      quote: residentQuote(rng, r.happiness, first?.id ?? null, { city: this.planet?.city.name ?? 'the city' }),
+      icon: persona.icon,
+    };
+  }
+
   // ───────────────────────────── inspect & colonies
 
   inspectBuilding(id: number): InspectRow[] {
@@ -1514,6 +1549,8 @@ export class Simulation implements System {
     dec(fs.lv, f.landValue, 100);
     dec(fs.crime, f.crime, 100);
     dec(fs.noise, f.noise, 100);
+    f.snapNext = false;
+    this.fieldsRestored = true;
   }
 
   /** Plain JSON snapshot of everything the sim needs to resume exactly. */

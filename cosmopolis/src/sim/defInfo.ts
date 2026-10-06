@@ -31,8 +31,16 @@ export interface DefInfo {
   powerUse: number;
   waterUse: number;
   oxygenUse: number;
+  /** ploppables: residents housed / job slots */
   housing: number;
   jobs: number;
+  /** growables: level the def's effects describe (middle of its range) */
+  typLevel: number;
+  /** growables: size relative to the zone's standard lot (from effects.housing / jobs), 0.35..3 */
+  sizeMul: number;
+  /** growables: mixed use — homes above shops / shops in towers, at the typical level */
+  extraHousing: number;
+  extraJobs: number;
   coverage: Coverage[];
   pollution: number;
   noise: number;
@@ -168,6 +176,24 @@ function deptFor(def: ItemDef): DeptId | null {
   return null;
 }
 
+/** Size multiplier + mixed-use extras for a growable, relative to the sim's per-zone tables. */
+function growSize(def: ItemDef, zone: Zone, family: ZoneFamily | null): { typLevel: number; sizeMul: number; extraHousing: number; extraJobs: number } {
+  const zp = ZONE_PARAMS[zone];
+  if (!def.growable || !zp) return { typLevel: 1, sizeMul: 1, extraHousing: 0, extraJobs: 0 };
+  const e = def.effects ?? {};
+  const lo = Math.max(1, def.growable.minLevel ?? 1), hi = Math.min(5, def.growable.maxLevel ?? 5);
+  const typLevel = Math.round((lo + hi) / 2);
+  const primary = family === 'R' ? e.housing : e.jobs;
+  const base = zp.capacity[typLevel - 1] * (def.footprint === 1 ? 1 : def.footprint === 7 ? 6.3 : 16);
+  const sizeMul = primary && primary > 0 ? Math.max(0.35, Math.min(3, primary / base)) : 1;
+  return {
+    typLevel,
+    sizeMul,
+    extraHousing: family !== 'R' && (e.housing ?? 0) > 0 ? e.housing! : 0,
+    extraJobs: family === 'R' && (e.jobs ?? 0) > 0 ? e.jobs! : 0,
+  };
+}
+
 function build(def: ItemDef): DefInfo {
   const e = def.effects ?? {};
   const tags = def.tags ?? [];
@@ -200,6 +226,7 @@ function build(def: ItemDef): DefInfo {
     oxygenUse: def.growable ? 0 : neg(e.oxygen),
     housing: def.growable ? 0 : pos(e.housing),
     jobs: def.growable ? 0 : pos(e.jobs),
+    ...growSize(def, zone, family),
     coverage: def.coverage ?? [],
     pollution: e.pollution ?? 0,
     noise: e.noise ?? 0,

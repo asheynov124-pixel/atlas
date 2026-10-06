@@ -140,14 +140,15 @@ export function updateRec(sim: Simulation, r: BRec): void {
   const lvl = Math.max(1, Math.min(5, b.level)) - 1;
   const fpMul = footprintMul(b.tiles.length);
   const fam = info.fam;
-  const isHome = fam === 0 || info.housing > 0;
+  const isHome = fam === 0 || info.housing > 0 || info.extraHousing > 0;
 
   // consumption
   const evPower = sim.eventMods.powerUse, evWater = sim.eventMods.waterUse;
   let powerUse = 0, waterUse = 0;
   if (zp) {
-    powerUse = zp.power[lvl] * fpMul * mods.powerUse * evPower;
-    waterUse = zp.power[lvl] * fpMul * WATER_PER_POWER * mods.waterUse * evWater;
+    const size = fpMul * info.sizeMul;
+    powerUse = zp.power[lvl] * size * mods.powerUse * evPower;
+    waterUse = zp.power[lvl] * size * WATER_PER_POWER * mods.waterUse * evWater;
   } else if (info.consumer) {
     powerUse = info.powerUse * mods.powerUse * evPower;
     waterUse = info.waterUse * mods.waterUse * evWater;
@@ -226,48 +227,57 @@ export function updateRec(sim: Simulation, r: BRec): void {
   if (flags & TileFlag.Goo) pr |= P.Goo;
   if (frozen) pr |= P.Frozen;
 
-  // ── occupancy
-  const capBase = zp ? zp.capacity[lvl] * fpMul * (fam === 2 ? mods.industryJobs : 1) : isHome ? info.housing : info.jobs;
-  r.capacity = Math.round(capBase);
+  // ── occupancy: homes (residents) and / or workplaces (jobs); growables scale with level and type size
   const powered = (served & SV_POWER) !== 0;
   const watered = (served & SV_WATER) !== 0;
   const breathing = (served & SV_OXYGEN) !== 0;
+  let homeCap = 0, jobCap = 0, jobIdx = 4;
+  if (zp) {
+    const lvlRatio = zp.capacity[lvl] / zp.capacity[info.typLevel - 1];
+    const cap = zp.capacity[lvl] * fpMul * info.sizeMul;
+    if (fam === 0) {
+      homeCap = cap;
+      jobCap = info.extraJobs * lvlRatio;
+      jobIdx = 1;
+    } else {
+      jobCap = cap * (fam === 2 ? mods.industryJobs : 1);
+      homeCap = info.extraHousing * lvlRatio;
+      jobIdx = fam;
+    }
+  } else {
+    homeCap = info.housing;
+    jobCap = info.jobs;
+  }
+  homeCap = Math.round(homeCap);
+  jobCap = Math.round(jobCap);
+  r.capacity = fam === 0 || (!zp && homeCap > 0) ? homeCap : jobCap;
   let residents = 0, workers = 0;
-  if (isHome) {
-    const housing = isHome && zp ? r.capacity : info.housing;
-    let target = housing * (powered ? 1 : 0.55) * (watered ? 1 : 0.7) * (breathing ? 1 : 0.3) * (r.happiness < 25 ? 0.8 : 1);
+  if (homeCap > 0) {
+    let target = homeCap * (powered ? 1 : 0.55) * (watered ? 1 : 0.7) * (breathing ? 1 : 0.3) * (r.happiness < 25 ? 0.8 : 1);
     if (pr & (P.Radiation | P.Goo | P.Flood | P.Fire)) target *= 0.3;
     if (sim.demand.R < -0.45) target *= 0.92;
-    residents = r.residents;
+    residents = Math.min(r.residents, homeCap);
     if (sim.settling) {
       /* keep the saved occupancy */
     } else if (residents < target) {
       const rate = sim.demand.R > -0.2 ? 1 : 0.3;
-      residents = Math.min(target, residents + Math.max(1, housing * 0.12) * rate * (sim.rules.fastGrowth ? 3 : 1));
+      residents = Math.min(target, residents + Math.max(1, homeCap * 0.12) * rate * (sim.rules.fastGrowth ? 3 : 1));
     } else residents -= Math.ceil((residents - target) * 0.25);
     residents = Math.max(0, Math.round(residents));
-    r.residents = residents;
-    // second job slots for ploppable mixed-use (arcologies with jobs)
-    if (info.jobs > 0) {
-      workers = Math.round(info.jobs * sim.fill[4]);
-      acc.jobs[4] += info.jobs;
-    }
-  } else {
-    r.residents = 0;
-    const fillIdx = fam >= 1 ? fam : 4;
-    const jobs = r.capacity;
-    if (jobs > 0) {
-      const needE1 = zp ? zp.eduNeed[0] : 0.15, needE2 = zp ? zp.eduNeed[1] : 0.05;
-      acc.jobs[fillIdx] += jobs;
-      acc.jobsE1[fillIdx] += jobs * needE1;
-      acc.jobsE2[fillIdx] += jobs * needE2;
-      workers = Math.round(jobs * sim.fill[fillIdx] * (powered ? 1 : 0.6) * (frozen || burning ? 0.3 : 1));
-    }
+  }
+  r.residents = residents;
+  if (jobCap > 0) {
+    const needE1 = zp ? zp.eduNeed[0] : 0.15, needE2 = zp ? zp.eduNeed[1] : 0.05;
+    acc.jobs[jobIdx] += jobCap;
+    acc.jobsE1[jobIdx] += jobCap * needE1;
+    acc.jobsE2[jobIdx] += jobCap * needE2;
+    workers = Math.round(jobCap * sim.fill[jobIdx] * (powered ? 1 : 0.6) * (frozen || burning ? 0.3 : 1));
   }
   r.workers = workers;
   const occ = residents + workers;
-  if (b.occupants !== (isHome ? residents : workers)) b.occupants = isHome ? residents : workers;
-  if (b.jobs !== (isHome ? info.jobs : r.capacity)) b.jobs = isHome ? info.jobs : r.capacity;
+  const occShown = homeCap > 0 ? residents : workers;
+  if (b.occupants !== occShown) b.occupants = occShown;
+  if (b.jobs !== jobCap) b.jobs = jobCap;
 
   // per-tile people (crime density, coverage capacity) — spread over the footprint
   const tiles = b.tiles;
@@ -286,7 +296,7 @@ export function updateRec(sim: Simulation, r: BRec): void {
   }
   if (crime > 45) pr |= P.Crime;
   if (fam === 1 && sim.custFactor < 0.55) pr |= P.NoCustomers;
-  if (!isHome && r.capacity > 0 && sim.fill[fam >= 1 ? fam : 4] < 0.6) pr |= P.NoWorkers;
+  if (jobCap > 0 && fam !== 0 && sim.fill[jobIdx] < 0.6) pr |= P.NoWorkers;
   if ((fam === 3 || (zp && zp.eduNeed[0] > 0.4)) && sim.skillFill < 0.6) pr |= P.NoEducated;
   if (fam >= 0 && sim.taxRate(fam) > 0.16) pr |= P.Taxes;
   if (r.roadVer !== sim.roadVersion) refreshRoad(sim, r);
@@ -311,27 +321,27 @@ export function updateRec(sim: Simulation, r: BRec): void {
     acc.eduRes[1] += residents * fEd;
     acc.eduRes[2] += residents * fHi;
     acc.population += residents;
-    acc.housingCap += r.capacity;
+    acc.housingCap += homeCap;
     const health = healthOf(sim, r, pr, mods);
     acc.healthSum += health * residents;
     acc.healthW += residents;
     acc.eduSum += e * residents;
     acc.eduW += residents;
-    acc.happySum += r.happiness * residents;
-    acc.happyW += residents;
+    acc.happySum += r.happiness * (residents + workers * 0.5);
+    acc.happyW += residents + workers * 0.5;
   } else {
     r.edu = sim.workerEdu;
     acc.happySum += r.happiness * workers * 0.5;
     acc.happyW += workers * 0.5;
   }
-  acc.workers[fam >= 1 ? fam : 4] += workers;
+  acc.workers[jobIdx] += workers;
   if (fam === 0 || fam === 1 || fam === 2 || fam === 3) acc.zoneBuildings[info.zone]++;
   acc.growables += info.growable ? 1 : 0;
 
   // ── tourism & research
   let visitors = 0;
-  if (zp) visitors += zp.tourism[lvl] * fpMul;
-  visitors += info.tourism;
+  if (zp) visitors += (info.tourism > 0 ? info.tourism * (zp.capacity[lvl] / zp.capacity[info.typLevel - 1]) : zp.tourism[lvl]) * fpMul;
+  else visitors += info.tourism;
   if (visitors > 0) visitors *= mods.tourism * sim.eventMods.tourism * (0.5 + r.happiness / 100) * (powered ? 1 : 0.5);
   r.visitors = visitors;
   acc.visitors += visitors;
@@ -389,7 +399,7 @@ export function happinessTarget(sim: Simulation, r: BRec, pr: number, flags: num
   const f = sim.fields!;
   const t = r.b.tile;
   const info = r.info;
-  const isHome = info.fam === 0 || info.housing > 0;
+  const isHome = info.fam === 0 || info.housing > 0 || info.extraHousing > 0;
   const cov = f.cov;
   let h = 55;
   const svc = cov[S_POLICE][t] * 4 + cov[S_FIRE][t] * 4 + cov[S_HEALTH][t] * (isHome ? 5 : 2) + (isHome ? cov[S_EDU][t] * 4 : 0) + cov[S_LEISURE][t] * (isHome ? 6 : 3) + cov[S_TRANSIT][t] * 2 + cov[S_SPIRIT][t] * 2 + cov[S_DEATH][t];

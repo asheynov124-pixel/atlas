@@ -137,3 +137,27 @@ describe('sim growth', () => {
     expect(h.sim.getMetric('zonedTiles')).toBeGreaterThan(10);
   });
 });
+
+describe('sim growable sizes & mixed use', () => {
+  it('scales capacity by the def size and level, and houses people above shops', async () => {
+    const { registerItems } = await import('../src/content/catalog');
+    const { defInfo } = await import('../src/sim/defInfo');
+    registerItems([
+      { id: 't_villa', name: 'Villa', category: 'zones', description: '', footprint: 1, placement: 'surface', cost: 0, upkeep: 0, tier: 0, hidden: true, growable: { zone: Zone.ResLow, minLevel: 2, maxLevel: 4 }, effects: { housing: 26, landValue: 6 } },
+      { id: 't_shophouse', name: 'Shophouse', category: 'zones', description: '', footprint: 1, placement: 'surface', cost: 0, upkeep: 0, tier: 0, hidden: true, growable: { zone: Zone.ComLow, minLevel: 1, maxLevel: 3 }, effects: { jobs: 6, housing: 6 } },
+    ]);
+    const villa = defInfo('t_villa')!;
+    expect(villa.typLevel).toBe(3);
+    expect(villa.sizeMul).toBeCloseTo(2, 1);
+    const shop = defInfo('t_shophouse')!;
+    expect(shop.extraHousing).toBe(6);
+    const h = makeHarness({ mode: 'sandbox' });
+    layoutTown(h, 0);
+    const lot = h.planet.grid.ring(0, 3).find((t) => !h.planet.road[t] && h.planet.building[t] < 0 && h.planet.hasRoadAccess(t))!;
+    const b = h.ops.placeBuilding('t_shophouse', lot, 0, { level: 2 })!;
+    h.days(20);
+    const r = h.sim.recMap.get(b.id)!;
+    expect(r.residents).toBeGreaterThan(0);
+    expect(b.jobs).toBeGreaterThan(0);
+  });
+});

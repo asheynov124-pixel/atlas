@@ -30,6 +30,8 @@ export interface FieldContext {
   eduAvg: number;
   /** planet-wide coverage from orbitals per service (0..1) */
   orbitalCoverage: Float32Array;
+  /** keep the smoothed fields (pollution, noise, land value, crime) as they are — load-time settle of a save */
+  freeze?: boolean;
 }
 
 /** Share of residents that count against a service's capacity. */
@@ -122,6 +124,25 @@ export class Fields {
   ruinsReachable = 0;
 
   private stamps = new Map<number, Stamp>();
+  /** water mask (cached with the land-value base) */
+  private water: Uint8Array;
+  /**
+   * Active-tile tracking: only tiles touched by a stamp, a building, a road or a flag — plus tiles still
+   * decaying from earlier passes — are resolved. A small city on a big planet costs a small pass.
+   * mark: 0 idle · 1 touched this pass · 2 carried over from the previous pass.
+   */
+  private mark: Uint8Array;
+  private active: Int32Array;
+  private activeN = 0;
+  private carry: Int32Array;
+  private carryN = 0;
+  /** resolve every tile next pass (terrain, policies or orbital coverage changed) */
+  fullNext = true;
+  /** terrain edits waiting to be folded into the land-value base */
+  private pendingTerrain: number[] = [];
+  /** next full pass sets land value directly instead of easing toward it (fresh planets) */
+  snapNext = true;
+  private orbSum = -1;
   /** completed passes (for tests / staleness) */
   passes = 0;
   // published averages
@@ -161,6 +182,22 @@ export class Fields {
     this.src = f();
     this.loadA = f();
     this.loadB = f();
+    this.water = new Uint8Array(n);
+    this.mark = new Uint8Array(n);
+    this.active = new Int32Array(n);
+    this.carry = new Int32Array(n);
+  }
+
+  private markT(t: number): void {
+    if (this.mark[t] !== 1) {
+      if (this.mark[t] === 0) this.active[this.activeN++] = t;
+      this.mark[t] = 1;
+    }
+  }
+
+  private markStamp(st: Stamp): void {
+    const tiles = st.tiles;
+    for (let k = 0; k < tiles.length; k++) this.markT(tiles[k]);
   }
 
   /** Great-circle disc around `anchor` with `radius` tiles (cached). */
@@ -192,33 +229,74 @@ export class Fields {
 
   computeLvBase(): void {
     const p = this.planet;
-    const g = p.grid;
-    const base = this.lvBase;
     this.ruins = [];
     for (let t = 0; t < p.count; t++) {
       if (p.feature[t] === Feature.Ruins) this.ruins.push(t);
-      if (p.isWater(t)) {
-        base[t] = 0;
-        continue;
-      }
-      let v = 22;
-      const e = p.elevation[t] - p.seaOffset;
-      v += Math.min(10, Math.max(0, e - 1) * 1.1);
-      v += FEATURE_LV[p.feature[t]] ?? 0;
-      v += BIOME_LV[p.biome[t]] ?? 0;
-      let coast = false, greens = 0;
+      this.water[t] = p.isWater(t) ? 1 : 0;
+    }
+    for (let t = 0; t < p.count; t++) this.lvBase[t] = this.baseAt(t);
+    this.lvBaseDirty = false;
+    this.pendingTerrain.length = 0;
+    this.fullNext = true;
+  }
+
+  /** Terrain-only land value of one tile (needs `water` up to date for its neighbours). */
+  private baseAt(t: number): number {
+    const p = this.planet;
+    if (this.water[t]) return 0;
+    const g = p.grid;
+    let v = 22;
+    const e = p.elevation[t] - p.seaOffset;
+    v += Math.min(10, Math.max(0, e - 1) * 1.1);
+    v += FEATURE_LV[p.feature[t]] ?? 0;
+    v += BIOME_LV[p.biome[t]] ?? 0;
+    let coast = false, greens = 0;
+    for (let q = g.start[t]; q < g.start[t + 1]; q++) {
+      const nb = g.nbr[q];
+      if (this.water[nb]) coast = true;
+      const f = p.feature[nb];
+      if (f === Feature.Trees || f === Feature.DenseTrees || f === Feature.Flowers || f === Feature.AlienFlora) greens++;
+      else if (f === Feature.Ruins) greens += 2;
+    }
+    if (coast) v += 10;
+    v += Math.min(6, greens * 1.5);
+    return v;
+  }
+
+  /** Terraform / feature edits: refresh the base for those tiles (and neighbours) without a full pass. */
+  terrainChanged(tiles: readonly number[]): void {
+    if (this.lvBaseDirty) return;
+    if (tiles.length > 3000) {
+      this.lvBaseDirty = true;
+      return;
+    }
+    for (const t of tiles) this.pendingTerrain.push(t);
+  }
+
+  private applyTerrain(): void {
+    const p = this.planet;
+    const g = p.grid;
+    const list = this.pendingTerrain;
+    if (!list.length) return;
+    let ruinsChanged = false;
+    for (const t of list) {
+      this.water[t] = p.isWater(t) ? 1 : 0;
+      if ((p.feature[t] === Feature.Ruins) !== this.ruins.includes(t)) ruinsChanged = true;
+    }
+    for (const t of list) {
+      this.lvBase[t] = this.baseAt(t);
+      this.markT(t);
       for (let q = g.start[t]; q < g.start[t + 1]; q++) {
         const nb = g.nbr[q];
-        if (p.isWater(nb)) coast = true;
-        const f = p.feature[nb];
-        if (f === Feature.Trees || f === Feature.DenseTrees || f === Feature.Flowers || f === Feature.AlienFlora) greens++;
-        else if (f === Feature.Ruins) greens += 2;
+        this.lvBase[nb] = this.baseAt(nb);
+        this.markT(nb);
       }
-      if (coast) v += 10;
-      v += Math.min(6, greens * 1.5);
-      base[t] = v;
     }
-    this.lvBaseDirty = false;
+    if (ruinsChanged) {
+      this.ruins = [];
+      for (let t = 0; t < p.count; t++) if (p.feature[t] === Feature.Ruins) this.ruins.push(t);
+    }
+    list.length = 0;
   }
 
   // ─────────────────────────────────────────── road graph
@@ -282,6 +360,40 @@ export class Fields {
     this.shelterAcc.fill(0);
     this.shieldAcc.fill(0);
     this.src.fill(0);
+    // active set: carried-over tiles first, then everything touched below
+    const mark = this.mark;
+    mark.fill(0);
+    this.activeN = 0;
+    let orbSum = 0;
+    for (let s2 = 0; s2 < ctx.orbitalCoverage.length; s2++) orbSum += ctx.orbitalCoverage[s2];
+    if (orbSum !== this.orbSum) {
+      this.orbSum = orbSum;
+      this.fullNext = true;
+    }
+    const full = this.fullNext;
+    this.fullNext = false;
+    const freeze = !!ctx.freeze;
+    const snap = this.snapNext && !freeze;
+    if (!freeze) this.snapNext = false;
+    if (full) {
+      for (let t = 0; t < n; t++) {
+        mark[t] = 1;
+        this.active[t] = t;
+      }
+      this.activeN = n;
+    } else {
+      for (let i = 0; i < this.carryN; i++) {
+        const t = this.carry[i];
+        if (!mark[t]) {
+          mark[t] = 2;
+          this.active[this.activeN++] = t;
+        }
+      }
+      const flags = p.flags;
+      for (let t = 0; t < n; t++) if (flags[t]) this.markT(t);
+      for (let i = 0; i < this.roadCount; i++) this.markT(this.roadList[i]);
+    }
+    this.applyTerrain();
     yield;
 
     // ── stamps from buildings
@@ -296,6 +408,7 @@ export class Fields {
       const info = r.info;
       const mods = ctx.modsAt(p.district[b.tile]);
       const fpExtra = b.tiles.length >= 19 ? 2 : b.tiles.length >= 7 ? 1 : 0;
+      if (!full) this.markStamp(this.stamp(b.tile, 1 + fpExtra));
       const zp = info.zp;
       const lvl = Math.max(1, Math.min(5, b.level)) - 1;
       // coverage
@@ -316,6 +429,7 @@ export class Fields {
             if (capEff < 1) strength *= Math.max(0.15, capEff);
           }
           const acc = this.covAcc[si];
+          if (!full) this.markStamp(st);
           for (let k = 0; k < st.tiles.length; k++) {
             const d = st.d[k];
             acc[st.tiles[k]] += strength * (d <= 0.55 ? 1 : (1 - d) / 0.45);
@@ -323,11 +437,12 @@ export class Fields {
           work += st.tiles.length;
         }
       }
-      // pollution
-      let pol = info.pollution + (zp ? zp.pollution[lvl] : 0);
+      // pollution (growables: the def's own figure, scaled down as industry modernises with level)
+      let pol = zp ? (info.pollution > 0 ? info.pollution * (zp.pollution[lvl] + 1) / (zp.pollution[info.typLevel - 1] + 1) : zp.pollution[lvl]) : info.pollution;
       if (pol !== 0) {
         pol *= mods.pollution;
         const st = this.stamp(b.tile, (zp ? 3 : info.radius) + fpExtra);
+        if (!full) this.markStamp(st);
         for (let k = 0; k < st.tiles.length; k++) {
           const w = 1 - st.d[k];
           this.polAcc[st.tiles[k]] += pol * w * Math.sqrt(w);
@@ -335,20 +450,24 @@ export class Fields {
         work += st.tiles.length;
       }
       // noise
-      let noise = info.noise + (zp ? zp.noise : 0);
+      let noise = zp ? (info.noise > 0 ? info.noise : zp.noise) : info.noise;
       if (noise > 0) {
         noise *= mods.noise;
         const st = this.stamp(b.tile, (zp ? 2 : Math.min(6, info.radius)) + fpExtra);
+        if (!full) this.markStamp(st);
         for (let k = 0; k < st.tiles.length; k++) this.noiseAcc[st.tiles[k]] += noise * (1 - st.d[k]);
         work += st.tiles.length;
       }
-      // land value / happiness stamps (parks, landmarks, eyesores)
+      // land value / happiness stamps (parks, landmarks, eyesores); a handsome growable only lifts its street
       if (info.landValue !== 0 || info.happiness !== 0) {
-        const st = this.stamp(b.tile, info.radius + fpExtra);
+        const grow = info.growable;
+        const st = this.stamp(b.tile, (grow ? 2 : info.radius) + fpExtra);
+        const lvAmp = info.landValue * (grow ? 0.2 : 1), hAmp = info.happiness * (grow ? 0.2 : 1);
+        if (!full) this.markStamp(st);
         for (let k = 0; k < st.tiles.length; k++) {
           const w = 1 - st.d[k];
-          this.lvAcc[st.tiles[k]] += info.landValue * w;
-          this.happyAcc[st.tiles[k]] += info.happiness * w;
+          this.lvAcc[st.tiles[k]] += lvAmp * w;
+          this.happyAcc[st.tiles[k]] += hAmp * w;
         }
         work += st.tiles.length;
       }
@@ -357,11 +476,13 @@ export class Fields {
       if (tour > 0) {
         const st = this.stamp(b.tile, Math.min(12, 3 + Math.sqrt(tour) * 0.25) + fpExtra);
         const amp = Math.min(1, tour / 400);
+        if (!full) this.markStamp(st);
         for (let k = 0; k < st.tiles.length; k++) this.tourAcc[st.tiles[k]] += amp * (1 - st.d[k]);
         work += st.tiles.length;
       }
       if (info.shelter) {
         const st = this.stamp(b.tile, 8 + fpExtra);
+        if (!full) this.markStamp(st);
         for (let k = 0; k < st.tiles.length; k++) {
           const v = 1 - st.d[k] * 0.4;
           if (v > this.shelterAcc[st.tiles[k]]) this.shelterAcc[st.tiles[k]] = v;
@@ -369,6 +490,7 @@ export class Fields {
       }
       if (info.shield) {
         const st = this.stamp(b.tile, Math.max(6, info.radius) + fpExtra);
+        if (!full) this.markStamp(st);
         for (let k = 0; k < st.tiles.length; k++) {
           const v = 0.85 - st.d[k] * 0.35;
           if (v > this.shieldAcc[st.tiles[k]]) this.shieldAcc[st.tiles[k]] = v;
@@ -393,6 +515,7 @@ export class Fields {
       if (!near) continue;
       reach++;
       const st = this.stamp(t, 4);
+      if (!full) this.markStamp(st);
       for (let k = 0; k < st.tiles.length; k++) this.tourAcc[st.tiles[k]] += 0.6 * (1 - st.d[k]);
     }
     this.ruinsReachable = reach;
@@ -446,25 +569,31 @@ export class Fields {
     const police = SERVICE_INDEX.police;
     const sCount = SERVICES.length;
     let lvSum = 0, lvN = 0, polSum = 0, polN = 0, crimeSum = 0, crimeN = 0, noiseSum = 0;
-    for (let t0 = 0; t0 < n; t0 += 4096) {
-      const t1 = Math.min(n, t0 + 4096);
-      for (let t = t0; t < t1; t++) {
+    const act = this.active, actN = this.activeN, water = this.water;
+    for (let i0 = 0; i0 < actN; i0 += 4096) {
+      const i1 = Math.min(actN, i0 + 4096);
+      for (let i = i0; i < i1; i++) {
+        const t = act[i];
         let covLv = 0;
         for (let s = 0; s < sCount; s++) {
           const v = Math.min(1, covAcc[s][t] + orb[s]);
           covArr[s][t] = v;
           covLv += v * LV_WEIGHT[s];
         }
-        const polT = Math.min(100, this.polAcc[t]);
-        pollution[t] += (polT - pollution[t]) * SMOOTH;
-        const noiseT = Math.min(100, this.noiseAcc[t]);
-        noiseF[t] += (noiseT - noiseF[t]) * SMOOTH;
+        if (!freeze) {
+          const polT = Math.min(100, this.polAcc[t]);
+          pollution[t] += (polT - pollution[t]) * SMOOTH;
+          if (pollution[t] < 0.05) pollution[t] = 0;
+          const noiseT = Math.min(100, this.noiseAcc[t]);
+          noiseF[t] += (noiseT - noiseF[t]) * SMOOTH;
+          if (noiseF[t] < 0.05) noiseF[t] = 0;
+        }
         this.happyFx[t] = this.happyAcc[t];
         this.tourism[t] = Math.min(1, this.tourAcc[t] + covArr[SERVICE_INDEX.leisure][t] * 0.35 + covArr[SERVICE_INDEX.tourism][t] * 0.5);
         this.shelter[t] = this.shelterAcc[t];
         this.shield[t] = this.shieldAcc[t];
-        if (p.isWater(t)) {
-          lv[t] = 0;
+        if (water[t]) {
+          if (!freeze) lv[t] = 0;
           crimeTmp[t] = 0;
           continue;
         }
@@ -481,7 +610,9 @@ export class Fields {
           if (f & TileFlag.Burning) lvT -= 10;
         }
         lvT = lvT < 0 ? 0 : lvT > 100 ? 100 : lvT;
-        lv[t] += (lvT - lv[t]) * SMOOTH;
+        const dLv = lvT - lv[t];
+        if (!freeze) lv[t] += snap ? dLv : dLv * SMOOTH;
+        if (dLv > 0.6 || dLv < -0.6) mark[t] = 1; // still converging: keep it active
         // crime
         const dens = this.residents[t] + this.workers[t] * 0.4;
         let crT = 0;
@@ -502,9 +633,11 @@ export class Fields {
     }
     // crime spills a little into neighbouring tiles, then smooths in time
     const g = p.grid;
-    for (let t0 = 0; t0 < n; t0 += 4096) {
-      const t1 = Math.min(n, t0 + 4096);
-      for (let t = t0; t < t1; t++) {
+    let carryN = 0;
+    for (let i0 = 0; i0 < actN; i0 += 4096) {
+      const i1 = Math.min(actN, i0 + 4096);
+      for (let i = i0; i < i1; i++) {
+        const t = act[i];
         let m = crimeTmp[t];
         let sum = 0, cnt = 0;
         for (let q = g.start[t]; q < g.start[t + 1]; q++) {
@@ -513,14 +646,21 @@ export class Fields {
         }
         const spill = cnt ? (sum / cnt) * 0.6 : 0;
         if (spill > m) m = spill;
-        crime[t] += (m - crime[t]) * SMOOTH;
+        if (!freeze) {
+          crime[t] += (m - crime[t]) * SMOOTH;
+          if (crime[t] < 0.05) crime[t] = 0;
+        }
         if (this.residents[t] > 0) {
           crimeSum += crime[t] * this.residents[t];
           crimeN += this.residents[t];
         }
+        // keep resolving next pass while touched or still decaying; otherwise park the tile as idle
+        if (mark[t] === 1 || pollution[t] > 0 || noiseF[t] > 0 || crime[t] > 0) this.carry[carryN++] = t;
+        else crimeTmp[t] = 0;
       }
       yield;
     }
+    this.carryN = carryN;
     this.avgLandValue = lvN ? lvSum / lvN : 0;
     this.avgPollution = polN ? polSum / polN : 0;
     this.avgNoise = polN ? noiseSum / polN : 0;

@@ -71,3 +71,30 @@ describe('sim lenses & inspect', () => {
     expect(tips[0].text.length).toBeGreaterThan(5);
   });
 });
+
+describe('sim fields', () => {
+  it('incremental (active-tile) passes agree with a full recompute', () => {
+    const h = makeHarness({ frequency: 24 });
+    layoutTown(h, 0);
+    plop(h, 't_power', 0, 9);
+    plop(h, 't_water', 0, 9);
+    plop(h, 't_police', 0, 3);
+    plop(h, 't_park', 0, 4);
+    h.days(90);
+    const f = h.sim.fields!;
+    const lv = Float32Array.from(f.landValue), pol = Float32Array.from(f.pollution), police = Float32Array.from(f.cov[0]);
+    f.fullNext = true;
+    const sim = h.sim as unknown as { fieldCtx(): never };
+    const job = f.pass(sim.fieldCtx());
+    while (!job.next().done);
+    let dLv = 0, dPol = 0, dCov = 0;
+    for (let t = 0; t < h.planet.count; t++) {
+      dLv = Math.max(dLv, Math.abs(lv[t] - f.landValue[t]));
+      dPol = Math.max(dPol, Math.abs(pol[t] - f.pollution[t]));
+      dCov = Math.max(dCov, Math.abs(police[t] - f.cov[0][t]));
+    }
+    expect(dCov).toBeLessThan(0.05);
+    expect(dPol).toBeLessThan(6);
+    expect(dLv).toBeLessThan(6);
+  });
+});
