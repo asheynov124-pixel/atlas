@@ -31,6 +31,7 @@ export class Agg {
   landmarks = 0;
   wonders = 0;
   custom = 0;
+  spaceports = 0;
   zoneBuildings = new Int32Array(12);
   visitors = 0;
   research = 0;
@@ -68,7 +69,7 @@ export class Agg {
     this.workers.fill(0);
     this.happySum = this.happyW = this.healthSum = this.healthW = this.eduSum = this.eduW = 0;
     this.buildings = this.growables = this.abandoned = this.constructing = 0;
-    this.parks = this.landmarks = this.wonders = this.custom = 0;
+    this.parks = this.landmarks = this.wonders = this.custom = this.spaceports = 0;
     this.zoneBuildings.fill(0);
     this.visitors = this.research = 0;
     this.problems.fill(0);

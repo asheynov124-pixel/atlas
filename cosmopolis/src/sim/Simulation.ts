@@ -29,7 +29,8 @@
  *   colonySummary(): ColonySummary        for the empire when leaving the planet
  *   damageResistance(tile) 0..1           shields / blessings / shelters (also exported as a module function)
  *   problemsSummary() · problemsOf(id) · troubledBuildings() · advisor()   problem icons, advice cards
- *   districtStats(id) · cityHistory() · citizenSpotlight() · events (active city events)
+ *   districtStats(id) · cityHistory() · citizenSpotlight() · events (active city events) · season()
+ *   areaName(tile) · roadName(tile)        generated neighbourhood / street names (districts win)
  *   rules: SandboxRules · setRule(id, on)  sandbox toggles: freeUtilities, noAbandon, fastGrowth, maxDemand
  *   trafficAt(tile) (0..1.5 congestion, −1 off-road) · coverageAt(service, tile) — for the life renderer
  * Events: emits 'sim:day' and 'sim:month'; posts Hypernet news (ui/store pushNews) and toasts (notify, with tiles).
@@ -215,6 +216,8 @@ export class Simulation implements System {
   private fieldsRestored = false;
   private lastPausedRefresh = 0;
   private policySig = '';
+  private ambientSig = '';
+  private lastSeason = '';
   private projectedAt = -1e9;
   /** buildings changed since the last utilities resolve */
   private utilDirty = false;
@@ -695,6 +698,13 @@ export class Simulation implements System {
       this.policySig = sig;
       this.recomputeMods();
     }
+    const amb = this.ambientSignature();
+    if (amb !== this.ambientSig) this.recomputeMods();
+    const season = this.season();
+    if (season.id !== this.lastSeason) {
+      if (this.lastSeason && season.strength > 0.3 && this.agg.population > 50) this.post(CHARACTERS.weather, line(this.rng, 'season_' + season.id, this.vars()));
+      this.lastSeason = season.id;
+    }
     // 1. finish the rolling building pass
     while (this.cursor < this.recs.length) updateRec(this, this.recs[this.cursor++]);
     this.cursor = 0;
@@ -730,6 +740,7 @@ export class Simulation implements System {
     // 7. time
     this.day++;
     if (this.day % 360 === 0) this.yearInReview();
+    if (this.day % 1440 === 0) this.election();
     if (this.day % 30 === 0) this.monthEnd();
     else if (this.day % 5 === 0) this.projected = this.report(false);
     // 8. fields cadence
@@ -876,7 +887,59 @@ export class Simulation implements System {
       const def = CITY_EVENTS.find((x) => x.id === e.id);
       if (def) applyPatch(this.eventMods, def.mods);
     }
+    applyPatch(this.eventMods, this.ambientPatch());
+    this.ambientSig = this.ambientSignature();
     if (this.fields) this.fields.fullNext = true;
+  }
+
+  // ───────────────────────────── seasons, wonders, spaceports
+
+  /** Current season of the active planet (tilted worlds have real seasons; cold / hot worlds shift demand). */
+  season(): { id: 'spring' | 'summer' | 'autumn' | 'winter'; name: string; icon: string; strength: number } {
+    const m = Math.floor(this.day / 30) % 12;
+    const tilt = this.planet ? Math.min(1.2, Math.abs(this.planet.spec.axialTilt) / 0.4) : 1;
+    const id = m === 11 || m <= 1 ? 'winter' : m <= 4 ? 'spring' : m <= 7 ? 'summer' : 'autumn';
+    const meta = { winter: ['Winter', '❄️'], spring: ['Spring', '🌱'], summer: ['Summer', '☀️'], autumn: ['Autumn', '🍂'] }[id];
+    return { id, name: meta[0], icon: meta[1], strength: tilt };
+  }
+
+  private ambientSignature(): string {
+    const s = this.season();
+    return `${s.id}|${Math.min(5, this.agg.wonders)}|${Math.min(4, this.agg.spaceports)}`;
+  }
+
+  /** City-wide modifiers from climate, the season, wonders and spaceports. */
+  private ambientPatch(): Partial<Mods> {
+    const p = this.planet;
+    if (!p) return {};
+    const temp = p.spec.temperature;
+    const cold = Math.max(0, Math.min(1.5, (5 - temp) / 40));
+    const hot = Math.max(0, Math.min(1.5, (temp - 28) / 30));
+    const s = this.season();
+    const a = s.strength;
+    const wonders = Math.min(5, this.agg.wonders);
+    const ports = Math.min(4, this.agg.spaceports);
+    return {
+      powerUse: 1 + 0.12 * cold + 0.06 * hot + (s.id === 'winter' ? 0.1 * a : 0),
+      waterUse: 1 + 0.15 * hot + (s.id === 'summer' ? 0.1 * a : 0),
+      tourism: (s.id === 'summer' ? 1 + 0.15 * a : s.id === 'winter' ? 1 - 0.08 * a : 1) * (1 + 0.1 * wonders) * (1 + 0.3 * ports),
+      happiness: Math.min(10, wonders * 2),
+    };
+  }
+
+  /** Every four years: the mayor faces the voters. */
+  private election(): void {
+    const pop = this.agg.population;
+    if (!this.planet || pop < 200) return;
+    const approval = Math.round(Math.max(3, Math.min(97, (this.stats.realHappiness ?? 50) * 0.9 + (this.projected && this.projected.net >= 0 ? 8 : -6) - this.loans.length * 2)));
+    const id = approval >= 62 ? 'landslide' : approval >= 45 ? 'scraped' : 'recall';
+    const def = CITY_EVENTS.find((e) => e.id === id)!;
+    this.events = this.events.filter((e) => e.id !== 'landslide' && e.id !== 'scraped' && e.id !== 'recall');
+    this.events.push({ id, name: def.name, icon: def.icon, description: def.description, daysLeft: def.days });
+    this.recomputeMods();
+    this.stats.approval = approval;
+    this.toast('election', { title: `${def.icon} ${def.name}`, body: `Approval rating: ${approval}%. ${def.description}`, icon: def.icon, kind: def.good ? 'good' : 'warn' }, 5);
+    this.post(CHARACTERS.news, def.news[0].replace('{n}', String(approval)), undefined, true);
   }
 
   isPolicyOn(id: string, district = 0): boolean {
@@ -1108,7 +1171,7 @@ export class Simulation implements System {
   private rollEvent(): void {
     const pop = this.agg.population;
     if (this.events.length >= 2 || pop < 100 || !this.rng.chance(0.35)) return;
-    const pool = CITY_EVENTS.filter((e) => pop >= e.minPop && !this.events.some((x) => x.id === e.id));
+    const pool = CITY_EVENTS.filter((e) => e.weight > 0 && pop >= e.minPop && !this.events.some((x) => x.id === e.id));
     if (!pool.length) return;
     let total = 0;
     for (const e of pool) total += e.weight;
@@ -1194,6 +1257,8 @@ export class Simulation implements System {
     s.industrialBuildings = a.zoneBuildings[7] + a.zoneBuildings[8] + a.zoneBuildings[9] + a.zoneBuildings[10];
     s.officeBuildings = a.zoneBuildings[11];
     s.fires = this.hazards?.fireTiles ?? 0;
+    /** 0 spring · 1 summer · 2 autumn · 3 winter */
+    s.season = ['spring', 'summer', 'autumn', 'winter'].indexOf(this.season().id);
     s.events = this.events.length;
     s.daysPlayed = this.day;
     s.customBuildings = Math.max(a.custom, (e.s.customItems ?? []).length);

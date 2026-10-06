@@ -233,6 +233,10 @@ export const TEMPLATES: Record<string, string[]> = {
     'Heard sirens all night in {district}. Crime is getting out of hand, mayor. 🚨',
     'My e-bike got stolen. Then my second e-bike. I am now walking out of spite. 🚶',
   ],
+  season_winter: ['First snow over {city}! Everyone is suddenly an expert sledder. ❄️', 'Winter is here. Heating bills are here too. 🧣', 'Frost on the domes this morning. Hot chocolate consumption up 400%. ☕'],
+  season_spring: ['Spring has sprung in {city}. Pollen count: yes. 🌱', 'The parks are blooming again. So are the allergies. 🌸'],
+  season_summer: ['Summer in {city}! Beaches packed, ice cream sold out, tourists everywhere. ☀️', 'Heat advisory: please stop frying eggs on the solar panels. 🍳'],
+  season_autumn: ['Autumn colours across {city}. Leaf-peepers have arrived by the shuttle-load. 🍂', 'Pumpkin-spice everything has returned. Resistance is futile. 🎃'],
   yearReview: [
     'YEAR IN REVIEW: {city} grew {growth} to {pop} citizens. Mood of the year: {mood}. Biggest headache: {problem}. 📰',
     '{year} WRAPPED: {pop} citizens ({growth}), happiness {happy}%. Citizens\' top complaint: {problem}. Here\'s to next year! 🥂',

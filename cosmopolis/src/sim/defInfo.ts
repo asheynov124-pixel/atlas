@@ -56,6 +56,8 @@ export interface DefInfo {
   wonder: boolean;
   shelter: boolean;
   shield: boolean;
+  /** interplanetary port: boosts tourism city-wide */
+  spaceport: boolean;
   /** consumes power etc. at all (decor and roads do not) */
   consumer: boolean;
   /** priority class when utilities run short (0 first) */
@@ -240,6 +242,7 @@ function build(def: ItemDef): DefInfo {
     landmark: def.category === 'landmarks' || tags.includes('landmark'),
     wonder: tags.includes('wonder') || (def.category === 'landmarks' && !!def.unique),
     shelter: tags.includes('shelter'),
+    spaceport: tags.includes('spaceport') || /spaceport|starport/i.test(def.id) || /spaceport|starport/i.test(def.group ?? ''),
     shield: tags.includes('shield'),
     consumer,
     priority: isService ? 0 : 1,

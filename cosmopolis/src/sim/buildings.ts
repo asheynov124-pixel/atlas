@@ -117,6 +117,7 @@ export function updateRec(sim: Simulation, r: BRec): void {
   if (info.landmark) acc.landmarks++;
   if (info.wonder) acc.wonders++;
   if (info.def.category === 'custom') acc.custom++;
+  if (info.spaceport && state === BuildingState.Active) acc.spaceports++;
 
   // ── ruined / abandoned: no occupants, collapse timer, possible recovery
   if (state === BuildingState.Abandoned || state === BuildingState.Ruined) {

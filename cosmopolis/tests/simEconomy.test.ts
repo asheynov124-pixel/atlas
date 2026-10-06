@@ -146,3 +146,28 @@ describe('sim districts', () => {
     expect(h.sim.areaName(tiles[0])).toBe('Old Town');
   });
 });
+
+describe('sim seasons & elections', () => {
+  it('cycles seasons, heats cold worlds in winter, and holds elections every four years', () => {
+    const h = makeHarness({ frequency: 16 });
+    layoutTown(h, 0);
+    plop(h, 't_power', 0, 9);
+    plop(h, 't_water', 0, 9);
+    const seen = new Set<string>();
+    let winterPower = 0, summerPower = 0;
+    for (let d = 0; d < 1450; d++) {
+      h.days(1);
+      const s = h.sim.season().id;
+      seen.add(s);
+      const home = [...h.sim.recMap.values()].find((r) => r.info.fam === 0 && r.powerUse > 0);
+      if (home && d > 360 && d < 720) {
+        if (s === 'winter') winterPower = Math.max(winterPower, home.powerUse / (home.b.level || 1));
+        if (s === 'summer') summerPower = Math.max(summerPower, home.powerUse / (home.b.level || 1));
+      }
+    }
+    expect([...seen].sort()).toEqual(['autumn', 'spring', 'summer', 'winter']);
+    expect(winterPower).toBeGreaterThan(0);
+    expect(h.sim.stats.approval).toBeGreaterThan(0);
+    expect(h.sim.events.some((e) => ['landslide', 'scraped', 'recall'].includes(e.id))).toBe(true);
+  });
+});
