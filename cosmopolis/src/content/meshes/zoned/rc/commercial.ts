@@ -43,6 +43,22 @@ function flags(rc: RC, xs: number[], z: number, y: number): void {
   }
 }
 
+/**
+ * Night accent lighting for a commercial block: a lit roof edge along the street face (warm white by
+ * default — neutral trim by day, a glowing outline after dark) and a pair of bollard lights on the lot.
+ */
+export function shopLights(rc: RC, x: number, z: number, w: number, top: number, color = litColor(rc)): void {
+  const { b } = rc;
+  if (fits(rc, 10)) b.box(w + 0.02, 0.018, 0.018, { color, mat: Mat.Light, x, z, y: top - 0.012, paint: false });
+  if (!rc.lo && fits(rc, 20))
+    for (const s of [-1, 1]) b.box(0.03, 0.06, 0.03, { color: 0xfff0d0, mat: Mat.Light, x: s * 0.5, z: 0.66, y: G, ...DET });
+}
+
+/** Accent light colour per style: warm white for the classic families, the style accent for the futurists. */
+export function litColor(rc: RC): number {
+  return rc.sid === 'neo' || rc.sid === 'cyber' || rc.sid === 'crystal' || rc.sid === 'organic' || rc.sid === 'ice' ? rc.p.accent : 0xffe2a8;
+}
+
 /** Market stall: counter + striped awning. */
 function stall(rc: RC, x: number, z: number, color: number): void {
   const { b } = rc;
@@ -73,6 +89,7 @@ export const cornerShop = factory((rc) => {
   need(rc);
   if (L >= 3) sk.sign(rc, { w: 0.06, h: Math.min(h - FL * 1.3, FL * 2.2), kind: 'blade', color: rc.p.accent2 }, w / 2 - 0.02, FL * 1.2, z + d / 2);
   if (fl >= 2) b.group({ z: z + d / 2 }, () => sk.balconies(rc, { w: w * 0.8, y0: FL * 1.5, y1: h - FL * 0.5, every: 1, cols: 3 }));
+  shopLights(rc, 0, z + d / 2 + 0.01, w, G + h);
   sk.tree(rc, -0.5, 0.58, 0.75);
   sk.lamp(rc, 0.48, 0.62, 0.24);
 });
@@ -99,6 +116,7 @@ export const cafe = factory((rc) => {
     umbrella(b, -w * 0.25, z, umb, 0.8, G + h + 0.02);
     umbrella(b, w * 0.22, z + 0.05, mix(umb, 0xffffff, 0.45), 0.8, G + h + 0.02);
   }
+  shopLights(rc, 0, z + d / 2 + 0.01, w, G + h);
   sk.shrub(rc, -0.6, 0.0, 1.1);
   sk.lamp(rc, 0.58, 0.48, 0.24);
 });
@@ -122,6 +140,7 @@ export const stripPlaza = factory((rc) => {
   need(rc);
   pylon(rc, pyl * 0.6, 0.42, lerpL(L, 0.36, 0.52), 4);
   parking(rc, -pyl * 0.08, 0.3, 0.96, 0.5, byL(L, [2, 3, 3, 4, 4]));
+  shopLights(rc, 0, z + d / 2 + 0.01, w, G + h);
 });
 
 export const marketHall = factory((rc) => {
@@ -144,6 +163,7 @@ export const marketHall = factory((rc) => {
   const sx = [-0.48, 0.48, -0.2, 0.2, 0];
   const sz = [0.42, 0.42, 0.62, 0.62, 0.7];
   for (let i = 0; i < n; i++) stall(rc, sx[i], sz[i], sc[i]);
+  shopLights(rc, 0, z + d / 2 + 0.01, w, G + h);
   sk.tree(rc, -0.62, 0.0, 0.8);
   sk.tree(rc, 0.62, 0.0, 0.8);
 });
@@ -228,7 +248,7 @@ export const diner = factory((rc) => {
 
 export const mall = factory((rc) => {
   const { b, sk, vr, L, p } = rc;
-  const w = vr.range(1.36, 1.46), d = vr.range(1.0, 1.1);
+  const w = vr.range(1.28, 1.36), d = vr.range(0.9, 0.98);
   const fl = byL(L, [2, 2, 3, 3, 4]);
   const h = storeys(fl);
   sk.lot(rc, 'plaza');
@@ -244,12 +264,13 @@ export const mall = factory((rc) => {
   sk.sign(rc, { w: w * 0.5, h: 0.11, kind: 'board', n: 6 }, 0, G + h - 0.16, -0.04 + d / 2 + 0.11);
   need(rc);
   if (L >= 4) sk.pod(rc, w * 0.2, -0.1, 0.28, 0.24, true, G + h);
-  flags(rc, [-0.52, 0.52], 0.56, G);
+  shopLights(rc, 0, -0.04 + d / 2 + 0.01, w, G + h);
+  flags(rc, [-0.5, 0.42], 0.5, G);
 });
 
 export const deptStore = factory((rc) => {
   const { b, sk, vr, L, p } = rc;
-  const w = vr.range(1.16, 1.26), d = vr.range(0.92, 1.0);
+  const w = vr.range(1.1, 1.18), d = vr.range(0.86, 0.94);
   const fl = byL(L, [3, 4, 5, 6, 7]);
   const h = storeys(fl);
   const z = -0.06;
@@ -264,6 +285,7 @@ export const deptStore = factory((rc) => {
   sk.sign(rc, { w: 0.08, h: Math.min(h - FL * 1.6, FL * 4), kind: 'blade', color: p.accent }, -w / 2 + 0.05, FL * 1.4, z + d / 2);
   need(rc);
   sk.sign(rc, { w: w * 0.6, h: 0.14, kind: 'roof', n: 6 }, 0, G + h, z + d * 0.2);
+  shopLights(rc, 0, z + d / 2 + 0.01, w, G + h);
   flags(rc, [-0.3, 0.3], z + d / 2 + 0.02, G + h);
   sk.tree(rc, 0.6, 0.6, 0.75);
 });
@@ -275,9 +297,9 @@ export const tradeTower = factory((rc) => {
   const ph = storeys(2, 0);
   sk.lot(rc, 'plaza');
   need(rc, [['shop', 1], ['tower', 1], ['crown', 1], ['sign', 1]], 30);
-  sk.block(rc, { w: 1.36, d: 1.04, h: ph, use: 'shop', prestige: prest(L) });
+  sk.block(rc, { z: -0.04, w: 1.28, d: 0.94, h: ph, use: 'shop', prestige: prest(L) });
   need(rc, [['tower', 1], ['crown', 1], ['sign', 1]], 30);
-  b.group({ z: 0.52 }, () => sk.shopfront(rc, { w: 1.16, h: FL * 1.15, kind: 'big', glyphs: 6 }));
+  b.group({ z: 0.43 }, () => sk.shopfront(rc, { w: 1.04, h: FL * 1.15, kind: 'big', glyphs: 6 }));
   const th = storeys(fl, 0);
   need(rc, [['crown', 1], ['sign', 1]], 30);
   sk.tower(rc, { z: -0.1, y: G + ph, w: tw, d: td, h: th, use: 'office', prestige: prest(L) });
@@ -291,6 +313,7 @@ export const tradeTower = factory((rc) => {
   sk.crown(rc, { z: -0.1, y: G + ph + th, w: tw, d: td, prestige: prest(L), kind: rc.seed });
   need(rc);
   sk.sign(rc, { w: tw * 0.9, h: 0.12, kind: 'board', n: 5 }, 0, G + ph + th - 0.2, -0.1 + td / 2 + 0.01);
+  shopLights(rc, 0, 0.44, 1.28, G + ph);
 });
 
 export const retailPlaza = factory((rc) => {
@@ -301,11 +324,11 @@ export const retailPlaza = factory((rc) => {
   const ph = storeys(pf, 0);
   sk.lot(rc, 'plaza');
   need(rc, [['shop', 2], ['tower', 1], ['roof', 1], ['sign', 1]]);
-  sk.block(rc, { w: 1.44, d: 1.06, h: ph, use: 'shop', prestige: prest(L) });
+  sk.block(rc, { z: -0.04, w: 1.28, d: 0.94, h: ph, use: 'shop', prestige: prest(L) });
   need(rc, [['shop', 1], ['tower', 1], ['roof', 1], ['sign', 1]]);
-  b.group({ z: 0.53 }, () => sk.shopfront(rc, { w: 1.2, h: FL * 1.1, glyphs: 6 }));
+  b.group({ z: 0.43 }, () => sk.shopfront(rc, { w: 1.06, h: FL * 1.1, glyphs: 6 }));
   need(rc, [['tower', 1], ['roof', 1], ['sign', 1]]);
-  b.group({ x: 0.72, ry: Math.PI / 2 }, () => sk.shopfront(rc, { w: 0.8, h: FL * 1.1, glyphs: 4, color: p.accent2 }));
+  b.group({ x: 0.64, z: -0.04, ry: Math.PI / 2 }, () => sk.shopfront(rc, { w: 0.6, h: FL * 1.1, glyphs: 4, color: p.accent2 }));
   const th = storeys(fl, 0);
   need(rc, [['roof', 1], ['sign', 1]]);
   sk.tower(rc, { x: -0.22, z: -0.14, y: G + ph, w: tw, d: td, h: th, use: 'office', prestige: prest(L) });
@@ -313,15 +336,16 @@ export const retailPlaza = factory((rc) => {
   sk.roof(rc, { x: -0.22, z: -0.14, y: G + ph + th, w: tw, d: td, kind: 'mech', prestige: prest(L) });
   need(rc);
   sk.sign(rc, { w: tw * 0.9, h: 0.16, kind: 'roof', n: 5 }, -0.22, G + ph + th, -0.14);
-  sk.terrace(rc, 0.42, 0.18, G + ph, 0.48, 0.5);
-  sk.tree(rc, 0.42, 0.22, 0.7, G + ph);
+  shopLights(rc, 0, 0.44, 1.28, G + ph);
+  sk.terrace(rc, 0.38, 0.14, G + ph, 0.44, 0.46);
+  sk.tree(rc, 0.38, 0.18, 0.7, G + ph);
 });
 
 export const galleria = factory((rc) => {
   const { b, sk, vr, L, p } = rc;
   const fl = byL(L, [2, 3, 3, 4, 5]);
   const h = storeys(fl);
-  const d = vr.range(0.96, 1.04);
+  const d = vr.range(0.84, 0.9);
   sk.lot(rc, 'plaza');
   need(rc, [['block', 1], ['shop', 2], ['roof', 2], ['portico', 1]], 30);
   sk.block(rc, { x: -0.42, w: 0.42, d, h, use: 'shop', prestige: prest(L) });
@@ -342,6 +366,8 @@ export const galleria = factory((rc) => {
   need(rc);
   b.group({ z: d / 2 }, () => sk.portico(rc, 0.36, FL * 1.4));
   if (fits(rc, sk.cost.sign)) sk.sign(rc, { w: 0.34, h: 0.08, kind: 'board', n: 5 }, 0, G + h - 0.04, d / 2 + 0.03);
+  shopLights(rc, -0.42, d / 2 + 0.01, 0.42, G + h);
+  shopLights(rc, 0.42, d / 2 + 0.01, 0.42, G + h);
   flags(rc, [-0.2, 0.2], d / 2 + 0.12, G);
 });
 
@@ -363,6 +389,7 @@ export const megastore = factory((rc) => {
   b.box(w + 0.02, 0.05, 0.03, { color: p.accent, x: 0, z: z + d / 2 + 0.01, y: G + h - 0.06, paint: false });
   need(rc);
   parking(rc, 0, 0.36, 1.2, 0.5, byL(L, [3, 4, 5, 5, 5]));
+  shopLights(rc, 0, z + d / 2 + 0.01, w, G + h);
 });
 
 export const marketDome = factory((rc) => {

@@ -469,9 +469,9 @@ export const podiumTower = factory((rc) => {
   const z = -0.1;
   sk.lot(rc, 'plaza');
   need(rc, [['shop', 1], ['tower', 1], ['crown', 1]]);
-  sk.block(rc, { w: 1.4, d: 1.04, h: ph, use: 'shop', prestige: prest(L) });
+  sk.block(rc, { z: -0.04, w: 1.3, d: 0.94, h: ph, use: 'shop', prestige: prest(L) });
   need(rc, [['tower', 1], ['crown', 1]]);
-  b.group({ z: 0.52 }, () => sk.shopfront(rc, { w: 1.1, h: FL * 1.1, glyphs: 5 }));
+  b.group({ z: 0.43 }, () => sk.shopfront(rc, { w: 1.04, h: FL * 1.1, glyphs: 5 }));
   const th = storeys(fl, 0);
   need(rc, [['crown', 1]]);
   sk.tower(rc, { z: z - 0.08, y: G + ph, w: tw, d: td, h: th, use: 'res', prestige: prest(L) });

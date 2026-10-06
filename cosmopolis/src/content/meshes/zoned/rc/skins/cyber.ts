@@ -51,7 +51,7 @@ export class CyberSkin extends Skin {
 
   /** Neon edge strip along the top front edge of a box at local height y. */
   private strip(rc: RC, w: number, y: number, z: number, color: number, x = 0): void {
-    rc.b.box(w, 0.02, 0.016, { color, mat: Mat.Glow, x, y, z, paint: false });
+    rc.b.box(w, 0.028, 0.018, { color, mat: Mat.Glow, x, y, z, paint: false });
   }
 
   override house(rc: RC, o: HouseOpts): number {
@@ -129,7 +129,7 @@ export class CyberSkin extends Skin {
       return;
     }
     // neon corner lines
-    for (const sx of [-0.5, 0.5]) b.box(0.016, o.h, 0.016, { color: sx < 0 ? p.accent : p.accent2, mat: Mat.Glow, x: x + sx * o.w, z: z + o.d / 2, y, paint: false });
+    for (const sx of [-0.5, 0.5]) b.box(0.024, o.h, 0.024, { color: sx < 0 ? p.accent : p.accent2, mat: Mat.Glow, x: x + sx * o.w, z: z + o.d / 2, y, paint: false });
     // giant screen on the street face
     if (o.h > 1.6 && seg % 2 === 0 && o.w > 0.5 && !o.lite && fits(rc, 12)) {
       const sh = Math.min(o.h * 0.4, 1.4), sw = o.w * 0.62;

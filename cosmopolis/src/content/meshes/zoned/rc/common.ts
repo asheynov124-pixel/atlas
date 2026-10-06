@@ -150,6 +150,11 @@ export function arch(b: MeshBuilder, w: number, h: number, depth: number, o: Par
  */
 export function glyphs(b: MeshBuilder, w: number, h: number, n: number, seed: number, o: PartOpts): void {
   if (o.detail && b.lod === 1) return;
+  if (b.lod === 1) {
+    // far away: one glowing bar reads the same and costs two triangles
+    b.panel(w * 0.85, h * 0.7, { ...o, y: (o.y ?? 0) + h * 0.15 });
+    return;
+  }
   const gap = 0.18;
   const ws: number[] = [];
   let tot = 0;

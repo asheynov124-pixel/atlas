@@ -8,6 +8,7 @@
  */
 import { FL, G, Mat, byL, mix, pool, shade, storeys, umbrella } from './common';
 import { factory } from './rc';
+import { shopLights } from './commercial';
 import { DET, fits, need, type RC } from './skin';
 
 const prest = (L: number): number => (L - 1) / 4;
@@ -59,6 +60,7 @@ export const hotel = factory((rc) => {
     b.group({ z: z + d / 2 }, () => sk.portico(rc, 0.44, FL * 1.2));
     need(rc);
     sk.sign(rc, { w: 0.62, h: 0.18, kind: 'roof', n: 5, color: signCol }, 0, G + h + 0.02, z + d * 0.3);
+    shopLights(rc, 0, z + d / 2 + 0.01, w, G + h);
     b.group({ z: z + d / 2 }, () => sk.balconies(rc, { w: w * 0.84, y0: FL * 2, y1: h - FL, every: 1, cols: 4 }));
   } else {
     const ph = storeys(2, 0);
@@ -78,6 +80,7 @@ export const hotel = factory((rc) => {
     sk.sign(rc, { w: tw * 0.9, h: 0.13, kind: 'board', n: 5, color: signCol }, 0, G + ph + th - 0.22, tz + td / 2 + 0.01);
     need(rc);
     if (fits(rc, 12)) pool(b, 0.2, 0.3, 0.6, 0.2, p.pave, G + ph, true);
+    shopLights(rc, 0, 0.52, 1.38, G + ph);
     for (const s of [-1, 1]) if (fits(rc, 18)) umbrella(b, s * 0.56, 0.3, s > 0 ? p.accent : mix(p.accent, 0xffffff, 0.5), 0.8, G + ph);
   }
   sk.tree(rc, -0.62, 0.42, 0.8);
@@ -111,6 +114,7 @@ export const casino = factory((rc) => {
     need(rc);
     sk.sign(rc, { w: 0.9, h: 0.18, kind: 'roof', n: 6, color: big }, 0, G + ph, -0.32);
   }
+  shopLights(rc, 0, 0.54, 1.42, G + ph, 0xffd27a);
   beam(rc, -0.62, 0.42, G, 1.6 + prest(L), 0.25, -0.15, big);
   beam(rc, 0.62, 0.42, G, 1.6 + prest(L), -0.25, -0.15, mix(big, 0xffffff, 0.4));
   sk.tree(rc, -0.62, 0.0, 0.8);
@@ -163,12 +167,13 @@ export const arcade = factory((rc) => {
   const sh = Math.min(h - FL * 1.4, FL * 1.6);
   const cols = L >= 3 ? 3 : 2;
   for (let i = 0; i < cols; i++) {
-    need(rc, [['sign', cols - 1 - i]], 40);
+    need(rc, [['sign', cols - 1 - i]], 30);
     sk.sign(rc, { w: (w * 0.84) / cols - 0.04, h: sh, kind: 'screen' }, -w * 0.42 + ((i + 0.5) * w * 0.84) / cols, FL * 1.3, z + d / 2 + 0.01);
   }
   need(rc);
-  invader(rc, w * 0.1, z, G + h + 0.12, 1 + prest(L) * 0.8, holo);
   neonFrame(rc, w, h, z + d / 2 + 0.012, holo, mix(holo, 0xffffff, 0.3));
+  invader(rc, w * 0.1, z, G + h + 0.12, 1 + prest(L) * 0.8, holo);
+  shopLights(rc, 0, z + d / 2 + 0.012, w, G + h, holo);
   sk.lamp(rc, 0.58, 0.5, 0.24);
 });
 
@@ -198,6 +203,7 @@ export const theatre = factory((rc) => {
     sk.sign(rc, { w: 0.12, h: 0.18, kind: 'screen' }, s * 0.42, FL * 0.45, z + 0.33);
   }
   need(rc);
+  shopLights(rc, 0, z + 0.33, 1.0, G + h);
   sk.tree(rc, -0.62, 0.42, 0.8);
   sk.tree(rc, 0.62, 0.42, 0.8);
   if (L >= 4) for (const s of [-1, 1]) sk.lamp(rc, s * 0.48, 0.6, 0.26);
@@ -249,6 +255,7 @@ export const cinema = factory((rc) => {
   }
   need(rc);
   if (fits(rc, 20)) b.box(0.4, 0.15, 0.02, { color: mix(p.glass, 0xffffff, 0.2), mat: Mat.Glass, z: z + d / 2 + 0.005, y: G, paint: false });
+  shopLights(rc, 0, z + d / 2 + 0.01, w, G + h, mq);
   sk.tree(rc, -0.58, 0.5, 0.75);
   sk.lamp(rc, 0.56, 0.56, 0.24);
 });

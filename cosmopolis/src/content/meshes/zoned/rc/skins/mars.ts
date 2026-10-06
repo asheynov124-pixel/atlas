@@ -233,6 +233,7 @@ export class MarsSkin extends Skin {
       arch(b, aw * 0.7, o.h * 0.72, 0.012, { color: 0x5a7a9a, mat: Mat.Glass, x: cx, z: 0.035, y: G, seg: 3, paint: false });
       b.wedge(aw * 0.78, 0.05, 0.14, { color: i % 2 ? p.awning : 0xf6eee0, x: cx, y: o.h * 0.74, z: 0.11, paint: false, detail: true });
     }
+    b.box(o.w * 0.92, 0.012, 0.012, { color: 0xffc890, mat: Mat.Light, y: o.h * 0.72, z: 0.06, paint: false });
     if (o.glyphs) glyphs(b, Math.min(o.w * 0.6, 0.55), 0.06, o.glyphs, rc.seed, { color: o.color ?? 0x4ad0ff, mat: Mat.Glow, y: o.h * 0.9 - 0.02, z: 0.04, paint: false });
   }
 

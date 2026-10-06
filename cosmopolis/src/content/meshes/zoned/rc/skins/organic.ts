@@ -206,7 +206,7 @@ export class OrganicSkin extends Skin {
     }
     if (kind === 1) {
       // blossom: petals opening around a glowing pistil
-      const pl = r * (1.1 + pr * 0.6) * tall;
+      const pl = Math.min(0.62, r * (1.1 + pr * 0.6) * Math.sqrt(tall));
       for (let i = 0; i < 5; i++) {
         const a = (i / 5) * Math.PI * 2;
         b.group({ x, z, y: o.y, ry: a }, () => b.box(r * 0.55, 0.025, pl, { color: i % 2 ? p.roof : shade(p.roof, 1.15), z: pl * 0.42, rx: -0.75, y: pl * 0.32 }));
@@ -217,10 +217,10 @@ export class OrganicSkin extends Skin {
       return o.y + Math.max(ph + r * 0.22, pl * 0.9);
     }
     // curling horn
-    const hh = (0.9 + pr * 1.4) * tall;
+    const hh = (0.9 + pr * 1.4) * Math.min(tall, 1.6);
     b.cone(r * 0.55, hh * 0.6, { color: p.trim, seg: 8, x, z, y: o.y });
-    b.cone(r * 0.25, hh * 0.5, { color: p.trim, seg: 6, x: x + r * 0.12, z, y: o.y + hh * 0.5, rz: -0.35 });
-    b.sphere(0.04, { color: p.accent, mat: Mat.Glow, wSeg: 4, hSeg: 2, x: x + r * 0.12 + Math.sin(0.35) * hh * 0.5, z, y: o.y + hh * 0.5 + Math.cos(0.35) * hh * 0.5 });
+    b.cone(r * 0.25, hh * 0.5, { color: p.trim, seg: 6, x: x + r * 0.12, z, y: o.y + hh * 0.5, rz: -0.2 });
+    b.sphere(0.04, { color: p.accent, mat: Mat.Glow, wSeg: 4, hSeg: 2, x: x + r * 0.12 + Math.sin(0.2) * hh * 0.5, z, y: o.y + hh * 0.5 + Math.cos(0.2) * hh * 0.5 });
     return o.y + hh;
   }
 

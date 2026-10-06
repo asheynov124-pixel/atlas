@@ -234,9 +234,10 @@ export class SolarpunkSkin extends Skin {
     b.box(0.025, o.h * 0.85, 0.025, { color: TIMBER, x: o.w / 2 - 0.04, z: pz, y: G, ...DET });
     b.box(o.w, 0.025, 0.24, { color: TIMBER, y: o.h * 0.85, z: 0.1 });
     b.box(o.w * 0.94, 0.035, 0.2, { color: 0x5aa04a, y: o.h * 0.85 + 0.025, z: 0.1, top: p.green2 });
+    b.box(o.w * 0.9, 0.012, 0.012, { color: 0xffd890, mat: Mat.Light, y: o.h * 0.85 - 0.012, z: 0.2, paint: false });
     if (!rc.lo && fits(rc, 40)) {
-      planter(b, -o.w * 0.3, G, 0.26, 0.14, 0.06, TIMBER, 0xffb03a);
-      planter(b, o.w * 0.3, G, 0.26, 0.14, 0.06, TIMBER, 0xe86a8a);
+      planter(b, -o.w * 0.3, G, 0.22, 0.14, 0.06, TIMBER, 0xffb03a);
+      planter(b, o.w * 0.3, G, 0.22, 0.14, 0.06, TIMBER, 0xe86a8a);
     }
     if (o.glyphs) {
       b.box(Math.min(o.w * 0.6, 0.5) + 0.04, 0.09, 0.02, { color: 0x2a4a3a, y: o.h * 0.88 + 0.06, z: 0.02, paint: false });

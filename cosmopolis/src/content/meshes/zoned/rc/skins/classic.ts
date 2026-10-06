@@ -213,12 +213,15 @@ export class ClassicSkin extends Skin {
     b.box(0.04, sh, 0.05, { color: p.trim, x: -w / 2 + 0.02, y: G, z: 0.02 });
     b.box(0.04, sh, 0.05, { color: p.trim, x: w / 2 - 0.02, y: G, z: 0.02 });
     b.box(w, 0.08, 0.05, { color: shade(p.awning, 0.55), y: sh - 0.04, z: 0.02, paint: false });
-    // striped awning
-    const n = rc.lo ? 1 : o.kind === 'big' ? 4 : 5;
+    b.box(w - 0.08, 0.014, 0.012, { color: 0xffe2a8, mat: Mat.Light, y: sh * 0.72 - 0.02, z: 0.04, paint: false });
+    // striped awning: one canvas slab + painted stripes on its top surface
+    const n = o.kind === 'big' ? 5 : 7;
     const aw = w - 0.06;
     const sw = aw / n;
-    for (let i = 0; i < n; i++)
-      b.box(sw, 0.012, 0.17, { color: i % 2 === 0 || n === 1 ? p.awning : 0xf4efe6, x: -aw / 2 + sw * (i + 0.5), y: sh * 0.72, z: 0.085, rx: 0.42, paint: false });
+    b.group({ y: sh * 0.72, z: 0.085, rx: 0.42 }, () => {
+      b.box(aw, 0.012, 0.17, { color: 0xf4efe6, paint: false });
+      if (!rc.lo) for (let i = 0; i < n; i += 2) b.plane(sw, 0.17, { color: p.awning, x: -aw / 2 + sw * (i + 0.5), y: 0.0125, paint: false });
+    });
     if (o.glyphs) this.sign(rc, { w: Math.min(w * 0.72, 0.62), h: 0.065, kind: 'board', n: o.glyphs, color: o.color ?? 0xffd27a }, 0, sh - 0.035, 0.045);
   }
 
