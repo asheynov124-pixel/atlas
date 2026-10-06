@@ -66,16 +66,27 @@ function refreshRoad(sim: Simulation, r: BRec): void {
   r.roadVer = sim.roadVersion;
 }
 
-/** Home / job capacity of a building at a level (growables scale with level and type size). */
-export function capacityOf(info: DefInfo, level: number, tiles: number, industryJobs = 1): { homeCap: number; jobCap: number } {
+/** Home / job capacity of a building at a level (growables scale with level and type size). Reuses `out`. */
+export function capacityOf(info: DefInfo, level: number, tiles: number, industryJobs = 1, out = { homeCap: 0, jobCap: 0 }): { homeCap: number; jobCap: number } {
   const zp = info.zp;
-  if (!zp) return { homeCap: info.housing, jobCap: info.jobs };
+  if (!zp) {
+    out.homeCap = info.housing;
+    out.jobCap = info.jobs;
+    return out;
+  }
   const lvl = Math.max(1, Math.min(5, level)) - 1;
   const lvlRatio = zp.capacity[lvl] / zp.capacity[info.typLevel - 1];
   const cap = zp.capacity[lvl] * footprintMul(tiles) * info.sizeMul;
-  if (info.fam === 0) return { homeCap: Math.round(cap), jobCap: Math.round(info.extraJobs * lvlRatio) };
-  return { homeCap: Math.round(info.extraHousing * lvlRatio), jobCap: Math.round(cap * (info.fam === 2 ? industryJobs : 1)) };
+  if (info.fam === 0) {
+    out.homeCap = Math.round(cap);
+    out.jobCap = Math.round(info.extraJobs * lvlRatio);
+  } else {
+    out.homeCap = Math.round(info.extraHousing * lvlRatio);
+    out.jobCap = Math.round(cap * (info.fam === 2 ? industryJobs : 1));
+  }
+  return out;
 }
+const _caps = { homeCap: 0, jobCap: 0 };
 
 /** Re-evaluate only which utilities reach a building (no accumulation) — used while the game is paused. */
 export function refreshServed(sim: Simulation, r: BRec): void {
@@ -109,7 +120,8 @@ export function updateRec(sim: Simulation, r: BRec): void {
 
   r.net = nets.label[t];
   const flags = hazardFlags(sim, r);
-  const underwater = info.def.placement !== 'water' && p.isWater(t);
+  const underwater = !info.waterPlaced && f.isWater(t);
+  const prevProblems = r.problems;
   r.problems = 0;
 
   acc.buildings++;
@@ -266,7 +278,7 @@ export function updateRec(sim: Simulation, r: BRec): void {
   const powered = (served & SV_POWER) !== 0;
   const watered = (served & SV_WATER) !== 0;
   const breathing = (served & SV_OXYGEN) !== 0;
-  const caps = capacityOf(info, b.level, b.tiles.length, mods.industryJobs);
+  const caps = capacityOf(info, b.level, b.tiles.length, mods.industryJobs, _caps);
   const homeCap = caps.homeCap, jobCap = caps.jobCap;
   const jobIdx = zp ? (fam === 0 ? 1 : fam) : 4;
   r.capacity = fam === 0 || (!zp && homeCap > 0) ? homeCap : jobCap;
@@ -324,8 +336,12 @@ export function updateRec(sim: Simulation, r: BRec): void {
   if (!isHome && r.roadTile >= 0 && f.traffic[r.roadTile] > 0.95) pr |= P.Traffic;
 
   // ── happiness
-  const target = happinessTarget(sim, r, pr, flags, mods, null);
-  if (!sim.settling) r.happiness += (target - r.happiness) * 0.25;
+  // mood and level ambitions drift slowly: evaluate them on alternate days (half the cost, same pace)
+  const parity = sim.settling || ((r.id + sim.day) & 1) === 0;
+  if (parity || prevProblems !== pr) {
+    const target = happinessTarget(sim, r, pr, flags, mods, null);
+    if (!sim.settling) r.happiness += (target - r.happiness) * 0.44;
+  }
   if (r.happiness < 25) pr |= P.Unhappy;
   r.problems = pr;
 
@@ -384,7 +400,7 @@ export function updateRec(sim: Simulation, r: BRec): void {
     trackDistrict(sim, r, occ);
     return;
   }
-  if (info.growable && zp && !mods.levelLock && !burning && !frozen) levelStep(sim, r, pr, mods);
+  if (parity && info.growable && zp && !mods.levelLock && !burning && !frozen) levelStep(sim, r, pr, mods, 2);
 
   // ── distress → abandonment
   distressStep(sim, r, pr, isHome && zp ? zp.density : 'med');
@@ -503,22 +519,22 @@ export function levelTarget(sim: Simulation, r: BRec, pr: number): number {
   return Math.max(1, Math.min(max, lvl));
 }
 
-function levelStep(sim: Simulation, r: BRec, pr: number, mods: Mods): void {
+function levelStep(sim: Simulation, r: BRec, pr: number, mods: Mods, days: number): void {
   const b = r.b;
   const target = levelTarget(sim, r, pr);
   r.target = target;
   if (target > b.level) {
     const speed = mods.growthSpeed * (sim.rules.fastGrowth ? 3 : 1);
-    r.lvlProgress += speed / levelUpDays(b.level);
+    r.lvlProgress += (speed * days) / levelUpDays(b.level);
     r.lowDays = 0;
     if (r.lvlProgress >= 1) {
       r.lvlProgress = 0;
       sim.queueLevel(r, b.level + 1);
     }
   } else {
-    r.lvlProgress *= 0.985;
+    r.lvlProgress *= days > 1 ? 0.97 : 0.985;
     if (target < b.level - 1) {
-      if (++r.lowDays > 90) {
+      if ((r.lowDays += days) > 90) {
         r.lowDays = 0;
         sim.queueLevel(r, b.level - 1);
       }

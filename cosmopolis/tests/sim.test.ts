@@ -80,7 +80,7 @@ describe('sim growth', () => {
     plop(h, 't_power', 0, 9);
     plop(h, 't_water', 0, 9);
     for (const id of ['t_police', 't_fire', 't_clinic', 't_school', 't_park', 't_park', 't_landfill']) plop(h, id, 0, 3);
-    h.days(420);
+    h.days(300);
     let maxLevel = 0;
     for (const b of h.planet.buildings.values()) if (h.sim.recMap.get(b.id)?.info.growable) maxLevel = Math.max(maxLevel, b.level);
     expect(maxLevel).toBeGreaterThanOrEqual(3);

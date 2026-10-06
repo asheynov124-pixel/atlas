@@ -223,6 +223,11 @@ export class Fields {
     return s;
   }
 
+  /** Cached water test (kept in sync with terrain / sea-level changes). */
+  isWater(t: number): boolean {
+    return this.water[t] === 1;
+  }
+
   coverageAt(service: number, tile: number): number {
     return this.cov[service]?.[tile] ?? 0;
   }

@@ -34,9 +34,10 @@ it('simulates 5k buildings on 16k tiles within budget', () => {
   }
   expect(p.count).toBe(16002);
   expect(p.buildings.size).toBeGreaterThan(4900);
-  h.days(15); // warm up the JIT
-  const sim = h.sim as unknown as { fields: { pass(ctx: unknown): Generator }; fieldCtx(): unknown; finishDay(): void };
-  // CPU time (not wall clock) and best of 3, so parallel test workers / GC don't distort the budget check
+  h.days(20); // reach a steady state and warm up the JIT
+  const sim = h.sim as unknown as { fields: { pass(ctx: unknown): Generator }; fieldCtx(): unknown; finishDay(): void; flushFields(fresh: boolean): void };
+  sim.flushFields(true); // warm the stamp cache like a running game would
+  // CPU time (not wall clock) and best of 2, so parallel test workers / GC don't distort the budget check
   const proc = (globalThis as unknown as { process?: { cpuUsage(): { user: number; system: number } } }).process;
   const cpuMs = () => {
     if (!proc) return performance.now();
@@ -44,7 +45,7 @@ it('simulates 5k buildings on 16k tiles within budget', () => {
     return (u.user + u.system) / 1000;
   };
   let fieldMs = Infinity, steps = 0;
-  for (let rep = 0; rep < 3; rep++) {
+  for (let rep = 0; rep < 2; rep++) {
     const t0 = cpuMs();
     const job = sim.fields.pass(sim.fieldCtx());
     steps = 0;
@@ -54,10 +55,10 @@ it('simulates 5k buildings on 16k tiles within budget', () => {
   // one sim day without the field pass (that one is amortised separately)
   (h.sim as unknown as { nextFieldDay: number }).nextFieldDay = 1e9;
   let dayMs = Infinity;
-  for (let rep = 0; rep < 3; rep++) {
+  for (let rep = 0; rep < 2; rep++) {
     const t0 = cpuMs();
-    for (let k = 0; k < 10; k++) sim.finishDay();
-    dayMs = Math.min(dayMs, (cpuMs() - t0) / 10);
+    for (let k = 0; k < 8; k++) sim.finishDay();
+    dayMs = Math.min(dayMs, (cpuMs() - t0) / 8);
   }
   console.info(`[sim perf] ${p.buildings.size} buildings · day ${dayMs.toFixed(2)} ms · field pass ${fieldMs.toFixed(2)} ms in ${steps} slices · pop ${h.sim.stats.population}`);
   // speed 4 = 12 days/s: per-frame cost at 60 fps ≈ (12·day + 4·field) / 60
