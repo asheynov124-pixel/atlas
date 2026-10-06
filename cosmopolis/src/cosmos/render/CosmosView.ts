@@ -3,7 +3,9 @@
  * CosmosView — shared base of the System / Galaxy / Universe views (render/View implementations): scene, perspective
  * camera driven by an OrbitCam, the shared shader uniforms, screen-space picking of bodies, and the label bridge to
  * the DOM label layer (the UI registers a LabelSink; views push label lists on enter and positions every frame —
- * no Preact re-render per frame).
+ * no Preact re-render per frame). Labels are decluttered by importance (selected › focused › current › priority).
+ * Portrait screens get a wider vertical FOV plus an OrbitCam framing factor; setFrameShift() eases a lens shift
+ * (camera view offset) so the selected body sits in the free part of the screen beside / above the info card.
  */
 import { PerspectiveCamera, Scene, Vector3 } from 'three';
 import type { View } from '../../render/View';

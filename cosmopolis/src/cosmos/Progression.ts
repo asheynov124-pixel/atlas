@@ -13,10 +13,15 @@
  *   techs (TechDef[]) · research(techId) → boolean · canResearch(techId) · techState(techId)
  *   techBonus(key) → multiplier (1 = none; additive keys return 1 + sum) · techAdd(key) → additive sum
  *   techMods() → Partial<sim Mods> ready for the sim's applyPatch (contract request: sim merges it)
- *   checkReq(req) → { ok, label, have, need, waived } · reqsFor(planet|system|galaxy) — used by Cosmos & UI
+ *   checkReq(req) → { ok, label, have, need, waived } · reqsFor(planet|system|galaxy) · meets(target) — Cosmos & UI
+ *   totalPop() · colonyPop() · colonyIds() · tagCount(tag) · affordableTechs() · lastDividend() · registerColony()
  *   update(dt)
  * Module exports: TIER_NAMES, TIER_POP, techBonus(key), techMods(), getAllGoals().
  *
+ * Tech effects reach the city without a sim change: every 0.5 s the tech modifier patch (techMods) is multiplied into
+ * the sim's public `cityMods` (re-applied when the sim rebuilds them, swapped when techs change; a sim that merges
+ * techMods itself sets `techModsMerged = true`). Construction discounts refund part of a ploppable's price when it is
+ * placed (clawed back on undo). Monthly dividends: research, tax, upkeep rebates, tourism and inter-colony trade.
  * Events: emits 'unlock' (tier / planet / system / galaxy / tech — cosmos kinds carry the DISPLAY NAME as id so the
  * shell celebration reads nicely), 'milestone:reached' (major goals), toasts via notify, sfx via game.audio.
  * Counters (empire.s.counters, prefix 'cosmos.'): powers, power.<id>, survived, survived.<kind>, planetEnding, pink,

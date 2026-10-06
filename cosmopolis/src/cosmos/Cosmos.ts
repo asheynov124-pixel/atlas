@@ -11,11 +11,17 @@
  *   planetSpec(id)                            → PlanetSpec | null (current, forged, saved or catalogue)
  *   openView(kind, focusId?)                  'system' | 'galaxy' | 'universe' (focusId: planet / system / galaxy id)
  *   requestZoomOut()                          planet camera zoomed past max → system view (then galaxy, universe)
- *   zoomIn() · backToPlanet() · select(id | null)
+ *   zoomIn() · levelUp() · backToPlanet() · select(id | null) · activate(id)
+ *   HUD bridge: rotate(dx, dy) · zoom(f) · fling() · tap(x, y) · labelTap(id) · refreshLabels() ·
+ *               setHudFrame(cardRect | null, topPx) — the views shift their lens so a selection is never under the card
  *   travelTo(planetId)                        warp + game.enterPlanet (career: founding cost, settlers' grant)
  *   canTravel(planetId)                       { ok, reason?, cost, grant, founded, current, reqs, colonisable }
  *   forgePlanet(partial)                      sandbox: create + register a custom PlanetSpec (appears in the system)
- *   systemOf(planetId) · entryOf(planetId) · colonies() · systemState / galaxyState / planetState
+ *   systemOf(planetId) · entryOf(planetId) · galaxyOf(id) · isFounded(id) · colonyCost(id) · colonies()
+ *   planetState / systemState / galaxyState (+ systemSub / galaxySub label texts)
+ * Camera: zooming out of the planet remembers the planet camera pose and flies back to it on return; arriving at a
+ * new world starts at the edge of orbit and glides down onto the city. Quick successive zooms complete the running
+ * blend instead of being ignored. Views are rebuilt when the universe changes (new game / load).
  * URL hooks: &cosmos=system|galaxy|universe · &cosmosSelect=<id> · &cosmosPanel=research|colonies|forge ·
  *            &warpTo=<planetId>. Test hook: window.__cosmos.
  */
@@ -536,14 +542,15 @@ export class Cosmos implements System {
 
   /** Planet camera zoomed past its maximum → system view (or the next level up when already in space). */
   requestZoomOut(): void {
-    if (this.blend || this.warp) return;
+    if (this.warp) return;
     const lvl = cx.level.value;
     if (!lvl || this.game.activeView === this.game.planetView) this.openView('system');
     else this.levelUp();
   }
 
   levelUp(): void {
-    if (this.blend || this.warp) return;
+    // a running blend is completed by the next transition, so quick successive zooms are never swallowed
+    if (this.warp) return;
     const lvl = cx.level.value;
     if (lvl === 'system') this.openView('galaxy', cx.systemId.value);
     else if (lvl === 'galaxy') this.openView('universe', cx.galaxyId.value);
@@ -551,7 +558,7 @@ export class Cosmos implements System {
 
   /** Go one level down toward the selection (or the current world). */
   zoomIn(): void {
-    if (this.blend || this.warp) return;
+    if (this.warp) return;
     const lvl = cx.level.value;
     const sel = cx.selected.value;
     if (lvl === 'universe') this.openView('galaxy', sel?.kind === 'galaxy' ? sel.id : cx.galaxyId.value);

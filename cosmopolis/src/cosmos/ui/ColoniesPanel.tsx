@@ -97,7 +97,7 @@ function WorldRow({ e, cost, reason }: { e: PlanetEntry; cost?: number; reason?:
       <span class="cl-world-text">
         <span class="cl-world-name ellipsis">
           {spec.name}
-          <span class="cl-world-type"> · {e.kind === 'moon' ? `${arch?.name ?? spec.type} moon` : arch?.name ?? spec.type}</span>
+          <span class="cl-world-type"> · {e.kind === 'moon' ? `${(arch?.name ?? spec.type).replace(/ Moon$/, '')} moon` : (arch?.name ?? spec.type).replace(/ World$/, '')}</span>
         </span>
         <span class="cl-world-sub ellipsis">{locked ? reason : `${sys?.name ?? ''} · ${arch?.tagline ?? ''}`}</span>
       </span>

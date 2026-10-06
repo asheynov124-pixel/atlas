@@ -174,6 +174,7 @@ export function ForgePanel(_p: { onClose: () => void }) {
     return <EmptyState icon="magic" title="The Planet Forge is a sandbox tool" body="Start a Sandbox game from the main menu to design worlds of your own — continents, climates, rings and moons." />;
 
   const a = PLANET_TYPES[d.type];
+  const sysName = game.cosmos?.systemOf(game.planet?.spec.id ?? '')?.name ?? 'this star';
   const tiles = 10 * d.frequency * d.frequency + 2;
   const forge = (land: boolean) => {
     const c = game.cosmos;
@@ -237,13 +238,14 @@ export function ForgePanel(_p: { onClose: () => void }) {
       </div>
       <div class="fg-cta">
         <IconButton icon="shuffle" label="Surprise me" variant="glass" onClick={surprise} />
-        <Button variant="secondary" icon="starSystem" onClick={() => forge(false)}>
-          Add to system
-        </Button>
-        <Button variant="primary" icon="rocket" onClick={() => forge(true)}>
+        <Button variant="primary" icon="rocket" block onClick={() => forge(true)}>
           Forge &amp; land
         </Button>
       </div>
+      <button type="button" class="fg-link" onClick={() => (uiSound('tap'), forge(false))}>
+        <Icon name="starSystem" size={14} />
+        or place it in orbit around {sysName} without landing
+      </button>
 
       <SectionHeader title="Archetype" icon="planet" subtitle="Sets the biomes, features and hazards. Resets climate & colours." />
       <div class="fg-types scroll-x">
