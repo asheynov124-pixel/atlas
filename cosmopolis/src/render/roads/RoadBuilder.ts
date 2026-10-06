@@ -156,11 +156,16 @@ const D_MARK = 0.008;
 /** taper to a narrower neighbour starts here (fraction of the half) */
 const TAPER_START = 0.45;
 
-/** Where a road tile's trees go (median / roundabout islands): px,py,pz, ux,uy,uz, scale, seed. */
+/** Instanced extras along roads (they sway / reuse decor meshes): kind of each FURN_STRIDE record in out.trees. */
+export const Furn = { Tree: 0, Bench: 1, Shelter: 2, Hydrant: 3, Bins: 4 } as const;
+/** floats per record: kind, px,py,pz, ux,uy,uz, fx,fy,fz, scale, seed */
+export const FURN_STRIDE = 12;
+
 export interface RoadBuildOut {
   w: GeoWriter;
   /** additive night glow (light pools, lamp halos) */
   glow: GlowWriter;
+  /** instanced trees & street furniture, FURN_STRIDE floats per record (see Furn) */
   trees: number[];
 }
 
@@ -392,6 +397,17 @@ function lamp(seg: HalfSegment, s: number, lat: number, height: number, reach: n
     w.box(P3, FUP, RIGHT, FWD, 0.06, 0.006, 0.028, head, Mat.Light, { bottom: true });
     ctx.glow.halo(P3, 0.075, haloHex);
   }
+}
+
+/** Queue an instanced extra standing at (seg, s, lat) on the sidewalk layer, facing `face` (±1 × right). */
+function furniture(kind: number, seg: HalfSegment, s: number, lat: number, face: number, scale: number, dz = D_SIDE): void {
+  frameAt(seg, s, lat, dz, P0);
+  ctx.trees.push(kind, P0.x, P0.y, P0.z, FUP.x, FUP.y, FUP.z, RIGHT.x * face, RIGHT.y * face, RIGHT.z * face, scale, hash3(ctx.t, seg.k, 31 + kind));
+}
+
+/** Queue a tree (any up vector, random yaw). */
+function treeAt(p: Vector3, up: Vector3, scale: number, seed: number): void {
+  ctx.trees.push(Furn.Tree, p.x, p.y, p.z, up.x, up.y, up.z, 0, 0, 0, scale, seed);
 }
 
 /** Short garden bollard light (paths, plazas). */
@@ -660,7 +676,10 @@ function buildPath(): void {
       if (s0 < MARK0[i]) continue;
       ribbon(seg, s0, s1, lat - sz, lat - sz, lat + sz, lat + sz, D_POOL, h > 0.5 ? C.pathStone : C.pathStone2, Mat.Plain);
     }
-    if (hashFloat(ctx.t, seg.k, 77) < 0.6) bollard(seg, 0.55, (i % 2 ? -1 : 1) * (s.outer + 0.03));
+    const side = i % 2 ? -1 : 1;
+    if (hashFloat(ctx.t, seg.k, 77) < 0.6) bollard(seg, 0.55, side * (s.outer + 0.03));
+    // a bench beside the path now and then, facing it
+    if (hashFloat(ctx.t, seg.k, 91) < 0.32) furniture(Furn.Bench, seg, 0.3, -side * (s.outer + 0.07), side, 0.95);
   }
   if (ctx.shape !== 'straight') {
     if (wood) {
@@ -711,6 +730,15 @@ function buildStreet(): void {
       mark0 = Math.min(0.95, m + 0.16 / L);
     }
     if (markEnd > mark0) dashes(seg, mark0, markEnd, 0, 0.016, 0.1, 0.08, ctx.water ? C.white : C.yellow);
+    // a street tree on the left sidewalk (not on bridges, not crowding junction mouths)
+    const h = hash3(ctx.t, seg.k, 17);
+    const L0 = Math.max(0.2, seg.length);
+    if (!ctx.water && h % 3 !== 0 && !tapered) {
+      const ts = junction ? MOUTH[i] + 0.36 / L0 : 0.42;
+      if (ts < 0.8) furniture(Furn.Tree, seg, ts, -(s.outer - 0.05), 1, 0.5 + (h % 7) * 0.02);
+    }
+    // a fire hydrant at one junction corner
+    if (junction && i === 0 && !ctx.water) furniture(Furn.Hydrant, seg, Math.min(0.9, MOUTH[i] + 0.06 / L0), s.outer - 0.045, -1, 0.9);
     // lamp on the right sidewalk, arm over the road, warm pool on the outbound lane
     const ls = junction ? Math.min(0.9, MOUTH[i] + 0.3 / Math.max(0.2, seg.length)) : 0.55;
     if (ls < 0.92 && !(tapered && ls > TAPER_START)) {
@@ -759,7 +787,7 @@ function buildAvenue(): void {
       if (ts > m0 + 0.06 && ts < m1 - 0.04) {
         pointOnHalf(ctx.planet, seg, ts, 0, P0, D_ASPH + 0.026);
         TUP.copy(P0).normalize();
-        ctx.trees.push(P0.x, P0.y, P0.z, TUP.x, TUP.y, TUP.z, 0.62 + hashFloat(ctx.t, seg.k, 3) * 0.18, hash3(ctx.t, seg.k, 9));
+        treeAt(P0, TUP, 0.62 + hashFloat(ctx.t, seg.k, 3) * 0.18, hash3(ctx.t, seg.k, 9));
       }
     }
     // lane dividers
@@ -770,6 +798,8 @@ function buildAvenue(): void {
       dashes(seg, mk0, mk1, -0.19, 0.012, 0.09, 0.09, C.white);
       if (m1 - m0 <= 0.06) dashes(seg, mk0, mk1, 0, 0.016, 0.1, 0.08, C.yellow);
     }
+    // a hover-bus shelter on the right sidewalk every few blocks
+    if (!junction && !tapered && !ctx.water && hash3(ctx.t, seg.k, 23) % 5 === 0) furniture(Furn.Shelter, seg, 0.82, s.outer - 0.06, -1, 0.95);
     // double-arm lamp in the median (or on the sidewalk where there is no median)
     const lsMed = Math.max(m0 + 0.06, 0.24);
     if (m1 - m0 > 0.2 && lsMed < m1 - 0.05 && Math.abs(lsMed - 0.62) > 0.12) {
@@ -802,7 +832,7 @@ function buildAvenue(): void {
       }
     }
     P0.copy(UP).multiplyScalar(ctx.R + ctx.deck + D_ASPH + 0.03);
-    ctx.trees.push(P0.x, P0.y, P0.z, UP.x, UP.y, UP.z, 0.95, hash3(ctx.t, 1, 2));
+    treeAt(P0, UP, 0.95, hash3(ctx.t, 1, 2));
     // island uplights
     for (let k = 0; k < 3; k++) {
       const a = (k / 3) * Math.PI * 2 + 0.5;
@@ -814,7 +844,7 @@ function buildAvenue(): void {
     P0.copy(UP).multiplyScalar(ctx.R + ctx.deck + D_ASPH);
     ctx.w.prism(P0, UP, E1, E2, 0.16, 0.16, 0.03, 14, C.kerb, Mat.Plain, true, C.grass);
     P0.addScaledVector(UP, 0.03);
-    ctx.trees.push(P0.x, P0.y, P0.z, UP.x, UP.y, UP.z, 0.8, hash3(ctx.t, 3, 4));
+    treeAt(P0, UP, 0.8, hash3(ctx.t, 3, 4));
   } else if (ctx.shape === 'bend') nodeDiscs(s.outer, s.kerb, s.carriage, C.walkAve, C.asphaltAve);
   groundPiers(2, 0.2);
 }

@@ -20,6 +20,7 @@ import { BufferGeometry, Group, Matrix4, Mesh, Vector3 } from 'three';
 import { bus } from '../../core/events';
 import { Rng } from '../../core/rng';
 import { MeshBuilder } from '../../content/kit';
+import { getGeometry } from '../../content/catalog';
 import { drawTree, type TreeSpecies } from '../../content/meshes/props/trees';
 import { streetTreeFor } from '../../content/meshes/props/nature';
 import { getGrid } from '../../world/hexsphere';
@@ -29,11 +30,18 @@ import { getBuildingMaterial } from '../materials';
 import type { PlanetView } from '../PlanetView';
 import { GeoWriter } from './GeoWriter';
 import { GlowWriter, getGlowMaterial } from './glow';
-import { buildRoadTile, type RoadBuildOut } from './RoadBuilder';
+import { FURN_STRIDE, Furn, buildRoadTile, type RoadBuildOut } from './RoadBuilder';
 
 const _m = new Matrix4();
 const _cam = new Vector3();
 const TREE_VARIANTS = 3;
+/** instanced street furniture → decor catalog item */
+const FURN_ITEMS: Record<number, string> = {
+  [Furn.Bench]: 'item:decor.bench',
+  [Furn.Shelter]: 'item:decor.busstop',
+  [Furn.Hydrant]: 'item:decor.hydrant',
+  [Furn.Bins]: 'item:decor.bins',
+};
 
 interface Chunk {
   tiles: Int32Array;
@@ -224,15 +232,20 @@ export class RoadRenderer {
     for (const h of ch.trees) this.trees.remove(h);
     ch.trees.length = 0;
     const S = this.treeSpots;
-    for (let i = 0; i + 8 <= S.length; i += 8) {
-      const seed = S[i + 7] >>> 0;
-      const key = `${this.species}|${seed % TREE_VARIANTS}`;
-      upMatrix(S[i], S[i + 1], S[i + 2], S[i + 3], S[i + 4], S[i + 5], ((seed >>> 3) % 628) / 100, S[i + 6], _m);
-      ch.trees.push(this.trees.add(key, _m, 0xffffff, 0.6));
+    for (let i = 0; i + FURN_STRIDE <= S.length; i += FURN_STRIDE) {
+      const kind = S[i];
+      const seed = S[i + 11] >>> 0;
+      const key = kind === Furn.Tree ? `${this.species}|${seed % TREE_VARIANTS}` : FURN_ITEMS[kind] ?? FURN_ITEMS[Furn.Bins];
+      const hasFwd = S[i + 7] !== 0 || S[i + 8] !== 0 || S[i + 9] !== 0;
+      if (hasFwd) fwdMatrix(S[i + 1], S[i + 2], S[i + 3], S[i + 4], S[i + 5], S[i + 6], S[i + 7], S[i + 8], S[i + 9], S[i + 10], _m);
+      else upMatrix(S[i + 1], S[i + 2], S[i + 3], S[i + 4], S[i + 5], S[i + 6], ((seed >>> 3) % 628) / 100, S[i + 10], _m);
+      ch.trees.push(this.trees.add(key, _m, 0xffffff, kind === Furn.Tree ? 0.6 : 0.35));
     }
   }
 
   private treeGeometry(key: string, lod: 0 | 1): BufferGeometry | null {
+    // street furniture reuses the decor catalog meshes (cached & owned by the catalog)
+    if (key.startsWith('item:')) return getGeometry(key.slice(5), { lod });
     const k = key + '#' + lod;
     let g = this.treeGeo.get(k);
     if (g) return g;
@@ -314,6 +327,15 @@ export class RoadRenderer {
 const _up = new Vector3();
 const _f = new Vector3();
 const _r = new Vector3();
+
+/** Matrix standing at p with local +Y = up and +Z = forward (projected tangent), uniform scale s. */
+function fwdMatrix(px: number, py: number, pz: number, ux: number, uy: number, uz: number, fx: number, fy: number, fz: number, s: number, out: Matrix4): Matrix4 {
+  _up.set(ux, uy, uz).normalize();
+  _f.set(fx, fy, fz).addScaledVector(_up, -(fx * _up.x + fy * _up.y + fz * _up.z)).normalize();
+  _r.crossVectors(_up, _f).normalize();
+  out.set(_r.x * s, _up.x * s, _f.x * s, px, _r.y * s, _up.y * s, _f.y * s, py, _r.z * s, _up.z * s, _f.z * s, pz, 0, 0, 0, 1);
+  return out;
+}
 
 /** Matrix standing at p with local +Y = up, yawed by `yaw`, uniform scale s. */
 function upMatrix(px: number, py: number, pz: number, ux: number, uy: number, uz: number, yaw: number, s: number, out: Matrix4): Matrix4 {

@@ -95,7 +95,7 @@ export class GlowWriter {
     g.setAttribute('aGlowCol', new BufferAttribute(this.col.slice(0, this.nv * 3), 3));
     g.setAttribute('aBill', new BufferAttribute(this.bill.slice(0, this.nv), 1));
     const idx = this.idx.subarray(0, this.ni);
-    g.setIndex(this.nv > 65535 ? new BufferAttribute(Uint32Array.from(idx), 1) : new BufferAttribute(Uint16Array.from(idx), 1));
+    g.setIndex(this.nv > 65535 ? new BufferAttribute(new Uint32Array(idx), 1) : new BufferAttribute(new Uint16Array(idx), 1));
     g.computeBoundingSphere();
     // halos extend beyond their centres
     if (g.boundingSphere) g.boundingSphere.radius += 0.5;

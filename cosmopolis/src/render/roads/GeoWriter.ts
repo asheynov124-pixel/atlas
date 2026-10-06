@@ -293,7 +293,7 @@ export class GeoWriter {
     g.setAttribute('aMat', new BufferAttribute(this.mat.slice(0, nv), 1));
     g.setAttribute('aState', new BufferAttribute(this.st.slice(0, nv), 1));
     const idx = this.idx.subarray(0, this.ni);
-    g.setIndex(nv > 65535 ? new BufferAttribute(Uint32Array.from(idx), 1) : new BufferAttribute(Uint16Array.from(idx), 1));
+    g.setIndex(nv > 65535 ? new BufferAttribute(new Uint32Array(idx), 1) : new BufferAttribute(new Uint16Array(idx), 1));
     g.computeBoundingSphere();
     return g;
   }

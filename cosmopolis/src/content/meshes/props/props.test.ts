@@ -15,7 +15,7 @@ import { MIXES, drawFeature, drawForest } from './nature';
 import { TREE_SPECIES, drawTree } from './trees';
 import { GeoWriter } from '../../../render/roads/GeoWriter';
 import { GlowWriter } from '../../../render/roads/glow';
-import { buildRoadTile } from '../../../render/roads/RoadBuilder';
+import { FURN_STRIDE, buildRoadTile } from '../../../render/roads/RoadBuilder';
 import { ROAD_SPECS, halfSegment, pointOnHalf, travelPoint } from '../../../render/roads/lanes';
 
 const tris = (g: { index: { count: number } | null } | null) => (g?.index ? g.index.count / 3 : 0);
@@ -161,7 +161,8 @@ describe('road geometry & lanes', () => {
       expect(w.triangles, `kind ${p.road[t]}`).toBeLessThan(1600);
     }
     expect(roadTiles).toBeGreaterThan(40);
-    expect(trees.length % 8).toBe(0);
+    expect(trees.length % FURN_STRIDE).toBe(0);
+    expect(trees.length).toBeGreaterThan(0);
     expect(ROAD_SPECS[RoadKind.Street].lanes[0]).toBeLessThan(ROAD_SPECS[RoadKind.Street].carriage);
   });
 });
