@@ -57,6 +57,10 @@ export class CrystalSkin extends Skin {
     b.box(w, 0.006, 0.006, { color: p.accent, mat: Mat.Glow, x, z, y: G + 0.04, ...DET });
   }
 
+  override frontWidth(w: number, d: number): number {
+    return w - 2 * Math.min(w, d) * 0.28 * 0.85;
+  }
+
   override outline(_rc: RC, w: number, d: number): V2[] | null {
     return chamferRect(w, d, Math.min(w, d) * 0.28);
   }

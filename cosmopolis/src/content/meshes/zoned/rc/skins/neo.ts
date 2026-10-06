@@ -35,6 +35,10 @@ export class NeoSkin extends Skin {
     b.box(w * 0.9, 0.006, 0.006, { color: p.accent, mat: Mat.Glow, x, z: z + 0.016, y: G + 0.035, ...DET });
   }
 
+  override frontWidth(w: number, d: number): number {
+    return w - 2 * Math.min(w, d) * 0.3 * 0.8;
+  }
+
   override outline(_rc: RC, w: number, d: number): V2[] | null {
     return roundRect(w, d, Math.min(w, d) * 0.3, 2);
   }

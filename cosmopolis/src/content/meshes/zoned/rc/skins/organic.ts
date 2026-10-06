@@ -43,6 +43,10 @@ export class OrganicSkin extends Skin {
     b.sphere(0.022, { color: p.accent2, mat: Mat.Glow, wSeg: 4, hSeg: 2, x: x + w * 0.3, z, y: G + 0.06, ...DET });
   }
 
+  override frontWidth(w: number, d: number): number {
+    return w * 0.62;
+  }
+
   override outline(_rc: RC, w: number, d: number): V2[] | null {
     return ellipse(w, d, 10);
   }

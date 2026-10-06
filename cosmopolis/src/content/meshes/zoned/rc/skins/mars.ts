@@ -32,6 +32,10 @@ export class MarsSkin extends Skin {
     rc.b.box(w, 0.06, 0.04, { color: shade(rc.p.wall, 1.08), x, z, y: G, top: rc.p.roof, ...DET, paint: true });
   }
 
+  override frontWidth(w: number, d: number): number {
+    return w - 2 * Math.min(w, d) * 0.16 * 0.7;
+  }
+
   override outline(_rc: RC, w: number, d: number): V2[] | null {
     return roundRect(w, d, Math.min(w, d) * 0.16, 2);
   }

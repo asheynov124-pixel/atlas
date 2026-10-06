@@ -301,6 +301,14 @@ export abstract class Skin {
     return roundRect(w, d, Math.min(w, d) * 0.12, 1);
   }
 
+  /**
+   * Width of the straight part of a w×d mass's street face. Rounded styles curve away at the corners, so
+   * shop fronts, balconies and lit edges are clamped to this to never hang in the air.
+   */
+  frontWidth(w: number, _d: number): number {
+    return w;
+  }
+
   /** Outline used for round towers (o.round). */
   roundOutline(w: number, d: number): V2[] {
     return ellipse(w, d, 12);

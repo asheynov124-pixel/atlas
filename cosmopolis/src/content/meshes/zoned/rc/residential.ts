@@ -245,7 +245,7 @@ export const walkup = factory((rc) => {
   need(rc);
   b.group({ z: z + d / 2 }, () => {
     sk.portico(rc, 0.3, FL);
-    sk.balconies(rc, { w: w * 0.9, y0: FL, y1: h - FL * 0.9, every: 1, cols: 3 });
+    sk.balconies(rc, { w: Math.min(w * 0.9, sk.frontWidth(w, d)), y0: FL, y1: h - FL * 0.9, every: 1, cols: 3 });
   });
   sk.tree(rc, -0.42, 0.6, 0.8);
   if (L >= 2) sk.tree(rc, 0.42, 0.6, 0.8);
@@ -277,7 +277,7 @@ export const courtyard = factory((rc) => {
     polyTop(b, ngon(8, 0.088, 0, 0, 0.02), { color: 0x3a9ad0, mat: Mat.Water, paint: false, y: G + 0.036 });
   }
   sk.tree(rc, -0.12, 0.3, 0.9);
-  b.group({ z: -0.25 }, () => sk.balconies(rc, { w: 0.46, y0: FL, y1: h - FL, every: 1, cols: 2 }));
+  b.group({ z: -0.25 }, () => sk.balconies(rc, { w: Math.min(0.46, sk.frontWidth(1.08, 0.34)), y0: FL, y1: h - FL, every: 1, cols: 2 }));
   sk.tree(rc, 0.14, -0.14, 0.75);
   if (L >= 3) sk.shrub(rc, 0.12, 0.34, 1);
   sk.fence(rc, 0, 0.66, 0.5);
@@ -308,7 +308,7 @@ export const midrise = factory((rc) => {
   need(rc);
   b.group({ z: z + d / 2 }, () => {
     sk.portico(rc, 0.4, FL);
-    sk.balconies(rc, { w: w * 0.86, y0: FL * 1.5, y1: h - FL, every: 1, cols: 0, depth: 0.07 });
+    sk.balconies(rc, { w: Math.min(w * 0.86, sk.frontWidth(w, d)), y0: FL * 1.5, y1: h - FL, every: 1, cols: 0, depth: 0.07 });
   });
   sk.tree(rc, -0.45, 0.62, 0.8);
   sk.tree(rc, 0.45, 0.62, 0.8);
@@ -352,7 +352,7 @@ export const slab = factory((rc) => {
   need(rc);
   b.group({ z: z + d / 2 }, () => {
     sk.portico(rc, 0.44, FL * 1.2);
-    sk.balconies(rc, { w: w * 0.92, y0: FL * 2, y1: h - FL, every: 2, cols: 0, depth: 0.06 });
+    sk.balconies(rc, { w: Math.min(w * 0.92, sk.frontWidth(w, d)), y0: FL * 2, y1: h - FL, every: 2, cols: 0, depth: 0.06 });
   });
   sk.tree(rc, -0.5, 0.5, 0.8);
   sk.tree(rc, 0.5, 0.5, 0.8);
