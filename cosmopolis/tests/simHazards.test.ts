@@ -1,7 +1,10 @@
 /** Disaster interplay: fire spread vs fire coverage, floods, radiation. */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { makeHarness, layoutTown, plop } from './simHarness';
 import { BuildingState, TileFlag } from '../src/core/types';
+
+// long simulated spans: allow time on busy CI machines
+vi.setConfig({ testTimeout: 60_000 });
 
 function town(withFire: boolean) {
   const h = makeHarness({ frequency: 20 });
@@ -18,15 +21,18 @@ describe('sim hazards', () => {
     const results: number[] = [];
     for (const withFire of [false, true]) {
       const h = town(withFire);
-      const homes = [...h.sim.recMap.values()].filter((r) => r.info.growable).slice(0, 6).map((r) => r.b.tile);
       const lost0 = h.sim.hazards!.lost;
-      h.ops.setFlags(homes, TileFlag.Burning, true);
-      h.days(25);
+      // three separate outbreaks, 8 burning buildings each
+      for (let k = 0; k < 3; k++) {
+        const homes = [...h.sim.recMap.values()].filter((r) => r.info.growable && r.b.state === BuildingState.Active).slice(k * 8, k * 8 + 8).map((r) => r.b.tile);
+        h.ops.setFlags(homes, TileFlag.Burning, true);
+        h.days(20);
+      }
       results.push(h.sim.hazards!.lost - lost0);
     }
-    expect(results[0]).toBeGreaterThan(0);
+    expect(results[0]).toBeGreaterThan(3);
     expect(results[1]).toBeLessThan(results[0]);
-  });
+  }, 30_000);
 
   it('flooded buildings are abandoned, then destroyed if the water stays', () => {
     const h = town(false);

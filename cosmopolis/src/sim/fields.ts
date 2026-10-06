@@ -116,6 +116,10 @@ export class Fields {
   private loadB: Float32Array;
   roadsDirty = true;
   lvBaseDirty = true;
+  /** ancient ruins tiles (tourism magnets) */
+  ruins: number[] = [];
+  /** ruins reachable from a road (count toward visitors) */
+  ruinsReachable = 0;
 
   private stamps = new Map<number, Stamp>();
   /** completed passes (for tests / staleness) */
@@ -190,7 +194,9 @@ export class Fields {
     const p = this.planet;
     const g = p.grid;
     const base = this.lvBase;
+    this.ruins = [];
     for (let t = 0; t < p.count; t++) {
+      if (p.feature[t] === Feature.Ruins) this.ruins.push(t);
       if (p.isWater(t)) {
         base[t] = 0;
         continue;
@@ -377,6 +383,19 @@ export class Fields {
       }
     }
     yield;
+
+    // ── ancient ruins draw sightseers once a road reaches them
+    let reach = 0;
+    for (const t of this.ruins) {
+      if (p.feature[t] !== Feature.Ruins) continue;
+      let near = p.road[t] !== 0;
+      if (!near) for (const x of this.stamp(t, 2).tiles) if (p.road[x]) (near = true);
+      if (!near) continue;
+      reach++;
+      const st = this.stamp(t, 4);
+      for (let k = 0; k < st.tiles.length; k++) this.tourAcc[st.tiles[k]] += 0.6 * (1 - st.d[k]);
+    }
+    this.ruinsReachable = reach;
 
     // ── traffic diffusion over the road graph (flows prefer high-capacity roads)
     const rc = this.roadCount;

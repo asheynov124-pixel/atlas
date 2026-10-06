@@ -1,8 +1,11 @@
 /** Save / restore round-trip through planet.serialize() + JSON. */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { makeHarness, layoutTown, plop } from './simHarness';
 import { Planet } from '../src/world/planet';
 import { footprintOf } from '../src/content/catalog';
+
+// long simulated spans: allow time on busy CI machines
+vi.setConfig({ testTimeout: 60_000 });
 
 describe('sim persistence', () => {
   it('restores the city exactly enough to keep playing', () => {

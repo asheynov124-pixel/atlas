@@ -243,7 +243,7 @@ export function updateRec(sim: Simulation, r: BRec): void {
       /* keep the saved occupancy */
     } else if (residents < target) {
       const rate = sim.demand.R > -0.2 ? 1 : 0.3;
-      residents = Math.min(target, residents + Math.max(1, housing * 0.2) * rate * (sim.rules.fastGrowth ? 3 : 1));
+      residents = Math.min(target, residents + Math.max(1, housing * 0.12) * rate * (sim.rules.fastGrowth ? 3 : 1));
     } else residents -= Math.ceil((residents - target) * 0.25);
     residents = Math.max(0, Math.round(residents));
     r.residents = residents;

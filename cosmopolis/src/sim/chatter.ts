@@ -190,10 +190,20 @@ export const TEMPLATES: Record<string, string[]> = {
     'Petition to rename Tuesday to "Spacey Tuesday". Sign below. 📝',
     'Watched two drones argue over a parking spot. Drama. 🍿',
     'Night shift at the spaceport. The view never gets old. 🛸',
+    'Low gravity basketball league tryouts today. I dunked from the parking lot. 🏀',
+    'My houseplant photosynthesised so hard today it got a sunburn. 🌱',
+    'Just realised our sunset happens twice if you take the express elevator. 🌇',
+    'Overheard at the café: "I\'m not lost, I\'m exploring the hexagons." Same, friend.',
+    'Someone graffitied "HELLO UNIVERSE" on the water tower. The universe has not replied. 📡',
+    'Bought a telescope. Spent the night watching my neighbour\'s telescope watching me. 🔭',
+    'The street musician on {district} plays the theremin like it owes him money. 🎶',
+    'PSA: the meteor in the museum is NOT for licking. Ask me how I know. ☄️',
+    'Weather forecast: 40% chance of aurora, 60% chance I stay up too late watching it. 🌌',
+    'My grandma has more followers than me. She posts about soup. 🥣',
   ],
   grandma: [
     'In my day we had ONE moon and we were grateful. 👵',
-    'Knitted a sweater for the new satellite. It looked cold up there.',
+    'Knitted a sweater for the moon. It looked cold up there. 🧶',
     'Back in my day {city} was all fields. Now look at it! I\'m so proud. 🥲',
   ],
   cat: ['Sat in a sunbeam for six hours. Productive day. 🐈', 'Knocked a glass off the mayor\'s desk. No regrets.', 'Demand for chin scratches remains high. Supply: disappointing. 🐾'],
@@ -208,10 +218,18 @@ export function fill(text: string, vars: Record<string, string | number>): strin
   return text.replace(/\{(\w+)\}/g, (_, k) => (vars[k] !== undefined ? String(vars[k]) : _));
 }
 
-/** Pick a template line for a topic. */
+/** Recently used template lines (shared) so the feed rarely repeats itself. */
+const recent: string[] = [];
+const RECENT_MAX = 40;
+
+/** Pick a template line for a topic, avoiding lines used recently. */
 export function line(rng: SimRng, topic: string, vars: Record<string, string | number>): string {
   const list = TEMPLATES[topic] ?? TEMPLATES.random;
-  return fill(rng.pick(list), vars);
+  let pick = list[Math.floor(rng.next() * list.length)];
+  for (let tries = 0; tries < 6 && recent.includes(pick); tries++) pick = list[Math.floor(rng.next() * list.length)];
+  recent.push(pick);
+  if (recent.length > RECENT_MAX) recent.shift();
+  return fill(pick, vars);
 }
 
 /** Resident quote for the inspector, chosen by mood and needs. */

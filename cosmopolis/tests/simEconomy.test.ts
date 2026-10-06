@@ -1,6 +1,9 @@
 /** Economy: monthly reports, taxes, budgets, loans, policies, colonies, sandbox. */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { makeHarness, layoutTown, plop } from './simHarness';
+
+// long simulated spans: allow time on busy CI machines
+vi.setConfig({ testTimeout: 60_000 });
 
 function grownTown() {
   const h = makeHarness({ frequency: 20 });

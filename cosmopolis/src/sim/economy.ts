@@ -19,7 +19,7 @@ export interface EconomyContext {
   cityMods: Mods;
   population: number;
   /** population per district id */
-  districtPop: number[];
+  districtPop: ArrayLike<number>;
   visitorsPerMonth: number;
   loans: Loan[];
   /** Σ inactive colonies' monthly income */

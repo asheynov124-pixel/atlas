@@ -4,7 +4,7 @@
  * (park, landmark, wonder, shelter, shield, housing) so the hot loops never touch ItemDef objects.
  */
 import { Zone, type ZoneFamily } from '../core/types';
-import { allItems, getItem, type Coverage, type ItemDef } from '../content/catalog';
+import { allItems, catalogVersion, getItem, type Coverage, type ItemDef } from '../content/catalog';
 import { ZONE_PARAMS, type DeptId, type ZoneParams } from './params';
 
 export interface DefInfo {
@@ -65,8 +65,20 @@ export interface CatalogCaps {
   data: boolean;
 }
 let caps: CatalogCaps | null = null;
+let seenVersion = -1;
+
+/** Drop caches when the catalog changed (content registered late, Architect Studio edits). */
+function sync(): void {
+  const v = catalogVersion();
+  if (v !== seenVersion) {
+    seenVersion = v;
+    cache.clear();
+    caps = null;
+  }
+}
 
 export function catalogCaps(): CatalogCaps {
+  sync();
   if (caps) return caps;
   const c: CatalogCaps = { power: false, water: false, oxygen: false, garbage: false, data: false };
   for (const d of allItems()) {
@@ -93,6 +105,7 @@ export function clearDefInfo(): void {
 }
 
 export function defInfo(defId: string): DefInfo | null {
+  sync();
   let d = cache.get(defId);
   if (d !== undefined) return d;
   const def = getItem(defId);

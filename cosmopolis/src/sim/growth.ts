@@ -6,7 +6,7 @@
  * Also owns the def pickers used for level-up replacements.
  */
 import { BuildingState, Feature, TileFlag, Zone } from '../core/types';
-import { allItems, type ItemDef } from '../content/catalog';
+import { allItems, catalogVersion, type ItemDef } from '../content/catalog';
 import type { Planet } from '../world/planet';
 import type { Simulation } from './Simulation';
 import { SERVICE_INDEX } from './params';
@@ -43,6 +43,7 @@ export class Growth {
   constructor(private planet: Planet) {}
 
   private maxLv = new Int8Array(16);
+  private catVer = -1;
 
   invalidateCatalog(): void {
     this.byZone.clear();
@@ -51,6 +52,11 @@ export class Growth {
 
   /** Growables available for a zone on this planet (cached). */
   defsFor(zone: number): ItemDef[] {
+    const v = catalogVersion();
+    if (v !== this.catVer) {
+      this.catVer = v;
+      this.invalidateCatalog();
+    }
     let list = this.byZone.get(zone);
     if (!list) {
       const type = this.planet.spec.type;
@@ -136,7 +142,7 @@ export class Growth {
         this.acc[fam] = 0;
         continue;
       }
-      const rate = d * (1.1 + Math.min(10, n / 30)) * (sim.rules.fastGrowth ? 3 : 1);
+      const rate = d * (0.5 + Math.min(5, n / 60)) * (sim.rules.fastGrowth ? 3 : 1);
       this.acc[fam] += rate;
       let k = Math.min(30, Math.floor(this.acc[fam]));
       this.acc[fam] -= k;

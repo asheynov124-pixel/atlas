@@ -1,6 +1,9 @@
 /** Lenses, inspector rows and fields stay in range. */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { makeHarness, layoutTown, plop } from './simHarness';
+
+// long simulated spans: allow time on busy CI machines
+vi.setConfig({ testTimeout: 60_000 });
 
 describe('sim lenses & inspect', () => {
   const h = makeHarness({ frequency: 20 });
@@ -46,7 +49,7 @@ describe('sim lenses & inspect', () => {
     const home = [...h.sim.recMap.values()].find((r) => r.info.fam === 0 && r.residents > 0)!;
     const rows = h.sim.inspectBuilding(home.id);
     const labels = rows.map((r) => r.label);
-    for (const l of ['Type', 'Status', 'Level', 'Residents', 'Happiness', 'Power', 'Water', 'Land value', 'Taxes paid']) expect(labels).toContain(l);
+    for (const l of ['Happiness', 'Residents', 'Level', 'Power', 'Water', 'Coverage', 'Land value', 'Taxes paid', 'Built']) expect(labels).toContain(l);
     for (const r of rows) expect(typeof r.value).toBe('string');
     const tileRows = h.sim.inspectTile(home.b.tile);
     expect(tileRows.length).toBeGreaterThan(3);

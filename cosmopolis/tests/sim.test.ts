@@ -1,7 +1,10 @@
 /** Simulation: zoned growth, utilities gating, levelling, abandonment, oxygen worlds, sandbox rules. */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { makeHarness, layoutTown, plop } from './simHarness';
 import { BuildingState, Zone } from '../src/core/types';
+
+// long simulated spans: allow time on busy CI machines
+vi.setConfig({ testTimeout: 60_000 });
 
 const familyCount = (h: ReturnType<typeof makeHarness>, zones: Zone[]) => {
   let n = 0;

@@ -38,9 +38,9 @@ import { bus, type RemoveCause } from '../core/events';
 import type { Planet } from '../world/planet';
 import type { ColorRamp } from '../render/planet/PlanetSurface';
 import type { ColonySummary } from '../game/Empire';
-import { getItem } from '../content/catalog';
+import { catalogVersion, getItem } from '../content/catalog';
 import { PLANET_TYPES } from '../content/planetTypes';
-import { notify, pushNews } from '../ui/store';
+import { notify, pushNews, ui } from '../ui/store';
 import { game as gameInstance } from '../game/instance';
 import { b64ToBytes, bytesToB64 } from '../core/b64';
 import { Agg } from './agg';
@@ -201,6 +201,8 @@ export class Simulation implements System {
   private abandonCause = new Map<number, string>();
   private lastAbandonNotice = -999;
   private abandonedToday = 0;
+  private catVer = -1;
+  private realNotes = new Map<string, number>();
 
   constructor(private game: Game) {
     this.lenses = makeLenses(this);
@@ -414,21 +416,20 @@ export class Simulation implements System {
     this.pendingLevel.delete(id);
     this.abandonCause.delete(id);
     if (cause === 'disaster') this.casualties(r);
-    if (cause === 'upgrade' || cause === 'replace') {
-      this.carry = { residents: r.residents, happiness: r.happiness, edu: r.edu, distress: r.distress };
-    }
+    if (cause === 'upgrade') this.carry = { residents: r.residents, happiness: r.happiness, edu: r.edu, distress: r.distress };
   }
 
   private onCatalogChanged(): void {
     clearDefInfo();
-    this.refreshExempt();
     invalidateEconomyCache();
     this.growth?.invalidateCatalog();
     for (const r of this.recs) {
       const info = defInfo(r.b.defId);
       if (info) r.info = info;
     }
+    this.refreshExempt();
     this.fieldsDirty = true;
+    this.catVer = catalogVersion();
   }
 
   // ───────────────────────────── helpers used by buildings.ts
@@ -495,13 +496,13 @@ export class Simulation implements System {
 
   noteFireStart(tile: number): void {
     if (this.cool('fire', 8)) {
-      notify({ title: 'Fire!', body: 'A building is burning. Fire stations nearby will respond.', icon: '🔥', kind: 'bad', tile });
+      this.toast('fire', { title: 'Fire!', body: 'A building is burning. Fire stations nearby will respond.', icon: '🔥', kind: 'bad', tile });
       this.post(this.persona(), line(this.rng, 'fire', this.vars()), tile);
     }
   }
 
   noteFireLoss(tile: number): void {
-    if (this.cool('fireloss', 10)) notify({ title: 'Building lost to fire', body: 'Build fire stations to protect your city.', icon: '🚒', kind: 'bad', tile });
+    if (this.cool('fireloss', 10)) this.toast('fireloss', { title: 'Building lost to fire', body: 'Build fire stations to protect your city.', icon: '🚒', kind: 'bad', tile });
   }
 
   damageResistance(tile: number): number {
@@ -554,6 +555,8 @@ export class Simulation implements System {
     this.agg.derive(this.cityMods.workforce, this.fill);
     this.skillFill = this.agg.skillFill;
     this.workerEdu = this.agg.workerEdu;
+    // sightseers at road-accessible ancient ruins
+    if (this.fields) this.agg.visitors += this.fields.ruinsReachable * 45 * this.cityMods.tourism * this.eventMods.tourism;
     const shoppers = this.agg.population * 0.13 + (this.agg.visitors / 30) * 0.35;
     this.custFactor = this.agg.jobs[1] > 0 ? Math.max(0.4, Math.min(1.2, shoppers / this.agg.jobs[1])) : 1;
     this.refreshExempt();
@@ -620,6 +623,7 @@ export class Simulation implements System {
 
   private finishDay(): void {
     const p = this.planet!;
+    if (this.catVer !== catalogVersion()) this.onCatalogChanged();
     // 1. finish the rolling building pass
     while (this.cursor < this.recs.length) updateRec(this, this.recs[this.cursor++]);
     this.cursor = 0;
@@ -685,7 +689,7 @@ export class Simulation implements System {
         this.lastAbandonNotice = this.day;
         const r = [...this.recMap.values()].find((x) => x.b.state === BuildingState.Abandoned);
         const why = r ? this.abandonReason(r) : 'poor conditions';
-        notify({ title: 'Buildings abandoned', body: `Residents are leaving — ${why}.`, icon: '🏚️', kind: 'warn', tile: r?.b.tile });
+        this.toast('abandoned', { title: 'Buildings abandoned', body: `Residents are leaving — ${why}.`, icon: '🏚️', kind: 'warn', tile: r?.b.tile });
         this.post(this.persona(), line(this.rng, 'abandoned', this.vars()), r?.b.tile);
       }
       this.abandonedToday = 0;
@@ -851,7 +855,7 @@ export class Simulation implements System {
       modsAt: (d) => this.modsAt(d),
       cityMods: this.cityMods,
       population: this.agg.population,
-      districtPop: Array.from(this.agg.distPop),
+      districtPop: this.agg.distPop,
       visitorsPerMonth: this.agg.visitors,
       loans: this.loans,
       coloniesIncome,
@@ -960,7 +964,7 @@ export class Simulation implements System {
           notify({ title: 'Federation bailout', body: `The Galactic Federation lent you ₡${need.toLocaleString('en-US')} at 15%. They are "disappointed".`, icon: '🏛️', kind: 'bad' });
           this.post(CHARACTERS.news, `BREAKING: ${this.planet!.city.name} bailed out by the Federation. Mayor seen hiding behind a potted plant. 🪴`);
         } else {
-          notify({ title: 'Bankruptcy warning', body: `The treasury is ₡${Math.round(-e.s.money).toLocaleString('en-US')} in the red. Raise taxes, cut budgets or take a loan.`, icon: '📉', kind: 'bad' });
+          this.toast('bankrupt', { title: 'Bankruptcy warning', body: `The treasury is ₡${Math.round(-e.s.money).toLocaleString('en-US')} in the red. Raise taxes, cut budgets or take a loan.`, icon: '📉', kind: 'bad' });
           if (this.rng.chance(0.5)) this.post(this.persona(), line(this.rng, 'bankrupt', this.vars()));
         }
       } else this.negMonths = 0;
@@ -1005,7 +1009,7 @@ export class Simulation implements System {
     this.events.push({ id: def.id, name: def.name, icon: def.icon, description: def.description, daysLeft: def.days, tile });
     this.recomputeMods();
     if (def.money && !this.sandbox) this.game.empire.s.money += def.money;
-    notify({ title: def.name, body: def.description + (def.money ? ` (${def.money > 0 ? '+' : '−'}₡${Math.abs(def.money).toLocaleString('en-US')})` : ''), icon: def.icon, kind: def.good ? 'good' : 'warn', tile });
+    this.toast('event.' + def.id, { title: def.name, body: def.description + (def.money ? ` (${def.money > 0 ? '+' : '−'}₡${Math.abs(def.money).toLocaleString('en-US')})` : ''), icon: def.icon, kind: def.good ? 'good' : 'warn', tile });
     this.post(this.persona(), this.rng.pick(def.news), tile);
   }
 
@@ -1064,6 +1068,8 @@ export class Simulation implements System {
     s.dataCapacity = Math.round(sup[U.Data]);
     s.dataDemand = Math.round(dem[U.Data]);
     s.needsOxygen = this.needsOxygen ? 1 : 0;
+    /** bitmask of utilities supplied for free (1 power · 2 water · 4 oxygen · 8 garbage · 16 data) */
+    s.utilitiesFree = this.exempt;
     s.monthlyIncome = this.projected ? this.projected.net : 0;
     s.monthlyRevenue = this.projected ? this.projected.totalIncome : 0;
     s.monthlyExpenses = this.projected ? this.projected.totalExpenses : 0;
@@ -1128,10 +1134,13 @@ export class Simulation implements System {
     if (!this.planet) return tips;
     if (s.roadTiles === 0) tips.push({ icon: '🛣️', text: 'Every city starts with a road. Draw one from the build menu.', tone: 'info' });
     else if (s.zonedTiles === 0) tips.push({ icon: '🏡', text: 'Paint residential, commercial and industrial zones along your roads.', tone: 'info' });
-    if (!this.sandbox && s.powerSupply === 0 && s.zonedTiles > 0) tips.push({ icon: '⚡', text: 'Zoned lots need power to develop. Build a power plant on your road network.', tile: g?.blockedTile ?? undefined, tone: 'warn' });
-    else if (s.powerDemand > s.powerSupply * 0.95 && s.powerDemand > 0) tips.push({ icon: '⚡', text: `Power is maxed out (${s.powerDemand}/${s.powerSupply} MW). Growth stalls without more plants.`, tone: 'warn' });
-    if (s.waterDemand > s.waterSupply && s.waterDemand > 0) tips.push({ icon: '💧', text: 'Taps are running dry. Build water pumps or towers.', tone: 'warn' });
-    if (this.needsOxygen && s.oxygenDemand > s.oxygenSupply) tips.push({ icon: '🫁', text: 'Citizens are gasping — this world needs more oxygen generators!', tone: 'bad' });
+    const ex = this.exempt;
+    if (!(ex & SV_POWER)) {
+      if (!this.sandbox && s.powerSupply === 0 && s.zonedTiles > 0) tips.push({ icon: '⚡', text: 'Zoned lots need power to develop. Build a power plant on your road network.', tile: g && g.blockedTile >= 0 ? g.blockedTile : undefined, tone: 'warn' });
+      else if (s.powerDemand > s.powerSupply * 0.95 && s.powerDemand > 0) tips.push({ icon: '⚡', text: `Power is maxed out (${s.powerDemand}/${s.powerSupply} MW). Growth stalls without more plants.`, tone: 'warn' });
+    }
+    if (!(ex & SV_WATER) && s.waterDemand > s.waterSupply && s.waterDemand > 0) tips.push({ icon: '💧', text: 'Taps are running dry. Build water pumps or towers.', tone: 'warn' });
+    if (!(ex & SV_OXYGEN) && this.needsOxygen && s.oxygenDemand > s.oxygenSupply) tips.push({ icon: '🫁', text: 'Citizens are gasping — this world needs more oxygen generators!', tone: 'bad' });
     if (this.garbageActive && s.garbageProduced > s.garbageCapacity) tips.push({ icon: '🗑️', text: 'Garbage is piling up. Build a landfill or recycling centre.', tone: 'warn' });
     if (s.unemployment > 12) tips.push({ icon: '💼', text: `${s.unemployment}% unemployment. Zone commercial or industry.`, tone: 'warn' });
     if (this.agg.openJobs > Math.max(60, this.agg.workforce * 0.2)) tips.push({ icon: '🏡', text: 'Lots of open jobs — zone more housing.', tone: 'info' });
@@ -1253,6 +1262,18 @@ export class Simulation implements System {
     return true;
   }
 
+  /**
+   * System toast with anti-spam: never repeats a title already on screen, and the same key waits at least
+   * `realSec` real seconds (fast-forward would otherwise fire game-day cooldowns every few seconds).
+   */
+  private toast(key: string, n: Parameters<typeof notify>[0], realSec = 45): void {
+    const now = performance.now();
+    if (now - (this.realNotes.get(key) ?? -1e12) < realSec * 1000) return;
+    if (ui.toasts.value.some((x) => x.title === n.title)) return;
+    this.realNotes.set(key, now);
+    notify(n);
+  }
+
   private utilityAlerts(): void {
     if (this.sandbox && this.rules.freeUtilities) return;
     const nets = this.nets!;
@@ -1263,6 +1284,7 @@ export class Simulation implements System {
       [U.Garbage, 'garbage', '🗑️', 'Garbage overflowing'],
     ];
     for (const [u, key, icon, title] of checks) {
+      if (this.exempt & (1 << u)) continue;
       if (u === U.Oxygen && !this.needsOxygen) continue;
       if (u === U.Garbage && !this.garbageActive) continue;
       const sup = nets.totalSupply[u], dem = nets.totalDemand[u];
@@ -1276,7 +1298,7 @@ export class Simulation implements System {
       const body =
         sup <= 0 ? `Nothing supplies ${key} yet — ${n} building${n === 1 ? '' : 's'} affected.`
         : `Demand ${Math.round(dem)} vs supply ${Math.round(sup)} — ${n} building${n === 1 ? '' : 's'} cut off.`;
-      notify({ title, body, icon, kind: key === 'oxygen' ? 'bad' : 'warn', tile });
+      this.toast('util.' + key, { title, body, icon, kind: key === 'oxygen' ? 'bad' : 'warn', tile }, 60);
       const topic = key === 'power' ? 'powerOut' : key === 'water' ? 'waterOut' : key === 'oxygen' ? 'oxygenOut' : 'garbage';
       this.post(this.persona(), line(this.rng, topic, this.vars()), tile);
     }
@@ -1285,7 +1307,7 @@ export class Simulation implements System {
   private hint(id: string, n: { title: string; body: string; icon: string; tile?: number; kind?: 'info' | 'good' | 'warn' }): void {
     if (this.hints.has(id)) return;
     this.hints.add(id);
-    notify({ kind: 'info', ...n });
+    this.toast('hint.' + id, { kind: 'info', ...n }, 5);
   }
 
   private hintsAndAlerts(): void {
@@ -1293,7 +1315,7 @@ export class Simulation implements System {
     const s = this.stats;
     if (!this.sandbox) {
       if (g.blockedPower > 0 && (s.powerSupply ?? 0) <= 0) this.hint('needPower', { title: 'Zones need power ⚡', body: 'Lots only develop once a power plant feeds their road network.', icon: '⚡', tile: g.blockedTile >= 0 ? g.blockedTile : undefined });
-      else if (g.blockedPower > 3 && this.cool('stalledPower', 30)) notify({ title: 'Growth stalled', body: 'The power grid is maxed out — new buildings are waiting for electricity.', icon: '⚡', kind: 'warn', tile: g.blockedTile >= 0 ? g.blockedTile : undefined });
+      else if (g.blockedPower > 3 && this.cool('stalledPower', 30)) this.toast('stalledPower', { title: 'Growth stalled', body: 'The power grid is maxed out — new buildings are waiting for electricity.', icon: '⚡', kind: 'warn', tile: g.blockedTile >= 0 ? g.blockedTile : undefined });
       if (g.blockedOxygen > 0 && (s.oxygenSupply ?? 0) <= 0) this.hint('needOxygen', { title: 'This world has no air 🫁', body: 'Build oxygen generators before anyone can move in.', icon: '🫁' });
     }
     if (g.noRoad > 0 && g.candN[0] + g.candN[1] + g.candN[2] + g.candN[3] === 0) this.hint('noRoad', { title: 'Zones need roads', body: 'Zoned lots must touch a road to develop.', icon: '🛣️', tile: g.noRoadTile >= 0 ? g.noRoadTile : undefined });
@@ -1308,7 +1330,7 @@ export class Simulation implements System {
       }
     }
     if (this.agg.unemployment > 0.15 && pop > 300 && this.cool('unemp', 40)) {
-      notify({ title: 'High unemployment', body: `${Math.round(this.agg.unemployment * 100)}% of workers have no job. Zone commercial or industry.`, icon: '📉', kind: 'warn' });
+      this.toast('unemp', { title: 'High unemployment', body: `${Math.round(this.agg.unemployment * 100)}% of workers have no job. Zone commercial or industry.`, icon: '📉', kind: 'warn' });
       this.post(this.persona(), line(this.rng, 'unemployed', this.vars()));
     }
   }
@@ -1320,27 +1342,43 @@ export class Simulation implements System {
     if (pop < 5 && this.recs.length === 0) return;
     const rng = this.rng;
     const s = this.stats;
+    const a = this.agg;
     const v = this.vars();
-    const roll = rng.next();
-    if (s.traffic > 65 && roll < 0.35) this.post(rng.chance(0.4) ? CHARACTERS.traffic : this.persona(), rng.chance(0.4) ? line(rng, 'trafficBot', { n: s.traffic }) : line(rng, 'traffic', v));
-    else if (s.pollution > 30 && roll < 0.45) this.post(this.persona(), line(rng, 'pollution', v));
-    else if (s.crime > 35 && roll < 0.55) this.post(this.persona(), line(rng, 'crime', v));
-    else if (this.demand.R > 0.4 && pop < 20000 && roll < 0.65) this.post(this.persona(), line(rng, 'newcomer', v));
-    else if (this.agg.openJobs > this.agg.workforce * 0.2 && pop > 200 && roll < 0.7) this.post(this.persona(), line(rng, 'jobsPlenty', v));
-    else if (s.happiness >= 72 && roll < 0.78) this.post(this.persona(), line(rng, 'happy', v));
-    else if (s.happiness < 35 && pop > 100 && roll < 0.78) this.post(this.persona(), line(rng, 'unhappy', v));
-    else if (s.tourism > 500 && roll < 0.82) this.post(this.persona(), line(rng, 'tourism', v));
-    else {
-      const who = rng.next();
-      if (who < 0.1) this.post(CHARACTERS.grandma, line(rng, 'grandma', v));
-      else if (who < 0.18) this.post(CHARACTERS.cat, line(rng, 'cat', v));
-      else if (who < 0.24) this.post(CHARACTERS.robot, line(rng, 'robot', v));
-      else if (who < 0.3 && pop > 3000) this.post(CHARACTERS.alien, line(rng, 'alien', v));
-      else if (who < 0.36 && pop > 1500) this.post(CHARACTERS.prof, line(rng, 'prof', { ...v, n: s.education }));
-      else if (who < 0.42 && pop > 800) this.post(CHARACTERS.critic, line(rng, 'critic', v));
-      else if (who < 0.48 && this.agg.research > 20) this.post(this.persona(), line(rng, 'research', v));
-      else this.post(this.persona(), line(rng, 'random', v));
+    // weighted topics: what the city is actually like right now, plus everyday flavour
+    const topics: [string, number, Persona?][] = [
+      ['traffic', s.traffic > 50 ? (s.traffic - 40) / 20 : 0],
+      ['trafficBot', s.traffic > 35 ? 0.4 : 0, CHARACTERS.traffic],
+      ['pollution', s.pollution > 22 ? (s.pollution - 15) / 15 : 0],
+      ['crime', s.crime > 28 ? (s.crime - 20) / 15 : 0],
+      ['newcomer', this.demand.R > 0.2 && pop < 50000 ? 1.1 : 0],
+      ['jobsPlenty', a.openJobs > Math.max(30, a.workforce * 0.15) ? 0.8 : 0],
+      ['unemployed', a.unemploymentFelt > 0.1 ? 1.2 : 0],
+      ['happy', s.happiness >= 68 ? 1 : 0],
+      ['unhappy', s.happiness < 40 && pop > 100 ? 1.2 : 0],
+      ['tourism', s.tourism > 300 ? 0.7 : 0],
+      ['research', a.research > 20 ? 0.4 : 0],
+      ['prof', pop > 1500 ? 0.3 : 0, CHARACTERS.prof],
+      ['grandma', 0.3, CHARACTERS.grandma],
+      ['cat', 0.25, CHARACTERS.cat],
+      ['robot', 0.18, CHARACTERS.robot],
+      ['alien', pop > 3000 ? 0.18 : 0, CHARACTERS.alien],
+      ['critic', pop > 800 ? 0.25 : 0, CHARACTERS.critic],
+      ['random', 1.6],
+    ];
+    let total = 0;
+    for (const t of topics) total += t[1];
+    let roll = rng.next() * total;
+    let pick = topics[topics.length - 1];
+    for (const t of topics) {
+      roll -= t[1];
+      if (roll <= 0 && t[1] > 0) {
+        pick = t;
+        break;
+      }
     }
+    const [topic, , who] = pick;
+    const extra: Record<string, string | number> = topic === 'trafficBot' ? { n: s.traffic } : topic === 'prof' ? { n: s.education } : {};
+    this.post(who ?? this.persona(), line(rng, topic, { ...v, ...extra }));
   }
 
   private onPlopped(r: BRec): void {
