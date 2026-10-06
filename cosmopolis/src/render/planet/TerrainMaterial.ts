@@ -310,7 +310,9 @@ if ( tFlags != 0 ) {
   if ( ( tFlags & 8 ) != 0 ) {
     tAlb = mix( tAlb, vec3( 0.86, 0.93, 1.0 ), 0.8 );
     tRough = 0.2;
-    tEmit += vec3( 0.6, 0.82, 1.0 ) * step( 0.978, tHash13( floor( vWPos * 16.0 ) ) ) * 0.7;
+    vec3 fgp = vWPos * 10.0;
+    tEmit += vec3( 0.6, 0.82, 1.0 ) * step( 0.975, tHash13( floor( fgp ) ) ) * ( 1.0 - smoothstep( 0.0, 0.15, length( fract( fgp ) - 0.5 ) ) ) * 1.2;
+    tAlb *= 0.94 + 0.1 * tNoise( vWPos * 3.0 );
   }
   if ( ( tFlags & 16 ) != 0 ) {
     float gn = 0.5 + 0.5 * sin( dot( vWPos, vec3( 7.0, 5.0, 6.0 ) ) + uSurfTime * 3.0 ) * sin( dot( vWPos, vec3( -4.0, 6.0, 3.0 ) ) - uSurfTime * 2.0 );

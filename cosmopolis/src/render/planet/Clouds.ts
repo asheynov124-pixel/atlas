@@ -172,7 +172,8 @@ export class Clouds {
     const rb = _m4b.makeRotationX(0.32).multiply(_m4.makeRotationY(-this.drift * 0.0075 + 1.3));
     this.u.uCloudRotB.value.setFromMatrix4(rb);
     const cover = this.u.uCloudCover.value;
-    const fade = smooth(this.radius - this.planetRadius + 9, this.radius - this.planetRadius + 38, altitude);
+    const alt0 = this.radius - this.planetRadius;
+    const fade = smooth(alt0 + 34, alt0 + 80, altitude);
     const target = this.enabled && this.rt && cover > 0.01 ? fade : 0;
     this.opacity.value += (target - this.opacity.value) * Math.min(1, dt * 4);
     if (target === 0 && this.opacity.value < 0.01) this.opacity.value = 0;

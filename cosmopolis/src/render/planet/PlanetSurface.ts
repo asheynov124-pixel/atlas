@@ -66,7 +66,7 @@ const AURORA: Partial<Record<PlanetTypeId, number>> = { arctic: 0.95, tundra: 0.
 const WATER_GLOW: Partial<Record<PlanetTypeId, number>> = { toxic: 0.4, machine: 0.65, crystal: 0.22 };
 /** cloud colour per archetype (ash on volcanic worlds, sulphur on toxic ones…) */
 const CLOUD_TINT: Partial<Record<PlanetTypeId, number>> = {
-  volcanic: 0x6e625c, toxic: 0xdfe88a, fungal: 0xf6d6ee, crystal: 0xece2ff, desert: 0xf6e6cc, machine: 0xd8eef2, arctic: 0xf4f8ff,
+  volcanic: 0x6e625c, toxic: 0xcdd56e, fungal: 0xf6d6ee, crystal: 0xece2ff, desert: 0xf6e6cc, machine: 0xd8eef2, arctic: 0xf4f8ff,
 };
 
 const _cam = new Vector3();
@@ -282,7 +282,7 @@ export class PlanetSurface {
   private buildChunk(ch: SurfaceChunk): void {
     const p = this.planet;
     const old = ch.mesh.geometry;
-    const geo = buildTerrainChunk(p, ch.info, this.pal, Math.floor(p.seaOffset) - 3);
+    const geo = buildTerrainChunk(p, ch.info, this.pal, Math.floor(p.seaOffset) - 1);
     let maxE = -99;
     for (const t of ch.info.tiles) if (p.elevation[t] > maxE) maxE = p.elevation[t];
     const maxH = Math.max(Planet.levelHeight(maxE), 0.2);

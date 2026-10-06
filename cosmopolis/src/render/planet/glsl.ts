@@ -44,7 +44,7 @@ float tCloud(vec3 dir) {
   float a = texture(uCloudCube, uCloudRotA * dir).r;
   float b = texture(uCloudCube, uCloudRotB * dir).g;
   float n = a * 0.68 + b * 0.32;
-  float lo = 0.78 - uCloudCover * 0.42 - uCloudStorm * 0.18;
+  float lo = 0.8 - uCloudCover * 0.36 - uCloudStorm * 0.2;
   return smoothstep(lo, lo + 0.16, n);
 }
 `;

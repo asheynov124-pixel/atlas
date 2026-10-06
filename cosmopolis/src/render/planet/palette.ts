@@ -8,7 +8,7 @@
  *   renderBiome(planet, tile)       → biome actually drawn (e.g. a seabed raised above the sea draws as shore)
  *   hexToRgb / mixRgb helpers
  */
-import { Biome, Feature, type PlanetSpec } from '../../core/types';
+import { Biome, Feature, type PlanetSpec, type PlanetTypeId } from '../../core/types';
 import { hashFloat } from '../../core/rng';
 import { PLANET_TYPES } from '../../content/planetTypes';
 import type { Planet } from '../../world/planet';
@@ -47,6 +47,19 @@ export const BIOME_COLORS: Record<Biome, number> = {
   [Biome.Metal]: 0x7e8894,
   [Biome.Coral]: 0xf08f7c,
   [Biome.Meadow]: 0x93c75e,
+};
+
+/** Per-archetype biome colour overrides (sRGB) — boreal spruce on tundra worlds, lilac spore meadows on fungal… */
+const TYPE_BIOME: Partial<Record<PlanetTypeId, Partial<Record<Biome, number>>>> = {
+  tundra: { [Biome.Forest]: 0x3d6a4c, [Biome.Grass]: 0xa2ad6e, [Biome.Tundra]: 0xaaa98a, [Biome.Beach]: 0xd8d0b0 },
+  fungal: { [Biome.Meadow]: 0xcf9ccd, [Biome.Swamp]: 0x4e4a6e, [Biome.Tundra]: 0xb0a6c0, [Biome.Rock]: 0x5e4f66 },
+  toxic: { [Biome.Swamp]: 0x5b6a2c, [Biome.Salt]: 0xe6e3b8, [Biome.Rock]: 0x5a5440 },
+  arctic: { [Biome.Tundra]: 0x9fa9ad, [Biome.Rock]: 0x6f7f90 },
+  jungle: { [Biome.Meadow]: 0x86c95c, [Biome.Swamp]: 0x3f6a46 },
+  desert: { [Biome.Savanna]: 0xcdb46a },
+  crystal: { [Biome.Rock]: 0x5d5486, [Biome.Salt]: 0xeee6ff },
+  volcanic: { [Biome.Ash]: 0x6a605c },
+  ocean: { [Biome.Jungle]: 0x2f9a4a, [Biome.Grass]: 0x7cc35a },
 };
 
 type Role = 'land' | 'lowland' | 'highland' | 'shore' | 'snow' | 'rock';
@@ -172,7 +185,7 @@ const CHAR = hexToRgb(0x2a2420);
  */
 export function tileColor(planet: Planet, i: number, pal: SurfacePalette, out: Rgb): Rgb {
   const b = renderBiome(planet, i);
-  hexToRgb(BIOME_COLORS[b] ?? 0xff00ff, out);
+  hexToRgb(TYPE_BIOME[planet.spec.type]?.[b] ?? BIOME_COLORS[b] ?? 0xff00ff, out);
   const role = ROLE[b];
   if (role) {
     const target = pal[role[0]];

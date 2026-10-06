@@ -5,7 +5,7 @@
  *   terrain chunk  stylised terraced hex tiles: inset top polygon + a band ring whose outer corners drop by BEVEL
  *                  wherever the tile overlooks a lower neighbour (rounded, readable cliff lips), and vertical cliff
  *                  walls down to the lower neighbour (strata are drawn by the shader from world height).
- *                  Deep sea-floor tiles skip the band (cheap, never seen closely).
+ *                  Tiles with no lower neighbour (flat ground) and deep sea floor are a plain 4-triangle hexagon.
  *   water chunk    a fan per water tile on the UNIT sphere (the shader scales it to the live sea level), carrying the
  *                  seabed height per vertex (corner = mean of the 3 tiles that meet there) for depth colour & foam.
  *
@@ -109,15 +109,18 @@ export function buildTerrainChunk(planet: Planet, info: ChunkInfo, pal: SurfaceP
   for (let ti = 0; ti < tiles.length; ti++) {
     const i = tiles[ti];
     const s = g.start[i], d = g.start[i + 1] - s;
-    const deep = planet.isWater(i) && elev[i] < deepBelow;
-    nv += deep ? d : 2 * d;
-    ni += (d - 2) * 3 + (deep ? 0 : d * 6);
+    let anyLower = false;
     for (let k = 0; k < d; k++) {
       if (elev[g.nbr[s + k]] < elev[i]) {
+        anyLower = true;
         nv += 4;
         ni += 6;
       }
     }
+    // no lower neighbour → no bevel band needed (it would be coplanar): plain hexagon
+    const flat = !anyLower || (planet.isWater(i) && elev[i] < deepBelow);
+    nv += flat ? d : 2 * d;
+    ni += (d - 2) * 3 + (flat ? 0 : d * 6);
   }
   const pos = new Float32Array(nv * 3);
   const nrm = new Int8Array(nv * 3);
@@ -150,22 +153,25 @@ export function buildTerrainChunk(planet: Planet, info: ChunkInfo, pal: SurfaceP
     const water = planet.isWater(i);
     const deep = water && elev[i] < deepBelow;
     const biome = renderBiome(planet, i);
+    let anyLower = false;
     tileColor(planet, i, pal, _col);
     const cr = Math.round(_col.r * 255), cg = Math.round(_col.g * 255), cb = Math.round(_col.b * 255);
     let higher = 0;
     for (let k = 0; k < d; k++) {
       const m = g.nbr[s + k];
       lower[k] = elev[m] < elev[i] ? 1 : 0;
+      if (lower[k]) anyLower = true;
       if (elev[m] > elev[i]) higher++;
     }
     const ao = Math.round(255 * (1 - 0.05 * Math.min(4, higher)));
     const feat = planet.feature[i];
     const base = v;
-    if (deep) {
+    const flat = deep || !anyLower;
+    if (flat) {
       for (let k = 0; k < d; k++) {
         const a = (s + k) * 3;
         const ang = (Math.PI * 2 * k) / d;
-        putV(K[a] * r, K[a + 1] * r, K[a + 2] * r, cx, cy, cz, cr, cg, cb, ao, i, Math.cos(ang), Math.sin(ang), biome, PART_DEEP, d, feat);
+        putV(K[a] * r, K[a + 1] * r, K[a + 2] * r, cx, cy, cz, cr, cg, cb, ao, i, Math.cos(ang), Math.sin(ang), biome, deep ? PART_DEEP : PART_TOP, d, feat);
       }
       for (let k = 1; k < d - 1; k++) {
         index[x++] = base; index[x++] = base + k; index[x++] = base + k + 1;
@@ -218,7 +224,7 @@ export function buildTerrainChunk(planet: Planet, info: ChunkInfo, pal: SurfaceP
       const m = g.nbr[s + k];
       const hn = planet.heightOf(m);
       const a = (s + k) * 3, b = (s + k1) * 3;
-      const topBevA = deep ? 0 : BEVEL;
+      const topBevA = flat ? 0 : BEVEL;
       const rTop = r - topBevA;
       const rBot = R + hn - BEVEL * 1.5;
       // outward normal: centre → edge midpoint, made tangent
