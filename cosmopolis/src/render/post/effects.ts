@@ -110,16 +110,18 @@ export function createGradeState(): GradeState {
 
 const _t = new Vector3();
 
-/** Lerp `s` toward the target described by a preset + user sliders. k = 0..1 blend factor this frame. */
+function lerpTo(out: Vector3, x: [number, number, number], k: number): void {
+  out.lerp(_t.set(x[0], x[1], x[2]), k);
+}
+
+/** Lerp `s` toward the target described by a preset + user sliders. k = 0..1 blend factor this frame (no allocation). */
 export function blendGrade(
   s: GradeState,
   look: GradeLook,
   user: { exposure: number; contrast: number; saturation: number; vignette: number; temperature: number },
   k: number,
 ): void {
-  const lerp = (a: number, b: number) => a + (b - a) * k;
-  const v3 = (out: Vector3, x: [number, number, number]) => out.lerp(_t.set(x[0], x[1], x[2]), k);
-  s.exposure = lerp(s.exposure, user.exposure * look.exposure);
+  s.exposure += (user.exposure * look.exposure - s.exposure) * k;
   // white balance: warm = more red, less blue; luminance-normalised
   const t = Math.max(-1.5, Math.min(1.5, user.temperature + look.temperature));
   const wr = 1 + 0.16 * t;
@@ -127,19 +129,19 @@ export function blendGrade(
   const wb = 1 - 0.22 * t;
   const wl = 0.2126 * wr + 0.7152 * wg + 0.0722 * wb;
   s.white.lerp(_t.set(wr / wl, wg / wl, wb / wl), k);
-  v3(s.lift, look.lift);
-  v3(s.gamma, look.gamma);
-  v3(s.gain, look.gain);
-  v3(s.shadowTint, look.shadowTint);
-  v3(s.highTint, look.highTint);
-  v3(s.monoTint, look.monoTint);
-  s.contrast = lerp(s.contrast, user.contrast * look.contrast);
-  s.curve = lerp(s.curve, look.curve);
-  s.saturation = lerp(s.saturation, user.saturation * look.saturation);
-  s.hue = lerp(s.hue, look.hue);
-  s.fade = lerp(s.fade, look.fade);
-  s.mono = lerp(s.mono, look.mono);
-  s.vignette = lerp(s.vignette, Math.min(1, user.vignette + look.vignette));
+  lerpTo(s.lift, look.lift, k);
+  lerpTo(s.gamma, look.gamma, k);
+  lerpTo(s.gain, look.gain, k);
+  lerpTo(s.shadowTint, look.shadowTint, k);
+  lerpTo(s.highTint, look.highTint, k);
+  lerpTo(s.monoTint, look.monoTint, k);
+  s.contrast += (user.contrast * look.contrast - s.contrast) * k;
+  s.curve += (look.curve - s.curve) * k;
+  s.saturation += (user.saturation * look.saturation - s.saturation) * k;
+  s.hue += (look.hue - s.hue) * k;
+  s.fade += (look.fade - s.fade) * k;
+  s.mono += (look.mono - s.mono) * k;
+  s.vignette += (Math.min(1, user.vignette + look.vignette) - s.vignette) * k;
 }
 
 export class GradeEffect extends Effect {

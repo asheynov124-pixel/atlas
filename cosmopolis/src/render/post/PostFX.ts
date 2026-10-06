@@ -112,7 +112,7 @@ export class PostFX {
   private grain: GrainEffect | null = null;
   private tilt: TiltShiftEffect | null = null;
   private chroma: ChromaticAberrationEffect | null = null;
-  private topology = '';
+  private topology = -1;
   private bloomThreshold = 0.92;
   private tier: number;
   private failed = false;
@@ -167,7 +167,7 @@ export class PostFX {
 
   setQuality(tier: number): void {
     this.tier = Math.max(0, Math.min(3, Math.round(tier)));
-    this.topology = '';
+    this.topology = -1;
     if (this.tier === 0) this.teardown();
   }
 
@@ -255,7 +255,8 @@ export class PostFX {
     const smaaOn = tier >= 2;
     const caOn = p.chromatic > 0.01;
     const grainOn = p.grain > 0.01;
-    const key = `${tier}|${tiltOn}|${bloomOn}|${smaaOn}|${caOn}|${grainOn}`;
+    // topology as a small integer (no per-frame string building)
+    const key = tier | (tiltOn ? 4 : 0) | (bloomOn ? 8 : 0) | (smaaOn ? 16 : 0) | (caOn ? 32 : 0) | (grainOn ? 64 : 0);
     const r = this.engine.renderer;
     if (!this.composer) {
       this.composer = new EffectComposer(r, { frameBufferType: this.halfFloat ? HalfFloatType : UnsignedByteType, stencilBuffer: false, depthBuffer: true });
@@ -263,7 +264,7 @@ export class PostFX {
       this.composer.addPass(this.renderPass);
       this.scene = scene;
       this.camera = camera;
-      this.topology = '';
+      this.topology = -1;
     }
     const composer = this.composer;
     if (key !== this.topology) {
@@ -364,7 +365,7 @@ export class PostFX {
     }
     this.composer = null;
     this.renderPass = null;
-    this.topology = '';
+    this.topology = -1;
     this.scene = null;
     this.camera = null;
     this.engine.renderer.autoClear = true;
