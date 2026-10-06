@@ -117,8 +117,8 @@ export class RoadTool extends Tool {
       type: 'choice',
       value: this.mode,
       choices: [
-        { value: 'build', label: 'Build', icon: 'plus' },
-        { value: 'upgrade', label: 'Upgrade', icon: 'arrowUp' },
+        { value: 'build', label: 'Build' },
+        { value: 'upgrade', label: 'Upgrade' },
       ],
     });
     return o;

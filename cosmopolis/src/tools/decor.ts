@@ -78,8 +78,8 @@ export class DecorTool extends Tool {
         type: 'choice',
         value: this.mode,
         choices: [
-          { value: 'single', label: 'Single', icon: 'cursorClick' },
-          { value: 'scatter', label: 'Scatter', icon: 'brush' },
+          { value: 'single', label: 'Single' },
+          { value: 'scatter', label: 'Scatter' },
         ],
       },
       { id: 'randRot', label: 'Random turn', type: 'toggle', icon: 'shuffle', value: this.randRot },

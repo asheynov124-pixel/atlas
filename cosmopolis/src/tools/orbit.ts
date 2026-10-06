@@ -100,9 +100,9 @@ export class OrbitTool extends Tool {
         type: 'choice',
         value: this.alt,
         choices: [
-          { value: 'low', label: 'Low', icon: 'arrowDown' },
-          { value: 'mid', label: 'Standard', icon: 'satellite' },
-          { value: 'high', label: 'High', icon: 'arrowUp' },
+          { value: 'low', label: 'Low' },
+          { value: 'mid', label: 'Standard' },
+          { value: 'high', label: 'High' },
         ],
       },
       {
@@ -111,9 +111,9 @@ export class OrbitTool extends Tool {
         type: 'choice',
         value: this.inc,
         choices: [
-          { value: 'equatorial', label: 'Equator', icon: 'globe' },
-          { value: 'inclined', label: 'Inclined', icon: 'orbital' },
-          { value: 'polar', label: 'Polar', icon: 'navigate' },
+          { value: 'equatorial', label: 'Equator' },
+          { value: 'inclined', label: 'Inclined' },
+          { value: 'polar', label: 'Polar' },
         ],
       },
     ];
