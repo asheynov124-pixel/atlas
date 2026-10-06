@@ -83,7 +83,8 @@ export const TEMPLATES: Record<string, string[]> = {
     'Pretty sure the trash heap on my street just achieved sentience.',
   ],
   traffic: [
-    'Stuck in traffic for 45 minutes. I\'ve read an entire novel. It was about traffic. 🚗',
+    'Stuck on {road} for 45 minutes. I\'ve read an entire novel. It was about traffic. 🚗',
+    '{road} is a parking lot again. I waved at the same pigeon four times. 🐦',
     'Gridlock again. I\'m now on first-name terms with the driver next to me. We\'re engaged.',
     'Traffic report: everything is red. The map looks like a tomato. 🍅',
     'Walked to work. Beat my car, which I left in traffic yesterday.',
@@ -143,6 +144,11 @@ export const TEMPLATES: Record<string, string[]> = {
     'Is anyone in charge here?? Asking for literally everyone.',
   ],
   abandoned: ['Our street has a creepy abandoned building now. The ghosts pay no taxes. 👻', 'Another building emptied out on my block. Mayor, what\'s going on?'],
+  topOut: [
+    '{thing} just topped out in {district}! The view from the top is unreal. 🏙️',
+    'Moved into {thing}. My elevator has a lounge. My lounge has an elevator. 🛗',
+    'They finished {thing}. The skyline finally looks like the brochures. ✨',
+  ],
   levelUp: [
     'Just moved into a shiny new tower — level {n}! The elevator plays jazz. 🎷',
     'My building got renovated! New windows, new lobby, same weird neighbour.',
@@ -283,4 +289,43 @@ export function residentQuote(rng: SimRng, mood: number, problem: string | null,
 const JOBS = ['hydroponics tech', 'starship mechanic', 'barista', 'data wrangler', 'teacher', 'nurse', 'drone pilot', 'xeno-botanist', 'line cook', 'holo-artist', 'mining engineer', 'accountant', 'astro-physicist', 'street musician', 'robot therapist', 'firefighter', 'urban planner', 'pastry chef', 'courier', 'retired'];
 export function citizenJob(rng: SimRng): string {
   return rng.pick(JOBS);
+}
+
+// ─────────────────────────────────────────────── place names
+
+const AREA_A = ['Ring', 'Comet', 'Orbit', 'Nova', 'Halo', 'Quasar', 'Lumen', 'Aurora', 'Zenith', 'Meteor', 'Nebula', 'Solar', 'Crater', 'Ion', 'Vega', 'Lyra', 'Pulsar', 'Eclipse', 'Starfall', 'Moonrise', 'Gravity', 'Cosmo', 'Polaris', 'Kepler'];
+const AREA_B = ['Heights', 'Hollow', 'Gardens', 'Quarter', 'Park', 'Point', 'Terrace', 'Commons', 'Docks', 'Village', 'Row', 'Fields', 'Hill', 'Market', 'Crossing', 'Vale', 'Bluffs', 'Landing', 'Basin', 'Ridge'];
+const AREA_PREFIX = ['', '', '', 'Old ', 'Upper ', 'Lower ', 'New ', 'East ', 'West ', 'Little '];
+const ROAD_A = ['Orion', 'Kepler', 'Halley', 'Sagan', 'Lovelace', 'Tereshkova', 'Gagarin', 'Armstrong', 'Hubble', 'Curie', 'Galileo', 'Copernicus', 'Herschel', 'Leavitt', 'Hawking', 'Ride', 'Jemison', 'Tycho', 'Newton', 'Einstein', 'Meitner', 'Noether', 'Vulcan', 'Andromeda', 'Cassini', 'Juno', 'Voyager', 'Pioneer', 'Apollo', 'Artemis'];
+const ROAD_KIND = ['', 'Path', 'Street', 'Avenue', 'Skyway', 'Maglev Line', 'Hyperloop'];
+
+function h32(n: number): number {
+  let x = n | 0;
+  x = Math.imul(x ^ (x >>> 16), 0x7feb352d);
+  x = Math.imul(x ^ (x >>> 15), 0x846ca68b);
+  return (x ^ (x >>> 16)) >>> 0;
+}
+
+/** Deterministic neighbourhood name for a coarse cell of the sphere (≈ 6–8 tiles across). */
+export function areaName(cx: number, cy: number, cz: number, seed: number): string {
+  const cell = h32((Math.floor(cx * 7) * 73856093) ^ (Math.floor(cy * 7) * 19349663) ^ (Math.floor(cz * 7) * 83492791) ^ seed);
+  return AREA_PREFIX[cell % AREA_PREFIX.length] + AREA_A[(cell >>> 4) % AREA_A.length] + ' ' + AREA_B[(cell >>> 12) % AREA_B.length];
+}
+
+/** Deterministic street name for a road tile (stretches of road share a name). */
+export function streetName(cx: number, cy: number, cz: number, kind: number, seed: number): string {
+  const cell = h32((Math.floor(cx * 16) * 73856093) ^ (Math.floor(cy * 16) * 19349663) ^ (Math.floor(cz * 16) * 83492791) ^ (seed * 31 + kind));
+  return `${ROAD_A[cell % ROAD_A.length]} ${ROAD_KIND[kind] || 'Street'}`;
+}
+
+const TOWER_A = ['Helix', 'Zenith', 'Aurora', 'Meridian', 'Halcyon', 'Obsidian', 'Celestia', 'Vantage', 'Paragon', 'Solstice', 'Equinox', 'Nimbus', 'Apex', 'Lumina', 'Starlight', 'Polaris', 'Cobalt', 'Ember', 'Sapphire', 'Orbital'];
+const TOWER_B: Record<string, string[]> = {
+  R: ['Residences', 'Tower', 'Heights', 'Lofts', 'Spire', 'Habitat'],
+  C: ['Galleria', 'Exchange', 'Arcade', 'Plaza', 'Emporium', 'Mall'],
+  I: ['Works', 'Foundry', 'Fabricatorium', 'Labs', 'Assembly'],
+  O: ['Tower', 'Centre', 'Headquarters', 'Exchange', 'Campus', 'Building'],
+};
+/** A grand name for a building that reaches the top level. */
+export function towerName(rng: SimRng, family: 'R' | 'C' | 'I' | 'O'): string {
+  return `The ${rng.pick(TOWER_A)} ${rng.pick(TOWER_B[family] ?? TOWER_B.O)}`;
 }

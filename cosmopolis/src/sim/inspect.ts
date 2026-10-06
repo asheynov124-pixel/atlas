@@ -134,7 +134,13 @@ export function inspectBuilding(sim: Simulation, id: number): InspectRow[] {
     const age = 18 + Math.floor(rng.next() * 60);
     row(isHome ? 'Resident' : 'Employee', `${quote} — ${citizenName(rng)}, ${age}, ${citizenJob(rng)}`);
   }
-  if (d > 0 && p.districts[d]) row('District', p.districts[d].name);
+  if (isHome && active && r.residents > 0) {
+    const jam = r.roadTile >= 0 ? Math.max(0, f.traffic[r.roadTile]) : 0;
+    const transit = cov[SERVICE_INDEX.transit][t];
+    const mins = Math.round(9 + jam * 28 + (1 - Math.min(1, sim.stats.jobs / Math.max(1, sim.stats.workforce))) * 6 - transit * 5);
+    row('Commute', `~${Math.max(4, mins)} min${transit > 0.4 ? ' · transit nearby' : ''}`, { tone: mins > 30 ? 'bad' : mins > 18 ? 'warn' : 'good' });
+  }
+  row('Address', `${sim.roadName(r.roadTile >= 0 ? r.roadTile : t)}, ${sim.areaName(t)}`);
   row('Built', dateOf(b.builtDay));
   return rows;
 }
@@ -172,9 +178,9 @@ export function inspectTile(sim: Simulation, t: number): InspectRow[] {
       }
     }
   }
-  const d = p.district[t];
-  if (d > 0 && p.districts[d]) row('District', p.districts[d].name);
+  if (!water) row('Area', sim.areaName(t));
   if (p.road[t]) {
+    row('Street', sim.roadName(t));
     if (f && f.traffic[t] >= 0 && p.road[t] !== RoadKind.Maglev && p.road[t] !== RoadKind.Hyperloop) {
       const c = f.traffic[t];
       row('Traffic', `${num(f.trafficLoad[t])} trips/day · ${pct(Math.min(1.5, c))} of capacity`, { bar: Math.min(1, c), tone: c > 0.9 ? 'bad' : c > 0.6 ? 'warn' : 'good' });

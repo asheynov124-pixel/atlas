@@ -64,7 +64,7 @@ import { computeReport, departmentUpkeep, invalidateEconomyCache, loanOffers, pa
 import { makeLenses } from './lenses';
 import { inspectBuilding, inspectTile } from './inspect';
 import { SimRng, hash01 } from './rng';
-import { CHARACTERS, citizenJob, line, randomPersona, residentQuote, type Persona } from './chatter';
+import { CHARACTERS, areaName as areaNameAt, citizenJob, line, randomPersona, residentQuote, streetName, towerName, type Persona } from './chatter';
 import { CITY_EVENTS } from './cityEvents';
 
 export interface LensDef {
@@ -764,7 +764,8 @@ export class Simulation implements System {
     const b = r.b;
     const info = r.info;
     const lvl = Math.max(1, Math.min(5, level));
-    if (lvl === b.level) return;
+    const prev = b.level;
+    if (lvl === prev) return;
     if (lvl >= info.minLevel && lvl <= info.maxLevel) {
       ops.updateBuilding(b.id, { level: lvl });
     } else {
@@ -776,7 +777,16 @@ export class Simulation implements System {
       if (nb) nb.progress = 0;
       this.carry = null;
     }
-    if (lvl > b.level && lvl >= 4 && this.rng.chance(0.08)) this.post(this.persona(), line(this.rng, 'levelUp', this.vars({ n: lvl })), b.tile);
+    const p = this.planet!;
+    const live = p.buildings.get(p.building[b.tile]) ?? null;
+    const tall = info.zone === 3 || info.zone === 5 || info.zone === 11 || info.zone === 10;
+    if (lvl === 5 && prev < 5 && tall) {
+      if (live && !live.name) {
+        const name = towerName(this.rng, info.family ?? 'O');
+        ops.updateBuilding(live.id, { name });
+        this.post(this.persona(), line(this.rng, 'topOut', this.vars({ thing: name }, live.tile)), live.tile);
+      }
+    } else if (lvl > prev && lvl >= 4 && this.rng.chance(0.08)) this.post(this.persona(), line(this.rng, 'levelUp', this.vars({ n: lvl }, b.tile)), b.tile);
   }
 
   // ───────────────────────────── fields
@@ -1557,17 +1567,43 @@ export class Simulation implements System {
     return randomPersona(this.rng);
   }
 
-  vars(extra: Record<string, string | number> = {}): Record<string, string | number> {
+  vars(extra: Record<string, string | number> = {}, tile?: number): Record<string, string | number> {
     const p = this.planet;
-    const d = p && p.districts.length > 1 ? p.districts.find((x, i) => i > 0 && x)?.name : undefined;
+    let at = tile;
+    if (at === undefined && this.recs.length) at = this.recs[Math.floor(this.rng.next() * this.recs.length)].b.tile;
+    const worst = this.fields?.worstRoad ?? -1;
     return {
       city: p?.city.name ?? 'the city',
       planet: p?.spec.name ?? 'this world',
       mayor: p?.city.mayor ?? 'Mayor',
-      district: d ?? 'downtown',
+      district: at !== undefined ? this.areaName(at) : 'downtown',
+      road: worst >= 0 ? this.roadName(worst) : 'the main drag',
       pop: Math.round(this.agg.population).toLocaleString('en-US'),
       ...extra,
     };
+  }
+
+  /** Name of the neighbourhood around a tile: its district's name, else a generated area name. */
+  areaName(tile: number): string {
+    const p = this.planet;
+    if (!p || tile < 0 || tile >= p.count) return 'downtown';
+    const d = p.district[tile];
+    if (d > 0 && p.districts[d]) return p.districts[d].name;
+    const c = p.grid.center;
+    return areaNameAt(c[tile * 3], c[tile * 3 + 1], c[tile * 3 + 2], p.spec.seed);
+  }
+
+  /** Street name of a road tile (or of the best road next to a lot). */
+  roadName(tile: number): string {
+    const p = this.planet;
+    if (!p || tile < 0 || tile >= p.count) return 'Main Street';
+    let t = tile;
+    if (!p.road[t]) {
+      for (const n of p.grid.neighbors(t)) if (p.road[n]) (t = n);
+      if (!p.road[t]) return 'an unnamed lane';
+    }
+    const c = p.grid.center;
+    return streetName(c[t * 3], c[t * 3 + 1], c[t * 3 + 2], p.road[t], p.spec.seed);
   }
 
   /** Queue a Hypernet post (rate-limited in real time by update()). */

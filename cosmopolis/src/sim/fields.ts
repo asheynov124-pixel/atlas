@@ -152,6 +152,8 @@ export class Fields {
   avgNoise = 0;
   avgTraffic = 0;
   roadCount = 0;
+  /** most congested (non-rail) road tile of the last pass, −1 if none */
+  worstRoad = -1;
 
   constructor(private planet: Planet) {
     const n = (this.n = planet.count);
@@ -540,7 +542,7 @@ export class Fields {
       lb = tmp;
       if (rc > 3000 && (it & 1)) yield;
     }
-    let congSum = 0, loadSum = 0;
+    let congSum = 0, loadSum = 0, worst = -1, worstC = 0;
     this.traffic.fill(-1);
     for (let i = 0; i < rc; i++) {
       const t = list[i];
@@ -552,12 +554,17 @@ export class Fields {
       if (!isRail(kind)) {
         congSum += c * load;
         loadSum += load;
+        if (c > worstC) {
+          worstC = c;
+          worst = t;
+        }
         // traffic noise & fumes
         this.noiseAcc[t] += Math.min(30, 4 + c * 22);
         this.polAcc[t] += c * 9;
       }
     }
     this.avgTraffic = loadSum > 0 ? congSum / loadSum : 0;
+    this.worstRoad = worst;
     yield;
 
     // ── per-tile resolve + temporal smoothing
