@@ -393,7 +393,7 @@ export class Simulation implements System {
     const cell = (Math.floor(cx * 9) * 73856093) ^ (Math.floor(cy * 9) * 19349663) ^ (Math.floor(cz * 9) * 83492791);
     r.h = hash01(cell) * 0.7 + hash01(id * 2654435761) * 0.3;
     r.edu = this.agg.education * 0.6;
-    if (info.fam === 0 || info.housing > 0) r.residents = b.occupants ?? 0;
+    if (info.fam === 0 || info.housing > 0 || info.extraHousing > 0) r.residents = b.occupants ?? 0;
     else r.workers = b.occupants ?? 0;
     if (this.carry) {
       r.residents = info.fam === 0 ? this.carry.residents : r.residents;
