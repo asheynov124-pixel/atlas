@@ -76,16 +76,18 @@ export function Sheet(p: SheetProps) {
   }, [mounted, vp.w, vp.h, mode]);
 
   // fraction of the sheet hidden below the screen edge at the current detent
-  const hiddenFor = (i: number) => (mode === 'side' ? 0 : 1 - snaps[i] / maxSnap);
+  // bottom mode: detents are translations of a sheet sized for the top detent; float mode: detents are heights
+  const hiddenFor = (i: number) => (mode === 'bottom' ? 1 - snaps[i] / maxSnap : 0);
   const transformFor = (i: number, isShown: boolean) => {
     if (mode === 'side') return isShown ? 'translate3d(0,0,0)' : 'translate3d(calc(-100% - 24px),0,0)';
+    if (mode === 'float') return isShown ? 'translate3d(0,0,0)' : 'translate3d(0, 48px, 0)';
     return isShown ? `translate3d(0, ${(hiddenFor(i) * 100).toFixed(2)}%, 0)` : 'translate3d(0, calc(100% + 40px), 0)';
   };
   const hiddenFrac = hiddenFor(snap);
   const transform = transformFor(snap, shown);
 
   const onDown = (e: PointerEvent) => {
-    if (mode === 'side') return;
+    if (mode !== 'bottom') return;
     const t = e.target as HTMLElement;
     if (t.closest('button, input, select, textarea, a, [data-nodrag]')) return;
     const el = sheetRef.current;
@@ -153,9 +155,10 @@ export function Sheet(p: SheetProps) {
   if (!mounted) return null;
   const backdrop = p.backdrop ?? true;
   const style: JSX.CSSProperties = { transform };
-  if (mode !== 'side') {
-    (style as Record<string, string>)['--sheet-max'] = String(maxSnap);
-    if (p.maxWidth && mode === 'float') style.maxWidth = p.maxWidth + 'px';
+  if (mode === 'bottom') (style as Record<string, string>)['--sheet-max'] = String(maxSnap);
+  if (mode === 'float') {
+    (style as Record<string, string>)['--float-frac'] = String(snaps[snap]);
+    if (p.maxWidth) (style as Record<string, string>)['--float-w'] = p.maxWidth + 'px';
   }
   return (
     <div class={'cz-sheet-root mode-' + mode + (shown ? ' is-shown' : '')}>
@@ -169,7 +172,7 @@ export function Sheet(p: SheetProps) {
         aria-label={p.label ?? (typeof p.title === 'string' ? p.title : undefined)}
       >
         <header class="cz-sheet-head" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
-          {mode !== 'side' && <div class="cz-sheet-grip" aria-hidden="true" />}
+          {mode === 'bottom' && <div class="cz-sheet-grip" aria-hidden="true" />}
           {(p.title || p.icon || !p.noClose || p.actions) && (
             <div class="cz-sheet-titlerow">
               {p.icon && (
@@ -193,7 +196,7 @@ export function Sheet(p: SheetProps) {
         </header>
         <div class="cz-sheet-body scroll-y" ref={p.bodyRef}>
           {p.children}
-          {mode !== 'side' && hiddenFrac > 0 && <div aria-hidden="true" style={{ height: Math.round(hiddenFrac * hpx) + 'px', flex: 'none' }} />}
+          {mode === 'bottom' && hiddenFrac > 0 && <div aria-hidden="true" style={{ height: Math.round(hiddenFrac * hpx) + 'px', flex: 'none' }} />}
         </div>
         {p.footer && (
           <footer class="cz-sheet-foot" style={hiddenFrac > 0 ? { transform: `translate3d(0, ${-Math.round(hiddenFrac * hpx)}px, 0)` } : undefined}>

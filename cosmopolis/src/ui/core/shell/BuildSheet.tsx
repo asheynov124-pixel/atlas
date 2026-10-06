@@ -4,21 +4,22 @@
  * (power … orbital, My Designs). Items are grouped by `group` into cards: 3D thumbnail, name, cost, key stat
  * chips, lock state + reason, affordability. Tap = select the tool; long-press or ⓘ = the detail sheet.
  */
-import { useMemo, useRef } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { getItem, type ItemDef } from '../../../content/catalog';
 import type { Category } from '../../../core/types';
 import { game } from '../../../game/instance';
 import { Icon } from '../../icons';
 import { ui } from '../../store';
-import { Button } from '../Button';
-import { Tabs } from '../controls';
+import { Button, IconButton } from '../Button';
+import { Tabs, TextInput } from '../controls';
 import { Chip, EmptyState, SectionHeader } from '../display';
-import { useLongPress, uiSound, viewport } from '../env';
+import { useLayer, useLongPress, uiSound, viewport } from '../env';
 import { fmtCompact, fmtMoney } from '../format';
 import { Sheet } from '../Sheet';
 import { closeSheet, detailItem, openCategory, selectItem } from './actions';
 import { BUILD_TABS, CATEGORY_META, dockFor, effectRows, footprintLabel, groupItems, isUnlocked, itemsFor, keyStats, lockReason, SERVICE_ICON } from './buildModel';
 import { ItemArt } from './ItemArt';
+import { hasNewIn, markSeen, newItems } from './newItems';
 
 function costLabel(def: ItemDef): string {
   return def.cost <= 0 ? 'Free' : fmtMoney(def.cost, true);
@@ -34,7 +35,7 @@ function Wallet() {
   );
 }
 
-function ItemCard({ def, sandbox }: { def: ItemDef; sandbox: boolean }) {
+function ItemCard({ def, sandbox, fresh }: { def: ItemDef; sandbox: boolean; fresh: boolean }) {
   const unlocked = isUnlocked(def);
   const afford = sandbox || ui.money.value >= def.cost;
   const lp = useLongPress(
@@ -48,7 +49,8 @@ function ItemCard({ def, sandbox }: { def: ItemDef; sandbox: boolean }) {
   const active = ui.tool.value?.itemId === def.id;
   const reason = unlocked ? null : lockReason(def);
   return (
-    <div class={'bs-card' + (unlocked ? '' : ' is-locked') + (afford ? '' : ' is-poor') + (active ? ' is-active' : '')}>
+    <div class={'bs-card' + (unlocked ? '' : ' is-locked') + (afford ? '' : ' is-poor') + (active ? ' is-active' : '') + (fresh ? ' is-new' : '')}>
+      {fresh && <span class="bs-new-chip">NEW</span>}
       <button type="button" class="bs-card-main" aria-label={`${def.name}${unlocked ? '' : ' (locked)'}`} {...lp}>
         <span class="bs-thumb">
           <ItemArt def={def} size={84} />
@@ -130,9 +132,42 @@ export function BuildSheet() {
   const vp = viewport.value;
   const meta = CATEGORY_META[cat];
 
+  // "NEW" chips: snapshot what was new when this category was shown, then mark it seen
+  const fresh = useRef<ReadonlySet<string>>(new Set());
+  const freshKey = useRef('');
+  if (open && freshKey.current !== cat) {
+    freshKey.current = cat;
+    fresh.current = new Set(items.filter((d) => newItems.value.has(d.id)).map((d) => d.id));
+  }
+  if (!open) freshKey.current = '';
+  useEffect(() => {
+    if (open) markSeen(items.map((d) => d.id));
+  }, [open, cat, items]);
+
   const tabs = isBuild
-    ? BUILD_TABS.map((c) => ({ id: c, label: CATEGORY_META[c].label, icon: CATEGORY_META[c].icon }))
+    ? BUILD_TABS.map((c) => ({ id: c, label: CATEGORY_META[c].label, icon: CATEGORY_META[c].icon, dot: c !== cat && hasNewIn([c]) }))
     : null;
+
+  // search across every category (Build sheet only)
+  const [query, setQuery] = useState<string | null>(null);
+  useEffect(() => {
+    if (!open) setQuery(null);
+  }, [open]);
+  useLayer(open && query !== null, () => setQuery(null));
+  const q = (query ?? '').trim().toLowerCase();
+  const results = useMemo(() => (q.length >= 2 ? searchItems(q) : []), [q, version, tier]);
+  const searching = query !== null;
+  const toolbar = searching ? (
+    <TextInput value={query ?? ''} onChange={setQuery} placeholder="Search every blueprint…" icon="search" autoFocus maxLength={40} trailing={<IconButton icon="close" label="Close search" size="sm" variant="ghost" onClick={() => setQuery(null)} />} />
+  ) : tabs ? (
+    <Tabs tabs={tabs} value={cat} onChange={(c) => openCategory(c as Category)} ariaLabel="Build categories" />
+  ) : undefined;
+  const actions = (
+    <>
+      {isBuild && !searching && <IconButton icon="search" label="Search blueprints" size="sm" variant="ghost" onClick={() => setQuery('')} />}
+      {!sandbox && <Wallet />}
+    </>
+  );
 
   return (
     <Sheet
@@ -145,25 +180,56 @@ export function BuildSheet() {
       snaps={vp.wide ? [0.62, 0.94] : [0.5, 0.9]}
       class="bs-sheet"
       sound
-      toolbar={tabs ? <Tabs tabs={tabs} value={cat} onChange={(c) => openCategory(c as Category)} ariaLabel="Build categories" /> : undefined}
-      actions={!sandbox ? <Wallet /> : undefined}
+      toolbar={toolbar}
+      actions={actions}
     >
-      {cat === 'custom' && <div class="bs-grid bs-grid-top">{<StudioCard />}</div>}
-      {items.length === 0 && cat !== 'custom' && <EmptyState icon={meta.icon} title="Nothing to build here yet" body="New blueprints arrive as your civilisation grows." />}
-      {items.length === 0 && cat === 'custom' && (
+      {searching && <SearchResults q={q} results={results} sandbox={sandbox} />}
+      {!searching && cat === 'custom' && <div class="bs-grid bs-grid-top">{<StudioCard />}</div>}
+      {!searching && items.length === 0 && cat !== 'custom' && <EmptyState icon={meta.icon} title="Nothing to build here yet" body="New blueprints arrive as your civilisation grows." />}
+      {!searching && items.length === 0 && cat === 'custom' && (
         <EmptyState icon="custom" title="No designs yet" body="Compose your own skyscrapers, domes and spires in the Architect Studio — they will appear right here." />
       )}
-      {groups.map((g) => (
+      {!searching && groups.map((g) => (
         <section key={g.group} class="bs-group">
           {(groups.length > 1 || g.group !== 'General') && <SectionHeader title={g.group} subtitle={undefined} action={<span class="bs-count num">{g.items.length}</span>} />}
           <div class="bs-grid">
             {g.items.map((d) => (
-              <ItemCard key={d.id} def={d} sandbox={sandbox} />
+              <ItemCard key={d.id} def={d} sandbox={sandbox} fresh={fresh.current.has(d.id)} />
             ))}
           </div>
         </section>
       ))}
     </Sheet>
+  );
+}
+
+/** Every buildable item whose name, group, tags or description match `q`. */
+function searchItems(q: string): ItemDef[] {
+  const words = q.split(/\s+/).filter(Boolean);
+  const cats = Object.keys(CATEGORY_META) as Category[];
+  const out: { d: ItemDef; score: number }[] = [];
+  for (const c of cats)
+    for (const d of itemsFor(c)) {
+      const name = d.name.toLowerCase();
+      const hay = `${name} ${(d.group ?? '').toLowerCase()} ${(d.tags ?? []).join(' ').toLowerCase()} ${CATEGORY_META[d.category].label.toLowerCase()} ${d.description.toLowerCase()}`;
+      if (!words.every((w) => hay.includes(w))) continue;
+      out.push({ d, score: (name.startsWith(words[0]) ? 0 : name.includes(words[0]) ? 1 : 2) + (isUnlocked(d) ? 0 : 3) });
+    }
+  return out.sort((a, b) => a.score - b.score || a.d.name.localeCompare(b.d.name)).slice(0, 60).map((x) => x.d);
+}
+
+function SearchResults({ q, results, sandbox }: { q: string; results: ItemDef[]; sandbox: boolean }) {
+  if (q.length < 2) return <EmptyState icon="search" title="Find any blueprint" body="Try “solar”, “park”, “tower”, “spaceport”…" />;
+  if (!results.length) return <EmptyState icon="search" title={`Nothing matches “${q}”`} body="Check the spelling, or browse the tabs — some wonders hide behind career milestones." />;
+  return (
+    <section class="bs-group">
+      <SectionHeader title={`${results.length} result${results.length === 1 ? '' : 's'}`} />
+      <div class="bs-grid">
+        {results.map((d) => (
+          <ItemCard key={d.id} def={d} sandbox={sandbox} fresh={false} />
+        ))}
+      </div>
+    </section>
   );
 }
 

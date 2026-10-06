@@ -55,6 +55,67 @@
   flex: none;
   box-shadow: 0 0 14px rgba(94, 200, 255, 0.35);
 }
+.tb-city-badge {
+  position: relative;
+}
+.tb-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 14px;
+  background: conic-gradient(var(--gold) var(--ring, 0deg), rgba(255, 255, 255, 0.12) var(--ring, 0deg));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  padding: 2px;
+  pointer-events: none;
+}
+.tb-saved {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--good);
+  background: rgba(4, 10, 20, 0.75);
+  border: 1px solid rgba(94, 242, 160, 0.25);
+  animation: tb-saved 2.2s var(--ease-out) both;
+  pointer-events: none;
+}
+@keyframes tb-saved {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  12%,
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.tb-milestone {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: var(--r-md);
+  text-align: left;
+  background: linear-gradient(135deg, rgba(255, 211, 107, 0.1), rgba(255, 211, 107, 0.03));
+  border: 1px solid rgba(255, 211, 107, 0.2);
+}
+.tb-milestone-icon {
+  color: var(--gold);
+}
 .tb-city-text {
   display: flex;
   flex-direction: column;
@@ -548,8 +609,9 @@
 }
 .dk-dot {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: 0;
+  right: 0;
+  box-shadow: 0 0 8px var(--accent), 0 0 0 2px rgba(5, 8, 20, 0.85);
 }
 .hud.is-inspecting .dk-root {
   transform: translateY(calc(100% + var(--gutter) + var(--safe-bottom) + 10px));
@@ -1330,6 +1392,24 @@
 }
 .bs-card.is-poor:not(.is-locked) .bs-thumb {
   filter: saturate(0.6) brightness(0.85);
+}
+.bs-new-chip {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  z-index: 1;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--text-inv);
+  background: var(--accent-grad);
+  box-shadow: 0 0 12px rgba(94, 240, 255, 0.45);
+  animation: cz-pop-in var(--dur-3) var(--ease-spring) both;
+}
+.bs-card.is-new {
+  border-color: rgba(94, 240, 255, 0.4);
 }
 .bs-info {
   position: absolute;

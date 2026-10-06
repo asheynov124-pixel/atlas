@@ -7,6 +7,7 @@
  *
  *   thumbnailSignal(defId, { size: 'sm' | 'lg', style }) → ReadonlySignal<string | null>   (null until ready)
  *   hasThumbnailMesh(defId) → boolean       (zones / roads / tools have no mesh → use an icon instead)
+ *   prewarmThumbnails(defIds)                queue portraits in the background (lowest priority)
  *   clearThumbnails(prefix?)                 drop cached portraits (e.g. after a custom building changed)
  *
  * Budget: at most one render per animation frame (≈ 2–4 ms on iPhone), pixels read back asynchronously through a
@@ -80,7 +81,7 @@ class ThumbStudio {
   private targets = new Map<number, WebGLRenderTarget>();
   private env: Texture | null = null;
   private envTried = false;
-  private canvas = document.createElement('canvas');
+  private compiled = false;
   private objCanvas = document.createElement('canvas');
   private prevClear = new Color();
   private prevCenter = new Vector3();
@@ -205,6 +206,17 @@ class ThumbStudio {
       eMaxY = Math.max(eMaxY, sy);
     }
 
+    // first use: compile the studio's program variant off the main thread where supported
+    if (!this.compiled) {
+      this.compiled = true;
+      try {
+        const compileAsync = (r as unknown as { compileAsync?: (s: Scene, c: PerspectiveCamera) => Promise<unknown> }).compileAsync;
+        if (typeof compileAsync === 'function') await compileAsync.call(r, this.scene, cam);
+      } catch {
+        /* compile on first render instead */
+      }
+    }
+
     // render with saved / restored state
     const rt = this.target(px);
     const prevTarget = r.getRenderTarget();
@@ -247,8 +259,8 @@ class ThumbStudio {
     return this.compose(pixels, px, { cx: (eMinX + eMaxX) / 2, cy: (eMinY + eMaxY) / 2, rx: (eMaxX - eMinX) / 2, ry: (eMaxY - eMinY) / 2 });
   }
 
-  /** Flip, un-premultiply, tone-map; draw over a glass pedestal; encode. */
-  private compose(pixels: Uint8Array, px: number, e: { cx: number; cy: number; rx: number; ry: number }): string {
+  /** Flip, un-premultiply, tone-map; draw over a glass pedestal; encode (async PNG blob → object URL). */
+  private compose(pixels: Uint8Array, px: number, e: { cx: number; cy: number; rx: number; ry: number }): Promise<string> {
     const oc = this.objCanvas;
     oc.width = px;
     oc.height = px;
@@ -270,7 +282,7 @@ class ThumbStudio {
     }
     octx.putImageData(img, 0, 0);
 
-    const c = this.canvas;
+    const c = document.createElement('canvas');
     c.width = px;
     c.height = px;
     const ctx = c.getContext('2d')!;
@@ -328,11 +340,17 @@ class ThumbStudio {
     ctx.restore();
     // the model
     ctx.drawImage(oc, 0, 0);
-    try {
-      return c.toDataURL('image/png');
-    } catch {
-      return '';
-    }
+    return new Promise((resolve) => {
+      try {
+        c.toBlob((blob) => resolve(blob ? URL.createObjectURL(blob) : ''), 'image/png');
+      } catch {
+        try {
+          resolve(c.toDataURL('image/png'));
+        } catch {
+          resolve('');
+        }
+      }
+    });
   }
 
   dispose(): void {
@@ -432,11 +450,23 @@ export function thumbnailSignal(defId: string, o: ThumbOptions = {}): ReadonlySi
   return sig;
 }
 
+/** Queue portraits in the background (oldest priority) so menus open with pictures ready. */
+export function prewarmThumbnails(defIds: string[], o: ThumbOptions = {}): void {
+  for (const id of defIds) {
+    if (!getItem(id)?.mesh) continue;
+    const before = queue.length;
+    thumbnailSignal(id, o);
+    // demote: background work yields to anything the player requests
+    if (queue.length > before) queue[queue.length - 1].bucket = -1;
+  }
+}
+
 /** Forget cached portraits whose key starts with `prefix` (all when omitted). */
 export function clearThumbnails(prefix = ''): void {
   for (const k of [...cache.keys()]) {
     if (!k.startsWith(prefix)) continue;
     const s = cache.get(k)!;
+    if (s.value && s.value.startsWith('blob:')) URL.revokeObjectURL(s.value);
     s.value = null;
     cache.delete(k);
     failed.delete(k);

@@ -4,12 +4,16 @@
  * Adapts to the active view (only the top bar outside the planet view, nothing in the studio), photo mode and
  * `ui.chromeHidden` (everything hidden except a small restore button). Plus the optional FPS meter.
  */
+import { useEffect } from 'preact/hooks';
 import { settings } from '../../../core/settings';
+import { prewarmThumbnails } from '../../../render/Thumbnails';
 import { game } from '../../../game/instance';
 import { Icon } from '../../icons';
 import { ui } from '../../store';
 import { call, uiSound } from '../env';
+import { lastBuildTab } from './actions';
 import { BuildSheet, ItemDetail } from './BuildSheet';
+import { itemsFor } from './buildModel';
 import { Dock, MoreMenu } from './Dock';
 import { Inspector } from './Inspector';
 import { Rails } from './Rails';
@@ -51,7 +55,22 @@ function RestoreChrome() {
   );
 }
 
+/** Warm the 3D thumbnails of the Build menu's first tab in the background once the city is on screen. */
+function usePrewarm(): void {
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        prewarmThumbnails(itemsFor(lastBuildTab.value).map((d) => d.id));
+      } catch (e) {
+        console.warn('[ui] thumbnail prewarm skipped', e);
+      }
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [ui.planetId.value]);
+}
+
 export function Hud() {
+  usePrewarm();
   const view = ui.view.value;
   if (ui.photo.value || view === 'studio') return null;
   if (ui.chromeHidden.value) return <RestoreChrome />;

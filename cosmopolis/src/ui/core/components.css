@@ -741,6 +741,14 @@
   padding: 6px 2px;
   margin: -4px 0;
   scroll-padding: 0 16px;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 28px), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 28px), transparent 100%);
+}
+.cz-sheet-toolbar .cz-tabs {
+  margin-left: -16px;
+  margin-right: -16px;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 .cz-tab {
   position: relative;
@@ -758,6 +766,12 @@
   border: 1px solid transparent;
   transition: color var(--dur-2), background var(--dur-2), border-color var(--dur-2), box-shadow var(--dur-2), transform var(--dur-1);
   white-space: nowrap;
+}
+.cz-tab-dot {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  box-shadow: 0 0 8px var(--accent);
 }
 .cz-tab.icon-only {
   width: 44px;
@@ -1075,6 +1089,9 @@
   color: var(--text);
   pointer-events: auto;
 }
+.cz-input:focus-visible {
+  outline: none;
+}
 .cz-input::placeholder {
   color: var(--text-3);
 }
@@ -1269,18 +1286,22 @@
 .cz-sheet.is-dragging .cz-sheet-foot {
   transition: none;
 }
-/* float: tablets & desktop */
+/* float: tablets & desktop — a card above the dock; detents are heights */
 .cz-sheet-root.mode-float .cz-sheet {
+  --fw: min(var(--float-w, 820px), calc(100% - 2 * var(--gutter)));
   left: 50%;
   right: auto;
-  width: min(820px, calc(100% - 2 * var(--gutter)));
-  margin-left: calc(min(820px, calc(100% - 2 * var(--gutter))) / -2);
-  bottom: calc(var(--hud-bottom) + 8px);
-  height: min(calc((100% - var(--hud-top) - var(--hud-bottom) - 24px) * var(--sheet-max, 0.94)), 640px);
+  width: var(--fw);
+  margin-left: calc(var(--fw) / -2);
+  bottom: calc(var(--hud-bottom) + 10px);
+  height: min(calc((100% - var(--hud-top) - var(--hud-bottom) - 28px) * var(--float-frac, 0.62)), 680px);
   border-radius: var(--r-xl);
   border-bottom: 1px solid var(--hairline);
   padding-bottom: 0;
-  clip-path: inset(-40px -40px 0 -40px round var(--r-xl));
+}
+.cz-sheet-root.mode-float .cz-sheet-head {
+  padding-top: 14px;
+  cursor: default;
 }
 .cz-sheet-root.mode-float:not(.is-shown) .cz-sheet {
   opacity: 0;
@@ -1505,11 +1526,24 @@
   left: 50%;
   width: min(420px, calc(100% - 2 * var(--gutter) - 16px));
   transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
   z-index: 70;
   pointer-events: none;
+}
+/* every toast occupies the same grid cell: the newest sits in front, older ones peek out below it */
+.cz-toasts > .cz-toast {
+  grid-area: 1 / 1;
+  align-self: start;
+  z-index: 3;
+}
+.cz-toast.is-behind {
+  z-index: calc(3 - var(--depth, 1));
+  transform: translateY(calc(var(--depth, 1) * 9px)) scale(calc(1 - var(--depth, 1) * 0.05));
+  opacity: calc(1 - var(--depth, 1) * 0.3);
+  pointer-events: none;
+}
+.cz-toast.is-behind > * {
+  opacity: 0;
 }
 .app.on-menu .cz-toasts {
   top: calc(var(--safe-top) + 14px);
@@ -1519,6 +1553,7 @@
   align-items: center;
   gap: 10px;
   min-height: 52px;
+  transform-origin: 50% 100%;
   padding: 9px 14px 9px 10px;
   border-radius: 18px;
   touch-action: none;

@@ -14,7 +14,7 @@ import { uiSound } from './env';
 const KIND_ICON: Record<string, string> = { info: 'info', good: 'check', warn: 'alert', bad: 'alert', milestone: 'trophy' };
 const KIND_MS: Record<string, number> = { info: 4200, good: 4200, warn: 6000, bad: 6500, milestone: 7000 };
 
-function Toast({ t }: { t: Notification }) {
+function Toast({ t, depth }: { t: Notification; depth: number }) {
   const [leaving, setLeaving] = useState(false);
   const [dy, setDy] = useState(0);
   const drag = useRef<{ id: number; y0: number; moved: boolean } | null>(null);
@@ -42,8 +42,9 @@ function Toast({ t }: { t: Notification }) {
   const icon = t.icon && (hasIcon(t.icon) || t.icon.length <= 4) ? t.icon : KIND_ICON[t.kind ?? 'info'];
   return (
     <div
-      class={`cz-toast glass-strong pe kind-${t.kind ?? 'info'}${leaving ? ' is-leaving' : ''}${dy ? ' is-dragging' : ''}`}
-      style={dy ? { transform: `translateY(${dy}px)`, opacity: Math.max(0, 1 + dy / 80) } : undefined}
+      class={`cz-toast glass-strong pe kind-${t.kind ?? 'info'}${leaving ? ' is-leaving' : ''}${dy ? ' is-dragging' : ''}${depth > 0 ? ' is-behind' : ''}`}
+      style={dy ? { transform: `translateY(${dy}px)`, opacity: Math.max(0, 1 + dy / 80) } : depth > 0 ? ({ '--depth': depth } as Record<string, number>) : undefined}
+      aria-hidden={depth > 0 ? 'true' : undefined}
       role="status"
       onPointerDown={(e) => {
         drag.current = { id: e.pointerId, y0: e.clientY, moved: false };
@@ -85,12 +86,17 @@ function Toast({ t }: { t: Notification }) {
   );
 }
 
+/**
+ * Notification deck: the newest toast in front, up to two older ones peeking behind it (iOS-style), so a burst
+ * of news never buries the city. Dismissing the front card brings the next one forward.
+ */
 export function ToastStack() {
   const list = ui.toasts.value.slice(-3);
+  const n = list.length;
   return (
     <div class="cz-toasts" aria-live="polite">
-      {list.map((t) => (
-        <Toast key={t.id} t={t} />
+      {list.map((t, i) => (
+        <Toast key={t.id} t={t} depth={n - 1 - i} />
       ))}
     </div>
   );

@@ -17,6 +17,8 @@ export interface TabDef<T extends string = string> {
   /** icon name or emoji */
   icon?: string;
   badge?: number | string | null;
+  /** small attention dot (e.g. new content) */
+  dot?: boolean;
   disabled?: boolean;
 }
 
@@ -78,6 +80,7 @@ export function Tabs<T extends string = string>(p: TabsProps<T>) {
             {t.icon && <IconOrEmoji value={t.icon} size={18} />}
             {!p.iconOnly && <span class="cz-tab-label">{t.label}</span>}
             {t.badge !== undefined && t.badge !== null && t.badge !== 0 && <span class="cz-badge num">{t.badge}</span>}
+            {t.dot && <span class="cz-badge is-dot tone-accent cz-tab-dot" aria-label="new" />}
           </button>
         );
       })}

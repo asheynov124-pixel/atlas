@@ -24,6 +24,7 @@ import { FpsMeter, Hud } from './core/shell/Hud';
 import { installKeyboard } from './core/shell/keyboard';
 import { LoadingOverlay } from './core/shell/Loading';
 import { MainMenu } from './core/shell/Menu';
+import { installNewItems } from './core/shell/newItems';
 import { PanelHost } from './core/shell/PanelHost';
 import './core/shell/menu.css';
 import './core/shell/hud.css';
@@ -104,9 +105,11 @@ export function App() {
   useEffect(() => {
     const offKeys = installKeyboard();
     const offCelebrate = installCelebrations();
+    const offNew = installNewItems();
     return () => {
       offKeys();
       offCelebrate();
+      offNew();
     };
   }, []);
   const screen = ui.screen.value;

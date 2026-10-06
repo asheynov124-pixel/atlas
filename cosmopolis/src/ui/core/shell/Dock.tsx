@@ -10,11 +10,14 @@ import { panels } from '../../registry';
 import { confirmDialog, notify, ui } from '../../store';
 import { openPanel, uiSound, viewport } from '../env';
 import { Sheet } from '../Sheet';
-import { dockFor } from './buildModel';
+import { BUILD_TABS, dockFor } from './buildModel';
+import { hasNewIn } from './newItems';
 import { moreOpen, toggleDock, toggleTool } from './actions';
 
 interface DockItem {
   id: string;
+  /** categories whose new unlocks light this button's dot */
+  cats?: readonly import('../../../core/types').Category[];
   label: string;
   icon: string;
   kbd: string;
@@ -24,15 +27,16 @@ interface DockItem {
 }
 
 const ITEMS: DockItem[] = [
-  { id: 'roads', label: 'Roads', icon: 'roads', kbd: 'T', run: () => toggleDock('roads'), active: () => dockFor(ui.category.value) === 'roads' || (!ui.category.value && ui.tool.value?.id === 'road') },
-  { id: 'zones', label: 'Zones', icon: 'zones', kbd: 'Z', run: () => toggleDock('zones'), active: () => dockFor(ui.category.value) === 'zones' || (!ui.category.value && ui.tool.value?.id === 'zone') },
-  { id: 'decor', label: 'Nature', icon: 'nature', kbd: 'N', run: () => toggleDock('decor'), active: () => dockFor(ui.category.value) === 'decor' || (!ui.category.value && ui.tool.value?.id === 'decor') },
+  { id: 'roads', label: 'Roads', icon: 'roads', kbd: 'T', cats: ['roads'], run: () => toggleDock('roads'), active: () => dockFor(ui.category.value) === 'roads' || (!ui.category.value && ui.tool.value?.id === 'road') },
+  { id: 'zones', label: 'Zones', icon: 'zones', kbd: 'Z', cats: ['zones'], run: () => toggleDock('zones'), active: () => dockFor(ui.category.value) === 'zones' || (!ui.category.value && ui.tool.value?.id === 'zone') },
+  { id: 'decor', label: 'Nature', icon: 'nature', kbd: 'N', cats: ['decor'], run: () => toggleDock('decor'), active: () => dockFor(ui.category.value) === 'decor' || (!ui.category.value && ui.tool.value?.id === 'decor') },
   {
     id: 'build',
     label: 'Build',
     icon: 'build',
     kbd: 'B',
     hero: true,
+    cats: BUILD_TABS,
     run: () => toggleDock('build'),
     active: () => dockFor(ui.category.value) === 'build' || (!ui.category.value && (ui.tool.value?.id === 'plop' || ui.tool.value?.id === 'orbit')),
   },
@@ -62,6 +66,7 @@ export function Dock() {
             >
               <span class="dk-face">
                 <Icon name={it.icon} size={it.hero ? 24 : 22} />
+                {it.cats && !on && hasNewIn(it.cats) && <span class="cz-badge is-dot tone-accent dk-dot" aria-label="new" />}
               </span>
               <span class="dk-label">{it.label}</span>
             </button>

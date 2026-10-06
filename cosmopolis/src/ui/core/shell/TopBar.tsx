@@ -15,6 +15,9 @@ import { openPanel, uiSound, useLayer, viewport } from '../env';
 import { fmtCompact, fmtMoney, fmtSigned } from '../format';
 import { usePresence } from '../presence';
 import { trayOpen } from './actions';
+import { tierProgress } from './newItems';
+import { bus } from '../../../core/events';
+import { ProgressBar } from '../display';
 
 const SPEEDS = [
   { value: 0, icon: 'pause', title: 'Pause (Space)' },
@@ -72,6 +75,36 @@ function Demand({ compact }: { compact?: boolean }) {
   );
 }
 
+/** The first unfinished goal (or the next tier) with its progress. */
+function NextMilestone({ onClose }: { onClose: () => void }) {
+  const goal = ui.goals.value.find((g) => !g.done);
+  const tp = tierProgress();
+  if (!goal && !tp) return null;
+  const goGoals = panels.has('goals')
+    ? () => {
+        onClose();
+        openPanel('goals');
+      }
+    : undefined;
+  const body = goal ? (
+    <ProgressBar value={goal.progress} label={goal.title} valueText={goal.label ?? `${Math.round(goal.progress * 100)}%`} tone="money" animated />
+  ) : (
+    <ProgressBar value={tp!.value} label={`Next: ${tierName(tp!.next)}`} valueText={`${fmtCompact(ui.population.value)} / ${fmtCompact(tp!.to)}`} tone="money" animated />
+  );
+  return goGoals ? (
+    <button type="button" class="tb-milestone" onClick={goGoals}>
+      <Icon name="trophy" size={18} class="tb-milestone-icon" />
+      <div class="grow">{body}</div>
+      <Icon name="chevronRight" size={16} class="dim" />
+    </button>
+  ) : (
+    <div class="tb-milestone">
+      <Icon name="trophy" size={18} class="tb-milestone-icon" />
+      <div class="grow">{body}</div>
+    </div>
+  );
+}
+
 function StatusTray({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { mounted, shown } = usePresence(open, 260);
   useLayer(open, onClose);
@@ -99,6 +132,7 @@ function StatusTray({ open, onClose }: { open: boolean; onClose: () => void }) {
           </div>
           <Segmented size="sm" value={ui.speed.value} onChange={setSpeed} options={SPEEDS} ariaLabel="Game speed" sound="tap" />
         </div>
+        <NextMilestone onClose={onClose} />
         <div class="tb-tray-rci">
           {RCI.map((z) => {
             const v = ui.demand.value[z.k];
@@ -172,6 +206,21 @@ export function TopBar() {
     return () => clearTimeout(t);
   }, [money]);
 
+  const tp = tierProgress();
+  const ring = tp ? tp.value : null;
+  const [saved, setSaved] = useState(false);
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const off = bus.on('game:saved', () => {
+      setSaved(true);
+      clearTimeout(t);
+      t = setTimeout(() => setSaved(false), 2200);
+    });
+    return () => {
+      off();
+      clearTimeout(t);
+    };
+  }, []);
   const happyIcon = happy >= 65 ? 'smile' : happy >= 40 ? 'meh' : 'frown';
   const happyTone = happy >= 65 ? 'good' : happy >= 40 ? 'warn' : 'bad';
   const cityClick = () => (panels.has('city') ? openPanel('city') : (uiSound('tap'), setTray(!tray)));
@@ -180,7 +229,8 @@ export function TopBar() {
     <>
     <div class="tb-root">
       <button type="button" class={'tb-city glass pe' + (narrow ? ' is-compact' : '')} onClick={cityClick} aria-label={`City: ${ui.cityName.value}`} title={ui.cityName.value}>
-        <span class="tb-city-badge">
+        <span class="tb-city-badge" style={ring !== null ? ({ '--ring': `${Math.round(ring * 360)}deg` } as Record<string, string>) : undefined}>
+          {ring !== null && <span class="tb-ring" aria-hidden="true" />}
           <Icon name={sandbox ? 'sparkles' : 'crown'} size={16} />
         </span>
         {!narrow && (
@@ -270,6 +320,12 @@ export function TopBar() {
         <div class="tb-time glass pe is-wide">
           <Segmented size="sm" value={speed} onChange={setSpeed} options={SPEEDS} ariaLabel="Game speed" sound="tap" />
         </div>
+      )}
+      {saved && (
+        <span class="tb-saved" role="status">
+          <Icon name="check" size={13} stroke={2.4} />
+          Saved
+        </span>
       )}
     </div>
     <StatusTray open={tray} onClose={() => setTray(false)} />
