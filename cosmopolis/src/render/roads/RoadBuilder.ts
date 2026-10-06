@@ -57,7 +57,6 @@ const C = {
   wood: lin(0x9c7048),
   woodDark: lin(0x6e4c30),
   grass: lin(0x5b9a45),
-  grassDark: lin(0x4a8238),
   concrete: lin(0xa7a8aa),
   concreteDark: lin(0x8e9093),
   wall: lin(0xb4afa3),
@@ -88,6 +87,65 @@ const C = {
   pod: lin(0xeef1f6),
   bufferRed: lin(0xff4040),
 };
+
+// ───────────────────────────────────────────────────────────── planet / city themes
+type ThemeKey = 'asphalt' | 'asphaltAve' | 'asphaltHwy' | 'walk' | 'walkAve' | 'kerb' | 'white' | 'yellow' | 'lampWarm' | 'lampWhite' | 'grass';
+interface ThemeDef {
+  hex: Partial<Record<ThemeKey, number>>;
+  /** lane markings glow (neon) instead of paint */
+  glowMarks?: boolean;
+  /** light-pool colours (warm / white lamps) */
+  pools?: [number, number];
+}
+const BASE_HEX: Record<ThemeKey, number> = {
+  asphalt: 0x43464d,
+  asphaltAve: 0x3e4148,
+  asphaltHwy: 0x393b41,
+  walk: 0xbcbab2,
+  walkAve: 0xc7c0b2,
+  kerb: 0xe4e2da,
+  white: 0xf2f0e8,
+  yellow: 0xf0c246,
+  lampWarm: 0xffe2ac,
+  lampWhite: 0xfff3dc,
+  grass: 0x5b9a45,
+};
+/** Road looks per planet archetype (+ 'cyber' city style): every world's streets feel like they belong there. */
+const THEMES: Record<string, ThemeDef> = {
+  dusty: { hex: { asphalt: 0x4a4642, asphaltAve: 0x45413d, asphaltHwy: 0x403c38, walk: 0xcdb594, walkAve: 0xd6be9a, kerb: 0xeadcc2, grass: 0xc4a274 } },
+  arctic: { hex: { asphalt: 0x434a55, asphaltAve: 0x3f4651, asphaltHwy: 0x3a404a, walk: 0xdfe8f0, walkAve: 0xe6eef6, kerb: 0xffffff, yellow: 0x5ac8ff, grass: 0xf0f5fa }, pools: [0x9a8c74, 0x7a8ca0] },
+  machine: { hex: { asphalt: 0x2c3038, asphaltAve: 0x2a2e36, asphaltHwy: 0x272a31, walk: 0x6a727e, walkAve: 0x737c88, kerb: 0x9aa4b0, white: 0x4ae0ff, yellow: 0xffb02a, lampWarm: 0xd8f0ff, lampWhite: 0xd8f0ff, grass: 0x3a424e }, glowMarks: true, pools: [0x4a7a9a, 0x4a7a9a] },
+  crystal: { hex: { asphalt: 0x3e3a50, asphaltAve: 0x3a364c, asphaltHwy: 0x363246, walk: 0xc8c0e0, walkAve: 0xd0c8ea, kerb: 0xece6ff, white: 0xd8c8ff, yellow: 0xff8ae0, lampWhite: 0xf0e0ff, lampWarm: 0xf0e0ff, grass: 0x8a6ac0 }, glowMarks: true, pools: [0x8a6aa8, 0x8a6aa8] },
+  toxic: { hex: { asphalt: 0x3e4238, asphaltAve: 0x3a3e34, asphaltHwy: 0x363a30, walk: 0xa8ad8a, walkAve: 0xb0b592, kerb: 0xd8dcc0, white: 0xd8ff8a, yellow: 0xc8ff4a, grass: 0x6a8a32 }, glowMarks: true, pools: [0x7a9a3a, 0x8a9a6a] },
+  fungal: { hex: { asphalt: 0x40384a, asphaltAve: 0x3c3446, asphaltHwy: 0x383042, walk: 0xc8b4c8, walkAve: 0xd0bcd0, kerb: 0xece0ec, white: 0x7affd8, yellow: 0xff9af0, grass: 0x8a5aa8 }, glowMarks: true, pools: [0x6a5a8a, 0x5a8a8a] },
+  cyber: { hex: { asphalt: 0x2e3038, asphaltAve: 0x2c2e36, asphaltHwy: 0x2a2c33, walk: 0x5a5e6a, walkAve: 0x62666f, kerb: 0x8a8e9a, white: 0x2ff0ff, yellow: 0xff2fd0, lampWarm: 0xffd0f0, lampWhite: 0xd0f8ff, grass: 0x2e3440 }, glowMarks: true, pools: [0x8a4a8a, 0x3a8a9a] },
+};
+const THEME_OF: Partial<Record<string, string>> = { desert: 'dusty', barren: 'dusty', volcanic: 'dusty', arctic: 'arctic', machine: 'machine', crystal: 'crystal', toxic: 'toxic', fungal: 'fungal' };
+const themeCache = new Map<string, { lin: Record<ThemeKey, Lin>; mark: number; pools: [number, number] }>();
+let themeKey = '';
+/** material of lane markings for the current theme (paint or neon) */
+let MARK: number = Mat.Plain;
+let POOL_A = 0xa8743c;
+let POOL_B = 0x9a8c74;
+
+/** Swap the palette for this planet (archetype) and city style. Cheap when unchanged. */
+function applyTheme(planet: Planet): void {
+  const id = planet.city?.style === 'cyber' ? 'cyber' : THEME_OF[planet.spec.type] ?? 'default';
+  if (id === themeKey) return;
+  themeKey = id;
+  let t = themeCache.get(id);
+  if (!t) {
+    const def = THEMES[id];
+    const linMap = {} as Record<ThemeKey, Lin>;
+    for (const k of Object.keys(BASE_HEX) as ThemeKey[]) linMap[k] = lin(def?.hex[k] ?? BASE_HEX[k]);
+    t = { lin: linMap, mark: def?.glowMarks ? Mat.Glow : Mat.Plain, pools: def?.pools ?? [0xa8743c, 0x9a8c74] };
+    themeCache.set(id, t);
+  }
+  Object.assign(C, t.lin);
+  MARK = t.mark;
+  POOL_A = t.pools[0];
+  POOL_B = t.pools[1];
+}
 
 // ───────────────────────────────────────────────────────────── layer heights (relative to driving surface)
 const D_SIDE = -0.01;
@@ -289,7 +347,7 @@ function dashes(seg: HalfSegment, sFrom: number, sTo: number, lat: number, width
     const e0 = 1 - (d + dash) / L;
     const s0 = Math.max(sFrom, e0), s1 = Math.min(sTo, e1);
     if (s1 - s0 < 0.02) continue;
-    ribbon(seg, s0, s1, lat - width / 2, lat - width / 2, lat + width / 2, lat + width / 2, D_MARK, col, Mat.Plain);
+    ribbon(seg, s0, s1, lat - width / 2, lat - width / 2, lat + width / 2, lat + width / 2, D_MARK, col, MARK);
   }
 }
 
@@ -301,16 +359,13 @@ function crosswalk(seg: HalfSegment, s0: number, car: number, len: number): void
   const step = (car * 2 - 0.03) / n;
   for (let i = 0; i < n; i++) {
     const c = -car + 0.015 + step * (i + 0.5);
-    ribbon(seg, s0, s1, c - step * 0.28, c - step * 0.28, c + step * 0.28, c + step * 0.28, D_MARK, C.white, Mat.Plain);
+    ribbon(seg, s0, s1, c - step * 0.28, c - step * 0.28, c + step * 0.28, c + step * 0.28, D_MARK, C.white, MARK);
   }
 }
 
 /** Night light pool on the road surface (additive glow layer — invisible by day). */
-const POOL_WARM = 0xa8743c;
-const POOL_WHITE = 0x9a8c74;
-const POOL_SODIUM = 0xb0682a;
-const POOL_COLD = 0x5a8aa0;
-function lightPool(seg: HalfSegment, s: number, lat: number, r: number, hex = POOL_WARM): void {
+const POOL_SODIUM = 0xa0602a;
+function lightPool(seg: HalfSegment, s: number, lat: number, r: number, hex = POOL_A): void {
   frameAt(seg, s, lat, D_POOL, P0);
   ctx.glow.pool(P0, RIGHT, FWD, r, hex);
 }
@@ -415,6 +470,7 @@ export function buildRoadTile(planet: Planet, t: number, out: RoadBuildOut): voi
   const kind = planet.road[t] as RoadKind;
   if (!kind) return;
   const spec = roadSpec(kind);
+  applyTheme(planet);
   ctx.planet = planet;
   ctx.w = out.w;
   ctx.glow = out.glow;
@@ -650,7 +706,7 @@ function buildStreet(): void {
       crosswalk(seg, m, s.carriage, 0.1);
       // stop line for inbound traffic (left of outbound travel)
       const sl = Math.min(0.97, m + 0.125 / L);
-      ribbon(seg, sl, Math.min(0.99, sl + 0.016 / L), -s.carriage + 0.012, -s.carriage + 0.012, -0.012, -0.012, D_MARK, C.white, Mat.Plain);
+      ribbon(seg, sl, Math.min(0.99, sl + 0.016 / L), -s.carriage + 0.012, -s.carriage + 0.012, -0.012, -0.012, D_MARK, C.white, MARK);
       signal(seg, Math.min(0.95, m + 0.14 / L), -(s.kerb + 0.05), hash3(ctx.t, seg.k, 5) % 3);
       mark0 = Math.min(0.95, m + 0.16 / L);
     }
@@ -718,13 +774,13 @@ function buildAvenue(): void {
     const lsMed = Math.max(m0 + 0.06, 0.24);
     if (m1 - m0 > 0.2 && lsMed < m1 - 0.05 && Math.abs(lsMed - 0.62) > 0.12) {
       lamp(seg, lsMed, 0, 0.36, 0.15, C.lampWhite, true, 0x8a8070);
-      lightPool(seg, lsMed, 0.17, 0.24, POOL_WHITE);
-      lightPool(seg, lsMed, -0.17, 0.24, POOL_WHITE);
+      lightPool(seg, lsMed, 0.17, 0.24, POOL_B);
+      lightPool(seg, lsMed, -0.17, 0.24, POOL_B);
     } else if (!tapered) {
       const ls = junction ? Math.min(0.9, mouth + 0.3 / L) : 0.5;
       if (ls < 0.92) {
         lamp(seg, ls, s.outer - 0.05, 0.34, -0.14, C.lampWhite, false, 0x8a8070);
-        lightPool(seg, ls, s.outer - 0.19, 0.24, POOL_WHITE);
+        lightPool(seg, ls, s.outer - 0.19, 0.24, POOL_B);
       }
     }
   }
@@ -742,7 +798,7 @@ function buildAvenue(): void {
         P2.copy(P0).addScaledVector(E1, Math.cos(a1) * r0).addScaledVector(E2, Math.sin(a1) * r0);
         P3.copy(P0).addScaledVector(E1, Math.cos(a1) * r1).addScaledVector(E2, Math.sin(a1) * r1);
         Q0.copy(P0).addScaledVector(E1, Math.cos(a0) * r1).addScaledVector(E2, Math.sin(a0) * r1);
-        ctx.w.quad(P1, P2, P3, Q0, UP, C.white, Mat.Plain);
+        ctx.w.quad(P1, P2, P3, Q0, UP, C.white, MARK);
       }
     }
     P0.copy(UP).multiplyScalar(ctx.R + ctx.deck + D_ASPH + 0.03);
@@ -797,16 +853,16 @@ function buildHighway(): void {
       // central barrier + yellow lines
       raised(seg, mk0, mk1, -0.022, -0.022, 0.022, 0.022, D_ASPH, 0.045, C.barrier, C.barrier, Mat.Plain, { cap0: ctx.shape !== 'straight', cap1: tapered });
       for (const sg of [-1, 1]) {
-        ribbon(seg, mk0, mk1, sg * 0.036, sg * 0.036, sg * 0.046, sg * 0.046, D_MARK, C.yellow, Mat.Plain);
-        ribbon(seg, mk0, mk1, sg * (s.carriage - 0.026), sg * (s.carriage - 0.026), sg * (s.carriage - 0.014), sg * (s.carriage - 0.014), D_MARK, C.white, Mat.Plain);
+        ribbon(seg, mk0, mk1, sg * 0.036, sg * 0.036, sg * 0.046, sg * 0.046, D_MARK, C.yellow, MARK);
+        ribbon(seg, mk0, mk1, sg * (s.carriage - 0.026), sg * (s.carriage - 0.026), sg * (s.carriage - 0.014), sg * (s.carriage - 0.014), D_MARK, C.white, MARK);
         dashes(seg, mk0, mk1, sg * 0.165, 0.011, 0.12, 0.1, C.white);
         dashes(seg, mk0, mk1, sg * 0.295, 0.011, 0.12, 0.1, C.white);
       }
       // sodium mast on the central barrier
       if (mk1 > 0.6 && mk0 < 0.4) {
         lamp(seg, 0.5, 0, 0.44, 0.2, C.lampSodium, true, 0x9a5a28);
-        lightPool(seg, 0.5, 0.22, 0.3, POOL_SODIUM);
-        lightPool(seg, 0.5, -0.22, 0.3, POOL_SODIUM);
+        lightPool(seg, 0.5, 0.22, 0.27, themeKey === 'default' || themeKey === 'dusty' ? POOL_SODIUM : POOL_A);
+        lightPool(seg, 0.5, -0.22, 0.27, themeKey === 'default' || themeKey === 'dusty' ? POOL_SODIUM : POOL_A);
       }
       // sign gantry on some tiles
       if (hash3(ctx.t, seg.k, 11) % 5 === 0 && mk0 < 0.2 && mk1 > 0.4) gantry(seg, 0.3);
