@@ -60,6 +60,8 @@ export class RoadRenderer {
   readonly group = new Group();
   private planet: Planet;
   private chunkOf: Uint16Array;
+  /** elevation snapshot: tiles:terrain also fires for feature/biome edits, which never affect roads */
+  private elev: Int8Array;
   private chunks: Chunk[] = [];
   private dirty = new Set<number>();
   private writer = new GeoWriter();
@@ -89,6 +91,7 @@ export class RoadRenderer {
     const cf = Math.max(2, Math.round(p.grid.frequency / 10));
     const cg = getGrid(cf);
     this.chunkOf = new Uint16Array(p.count);
+    this.elev = Int8Array.from(p.elevation);
     const counts = new Int32Array(cg.count);
     const C = p.grid.center;
     let hint = 0;
@@ -163,6 +166,8 @@ export class RoadRenderer {
     const g = p.grid;
     for (const t of tiles) {
       if (t < 0 || t >= p.count) continue;
+      if (this.elev[t] === p.elevation[t]) continue;
+      this.elev[t] = p.elevation[t];
       let near = p.road[t] !== 0;
       if (!near) for (let q = g.start[t]; q < g.start[t + 1]; q++) if (p.road[g.nbr[q]]) near = true;
       if (!near) continue;

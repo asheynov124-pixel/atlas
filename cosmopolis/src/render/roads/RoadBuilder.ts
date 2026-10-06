@@ -126,7 +126,7 @@ let themeKey = '';
 /** material of lane markings for the current theme (paint or neon) */
 let MARK: number = Mat.Plain;
 let POOL_A = 0xa8743c;
-let POOL_B = 0x9a8c74;
+let POOL_B = 0x86745a;
 
 /** Swap the palette for this planet (archetype) and city style. Cheap when unchanged. */
 function applyTheme(planet: Planet): void {
@@ -138,7 +138,7 @@ function applyTheme(planet: Planet): void {
     const def = THEMES[id];
     const linMap = {} as Record<ThemeKey, Lin>;
     for (const k of Object.keys(BASE_HEX) as ThemeKey[]) linMap[k] = lin(def?.hex[k] ?? BASE_HEX[k]);
-    t = { lin: linMap, mark: def?.glowMarks ? Mat.Glow : Mat.Plain, pools: def?.pools ?? [0xa8743c, 0x9a8c74] };
+    t = { lin: linMap, mark: def?.glowMarks ? Mat.Glow : Mat.Plain, pools: def?.pools ?? [0xa8743c, 0x86745a] };
     themeCache.set(id, t);
   }
   Object.assign(C, t.lin);
