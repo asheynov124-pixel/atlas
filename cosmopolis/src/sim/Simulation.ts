@@ -228,7 +228,7 @@ export class Simulation implements System {
   init(): void {
     this.globalOffs.push(
       bus.on('catalog:changed', () => this.onCatalogChanged()),
-      bus.on('disaster:start', ({ powerId }) => this.onDisaster(powerId, true)),
+      bus.on('disaster:start', ({ powerId, tile }) => this.onDisaster(powerId, true, tile)),
       bus.on('disaster:end', ({ powerId }) => this.onDisaster(powerId, false)),
       bus.on('milestone:reached', ({ goalId }) => this.onMilestone(goalId)),
       bus.on('unlock', ({ kind, id }) => {
@@ -1549,14 +1549,15 @@ export class Simulation implements System {
     void p;
   }
 
-  private onDisaster(powerId: string, start: boolean): void {
+  private onDisaster(powerId: string, start: boolean, tile?: number): void {
     if (!this.planet) return;
-    const name = powerId.replace(/[_-]/g, ' ').toUpperCase();
+    const god = (this.game as unknown as { god?: { powers?: { id: string; name: string }[] } }).god;
+    const pretty = god?.powers?.find((x) => x.id === powerId)?.name ?? powerId.replace(/[_-]/g, ' ');
     if (start) {
-      if (this.cool('disaster.' + powerId, 2)) this.post(this.persona(), line(this.rng, 'disaster', this.vars({ thing: name })), undefined, true);
+      if (this.cool('disaster.' + powerId, 2)) this.post(this.persona(), line(this.rng, 'disaster', this.vars({ thing: pretty.toUpperCase() }, tile)), tile, true);
     } else {
       this.game.empire.bump('sim.disasters');
-      this.post(rngPick(this.rng, [CHARACTERS.news, this.persona()]), line(this.rng, 'disasterOver', this.vars({ thing: powerId.replace(/[_-]/g, ' ') })), undefined, true);
+      if (this.cool('disasterEnd.' + powerId, 2)) this.post(rngPick(this.rng, [CHARACTERS.news, this.persona()]), line(this.rng, 'disasterOver', this.vars({ thing: pretty.toLowerCase() })), undefined, true);
     }
   }
 

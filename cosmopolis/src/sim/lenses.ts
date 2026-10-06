@@ -117,7 +117,10 @@ const SPECS: Spec[] = [
     for (let t = 0; t < p.count; t++) out[t] = p.isWater(t) ? NaN : cov[t];
     for (const r of sim.recs) if (r.dataUse > 0) for (const t of r.b.tiles) out[t] = Math.max(out[t], r.served & SV_DATA ? 0.9 : 0.05);
   } },
-  { id: 'landValue', name: 'Land Value', icon: '💎', group: 'City', description: 'What a lot is worth: views, services, parks, minus pollution, noise and crime.', ramp: 'heat', legend: ['Cheap', 'Prime'], fill: fieldLens((s) => s.fields!.landValue, 100) },
+  { id: 'landValue', name: 'Land Value', icon: '💎', group: 'City', description: 'What a lot is worth: views, services, parks, minus pollution, noise and crime.', ramp: 'heat', legend: ['Cheap', 'Prime'], fill: (sim, p, out) => {
+    const lv = sim.fields!.landValue;
+    for (let t = 0; t < p.count; t++) out[t] = p.isWater(t) ? NaN : Math.min(1, Math.max(0, (lv[t] - 10) / 65));
+  } },
   { id: 'pollution', name: 'Pollution', icon: '☁️', group: 'Environment', description: 'Air and ground pollution from industry and traffic.', ramp: 'bad', legend: ['Clean', 'Toxic'], fill: fieldLens((s) => s.fields!.pollution, 80) },
   { id: 'noise', name: 'Noise', icon: '🔊', group: 'Environment', description: 'Noise from traffic, nightlife and industry.', ramp: 'bad', legend: ['Quiet', 'Deafening'], fill: fieldLens((s) => s.fields!.noise, 70) },
   { id: 'crime', name: 'Crime', icon: '🦹', group: 'Safety', description: 'Crime rate. Police stations push it down.', ramp: 'bad', legend: ['Safe', 'Dangerous'], fill: (sim, p, out) => {
