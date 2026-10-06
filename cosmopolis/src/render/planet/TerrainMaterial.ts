@@ -155,10 +155,10 @@ if ( tWall ) {
     float lf = n1 * 0.64 + n2 * 0.36;
     float crust = smoothstep( 0.43, 0.56, lf );
     float seam = 1.0 - smoothstep( 0.0, 0.035 + tFw * 0.5, abs( lf - 0.495 ) );
-    vec3 melt = mix( vec3( 0.85, 0.1, 0.01 ), vec3( 1.0, 0.42, 0.04 ), smoothstep( 0.2, 0.45, lf ) * ( 1.0 - crust ) );
+    vec3 melt = mix( vec3( 0.8, 0.07, 0.005 ), vec3( 1.0, 0.33, 0.02 ), smoothstep( 0.2, 0.45, lf ) * ( 1.0 - crust ) );
     tAlb = mix( melt * 0.35, vec3( 0.075, 0.055, 0.05 ) * ( 0.8 + 0.4 * n2 ), crust );
     float pulse = 0.82 + 0.18 * sin( uSurfTime * 1.6 + n1 * 9.0 );
-    tEmit += ( melt * ( 1.0 - crust ) * 1.7 + vec3( 1.0, 0.8, 0.4 ) * seam * 1.3 * ( 1.0 - crust * 0.6 ) ) * pulse * uGlow;
+    tEmit += ( melt * ( 1.0 - crust ) * 1.05 + vec3( 1.0, 0.62, 0.22 ) * seam * 0.95 * ( 1.0 - crust * 0.6 ) ) * pulse * uGlow;
     tRough = mix( 0.45, 0.92, crust );
   } else if ( tBiome == 17 ) {
     // cut-gem tiles: six facets per hex with their own brightness, glowing facet edges, round glints
@@ -252,7 +252,8 @@ if ( tWall ) {
     tRough = 0.95;
   } else if ( tBiome == 13 || tBiome == 22 ) {
     tAlb *= 0.9 + 0.2 * tNz;
-    float ember = step( 0.992, tHash13( floor( vWPos * 9.0 ) ) );
+    vec3 egp = vWPos * 9.0;
+    float ember = step( 0.988, tHash13( floor( egp ) ) ) * ( 1.0 - smoothstep( 0.05, 0.2, length( fract( egp ) - 0.5 ) ) );
     tEmit += uLavaCol * ember * ( 0.4 + 0.6 * sin( uSurfTime * 3.0 + tNz * 20.0 ) ) * tNightF * uGlow;
   } else if ( tBiome != 24 ) {
     float fine = length( cameraPosition - vWPos ) < 45.0 ? tNoise( vWPos * 9.0 ) : 0.5;
@@ -260,7 +261,9 @@ if ( tWall ) {
   }
   // snow line on peaks
   if ( tBiome != 14 && !tUnder && uSnowLine < 20.0 ) {
-    float snowA = smoothstep( uSnowLine, uSnowLine + 0.45, tH + ( tNz - 0.5 ) * 0.55 );
+    // snow line rises toward the equator (≈ 6 terraces higher than at the poles)
+    float snowLine = uSnowLine + ( 1.0 - abs( tUp.y ) ) * 2.0;
+    float snowA = smoothstep( snowLine, snowLine + 0.45, tH + ( tNz - 0.5 ) * 0.55 );
     tAlb = mix( tAlb, uSnowCol, snowA );
   }
   if ( uHasOcean > 0.5 ) {
@@ -292,7 +295,8 @@ if ( tFlags != 0 ) {
   if ( ( tFlags & 4 ) != 0 ) {
     float ash = tNoise( vWPos * 3.0 );
     tAlb = mix( tAlb, vec3( 0.05, 0.045, 0.04 ) + ash * 0.06, 0.84 );
-    tEmit += vec3( 1.0, 0.3, 0.05 ) * step( 0.984, tHash13( floor( vWPos * 10.0 ) ) ) * ( 0.5 + 0.5 * sin( uSurfTime * 5.0 + ash * 20.0 ) ) * 0.9;
+    vec3 sgp2 = vWPos * 10.0;
+    tEmit += vec3( 1.0, 0.3, 0.05 ) * step( 0.975, tHash13( floor( sgp2 ) ) ) * ( 1.0 - smoothstep( 0.05, 0.22, length( fract( sgp2 ) - 0.5 ) ) ) * ( 0.5 + 0.5 * sin( uSurfTime * 5.0 + ash * 20.0 ) ) * 1.2;
     tRough = 1.0;
   }
   if ( ( tFlags & 1 ) != 0 ) {
@@ -329,7 +333,8 @@ if ( tFlags != 0 ) {
   if ( ( tFlags & 64 ) != 0 ) {
     float sh = 0.5 + 0.5 * sin( uSurfTime * 2.0 + dot( vWPos, vec3( 1.0 ) ) * 1.5 );
     tAlb = mix( tAlb, vec3( 1.0, 0.86, 0.48 ), 0.32 );
-    tEmit += vec3( 1.0, 0.8, 0.35 ) * ( 0.28 + 0.32 * sh ) + vec3( 1.0, 0.95, 0.7 ) * step( 0.975, tHash13( floor( vWPos * 12.0 + floor( uSurfTime * 3.0 ) ) ) ) * 1.6;
+    vec3 bgp = vWPos * 12.0;
+    tEmit += vec3( 1.0, 0.8, 0.35 ) * ( 0.28 + 0.32 * sh ) + vec3( 1.0, 0.95, 0.7 ) * step( 0.96, tHash13( floor( bgp + floor( uSurfTime * 3.0 ) ) ) ) * ( 1.0 - smoothstep( 0.05, 0.2, length( fract( bgp ) - 0.5 ) ) ) * 1.8;
   }
   if ( ( tFlags & 128 ) != 0 && uGrid > 0.01 && !tWall ) {
     float st = step( 0.5, fract( dot( vWPos, vec3( 1.0 ) ) * 2.2 ) );
