@@ -5,6 +5,7 @@
  *   &time=0..1                   time of day (freezes cycle speed 0)  &daynight=cycle|day|night|golden
  *   &speed=0..4                  &lens=<lensId>                       &ui=0 hide chrome
  *   &select=<tile>               &tool=<toolId>&item=<itemId>         &quality=low|medium|high|ultra
+ *   &showroom=<category|all|prefix:x>  lay out items along roads    &style=<StyleId>  &level=1..5
  * Modules may read their own params (e.g. &god=meteor, &cosmos=galaxy, &studio=1, &panel=budget).
  */
 import { setSettings, type DayNightMode, type QualitySetting } from '../core/settings';
@@ -12,6 +13,8 @@ import type { PlanetTypeId } from '../core/types';
 import type { Game } from '../game/Game';
 import { ui } from '../ui/store';
 import { buildDemoCity } from './demoCity';
+import { showroom, type ShowroomOptions } from './showroom';
+import type { Category, StyleId } from '../core/types';
 
 declare global {
   interface Window {
@@ -20,6 +23,7 @@ declare global {
       ready: boolean;
       debugInfo: () => Record<string, unknown>;
       demo: (kind?: string) => unknown;
+      showroom: (o?: ShowroomOptions) => unknown;
       params: URLSearchParams;
       step: (seconds: number, fps?: number) => void;
     };
@@ -34,6 +38,7 @@ export function installDebug(game: Game): void {
     params,
     debugInfo: () => game.debugInfo(),
     demo: (kind = 'city') => buildDemoCity(game, kind),
+    showroom: (o?: ShowroomOptions) => showroom(game, o),
     /** advance game logic (and render) deterministically */
     step: (seconds: number, fps = 30) => {
       const n = Math.max(1, Math.round(seconds * fps));
@@ -51,8 +56,20 @@ export function installDebug(game: Game): void {
         seed: params.has('seed') ? Number(params.get('seed')) : 12345,
         planetType: (params.get('planet') as PlanetTypeId) || undefined,
       });
+      const style = params.get('style') as StyleId | null;
+      if (style && game.planet) game.planet.city.style = style;
       const demo = params.get('demo');
       if (demo && demo !== 'none') buildDemoCity(game, demo);
+      const room = params.get('showroom');
+      if (room) {
+        const r = showroom(game, {
+          category: room.startsWith('prefix:') ? undefined : (room as Category | 'all'),
+          prefix: room.startsWith('prefix:') ? room.slice(7) : undefined,
+          style: style ?? undefined,
+          level: params.has('level') ? Number(params.get('level')) : undefined,
+        });
+        console.info('[showroom]', JSON.stringify(r));
+      }
       if (params.has('time')) {
         game.clock.timeOfDay = Number(params.get('time'));
         game.clock.setSpeed(0);
