@@ -352,7 +352,7 @@ if ( !tWall && !tUnder ) {
     float borderA = mix( 0.5, 0.9, uZoneStrong );
     float za = ( lot * fillA + border * borderA ) * uZoneVis;
     tAlb = mix( tAlb, zc, za );
-    tEmit += zc * ( lot * 0.04 + border * 0.22 ) * uZoneVis * ( 0.35 + tNightF * 1.2 );
+    tEmit += zc * ( lot * 0.04 + border * 0.22 ) * uZoneVis * ( 0.35 + tNightF * mix( 0.35, 1.2, uZoneStrong ) );
     if ( ( tZMask & tEdgeBit ) != 0 ) {
       float ol = ( 1.0 - smoothstep( 0.0, 0.045 + tFw, tEd ) ) * uZoneStrong * uZoneVis;
       tAlb = mix( tAlb, zc * 1.15, ol );
@@ -414,6 +414,14 @@ if ( uOverlay > 0.001 ) {
 
 // soft moonlight so the night side never goes pitch black
 tEmit += tAlb * uMoonCol * tNightF;
+// city-light spill: built-up ground glows warm at night — cities sparkle on the night side seen from orbit
+if ( ( tBits & 3 ) != 0 && tNightF > 0.01 ) {
+  float urban = ( ( tBits & 1 ) != 0 ? 1.0 : 0.0 ) + ( ( tBits & 2 ) != 0 ? 0.55 : 0.0 );
+  float camD = length( cameraPosition - vWPos );
+  float spill = urban * tNightF * uNightLights * mix( 0.05, 0.45, smoothstep( 35.0, 160.0, camD ) );
+  float flick = 0.85 + 0.15 * cHash12( vec2( vTile, floor( uSurfTime * 0.25 ) ) );
+  tEmit += vec3( 1.0, 0.72, 0.42 ) * spill * flick * ( tWall ? 0.4 : smoothstep( 0.0, 0.35, tEd ) * 0.7 + 0.3 );
+}
 diffuseColor.rgb = tAlb * ( tWall ? 1.0 : vCol.a );
 `;
 
