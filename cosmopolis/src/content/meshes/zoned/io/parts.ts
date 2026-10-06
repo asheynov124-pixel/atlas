@@ -299,6 +299,8 @@ export interface TowerOpts {
   /** segment index (alternating details) */
   seg?: number;
   color?: number;
+  /** skip cornices / light strips (a lower segment of a stacked tower) */
+  plain?: boolean;
 }
 
 /** One glass shaft of an office tower. Returns its roof height. Cost ≈ 12–60 tris. */
@@ -310,6 +312,7 @@ export function tower(io: IO, o: TowerOpts): number {
   switch (lk.shell) {
     case 'box': {
       b.box(w, h, d, { color: col, mat: Mat.Glass, x, z, y });
+      if (o.plain) return top;
       if (io.sid === 'classic') band(b, w, d, 0.04, { color: p.trim, x, z, y: top - 0.02, out: 0.012 });
       else if (io.sid === 'solarpunk') band(b, w, d, 0.04, { color: lk.green, mat: Mat.Foliage, x, z, y: top - 0.02, out: 0.02, paint: false });
       else if (fits(io, 30)) {
@@ -323,9 +326,11 @@ export function tower(io: IO, o: TowerOpts): number {
         b.push({ y });
         b.extrude(roundRect(w, d, Math.min(w, d) * 0.35, 2, x, z), h, { color: col, mat: Mat.Glass });
         b.pop();
+        if (o.plain) return top;
         band(b, w * 0.98, d * 0.98, 0.04, { color: p.wall, x, z, y: top - 0.02, out: 0.012 });
       } else {
         b.cyl(0.5, 0.5, h, { color: col, mat: Mat.Glass, seg: 10, sx: w, sz: d, x, z, y });
+        if (o.plain) return top;
         b.cyl(0.5, 0.5, 0.035, { color: io.sid === 'ice' ? 0xf2f8ff : 0xf4f6fa, seg: 10, sx: w * 1.07, sz: d * 1.07, x, z, y: top - 0.015 });
         if (lk.glowy && fits(io, 20)) b.cyl(0.5, 0.5, 0.012, { color: p.glow, mat: Mat.Glow, ...NP, seg: 10, sx: w * 1.075, sz: d * 1.075, capTop: false, x, z, y: top - 0.03 });
       }
@@ -335,13 +340,14 @@ export function tower(io: IO, o: TowerOpts): number {
       const r = Math.min(w, d) * 0.58;
       const t = o.taper ?? 0.12;
       b.cyl(r * (1 - t), r, h, { color: col, mat: Mat.Glass, seg: 6, flat: true, x, z, y, ry: Math.PI / 6 });
-      if (fits(io, 12)) b.cyl(r * (1 - t) * 1.04, r * (1 - t) * 1.04, 0.016, { color: p.glow, mat: Mat.Glow, ...NP, seg: 6, capTop: false, x, z, y: top - 0.016, ry: Math.PI / 6 });
+      if (!o.plain && fits(io, 12)) b.cyl(r * (1 - t) * 1.04, r * (1 - t) * 1.04, 0.016, { color: p.glow, mat: Mat.Glow, ...NP, seg: 6, capTop: false, x, z, y: top - 0.016, ry: Math.PI / 6 });
       return top;
     }
     case 'pod': {
       const t = o.taper ?? 0;
       const prof: [number, number][] = [[0.44, 0], [0.5, h * 0.35], [0.47 * (1 - t), h * 0.85], [0.4 * (1 - t), h]];
       b.lathe(prof, { color: col, mat: Mat.Glass, seg: 8, sx: w, sz: d, x, z, y });
+      if (o.plain) return top;
       b.cyl(0.4 * (1 - t), 0.4 * (1 - t), 0.03, { color: p.trim, seg: 8, sx: w * 1.04, sz: d * 1.04, x, z, y: top - 0.01 });
       return top + 0.02;
     }
@@ -392,7 +398,7 @@ export function crown(io: IO, o: CrownOpts): number {
     }
     case 'halo': {
       b.cyl(0.5, 0.5, 0.12, { color: 0xf4f6fa, seg: 10, sx: w * 0.8, sz: d * 0.8, x, z, y });
-      b.torus(m * 0.48, 0.022, { color: p.glow, mat: Mat.Glow, ...NP, seg: 12, tube: 3, x, z, y: y + 0.32 });
+      b.torus(m * 0.48, 0.022, { color: p.glow, mat: Mat.Glow, ...NP, seg: 10, tube: 3, x, z, y: y + 0.32 });
       for (const s of [-1, 1]) b.box(0.016, 0.24, 0.016, { color: 0xf4f6fa, ...NP, x: x + s * m * 0.48, z, y: y + 0.1 });
       const sh = 0.7 * tall * (0.5 + o.prestige * 0.7);
       b.cyl(0.004, 0.022, sh, { color: 0xf4f6fa, mat: Mat.Metal, ...NP, seg: 4, x, z, y: y + 0.12, capTop: false });

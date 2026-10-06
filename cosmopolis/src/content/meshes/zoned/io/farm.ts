@@ -245,7 +245,7 @@ export const hydroSpire = factory((io) => {
   io.reserve = 0;
   // nutrient tank + packing shed
   tank(io, 0.48 * s, 0.32, 0.1, 0.2);
-  if (fits(io, 40)) hall(io, { x: -0.36 * s, z: 0.44, w: 0.34, d: 0.2, h: 0.16, doors: 1, windows: false, pitched: true });
+  if (fits(io, 60)) hall(io, { x: -0.36 * s, z: 0.44, w: 0.34, d: 0.2, h: 0.16, doors: 1, windows: false, pitched: true });
   agriDrone(io, 0.3 * s, G + H * 0.6, tz + 0.3);
   tree(io, 0.6 * s, -0.2, 0.9);
   tree(io, -0.62 * s, 0.0, 0.8);

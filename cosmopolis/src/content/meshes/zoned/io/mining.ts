@@ -266,7 +266,7 @@ export const refinery = factory((io) => {
     b.cone(0.03, 0.11, { color: 0xffa040, mat: Mat.Lava, ...NP, seg: 4, x: 0.5 * s, z: -0.36, y: G + fh });
   }
   io.reserve = 0;
-  if (L >= 4) tank(io, 0.36 * s, -0.04, 0.11, 0.24);
+  if (L >= 4 && fits(io, 64)) tank(io, 0.36 * s, -0.04, 0.11, 0.24);
   if (L >= 4 && fits(io, 30)) roofGear(io, 0.42 * s, top, 0.46, 0.22, 0.14, 1);
   haulTruck(io, -0.2 * s, 0.56, 0, oreOf(io));
   opt(io, 12, () => lampPost(b, -0.64 * s, 0.32, 0.24, p.lamp));

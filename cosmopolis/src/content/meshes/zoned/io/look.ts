@@ -16,7 +16,7 @@
  * it levels up 1 → 5; only size, density and prestige change.
  */
 import type { MeshContext, MeshFactory } from '../../../catalog';
-import type { MeshBuilder } from '../../../kit';
+import { MeshBuilder } from '../../../kit';
 import { Rng, hash2, hashString } from '../../../../core/rng';
 import type { StyleId } from '../../../../core/types';
 import type { StylePalette } from '../../../styles';
@@ -195,6 +195,8 @@ export interface IO {
   lo: boolean;
   /** triangles still needed by mandatory parts drawn later */
   reserve: number;
+  /** extra headroom demanded by factory() after a trial build overflowed the budget */
+  squeeze: number;
   /** 0..1 prestige for the level */
   pr: number;
 }
@@ -204,7 +206,7 @@ export interface IO {
  * Applies at LOD1 too (detail parts are skipped there anyway), so the far mesh never outgrows the near one.
  */
 export function fits(io: IO, n: number): boolean {
-  return io.b.triangles + n + io.reserve <= BUDGET - 4;
+  return io.b.triangles + n + io.reserve + io.squeeze <= BUDGET - 4;
 }
 
 /** Variant-stable boolean (layout mirroring etc.). */
@@ -217,7 +219,7 @@ function pickI(arr: readonly number[], seed: number, salt: number): number {
 }
 
 /** Build the per-mesh context. */
-export function makeIO(ctx: MeshContext): IO {
+export function makeIO(ctx: MeshContext, squeeze = 0): IO {
   const st = ctx.style;
   const lk = LOOKS[ctx.styleId] ?? LOOKS.classic;
   const seed = hash2(hashString(ctx.def.id), ctx.variant * 7919 + 17);
@@ -259,11 +261,26 @@ export function makeIO(ctx: MeshContext): IO {
     p,
     lo: ctx.lod === 1,
     reserve: 0,
+    squeeze,
     pr: (L - 1) / 4,
   };
 }
 
-/** Wrap a factory body so the IO context is built once per mesh. */
+/**
+ * Wrap a factory body. A deterministic LOD0 trial build measures the mesh first; if mandatory parts pushed it past
+ * the growable budget, the overflow becomes extra headroom (`squeeze`) so optional parts drop out on the real
+ * build. LOD1 uses the same squeeze, so the far mesh is always a subset of the near one.
+ */
 export function factory(fn: (io: IO) => void): MeshFactory {
-  return (ctx) => fn(makeIO(ctx));
+  return (ctx) => {
+    let squeeze = 0;
+    for (let k = 0; k < 5; k++) {
+      const trial = new MeshBuilder(0);
+      fn(makeIO({ ...ctx, b: trial, lod: 0 }, squeeze));
+      if (trial.triangles <= BUDGET) break;
+      // escalate: freed headroom tends to be refilled by the next optional part in line
+      squeeze += (trial.triangles - BUDGET) * (k + 1) + 12;
+    }
+    fn(makeIO(ctx, squeeze));
+  };
 }
