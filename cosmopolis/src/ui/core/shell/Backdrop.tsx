@@ -9,6 +9,9 @@ import { Rng } from '../../../core/rng';
 import { reduceMotion } from '../env';
 import { paintPlanet, paintStars } from './art';
 
+/** The painted homeworld survives menu → game → menu round trips. */
+let heroCache: HTMLCanvasElement | null = null;
+
 export function MenuBackdrop({ planetType = 'terran' as const }: { planetType?: 'terran' }) {
   const root = useRef<HTMLDivElement>(null);
   const far = useRef<HTMLCanvasElement>(null);
@@ -26,21 +29,39 @@ export function MenuBackdrop({ planetType = 'terran' as const }: { planetType?: 
     if (far.current) paintStars(far.current, w, h, dpr, { count: Math.round((w * h) / 2600), minR: 0.35, maxR: 0.9, seed: 11, alpha: 0.7 });
     if (mid.current) paintStars(mid.current, w, h, dpr, { count: Math.round((w * h) / 9000), minR: 0.5, maxR: 1.3, seed: 23, glow: 0.12 });
     if (near.current) paintStars(near.current, w, h, dpr, { count: Math.round((w * h) / 30000) + 8, minR: 0.8, maxR: 2.1, seed: 37, glow: 0.6 });
-    let cancelled = false;
+    const token = { cancelled: false };
     const pc = planet.current;
     if (pc) {
-      // planet disc radius ≈ 40 % of the width on phones, 30 % of the height on wide screens
+      // planet disc radius ≈ 36 % of the width on phones, 30 % of the height on wide screens
       const discR = Math.min(window.innerWidth * 0.36, window.innerHeight * 0.3);
       const css = Math.round(discR / 0.27);
       const px = Math.min(1200, Math.round(css * Math.min(dpr, 1.5)));
       pc.style.width = css + 'px';
       pc.style.height = css + 'px';
-      void paintPlanet(pc, { type: planetType, seed: 2350, size: px, rings: true, cityLights: true, discFrac: 0.27, light: [-0.62, -0.38, 0.62], rowsPerFrame: 48 }).then(() => {
-        if (!cancelled) planetWrap.current?.classList.add('is-ready');
-      });
+      if (heroCache && heroCache.width === px) {
+        // returning to the menu: reuse the painted homeworld instead of repainting it
+        pc.width = px;
+        pc.height = px;
+        pc.getContext('2d')?.drawImage(heroCache, 0, 0);
+        planetWrap.current?.classList.add('is-ready');
+      } else {
+        void paintPlanet(pc, { type: planetType, seed: 2350, size: px, rings: true, cityLights: true, discFrac: 0.27, light: [-0.62, -0.38, 0.62], rowsPerFrame: 48, token }).then(() => {
+          if (token.cancelled) return;
+          try {
+            const keep = document.createElement('canvas');
+            keep.width = pc.width;
+            keep.height = pc.height;
+            keep.getContext('2d')?.drawImage(pc, 0, 0);
+            heroCache = keep;
+          } catch {
+            /* the cache is optional */
+          }
+          planetWrap.current?.classList.add('is-ready');
+        });
+      }
     }
     // parallax loop
-    if (reduceMotion()) return () => void (cancelled = true);
+    if (reduceMotion()) return () => void (token.cancelled = true);
     let tx = 0, ty = 0, cx = 0, cy = 0;
     const onMove = (e: PointerEvent) => {
       tx = (e.clientX / window.innerWidth) * 2 - 1;
@@ -66,7 +87,7 @@ export function MenuBackdrop({ planetType = 'terran' as const }: { planetType?: 
     };
     raf = requestAnimationFrame(tick);
     return () => {
-      cancelled = true;
+      token.cancelled = true;
       cancelAnimationFrame(raf);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerdown', onMove);

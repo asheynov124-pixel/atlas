@@ -23,7 +23,7 @@ function safe<T>(fn: (() => T) | undefined, fallback: T): T {
 const BUILTIN: HudButtonDef[] = [
   {
     id: 'core.map',
-    icon: 'starSystem',
+    icon: 'planet',
     label: 'Star map',
     rail: 'right',
     order: -20,

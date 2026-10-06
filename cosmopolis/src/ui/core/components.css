@@ -47,16 +47,9 @@
   background: var(--accent-grad);
   box-shadow: 0 8px 24px rgba(94, 200, 255, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
-.cz-btn-primary:hover:not(:disabled) {
-  box-shadow: 0 10px 30px rgba(94, 200, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-}
 .cz-btn-secondary {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid var(--hairline-strong);
-}
-.cz-btn-secondary:hover:not(:disabled),
-.cz-btn-glass:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
 }
 .cz-btn-glass {
   background: var(--glass);
@@ -68,10 +61,6 @@
 .cz-btn-ghost {
   background: transparent;
   color: var(--text-2);
-}
-.cz-btn-ghost:hover:not(:disabled) {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.06);
 }
 .cz-btn-danger {
   color: #fff;
@@ -155,14 +144,6 @@
 .cz-ibtn-ghost .cz-ibtn-face {
   background: transparent;
   color: var(--text-2);
-}
-.cz-ibtn-ghost:hover:not(:disabled) .cz-ibtn-face {
-  background: rgba(255, 255, 255, 0.07);
-  color: var(--text);
-}
-.cz-ibtn-glass:hover:not(:disabled) .cz-ibtn-face,
-.cz-ibtn-solid:hover:not(:disabled) .cz-ibtn-face {
-  background: rgba(30, 38, 66, 0.9);
 }
 .cz-ibtn-primary .cz-ibtn-face {
   background: var(--accent-grad);
@@ -334,9 +315,6 @@
 .cz-card.is-strong {
   background: var(--glass-strong);
 }
-.cz-card.is-button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.075);
-}
 .cz-card.is-button:active:not(:disabled) {
   transform: scale(0.98);
 }
@@ -386,9 +364,6 @@
   border-radius: var(--r-md);
   color: var(--text);
   transition: background var(--dur-2), transform var(--dur-1);
-}
-.cz-row.is-button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
 }
 .cz-row.is-button:active:not(:disabled) {
   background: rgba(255, 255, 255, 0.09);
@@ -461,9 +436,6 @@
   padding: 6px 8px;
   margin: -6px -8px;
   border-radius: var(--r-sm);
-}
-.cz-stat.is-button:hover {
-  background: rgba(255, 255, 255, 0.05);
 }
 .cz-stat-icon {
   display: grid;
@@ -777,10 +749,6 @@
   width: 44px;
   padding: 0;
   justify-content: center;
-}
-.cz-tab:hover:not(.is-active) {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.075);
 }
 .cz-tab:active {
   transform: scale(0.95);
@@ -1142,10 +1110,6 @@
   content: '';
   position: absolute;
   inset: -5px;
-}
-.cz-close:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.14);
 }
 .cz-close:active {
   transform: scale(0.9);
@@ -1623,4 +1587,44 @@
   font-size: 22px;
   color: var(--text-3);
   line-height: 1;
+}
+
+/* pointer devices only: iOS keeps :hover after a tap, so hover styles live here */
+@media (hover: hover) and (pointer: fine) {
+  .cz-btn-primary:hover:not(:disabled) {
+    box-shadow: 0 10px 30px rgba(94, 200, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+  .cz-btn-secondary:hover:not(:disabled),
+  .cz-btn-glass:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.12);
+  }
+  .cz-btn-ghost:hover:not(:disabled) {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .cz-ibtn-ghost:hover:not(:disabled) .cz-ibtn-face {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--text);
+  }
+  .cz-ibtn-glass:hover:not(:disabled) .cz-ibtn-face,
+  .cz-ibtn-solid:hover:not(:disabled) .cz-ibtn-face {
+    background: rgba(30, 38, 66, 0.9);
+  }
+  .cz-card.is-button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.075);
+  }
+  .cz-row.is-button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .cz-stat.is-button:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .cz-tab:hover:not(.is-active) {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.075);
+  }
+  .cz-close:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.14);
+  }
 }

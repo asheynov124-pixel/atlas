@@ -254,9 +254,6 @@
 .mm-continue:active {
   transform: scale(0.98);
 }
-.mm-continue:hover {
-  box-shadow: 0 12px 46px rgba(40, 160, 255, 0.32), var(--inner-light);
-}
 .mm-continue-icon {
   display: grid;
   place-items: center;
@@ -312,10 +309,6 @@
   border: 1px solid var(--hairline);
   box-shadow: var(--shadow-1), var(--inner-light);
   transition: transform var(--dur-1) var(--ease-out), background var(--dur-2), border-color var(--dur-2);
-}
-.mm-mode:hover {
-  background: rgba(22, 30, 58, 0.72);
-  border-color: var(--hairline-strong);
 }
 .mm-mode:active {
   transform: scale(0.97);
@@ -796,4 +789,15 @@
   color: var(--text-3);
   min-height: 16px;
   animation: cz-fade-in 0.6s var(--ease-out);
+}
+
+/* pointer devices only: iOS keeps :hover after a tap, so hover styles live here */
+@media (hover: hover) and (pointer: fine) {
+  .mm-continue:hover {
+    box-shadow: 0 12px 46px rgba(40, 160, 255, 0.32), var(--inner-light);
+  }
+  .mm-mode:hover {
+    background: rgba(22, 30, 58, 0.72);
+    border-color: var(--hairline-strong);
+  }
 }

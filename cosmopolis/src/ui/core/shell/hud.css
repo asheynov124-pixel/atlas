@@ -470,9 +470,6 @@
   box-shadow: var(--shadow-1), var(--inner-light);
   transition: transform var(--dur-1) var(--ease-out), background var(--dur-2), box-shadow var(--dur-2), color var(--dur-2);
 }
-.rl-btn:hover:not(:disabled) {
-  background: rgba(30, 38, 66, 0.92);
-}
 .rl-btn:active:not(:disabled) {
   transform: scale(0.9);
 }
@@ -555,10 +552,6 @@
   border-radius: 18px;
   color: var(--text-2);
   transition: color var(--dur-2), background var(--dur-2), transform var(--dur-1) var(--ease-out);
-}
-.dk-btn:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.05);
 }
 .dk-btn:active {
   transform: scale(0.92);
@@ -736,9 +729,6 @@
   flex: 0 1 auto;
   transition: background var(--dur-2);
 }
-.tl-item:not(:disabled):hover {
-  background: rgba(255, 255, 255, 0.05);
-}
 .tl-item:disabled {
   opacity: 1;
   cursor: default;
@@ -865,9 +855,6 @@
   color: var(--text);
   background: rgba(255, 255, 255, 0.08);
   transition: background var(--dur-2), transform var(--dur-1);
-}
-.tl-close:hover {
-  background: rgba(255, 255, 255, 0.14);
 }
 .tl-close:active {
   transform: scale(0.9);
@@ -1058,10 +1045,6 @@
   transition: background var(--dur-2), color var(--dur-2), transform var(--dur-1);
 }
 .in-act svg {
-  color: var(--text);
-}
-.in-act:hover {
-  background: rgba(255, 255, 255, 0.06);
   color: var(--text);
 }
 .in-act:active {
@@ -1281,10 +1264,6 @@
   transition: border-color var(--dur-2), background var(--dur-2), box-shadow var(--dur-2), transform var(--dur-1) var(--ease-out);
   animation: cz-pop-in var(--dur-3) var(--ease-out) both;
 }
-.bs-card:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: var(--hairline-strong);
-}
 .bs-card:active {
   transform: scale(0.965);
 }
@@ -1430,10 +1409,6 @@
   border-radius: 50%;
   color: var(--text-3);
   transition: color var(--dur-2), background var(--dur-2);
-}
-.bs-info:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.08);
 }
 .bs-new .bs-new-thumb {
   color: var(--accent);
@@ -1632,9 +1607,6 @@
   border: 1px solid var(--hairline);
   transition: background var(--dur-2), transform var(--dur-1) var(--ease-out);
 }
-.mo-tile:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
 .mo-tile:active {
   transform: scale(0.95);
 }
@@ -1676,9 +1648,6 @@
 }
 .mo-row svg {
   color: var(--text-2);
-}
-.mo-row:hover {
-  background: rgba(255, 255, 255, 0.06);
 }
 .mo-row.is-danger,
 .mo-row.is-danger svg {
@@ -1927,9 +1896,6 @@
   transition: opacity var(--dur-2);
   z-index: 30;
 }
-.hud-restore:hover {
-  opacity: 1;
-}
 .hud-restore::after {
   content: '';
   position: absolute;
@@ -1961,4 +1927,42 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+/* pointer devices only: iOS keeps :hover after a tap, so hover styles live here */
+@media (hover: hover) and (pointer: fine) {
+  .rl-btn:hover:not(:disabled) {
+    background: rgba(30, 38, 66, 0.92);
+  }
+  .dk-btn:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .tl-item:not(:disabled):hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .tl-close:hover {
+    background: rgba(255, 255, 255, 0.14);
+  }
+  .in-act:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text);
+  }
+  .bs-card:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: var(--hairline-strong);
+  }
+  .bs-info:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .mo-tile:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .mo-row:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .hud-restore:hover {
+    opacity: 1;
+  }
 }

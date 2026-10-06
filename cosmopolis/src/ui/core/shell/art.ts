@@ -83,6 +83,8 @@ export interface PlanetArtOpts {
   discFrac?: number;
   /** rows per animation frame (0 = synchronous) */
   rowsPerFrame?: number;
+  /** set `.cancelled = true` to stop a chunked paint (e.g. the menu unmounted) */
+  token?: { cancelled: boolean };
 }
 
 interface Pal {
@@ -313,6 +315,10 @@ export function paintPlanet(canvas: HTMLCanvasElement, o: PlanetArtOpts): Promis
     let y = Math.max(0, Math.floor(cy - R - 2));
     const yEnd = Math.min(S, Math.ceil(cy + R + 2));
     const step = () => {
+      if (o.token?.cancelled) {
+        resolve();
+        return;
+      }
       if (j < MH) {
         const end = Math.min(MH, j + mapRows);
         for (; j < end; j++) mapRow(j);

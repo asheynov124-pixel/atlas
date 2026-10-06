@@ -4,6 +4,7 @@
  * (power … orbital, My Designs). Items are grouped by `group` into cards: 3D thumbnail, name, cost, key stat
  * chips, lock state + reason, affordability. Tap = select the tool; long-press or ⓘ = the detail sheet.
  */
+import { useComputed } from '@preact/signals';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { getItem, type ItemDef } from '../../../content/catalog';
 import type { Category } from '../../../core/types';
@@ -37,7 +38,9 @@ function Wallet() {
 
 function ItemCard({ def, sandbox, fresh }: { def: ItemDef; sandbox: boolean; fresh: boolean }) {
   const unlocked = isUnlocked(def);
-  const afford = sandbox || ui.money.value >= def.cost;
+  // re-render only when affordability flips, not on every treasury tick
+  const affordSig = useComputed(() => ui.money.value >= def.cost);
+  const afford = sandbox || affordSig.value;
   const lp = useLongPress(
     () => selectItem(def),
     () => {
