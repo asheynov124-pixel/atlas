@@ -18,7 +18,7 @@
  * catalog:changed. Tile refreshes are batched and flushed once per frame.
  * CONTRACT: update(dt), dispose(). Extra: `nature` / `decor` pools, `stats()`.
  */
-import { BufferGeometry, Matrix4 } from 'three';
+import { BufferGeometry, Matrix4, Vector3 } from 'three';
 import { bus } from '../../core/events';
 import { Rng, hash2, hashString } from '../../core/rng';
 import { Biome, Feature, TileFlag } from '../../core/types';
@@ -29,10 +29,14 @@ import { game } from '../../game/instance';
 import { tileMatrix } from '../../world/geo';
 import type { Planet, PropInstance } from '../../world/planet';
 import { InstancePool } from '../InstancePool';
+import { NaturePool } from './NaturePool';
 import { InstState, getBuildingMaterial } from '../materials';
 import type { PlanetView } from '../PlanetView';
 
 const _m = new Matrix4();
+const _cp = new Vector3();
+/** camera altitude (world units) above which user decor is not drawn */
+const DECOR_MAX_ALTITUDE = 70;
 const FOREST_VARIANTS = 4;
 const FEATURE_VARIANTS = 3;
 /** gentle per-tile foliage tints (multiplied into paintable leaves) */
@@ -49,7 +53,7 @@ function stateOf(f: number): number {
 }
 
 export class PropRenderer {
-  readonly nature: InstancePool;
+  readonly nature: NaturePool;
   readonly decor: InstancePool;
   private planet: Planet;
   private natureH: Int32Array;
@@ -64,7 +68,7 @@ export class PropRenderer {
     const p = view.planet;
     this.planet = p;
     const low = (game?.engine?.tier ?? 2) <= 0;
-    this.nature = new InstancePool(view.root, getBuildingMaterial(), (k, lod) => this.natureGeometry(k, lod), {
+    this.nature = new NaturePool(view.root, getBuildingMaterial(), (fam, v, lod) => this.natureGeometry(`${fam}|${v}`, lod), {
       lodDistance: low ? 38 : 58,
       castShadow: true,
       name: 'nature',
@@ -114,25 +118,28 @@ export class PropRenderer {
     );
   }
 
-  stats(): { nature: number; decor: number; geometries: number } {
-    return { nature: this.nature.size, decor: this.decor.size, geometries: this.geo.size };
+  stats(): { nature: number; decor: number; geometries: number; natureMeshes: number } {
+    return { nature: this.nature.size, decor: this.decor.size, geometries: this.geo.size, natureMeshes: this.nature.stats().meshes };
   }
 
   // ───────────────────────────────────────────── nature
 
-  /** Geometry key for the natural feature on tile t (null = nothing to draw). */
-  private keyFor(t: number): string | null {
+  /** Family (geometry kind without variant) of the natural feature on tile t, or null. Sets this.variantOut. */
+  private variantOut = 0;
+  private familyFor(t: number): number {
     const p = this.planet;
     const f = p.feature[t];
-    if (!f) return null;
+    if (!f) return -1;
     const type = p.spec.type;
     const biome = p.biome[t];
     if (f === Feature.Trees || f === Feature.DenseTrees) {
       const dense = f === Feature.DenseTrees ? 1 : 0;
-      return `t|${mixFor(type, biome)}|${dense}|${hash2(t, 11) % FOREST_VARIANTS}`;
+      this.variantOut = hash2(t, 11) % FOREST_VARIANTS;
+      return this.nature.family(`t|${mixFor(type, biome)}|${dense}`, FOREST_VARIANTS);
     }
     const coral = f === Feature.Kelp && biome === Biome.Coral ? 'c' : '';
-    return `f|${f}|${flavourFor(type, biome)}|${coral}|${hash2(t, 13) % FEATURE_VARIANTS}`;
+    this.variantOut = hash2(t, 13) % FEATURE_VARIANTS;
+    return this.nature.family(`f|${f}|${flavourFor(type, biome)}|${coral}`, FEATURE_VARIANTS);
   }
 
   private natureGeometry(key: string, lod: 0 | 1): BufferGeometry | null {
@@ -157,8 +164,8 @@ export class PropRenderer {
   private syncTile(t: number): void {
     const p = this.planet;
     const h = this.natureH[t];
-    const key = p.building[t] < 0 && p.road[t] === 0 ? this.keyFor(t) : null;
-    if (!key) {
+    const fam = p.building[t] < 0 && p.road[t] === 0 ? this.familyFor(t) : -1;
+    if (fam < 0) {
       if (h >= 0) this.nature.remove(h);
       this.natureH[t] = -1;
       return;
@@ -169,14 +176,11 @@ export class PropRenderer {
     let scaleY = 1;
     if (p.feature[t] === Feature.Kelp && p.isWater(t)) scaleY = Math.max(0.25, Math.min(1, (p.waterHeight - p.heightOf(t) - 0.04) / 0.95));
     tileMatrix(p, t, 0, _m, { yaw: (hash2(t, 7) % 6283) / 1000, scale, scaleY });
-    const tint = TINTS[hash2(t, 3) % TINTS.length];
+    const f = p.feature[t];
+    const tint = f === Feature.Trees || f === Feature.DenseTrees || f === Feature.AlienFlora ? TINTS[hash2(t, 3) % TINTS.length] : 0xffffff;
     const state = stateOf(p.flags[t]);
-    if (h >= 0) {
-      this.nature.setKey(h, key);
-      this.nature.setMatrix(h, _m);
-      this.nature.setColor(h, tint);
-      this.nature.setState(h, state);
-    } else this.natureH[t] = this.nature.add(key, _m, tint, 1.0 * scale, state);
+    if (h >= 0) this.nature.set(h, fam, this.variantOut, _m, tint, scale, state);
+    else this.natureH[t] = this.nature.add(fam, this.variantOut, _m, tint, scale, state);
   }
 
   // ───────────────────────────────────────────── decor props
@@ -242,7 +246,11 @@ export class PropRenderer {
       const cam = this.view.camera;
       const R = this.planet.radius;
       this.nature.update(cam, R);
-      this.decor.update(cam, R);
+      // decor is sub-pixel from high orbit: skip its draw calls and culling entirely up there
+      cam.getWorldPosition(_cp);
+      const high = _cp.length() - R > DECOR_MAX_ALTITUDE;
+      this.decor.group.visible = !high;
+      if (!high) this.decor.update(cam, R);
     } catch (err) {
       if (!this.failed) console.error('[props] update failed', err);
       this.failed = true;

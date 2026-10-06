@@ -487,7 +487,9 @@ const dish: MeshFactory = ({ b }) => {
   b.box(0.08, 0.04, 0.08, { color: 0x8a929c });
   b.cyl(0.015, 0.02, 0.06, { color: 0xb8c0ca, seg: 6, y: 0.04, flat: true });
   b.group({ y: 0.11, rx: -0.75 }, () => {
-    b.lathe([[0.005, -0.01], [0.06, 0.0], [0.11, 0.03], [0.13, 0.05]], { color: WHITE, seg: 10, flat: true });
+    // two shells: the bright concave face looking at the sky and the grey back
+    b.lathe([[0.13, 0.05], [0.11, 0.03], [0.06, 0.0], [0.005, -0.01]], { color: WHITE, seg: 8, flat: true });
+    b.lathe([[0.005, -0.014], [0.06, -0.004], [0.11, 0.026], [0.128, 0.046]], { color: 0xb8c0ca, seg: 8, flat: true });
     b.cyl(0.004, 0.004, 0.09, { color: 0x8a929c, seg: 3, y: 0.0, capTop: false, ...D });
     b.box(0.016, 0.02, 0.016, { color: 0x6a6f78, y: 0.09 });
     b.box(0.008, 0.008, 0.008, { color: 0x40ff80, mat: Mat.Glow, y: 0.105, ...D });

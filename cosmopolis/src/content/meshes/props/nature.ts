@@ -449,9 +449,15 @@ function rubble(b: MeshBuilder, rng: Rng): void {
 }
 
 function crater(b: MeshBuilder, p: Pal, rng: Rng): void {
-  b.lathe([[0.02, -0.01], [0.26, 0.0], [0.5, 0.07], [0.6, 0.045], [0.72, 0.0]], { color: shade(p.rock, 0.75), seg: b.lod ? 7 : 11, flat: true });
-  b.cyl(0.27, 0.27, 0.006, { color: 0x2a2624, seg: b.lod ? 7 : 11, flat: true });
-  if (!b.lod) for (const [x, z] of scatter(rng, 4, 0.6, 0.2)) if (x * x + z * z > 0.2) b.box(0.05, 0.03, 0.04, { color: p.rock2, x, z, y: 0.03, ry: rng.range(0, 3), detail: true });
+  // raised ejecta rim around a scorched floor (the floor sits just above the tile top so terrain never hides it)
+  const rim = shade(mix(p.rock, 0x6a6058, 0.25), 0.92);
+  b.lathe([[0.76, 0.0], [0.62, 0.06], [0.5, 0.12], [0.42, 0.1], [0.3, 0.004]], { color: rim, seg: b.lod ? 8 : 12, flat: true });
+  b.cyl(0.33, 0.33, 0.006, { color: 0x2a2420, seg: b.lod ? 8 : 12, flat: true });
+  b.cyl(0.16, 0.2, 0.004, { color: 0x3a2e28, seg: 8, y: 0.006, flat: true, detail: true });
+  if (!b.lod) {
+    for (const [x, z] of scatter(rng, 5, 0.85, 0.22)) if (x * x + z * z > 0.45) b.box(0.06, 0.04, 0.05, { color: p.rock2, x, z, y: 0.01, ry: rng.range(0, 3), rx: 0.3, detail: true });
+    if (rng.chance(0.6)) b.box(0.05, 0.015, 0.04, { color: 0xff6a20, mat: Mat.Lava, x: rng.range(-0.1, 0.1), z: rng.range(-0.1, 0.1), y: 0.008, ry: 0.5, detail: true });
+  }
 }
 
 /** Per-feature cluster scale (features must read at play distance on a 2-unit tile). */
