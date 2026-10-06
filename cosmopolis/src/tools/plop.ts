@@ -220,7 +220,7 @@ export class PlopTool extends Tool {
     const rad = r.radius + (fp === 19 ? 2 : fp === 7 ? 1 : 0);
     const own = new Set(footprint);
     const tiles = (rad <= FILL_MAX ? p.grid.disk(tile, rad) : p.grid.ring(tile, rad)).filter((t) => !own.has(t));
-    v.highlight('tool-range', tiles, r.color, rad <= FILL_MAX ? 0.13 : 0.4);
+    v.highlight('tool-range', tiles, r.color, rad <= FILL_MAX ? 0.2 : 0.45);
   }
 
   private refresh(): void {
