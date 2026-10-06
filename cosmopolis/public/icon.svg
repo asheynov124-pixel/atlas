@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#16206a"/><stop offset="1" stop-color="#02030a"/></radialGradient>
+    <radialGradient id="pl" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#9ff6ff"/><stop offset=".45" stop-color="#2a7bff"/><stop offset="1" stop-color="#081040"/></radialGradient>
+    <linearGradient id="ring" x1="0" x2="1"><stop offset="0" stop-color="#5ef0ff" stop-opacity="0"/><stop offset=".5" stop-color="#ffe7a8"/><stop offset="1" stop-color="#ff5ed2" stop-opacity="0"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <g fill="#fff" opacity=".8"><circle cx="90" cy="96" r="3"/><circle cx="420" cy="70" r="2.5"/><circle cx="440" cy="400" r="2"/><circle cx="70" cy="420" r="2.5"/><circle cx="380" cy="160" r="1.8"/></g>
+  <circle cx="256" cy="268" r="140" fill="url(#pl)"/>
+  <g fill="#fff6c8"><rect x="214" y="168" width="14" height="40" rx="2"/><rect x="234" y="148" width="18" height="60" rx="2"/><rect x="258" y="160" width="14" height="48" rx="2"/><rect x="278" y="176" width="16" height="32" rx="2"/></g>
+  <ellipse cx="256" cy="272" rx="226" ry="58" fill="none" stroke="url(#ring)" stroke-width="12" transform="rotate(-14 256 272)"/>
+</svg>

@@ -1,0 +1,32 @@
+{
+  "name": "cosmopolis",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Cosmopolis — a planet-scale city builder in space. Build on living worlds, unlock planets and galaxies, and play god.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit && vite build",
+    "build:single": "vite build --mode single",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "shot": "node scripts/shot.mjs"
+  },
+  "dependencies": {
+    "@preact/signals": "^2.11.3",
+    "postprocessing": "^6.39.5",
+    "preact": "^10.29.8",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.7",
+    "@preact/preset-vite": "^2.10.6",
+    "@types/three": "^0.186.0",
+    "playwright-core": "^1.56.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.3",
+    "vite-plugin-singlefile": "^2.3.3",
+    "vitest": "^5.0.3"
+  }
+}
