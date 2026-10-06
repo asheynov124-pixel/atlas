@@ -222,7 +222,7 @@ export class MarsSkin extends Skin {
     }
   }
 
-  override shopfront(rc: RC, o: ShopOpts): void {
+  protected override drawShopfront(rc: RC, o: ShopOpts): void {
     const { b, p } = rc;
     const n = Math.max(1, Math.min(3, Math.floor(o.w / 0.3)));
     const aw = o.w / n;
@@ -237,7 +237,7 @@ export class MarsSkin extends Skin {
     if (o.glyphs) glyphs(b, Math.min(o.w * 0.6, 0.55), 0.06, o.glyphs, rc.seed, { color: o.color ?? 0x4ad0ff, mat: Mat.Glow, y: o.h * 0.9 - 0.02, z: 0.04, paint: false });
   }
 
-  override portico(rc: RC, w: number, h: number): void {
+  protected override drawPortico(rc: RC, w: number, h: number): void {
     const { b, p } = rc;
     b.box(0.07, h, 0.07, { color: p.trim, x: -w / 2, z: 0.12, y: G });
     b.box(0.07, h, 0.07, { color: p.trim, x: w / 2, z: 0.12, y: G });

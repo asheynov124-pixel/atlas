@@ -196,7 +196,7 @@ export class NeoSkin extends Skin {
     }
   }
 
-  override shopfront(rc: RC, o: ShopOpts): void {
+  protected override drawShopfront(rc: RC, o: ShopOpts): void {
     const { b, p } = rc;
     b.box(o.w - 0.04, o.h * 0.78, 0.03, { color: 0xeef6ff, mat: Mat.Glass, y: G, z: 0.012, paint: false });
     // swooping white canopy
@@ -205,7 +205,7 @@ export class NeoSkin extends Skin {
     if (o.glyphs) glyphs(b, Math.min(o.w * 0.6, 0.55), 0.06, o.glyphs, rc.seed, { color: o.color ?? p.accent, mat: Mat.Glow, y: o.h * 0.8 + 0.03, z: 0.12, paint: false });
   }
 
-  override portico(rc: RC, w: number, h: number): void {
+  protected override drawPortico(rc: RC, w: number, h: number): void {
     const { b, p } = rc;
     b.box(w + 0.1, 0.025, 0.26, { color: WHITE, y: h, z: 0.12 });
     b.box(0.02, h - G, 0.02, { color: WHITE, x: 0, z: 0.22, y: G, ...DET });

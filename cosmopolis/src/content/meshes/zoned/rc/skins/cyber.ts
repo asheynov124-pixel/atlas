@@ -213,7 +213,7 @@ export class CyberSkin extends Skin {
     }
   }
 
-  override shopfront(rc: RC, o: ShopOpts): void {
+  protected override drawShopfront(rc: RC, o: ShopOpts): void {
     const { b, p } = rc;
     b.box(o.w - 0.04, o.h * 0.5, 0.03, { color: 0x3a4a6a, mat: Mat.Glass, y: G, z: 0.012, paint: false });
     // half-open roller shutter
@@ -228,7 +228,7 @@ export class CyberSkin extends Skin {
     if (!rc.lo && o.w > 0.5) b.panel(0.12, 0.08, { color: 0xffffff, mat: Mat.Screen, x: -o.w / 2 + 0.1, y: G + 0.05, z: 0.032, ...DET });
   }
 
-  override portico(rc: RC, w: number, h: number): void {
+  protected override drawPortico(rc: RC, w: number, h: number): void {
     const { b, p } = rc;
     b.box(w + 0.06, 0.03, 0.22, { color: 0x22252e, y: h, z: 0.11 });
     this.strip(rc, w + 0.06, h - 0.012, 0.22, p.accent);

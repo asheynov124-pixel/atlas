@@ -362,7 +362,7 @@ export const pointTower = factory((rc) => {
   const { b, sk, vr, L } = rc;
   const w = vr.range(0.9, 1.0), d = vr.range(0.84, 0.94);
   const kind = vr.int(0, 2);
-  const fl = byL(L, [14, 20, 28, 36, 44]);
+  const fl = byL(L, [12, 18, 24, 32, 40]);
   const segs = L >= 5 ? [0.55, 0.3, 0.15] : L >= 3 ? [0.68, 0.32] : [1];
   const scale = [1, 0.84, 0.7];
   sk.lot(rc, 'plaza');
@@ -391,7 +391,7 @@ export const pointTower = factory((rc) => {
 export const rotunda = factory((rc) => {
   const { sk, vr, L } = rc;
   const r = vr.range(0.84, 0.92);
-  const fl = byL(L, [12, 18, 24, 30, 36]);
+  const fl = byL(L, [10, 15, 20, 26, 32]);
   const h = storeys(fl, 0);
   sk.lot(rc, 'plaza');
   need(rc, [['crown', 1]]);
@@ -406,7 +406,7 @@ export const rotunda = factory((rc) => {
 
 export const twinTowers = factory((rc) => {
   const { b, sk, vr, L } = rc;
-  const fa = byL(L, [16, 22, 28, 34, 40]);
+  const fa = byL(L, [14, 20, 24, 30, 36]);
   const fb = fa - vr.int(2, 6);
   const w = 0.54, d = vr.range(0.6, 0.68);
   sk.lot(rc, 'plaza');
@@ -433,7 +433,7 @@ export const twinTowers = factory((rc) => {
 export const skyGarden = factory((rc) => {
   const { b, sk, vr, L, p } = rc;
   const w = vr.range(0.92, 1.0), d = vr.range(0.8, 0.88);
-  const segsF = byL(L, [[8], [10, 6], [10, 10], [10, 12, 8], [12, 12, 12]] as const);
+  const segsF = byL(L, [[8], [10, 6], [10, 9], [10, 10, 8], [11, 11, 10]] as const);
   sk.lot(rc, 'plaza');
   let y = G;
   const n = segsF.length;
@@ -486,7 +486,7 @@ export const podiumTower = factory((rc) => {
 export const spire = factory((rc) => {
   const { b, sk, vr, L } = rc;
   const w = vr.range(0.94, 1.02), d = vr.range(0.86, 0.94);
-  const fl = byL(L, [24, 30, 34, 42, 52]);
+  const fl = byL(L, [22, 26, 30, 38, 46]);
   const fr = [0.4, 0.28, 0.2, 0.12];
   const sc = [1, 0.86, 0.72, 0.58];
   sk.lot(rc, 'plaza');
@@ -498,7 +498,7 @@ export const spire = factory((rc) => {
     y += h;
   }
   need(rc, [['portico', 1]]);
-  sk.crown(rc, { y, w: w * 0.58, d: d * 0.58, prestige: Math.max(0.75, prest(L)), tall: 2.2, kind: rc.seed });
+  sk.crown(rc, { y, w: w * 0.58, d: d * 0.58, prestige: Math.max(0.75, prest(L)), tall: 1.5, kind: rc.seed });
   need(rc);
   b.group({ z: d / 2 }, () => sk.portico(rc, 0.5, FL * 1.6));
   sk.tree(rc, -0.56, 0.5, 0.8);
@@ -509,7 +509,7 @@ export const spire = factory((rc) => {
 export const icon = factory((rc) => {
   const { b, sk, L, p } = rc;
   const form = rc.v % 3;
-  const fl = byL(L, [36, 42, 48, 54, 60]);
+  const fl = byL(L, [34, 38, 42, 46, 52]);
   sk.lot(rc, 'plaza');
   if (form === 0) {
     // twisting tower: rotated slabs
@@ -524,7 +524,7 @@ export const icon = factory((rc) => {
       y += h;
     }
     need(rc, [['portico', 1]]);
-    b.group({ ry: n * 0.2 }, () => sk.crown(rc, { y, w: 0.7, d: 0.46, prestige: 1, tall: 1.6, kind: rc.seed }));
+    b.group({ ry: n * 0.2 }, () => sk.crown(rc, { y, w: 0.7, d: 0.46, prestige: 1, tall: 1.2, kind: rc.seed }));
   } else if (form === 1) {
     // needle: tapering shaft + halo + very tall spire
     const segs = [0.45, 0.3, 0.25];
@@ -534,12 +534,12 @@ export const icon = factory((rc) => {
       const h = storeys(Math.round(fl * segs[i]), 0);
       s = 1 - i * 0.2;
       need(rc, [['tower', segs.length - 1 - i], ['crown', 1], ['portico', 1]], 24);
-      sk.tower(rc, { y, w: 0.86 * s, d: 0.86 * s, h, round: true, use: 'res', seg: i, prestige: 1 });
+      sk.tower(rc, { y, w: 0.94 * s, d: 0.94 * s, h, round: true, use: 'res', seg: i, prestige: 1 });
       y += h;
     }
     need(rc, [['portico', 1]]);
-    b.cyl(0.62 * s, 0.62 * s, 0.05, { color: p.accent, mat: Mat.Glow, seg: 12, y: y - 0.9, capTop: false, paint: false });
-    sk.crown(rc, { y, w: 0.86 * s, d: 0.86 * s, prestige: 1, tall: 2.6, kind: rc.seed + 1 });
+    b.cyl(0.66 * s, 0.66 * s, 0.05, { color: p.accent, mat: Mat.Glow, seg: 12, y: y - 0.9, capTop: false, paint: false });
+    sk.crown(rc, { y, w: 0.94 * s, d: 0.94 * s, prestige: 1, tall: 1.7, kind: rc.seed + 1 });
   } else {
     // stacked boxes (jenga) with planted overhangs
     const n = 5;
@@ -556,7 +556,7 @@ export const icon = factory((rc) => {
       y += h;
     }
     need(rc, [['portico', 1]]);
-    sk.crown(rc, { y, w: 0.7, d: 0.5, prestige: 1, tall: 1.2, kind: rc.seed + 2 });
+    sk.crown(rc, { y, w: 0.7, d: 0.5, prestige: 1, tall: 1.0, kind: rc.seed + 2 });
   }
   need(rc);
   b.group({ z: 0.42 }, () => sk.portico(rc, 0.56, FL * 2));

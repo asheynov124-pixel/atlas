@@ -198,7 +198,7 @@ export class CrystalSkin extends Skin {
     }
   }
 
-  override shopfront(rc: RC, o: ShopOpts): void {
+  protected override drawShopfront(rc: RC, o: ShopOpts): void {
     const { b, p } = rc;
     // raked crystal display wall
     b.wedge(o.w - 0.04, o.h * 0.75, 0.16, { color: mix(p.glass, 0xffffff, 0.35), mat: Mat.Glass, y: G, z: 0.08, ry: Math.PI, paint: false });
@@ -207,7 +207,7 @@ export class CrystalSkin extends Skin {
     if (o.glyphs) glyphs(b, Math.min(o.w * 0.6, 0.55), 0.06, o.glyphs, rc.seed, { color: o.color ?? p.accent, mat: Mat.Glow, y: o.h * 0.78 + 0.03, z: 0.1, paint: false });
   }
 
-  override portico(rc: RC, w: number, h: number): void {
+  protected override drawPortico(rc: RC, w: number, h: number): void {
     const { b, p } = rc;
     for (const s of [-1, 1]) b.cyl(0.03, 0.05, h + 0.05, { color: mix(p.glass, 0xffffff, 0.3), mat: Mat.Glass, seg: 4, x: (s * w) / 2, z: 0.18, y: G, flat: true });
     b.box(w + 0.08, 0.025, 0.06, { color: p.accent, mat: Mat.Glow, y: h, z: 0.18, paint: false });

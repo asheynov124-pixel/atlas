@@ -204,7 +204,7 @@ export class ClassicSkin extends Skin {
     }
   }
 
-  override shopfront(rc: RC, o: ShopOpts): void {
+  protected override drawShopfront(rc: RC, o: ShopOpts): void {
     const { b, p } = rc;
     const w = o.w;
     const sh = o.h;

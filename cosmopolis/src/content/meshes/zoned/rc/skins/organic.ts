@@ -244,7 +244,7 @@ export class OrganicSkin extends Skin {
     }
   }
 
-  override shopfront(rc: RC, o: ShopOpts): void {
+  protected override drawShopfront(rc: RC, o: ShopOpts): void {
     const { b, p } = rc;
     b.box(o.w - 0.06, o.h * 0.74, 0.03, { color: p.glass, mat: Mat.Glass, y: G, z: 0.012, paint: false });
     // shell canopy
@@ -253,7 +253,7 @@ export class OrganicSkin extends Skin {
     if (o.glyphs) glyphs(b, Math.min(o.w * 0.6, 0.55), 0.06, o.glyphs, rc.seed, { color: o.color ?? p.accent, mat: Mat.Glow, y: o.h * 0.78 + 0.08, z: 0.04, paint: false });
   }
 
-  override portico(rc: RC, w: number, h: number): void {
+  protected override drawPortico(rc: RC, w: number, h: number): void {
     const { b, p } = rc;
     const hw = w / 2;
     b.tube([[-hw, G, 0.2], [-hw * 0.9, h * 0.75, 0.2], [0, h * 1.15, 0.2], [hw * 0.9, h * 0.75, 0.2], [hw, G, 0.2]], 0.022, { color: p.trim, seg: 3, paint: true });

@@ -225,7 +225,7 @@ export class SolarpunkSkin extends Skin {
     }
   }
 
-  override shopfront(rc: RC, o: ShopOpts): void {
+  protected override drawShopfront(rc: RC, o: ShopOpts): void {
     const { b, p } = rc;
     b.box(o.w - 0.06, o.h * 0.72, 0.03, { color: 0xc8d8c0, mat: Mat.Glass, y: G, z: 0.012, paint: false });
     // timber pergola with vines
@@ -245,7 +245,7 @@ export class SolarpunkSkin extends Skin {
     }
   }
 
-  override portico(rc: RC, w: number, h: number): void {
+  protected override drawPortico(rc: RC, w: number, h: number): void {
     const { b, p } = rc;
     b.box(0.025, h - G, 0.025, { color: TIMBER, x: -w / 2, z: 0.2, y: G, ...DET });
     b.box(0.025, h - G, 0.025, { color: TIMBER, x: w / 2, z: 0.2, y: G, ...DET });

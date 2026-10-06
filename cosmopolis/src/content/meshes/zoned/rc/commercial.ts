@@ -31,6 +31,8 @@ function pylon(rc: RC, x: number, z: number, h: number, n: number, color?: numbe
   const { b, p } = rc;
   b.box(0.04, h, 0.04, { color: p.metal, mat: Mat.Metal, x, z, y: G });
   rc.sk.sign(rc, { w: 0.22, h: 0.12, kind: 'board', n, color }, x, G + h, z + 0.025);
+  // the far side lights up too, so the pylon reads from both directions of traffic
+  if (fits(rc, 24)) b.group({ x, z, ry: Math.PI }, () => rc.sk.sign(rc, { w: 0.22, h: 0.12, kind: 'board', n, color }, 0, G + h, 0.025));
 }
 
 /** Flag poles along the front (prestige). */

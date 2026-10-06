@@ -209,7 +209,7 @@ export class IceSkin extends Skin {
     }
   }
 
-  override shopfront(rc: RC, o: ShopOpts): void {
+  protected override drawShopfront(rc: RC, o: ShopOpts): void {
     const { b, p } = rc;
     // frosted vestibule under a snow-white rounded canopy
     b.box(o.w - 0.04, o.h * 0.75, 0.04, { color: 0xe8f6ff, mat: Mat.Glass, y: G, z: 0.015, paint: false });
@@ -219,7 +219,7 @@ export class IceSkin extends Skin {
     if (!rc.lo) b.box(0.08, 0.05, 0.05, { color: SNOW, x: -o.w / 2 + 0.06, y: G, z: 0.26, ...DET });
   }
 
-  override portico(rc: RC, w: number, h: number): void {
+  protected override drawPortico(rc: RC, w: number, h: number): void {
     const { b, p } = rc;
     const r = Math.min(w * 0.5, h * 0.75);
     b.cyl(r, r, 0.24, { color: p.roof, seg: 6, arc: Math.PI, ry: Math.PI / 2, rz: Math.PI / 2, z: 0, y: G, capTop: true });

@@ -399,6 +399,16 @@ export abstract class Skin {
 
   /** Shop storey front: display glazing, entrance, awning / canopy and sign (local facade). */
   shopfront(rc: RC, o: ShopOpts): void {
+    if (rc.lo) {
+      // far away: lit glazing + one canopy slab reads the same
+      rc.b.box(o.w - 0.04, o.h * 0.75, 0.03, { color: mix(rc.p.glass, 0xffffff, 0.3), mat: Mat.Glass, y: G, z: 0.012, paint: false });
+      rc.b.box(o.w + 0.02, 0.025, 0.14, { color: rc.p.awning, y: o.h * 0.78, z: 0.07, paint: false });
+      return;
+    }
+    this.drawShopfront(rc, o);
+  }
+
+  protected drawShopfront(rc: RC, o: ShopOpts): void {
     const { b, p } = rc;
     b.box(o.w - 0.06, o.h * 0.72, 0.03, { color: p.glass, mat: Mat.Glass, y: G, z: 0.012, paint: false });
     b.box(o.w + 0.04, 0.025, 0.16, { color: p.trim, y: o.h * 0.8, z: 0.08 });
@@ -406,8 +416,12 @@ export abstract class Skin {
     if (o.glyphs) this.sign(rc, { w: Math.min(o.w * 0.7, 0.6), h: 0.07, kind: 'board', n: o.glyphs, color: o.color }, 0, o.h * 0.82, 0.02);
   }
 
-  /** Grand entrance (local facade): canopy / columns / porch for prestige buildings. */
+  /** Grand entrance (local facade): canopy / columns / porch for prestige buildings (skipped at LOD1). */
   portico(rc: RC, w: number, h: number): void {
+    if (!rc.lo) this.drawPortico(rc, w, h);
+  }
+
+  protected drawPortico(rc: RC, w: number, h: number): void {
     const { b, p } = rc;
     b.box(w, 0.03, 0.22, { color: p.trim, y: h, z: 0.11 });
     columns(b, 2, w - 0.06, h - G, 0.018, 0.2, p.trim, G, true);

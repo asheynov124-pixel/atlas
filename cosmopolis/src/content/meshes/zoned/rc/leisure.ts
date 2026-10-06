@@ -25,6 +25,10 @@ function beam(rc: RC, x: number, z: number, y: number, len: number, rz: number, 
 function invader(rc: RC, x: number, z: number, y: number, s: number, color: number): void {
   const rows = ['0010100', '0111110', '1101011', '1111111', '0100010'];
   const px = 0.05 * s;
+  if (rc.lo) {
+    rc.b.panel(px * 7, px * 5, { color, mat: Mat.Holo, x, z, y: y + px, both: true, paint: false });
+    return;
+  }
   let n = 0;
   for (const r of rows) for (const c of r) if (c === '1') n++;
   if (!fits(rc, n * 4)) return;
@@ -212,7 +216,7 @@ export const theatre = factory((rc) => {
 export const resort = factory((rc) => {
   const { b, sk, vr, L, p } = rc;
   const r = vr.range(0.8, 0.88);
-  const fl = byL(L, [10, 14, 18, 22, 28]);
+  const fl = byL(L, [10, 13, 16, 20, 24]);
   const h = storeys(fl, 0);
   sk.lot(rc, 'garden');
   pool(b, -0.24, 0.42, 0.5, 0.22, p.pave, G + 0.002);
