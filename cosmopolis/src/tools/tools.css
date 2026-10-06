@@ -1,0 +1,115 @@
+/*
+ * OWNER: tools.
+ * Floating tool tag (road length & price, terraform levels, lot counts…) and paint swatches in the tool bar.
+ * Built on ui-core tokens (src/ui/styles.css).
+ */
+.ct-tag {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 17;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  margin: 0;
+  padding: 5px 11px 6px;
+  border-radius: 12px;
+  background: rgba(6, 10, 24, 0.8);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(160%);
+  border: 1px solid var(--hairline-strong);
+  box-shadow: var(--shadow-1);
+  color: var(--text);
+  font: 650 12.5px/1.15 var(--font);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  opacity: 0;
+  translate: -50% calc(-100% - 22px);
+  transition: opacity var(--dur-1) var(--ease-out);
+  will-change: transform;
+}
+.ct-tag::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 9px;
+  height: 9px;
+  margin-left: -5px;
+  background: inherit;
+  border-right: 1px solid var(--hairline-strong);
+  border-bottom: 1px solid var(--hairline-strong);
+  transform: rotate(45deg);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.ct-tag.is-on {
+  opacity: 1;
+}
+.ct-tag-sub {
+  font-size: 11px;
+  font-weight: 550;
+  color: var(--text-2);
+}
+.ct-tag.is-ok {
+  border-color: rgba(94, 242, 160, 0.45);
+}
+.ct-tag.is-ok .ct-tag-main {
+  color: #c9ffe4;
+}
+.ct-tag.is-bad {
+  border-color: rgba(255, 107, 129, 0.55);
+}
+.ct-tag.is-bad .ct-tag-main {
+  color: #ffd0d7;
+}
+.ct-tag.is-warn {
+  border-color: rgba(255, 198, 92, 0.5);
+}
+.ct-tag.is-god {
+  border-color: rgba(167, 123, 255, 0.6);
+  box-shadow: var(--shadow-1), 0 0 18px rgba(167, 123, 255, 0.25);
+}
+[data-reduce-motion] .ct-tag {
+  transition: none;
+}
+
+/* paint swatches: the tool bar renders choice chips with a ● glyph; colour them by their label */
+.tl-choice[title='Coral'] .cz-emoji { color: #ff8a7a; }
+.tl-choice[title='Tangerine'] .cz-emoji { color: #ffb36b; }
+.tl-choice[title='Butter'] .cz-emoji { color: #ffe28a; }
+.tl-choice[title='Lime'] .cz-emoji { color: #c8f08a; }
+.tl-choice[title='Mint'] .cz-emoji { color: #8ff0c0; }
+.tl-choice[title='Lagoon'] .cz-emoji { color: #7fe3e0; }
+.tl-choice[title='Sky'] .cz-emoji { color: #8cc8ff; }
+.tl-choice[title='Cobalt'] .cz-emoji { color: #7f9cff; }
+.tl-choice[title='Violet'] .cz-emoji { color: #b59bff; }
+.tl-choice[title='Orchid'] .cz-emoji { color: #f0a0ff; }
+.tl-choice[title='Rose'] .cz-emoji { color: #ff9cc8; }
+.tl-choice[title='Graphite'] .cz-emoji { color: #8a93a6; }
+.tl-choice[title='Custom hue'] .cz-emoji {
+  background: conic-gradient(#ff6b6b, #ffd36b, #8cff6b, #6bffe0, #6b8cff, #d36bff, #ff6b6b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.tl-choice[title='Coral'] .cz-emoji,
+.tl-choice[title='Tangerine'] .cz-emoji,
+.tl-choice[title='Butter'] .cz-emoji,
+.tl-choice[title='Lime'] .cz-emoji,
+.tl-choice[title='Mint'] .cz-emoji,
+.tl-choice[title='Lagoon'] .cz-emoji,
+.tl-choice[title='Sky'] .cz-emoji,
+.tl-choice[title='Cobalt'] .cz-emoji,
+.tl-choice[title='Violet'] .cz-emoji,
+.tl-choice[title='Orchid'] .cz-emoji,
+.tl-choice[title='Rose'] .cz-emoji,
+.tl-choice[title='Graphite'] .cz-emoji,
+.tl-choice[title='Custom hue'] .cz-emoji {
+  font-size: 22px !important;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
