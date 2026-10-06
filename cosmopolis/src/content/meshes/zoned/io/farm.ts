@@ -9,7 +9,7 @@
  * tubes are Mat.Light: green / magenta by day, glowing after dark.
  */
 import { Mat, mix, shade } from '../../../kit';
-import { DET, G, LOT, NP, bale, beam, byL, critter, drone, fence, lampPost, storeys, truck, vaultX } from './common';
+import { DET, G, LOT, NP, bale, beam, byL, critter, drone, fence, lampPost, ngon, polyTop, storeys, truck, vaultX } from './common';
 import { factory, fits, flip, type IO } from './look';
 import { block, crown, dome, hall, lot, opt, ring, sign, stack, tank, tower, tree } from './parts';
 
@@ -49,7 +49,7 @@ function silo(io: IO, x: number, z: number, r: number, h: number): void {
     return;
   }
   b.cyl(r, r, h, { color: col, seg: 7, x, z, y: G, capTop: false });
-  if (lk.shell === 'box' && io.sid !== 'cyber') b.cone(r * 1.05, r * 0.8, { color: io.sid === 'classic' ? 0x9aa2ac : p.roof, mat: Mat.Metal, seg: 7, ...NP, x, z, y: G + h });
+  if (lk.shell === 'box' && io.sid !== 'cyber') b.cone(r * 1.05, r * 0.8, { color: io.sid === 'classic' ? 0x9aa2ac : p.roof, mat: Mat.Plain, seg: 7, ...NP, x, z, y: G + h });
   else b.dome(r, { color: io.sid === 'cyber' ? 0x2a2e38 : mix(col, 0xffffff, 0.3), wSeg: 7, hSeg: 2, x, z, y: G + h, h: r * 0.8 });
   if (io.lk.glowy && fits(io, 14)) b.cyl(r * 1.02, r * 1.02, 0.012, { color: p.glow, mat: Mat.Glow, ...NP, seg: 7, capTop: false, x, z, y: G + h * 0.75 });
 }
@@ -110,8 +110,8 @@ export const cropField = factory((io) => {
   // centre-pivot irrigation arm from L2
   if (L >= 2 && fits(io, 50)) {
     const px = 0.42 * s, pz = -0.22;
-    b.cyl(0.02, 0.03, 0.12, { color: lk.metal, mat: Mat.Metal, ...NP, seg: 4, x: px, z: pz, y: G });
-    beam(b, [px, G + 0.11, pz], [px - 0.78 * s, G + 0.09, pz - 0.12], 0.016, { color: lk.metal, mat: Mat.Metal, ...NP });
+    b.cyl(0.02, 0.03, 0.12, { color: lk.metal, mat: Mat.Plain, ...NP, seg: 4, x: px, z: pz, y: G });
+    beam(b, [px, G + 0.11, pz], [px - 0.78 * s, G + 0.09, pz - 0.12], 0.016, { color: lk.metal, mat: Mat.Plain, ...NP });
     for (const f of [0.35, 0.7]) b.box(0.012, 0.1, 0.03, { color: lk.metal, ...DET, x: px - 0.78 * s * f, z: pz - 0.12 * f, y: G });
   }
   agriDrone(io, -0.1 * s, G + 0.24, -0.3);
@@ -199,6 +199,8 @@ export const algaeVats = factory((io) => {
   for (let i = 0; i < n; i++) {
     const [vx, vz] = VATS[i];
     b.cyl(r, r * 1.04, byL(L, [0.07, 0.08, 0.09, 0.1, 0.11]), { color: io.sid === 'classic' ? 0xc8c4bc : p.wall, seg: 8, x: vx * s, z: vz, y: G, top: 0x3a9a5a, topMat: Mat.Water });
+    // a floating bloom of algae on the water, rotated per vat
+    polyTop(b, ngon(6, r * (0.42 + (i % 3) * 0.08), i * 0.7, vx * s + r * 0.12, vz - r * 0.08), { color: shade(algae, 0.8), ...NP, y: G + byL(L, [0.07, 0.08, 0.09, 0.1, 0.11]) + 0.003 });
     if (fits(io, 18)) b.cyl(r * 1.05, r * 1.05, 0.014, { color: algae, mat: Mat.Light, ...NP, seg: 8, capTop: false, x: vx * s, z: vz, y: G + byL(L, [0.07, 0.08, 0.09, 0.1, 0.11]) - 0.01 });
   }
   // photobioreactor tubes snaking along the front: green by day, bioluminescent at night

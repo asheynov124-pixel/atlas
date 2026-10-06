@@ -104,7 +104,7 @@ export const LOOKS: Record<StyleId, Look> = {
   },
   cyber: {
     id: 'cyber', hall: 'flat', shell: 'box', stack: 'neon', tank: 'ringed', crown: 'antenna', tree: 'neon',
-    ground: 0x2c3a34, yard: 0x2b2e36, asphalt: 0x1b1d23, soil: 0x3a2e2a,
+    ground: 0x2c3a34, yard: 0x383c47, asphalt: 0x2a2d35, soil: 0x3a2e2a,
     green: 0x2f6a4a, green2: 0x3fa070, trunk: 0x2a2e38,
     metal: 0x4a505e, steel: 0x3a3f4e, pipes: [0x5a5f6e, 0x2ff8ff, 0xff2fd0],
     cargo: [0x3a2f4e, 0x2a4a5a, 0x5a2a4a, 0x4a4a2a, 0x22252e],

@@ -153,7 +153,7 @@ export function hall(io: IO, o: HallOpts): HallTop {
       }
       const n = Math.max(2, Math.min(5, Math.round(d / 0.2)));
       const th = Math.min(0.14, (d / n) * 0.75);
-      sawtooth(b, w, d, th, n, { color: solar ? 0x1a2a4a : roof, slopeMat: solar ? Mat.Solar : Mat.Plain, glass: mix(p.glass, 0xffffff, 0.15), x, z, y: top, paint: !solar });
+      sawtooth(b, w, d, th, n, { color: solar ? 0x1a2a4a : roof, slopeMat: solar ? Mat.Solar : Mat.Plain, glass: mix(p.glass, 0xffffff, 0.38), x, z, y: top, paint: !solar });
       if (solar) band(b, w, d, 0.03, { color: p.trim, x, z, y: top - 0.03, out: 0.008 });
       doors(io, x, front, w, o.doors ?? 0);
       return { y: top, flat: false };
@@ -303,15 +303,33 @@ export interface TowerOpts {
   plain?: boolean;
 }
 
-/** One glass shaft of an office tower. Returns its roof height. Cost ≈ 12–60 tris. */
+/** Curtain-wall glass for towers: lighter than the raw style tint so it reads by day (no env map on phones). */
+export function towerGlass(io: IO): number {
+  const { p } = io;
+  if (io.sid === 'cyber') return mix(p.glass, 0x3a3f4e, 0.3);
+  if (io.sid === 'crystal') return mix(p.wall, 0xffffff, 0.15);
+  if (io.sid === 'organic') return mix(p.glass, 0xffffff, 0.22);
+  return mix(mix(p.glass, 0xffffff, 0.3), p.trim, 0.12);
+}
+
+/**
+ * One shaft of an office tower, articulated in the style's grammar. Returns its roof height. Cost ≈ 20–80 tris.
+ *   box    glass between solid end walls (stone · timber · dark slab), cornice / planted band / neon edges
+ *   round  ellipse with a white fin up the street face (neo, ice) or a rounded slab with adobe buttresses (mars)
+ *   facet  tapering hex prism with a glowing edge and a light ring
+ *   pod    swelling lathe shaft with a trim collar
+ */
 export function tower(io: IO, o: TowerOpts): number {
   const { b, lk, p } = io;
   const x = o.x ?? 0, z = o.z ?? 0, y = o.y, w = o.w, d = o.d, h = o.h;
-  const col = o.color ?? mix(p.glass, p.trim, 0.22);
+  const col = o.color ?? towerGlass(io);
   const top = y + h;
   switch (lk.shell) {
     case 'box': {
-      b.box(w, h, d, { color: col, mat: Mat.Glass, x, z, y });
+      const ew = Math.min(0.08, w * 0.15);
+      const endC = io.sid === 'cyber' ? 0x22252e : io.sid === 'solarpunk' ? shade(p.trim, 1.1) : p.wall;
+      b.box(w - ew * 2 + 0.002, h, d - 0.02, { color: col, mat: Mat.Glass, x, z, y });
+      for (const s of [-1, 1]) b.box(ew, h, d, { color: endC, x: x + s * (w / 2 - ew / 2), z, y, top: shade(endC, 0.9) });
       if (o.plain) return top;
       if (io.sid === 'classic') band(b, w, d, 0.04, { color: p.trim, x, z, y: top - 0.02, out: 0.012 });
       else if (io.sid === 'solarpunk') band(b, w, d, 0.04, { color: lk.green, mat: Mat.Foliage, x, z, y: top - 0.02, out: 0.02, paint: false });
@@ -326,20 +344,31 @@ export function tower(io: IO, o: TowerOpts): number {
         b.push({ y });
         b.extrude(roundRect(w, d, Math.min(w, d) * 0.35, 2, x, z), h, { color: col, mat: Mat.Glass });
         b.pop();
+        if (fits(io, 24)) for (const s of [-1, 1]) b.box(0.05, h, d * 0.5, { color: p.wall, x: x + s * (w / 2 - 0.01), z, y, top: shade(p.wall, 1.08) });
         if (o.plain) return top;
         band(b, w * 0.98, d * 0.98, 0.04, { color: p.wall, x, z, y: top - 0.02, out: 0.012 });
-      } else {
-        b.cyl(0.5, 0.5, h, { color: col, mat: Mat.Glass, seg: 10, sx: w, sz: d, x, z, y });
-        if (o.plain) return top;
-        b.cyl(0.5, 0.5, 0.035, { color: io.sid === 'ice' ? 0xf2f8ff : 0xf4f6fa, seg: 10, sx: w * 1.07, sz: d * 1.07, x, z, y: top - 0.015 });
-        if (lk.glowy && fits(io, 20)) b.cyl(0.5, 0.5, 0.012, { color: p.glow, mat: Mat.Glow, ...NP, seg: 10, sx: w * 1.075, sz: d * 1.075, capTop: false, x, z, y: top - 0.03 });
+        return top + 0.02;
       }
+      const white = io.sid === 'ice' ? 0xf2f8ff : 0xf4f6fa;
+      b.cyl(0.5, 0.5, h, { color: col, mat: Mat.Glass, seg: 10, sx: w, sz: d, x, z, y });
+      // white radial fins: a four-fin exoskeleton for neo, a front & back pair for ice
+      const nf = io.sid === 'neo' ? 4 : 2;
+      for (let k = 0; k < nf; k++) {
+        if (!fits(io, 12)) break;
+        const a = nf === 4 ? ((k + 0.5) / 4) * Math.PI * 2 : k * Math.PI;
+        b.box(0.035, h + 0.02, 0.1, { color: white, x: x + Math.sin(a) * w * 0.47, z: z + Math.cos(a) * d * 0.47, y, ry: a, top: white });
+      }
+      if (o.plain) return top;
+      b.cyl(0.5, 0.5, 0.035, { color: white, seg: 10, sx: w * 1.07, sz: d * 1.07, x, z, y: top - 0.015 });
+      if (lk.glowy && fits(io, 20)) b.cyl(0.5, 0.5, 0.012, { color: p.glow, mat: Mat.Glow, ...NP, seg: 10, sx: w * 1.075, sz: d * 1.075, capTop: false, x, z, y: top - 0.03 });
       return top + 0.02;
     }
     case 'facet': {
-      const r = Math.min(w, d) * 0.58;
+      const r = Math.min(w, d) * 0.6;
       const t = o.taper ?? 0.12;
       b.cyl(r * (1 - t), r, h, { color: col, mat: Mat.Glass, seg: 6, flat: true, x, z, y, ry: Math.PI / 6 });
+      // glowing leading edge on the street-facing vertex
+      if (fits(io, 12)) beamEdge(io, x, z + r, z + r * (1 - t), y, h);
       if (!o.plain && fits(io, 12)) b.cyl(r * (1 - t) * 1.04, r * (1 - t) * 1.04, 0.016, { color: p.glow, mat: Mat.Glow, ...NP, seg: 6, capTop: false, x, z, y: top - 0.016, ry: Math.PI / 6 });
       return top;
     }
@@ -352,6 +381,12 @@ export function tower(io: IO, o: TowerOpts): number {
       return top + 0.02;
     }
   }
+}
+
+/** A thin glowing line from (x, y, z0) up to (x, y + h, z1) — the lit edge of a faceted shaft. 10 tris. */
+function beamEdge(io: IO, x: number, z0: number, z1: number, y: number, h: number): void {
+  const lean = Math.atan2(z0 - z1, h);
+  io.b.box(0.014, Math.hypot(h, z0 - z1), 0.014, { color: io.p.glow, mat: Mat.Glow, ...NP, x, z: z0 + 0.004, y, rx: -lean });
 }
 
 /**
@@ -497,7 +532,7 @@ export function stack(io: IO, x: number, z: number, r: number, h: number, y = G)
       return;
     }
     case 'neon': {
-      b.cyl(r * 0.85, r, h, { color: 0x30343f, mat: Mat.Metal, seg: 6, ...NP, x, z, y, topMat: Mat.Lava, top: 0xff5020 });
+      b.cyl(r * 0.85, r, h, { color: 0x30343f, mat: Mat.Plain, seg: 6, ...NP, x, z, y, topMat: Mat.Lava, top: 0xff5020 });
       b.cyl(r * 0.92, r * 0.92, 0.025, { color: p.glow, mat: Mat.Glow, ...NP, seg: 6, capTop: false, x, z, y: y + h * 0.45 });
       b.cyl(r * 0.88, r * 0.88, 0.025, { color: p.accent2, mat: Mat.Glow, ...NP, seg: 6, capTop: false, x, z, y: y + h * 0.8 });
       return;
@@ -548,7 +583,7 @@ export function tank(io: IO, x: number, z: number, r: number, h: number, color?:
       b.cyl(r * 1.02, r * 1.02, 0.02, { color: 0x4a3a2a, seg: 8, ...NP, capTop: false, x, z, y: y + h * 0.62 });
       return;
     case 'ringed':
-      b.cyl(r, r, h, { color: c, mat: Mat.Metal, seg: 8, x, z, y, top: 0x22252e });
+      b.cyl(r, r, h, { color: c, mat: Mat.Plain, seg: 8, x, z, y, top: 0x22252e });
       b.cyl(r * 1.02, r * 1.02, 0.02, { color: p.glow, mat: Mat.Glow, ...NP, seg: 8, capTop: false, x, z, y: y + h * 0.7 });
       return;
     case 'adobe':
@@ -557,7 +592,7 @@ export function tank(io: IO, x: number, z: number, r: number, h: number, color?:
       return;
     case 'sphere': {
       const R = Math.min(r * 1.15, (h + r) * 0.5);
-      b.cyl(R * 0.35, R * 0.5, h * 0.4, { color: lk.steel, mat: Mat.Metal, seg: 4, ...NP, x, z, y, capTop: false });
+      b.cyl(R * 0.35, R * 0.5, h * 0.4, { color: lk.steel, mat: Mat.Plain, seg: 4, ...NP, x, z, y, capTop: false });
       b.sphere(R, { color: c, wSeg: 8, hSeg: 4, x, z, y: y + h * 0.4 + R * 0.85 });
       return;
     }

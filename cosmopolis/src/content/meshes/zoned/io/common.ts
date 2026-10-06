@@ -180,15 +180,15 @@ export function beam(b: MeshBuilder, a: [number, number, number], c: [number, nu
 export function lattice(b: MeshBuilder, x: number, z: number, y: number, wb: number, wt: number, h: number, bands: number, color: number, t = 0.022, detailBraces = true): void {
   const hb = wb / 2, ht = wt / 2;
   const corners: [number, number][] = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
-  for (const [sx, sz] of corners) beam(b, [x + sx * hb, y, z + sz * hb], [x + sx * ht, y + h, z + sz * ht], t, { color, mat: Mat.Metal, paint: false });
+  for (const [sx, sz] of corners) beam(b, [x + sx * hb, y, z + sz * hb], [x + sx * ht, y + h, z + sz * ht], t, { color, mat: Mat.Plain, paint: false });
   for (let k = 1; k <= bands; k++) {
     const f = k / (bands + 1);
     const hw = hb + (ht - hb) * f;
     const yy = y + h * f;
-    b.box(hw * 2 + t, t * 0.8, t * 0.8, { color, mat: Mat.Metal, paint: false, x, y: yy, z: z + hw, detail: detailBraces });
-    b.box(hw * 2 + t, t * 0.8, t * 0.8, { color, mat: Mat.Metal, paint: false, x, y: yy, z: z - hw, detail: detailBraces });
-    b.box(t * 0.8, t * 0.8, hw * 2 + t, { color, mat: Mat.Metal, paint: false, x: x + hw, y: yy, z, detail: detailBraces });
-    b.box(t * 0.8, t * 0.8, hw * 2 + t, { color, mat: Mat.Metal, paint: false, x: x - hw, y: yy, z, detail: detailBraces });
+    b.box(hw * 2 + t, t * 0.8, t * 0.8, { color, mat: Mat.Plain, paint: false, x, y: yy, z: z + hw, detail: detailBraces });
+    b.box(hw * 2 + t, t * 0.8, t * 0.8, { color, mat: Mat.Plain, paint: false, x, y: yy, z: z - hw, detail: detailBraces });
+    b.box(t * 0.8, t * 0.8, hw * 2 + t, { color, mat: Mat.Plain, paint: false, x: x + hw, y: yy, z, detail: detailBraces });
+    b.box(t * 0.8, t * 0.8, hw * 2 + t, { color, mat: Mat.Plain, paint: false, x: x - hw, y: yy, z, detail: detailBraces });
   }
 }
 
@@ -197,9 +197,9 @@ export function lattice(b: MeshBuilder, x: number, z: number, y: number, wb: num
  * Cost: 10 (gallery) + 10 (trestle) + 10 (belt glint, detail).
  */
 export function conveyor(b: MeshBuilder, a: [number, number, number], c: [number, number, number], w: number, color: number, belt = 0x2a2c30): void {
-  beam(b, a, c, w, { color, mat: Mat.Metal, paint: false });
+  beam(b, a, c, w, { color, mat: Mat.Plain, paint: false });
   const mx = (a[0] + c[0]) / 2, mz = (a[2] + c[2]) / 2, my = (a[1] + c[1]) / 2;
-  if (my > G + 0.06) b.box(w * 0.5, my - G - w * 0.5, w * 0.5, { color: shade(color, 0.7), mat: Mat.Metal, paint: false, x: mx, y: G, z: mz });
+  if (my > G + 0.06) b.box(w * 0.5, my - G - w * 0.5, w * 0.5, { color: shade(color, 0.7), mat: Mat.Plain, paint: false, x: mx, y: G, z: mz });
   beam(b, [a[0], a[1] + w * 0.52, a[2]], [c[0], c[1] + w * 0.52, c[2]], w * 0.5, { color: belt, paint: false, detail: true });
 }
 
@@ -211,11 +211,11 @@ export function pipeRack(b: MeshBuilder, x0: number, z0: number, x1: number, z1:
   for (let i = 0; i < bents; i++) {
     const f = i / (bents - 1);
     const px = x0 + (x1 - x0) * f, pz = z0 + (z1 - z0) * f;
-    b.box(0.02, y - G, 0.02, { color: steel, mat: Mat.Metal, paint: false, x: px, y: G, z: pz, detail: i > 0 && i < bents - 1 });
+    b.box(0.02, y - G, 0.02, { color: steel, mat: Mat.Plain, paint: false, x: px, y: G, z: pz, detail: i > 0 && i < bents - 1 });
   }
   colors.forEach((c, k) => {
     const off = (k - (colors.length - 1) / 2) * 0.03;
-    beam(b, [x0 + nx * off, y + 0.012, z0 + nz * off], [x1 + nx * off, y + 0.012, z1 + nz * off], 0.022, { color: c, mat: Mat.Metal, paint: false });
+    beam(b, [x0 + nx * off, y + 0.012, z0 + nz * off], [x1 + nx * off, y + 0.012, z1 + nz * off], 0.022, { color: c, mat: Mat.Plain, paint: false });
   });
 }
 
@@ -225,10 +225,10 @@ export function pipeRack(b: MeshBuilder, x0: number, z0: number, x1: number, z1:
  */
 export function towerCrane(b: MeshBuilder, x: number, z: number, h: number, jib: number, ry: number, color: number, y = G): void {
   b.group({ x, z, y, ry }, () => {
-    b.box(0.06, h, 0.06, { color, mat: Mat.Metal, paint: false });
+    b.box(0.06, h, 0.06, { color, mat: Mat.Plain, paint: false });
     b.box(0.08, 0.05, 0.08, { color: 0x30343c, paint: false, y: h - 0.07, z: 0.05 });
-    b.box(0.035, 0.035, jib, { color, mat: Mat.Metal, paint: false, y: h, z: jib / 2 - 0.04 });
-    b.box(0.035, 0.03, jib * 0.35, { color, mat: Mat.Metal, paint: false, y: h, z: -jib * 0.2 });
+    b.box(0.035, 0.035, jib, { color, mat: Mat.Plain, paint: false, y: h, z: jib / 2 - 0.04 });
+    b.box(0.035, 0.03, jib * 0.35, { color, mat: Mat.Plain, paint: false, y: h, z: -jib * 0.2 });
     b.box(0.07, 0.06, 0.07, { color: 0x6a6e76, paint: false, y: h - 0.04, z: -jib * 0.33 });
     b.cone(0.02, 0.12, { color, seg: 4, y: h, paint: false });
     b.box(0.006, h * 0.45, 0.006, { color: 0x30343c, paint: false, y: h * 0.55, z: jib * 0.7, detail: true });
@@ -243,12 +243,12 @@ export function towerCrane(b: MeshBuilder, x: number, z: number, h: number, jib:
 export function gantry(b: MeshBuilder, x: number, z: number, span: number, h: number, depth: number, color: number, ry = 0): void {
   b.group({ x, z, y: G, ry }, () => {
     for (const s of [-1, 1]) {
-      b.box(0.04, h, 0.04, { color, mat: Mat.Metal, paint: false, x: s * span / 2, z: -depth / 2 });
-      b.box(0.04, h, 0.04, { color, mat: Mat.Metal, paint: false, x: s * span / 2, z: depth / 2 });
-      b.box(0.05, 0.03, depth + 0.06, { color: shade(color, 0.75), mat: Mat.Metal, paint: false, x: s * span / 2, y: 0 });
+      b.box(0.04, h, 0.04, { color, mat: Mat.Plain, paint: false, x: s * span / 2, z: -depth / 2 });
+      b.box(0.04, h, 0.04, { color, mat: Mat.Plain, paint: false, x: s * span / 2, z: depth / 2 });
+      b.box(0.05, 0.03, depth + 0.06, { color: shade(color, 0.75), mat: Mat.Plain, paint: false, x: s * span / 2, y: 0 });
     }
-    b.box(span + 0.12, 0.06, 0.06, { color, mat: Mat.Metal, paint: false, y: h, z: -depth / 2 });
-    b.box(span + 0.12, 0.06, 0.06, { color, mat: Mat.Metal, paint: false, y: h, z: depth / 2 });
+    b.box(span + 0.12, 0.06, 0.06, { color, mat: Mat.Plain, paint: false, y: h, z: -depth / 2 });
+    b.box(span + 0.12, 0.06, 0.06, { color, mat: Mat.Plain, paint: false, y: h, z: depth / 2 });
     b.box(0.12, 0.07, depth + 0.04, { color: 0x30343c, paint: false, x: span * 0.12, y: h - 0.01 });
     b.box(0.008, h * 0.4, 0.008, { color: 0x30343c, paint: false, x: span * 0.12, y: h * 0.6, detail: true });
     b.box(0.022, 0.022, 0.022, { color: 0xffa020, mat: Mat.Light, paint: false, x: span / 2 + 0.05, y: h + 0.06, z: depth / 2, detail: true });
@@ -284,12 +284,12 @@ export function pallets(b: MeshBuilder, x: number, z: number, color = 0xb08a5a, 
 
 /** Rooftop fan / chiller (short cylinder + dark grille). Cost: 2 × seg + 8. */
 export function fan(b: MeshBuilder, x: number, y: number, z: number, r: number, color: number, seg = 6): void {
-  b.cyl(r, r, 0.03, { color, mat: Mat.Metal, seg, ...DET, x, y, z, top: 0x22252b });
+  b.cyl(r, r, 0.03, { color, mat: Mat.Plain, seg, ...DET, x, y, z, top: 0x22252b });
 }
 
 /** Rooftop air-handler box. */
 export function airHandler(b: MeshBuilder, x: number, y: number, z: number, w: number, d: number, color = 0xb8bcc4): void {
-  b.box(w, 0.06, d, { color, mat: Mat.Metal, ...DET, x, y, z });
+  b.box(w, 0.06, d, { color, mat: Mat.Plain, ...DET, x, y, z });
 }
 
 /** Thin mast with a night beacon on top. */

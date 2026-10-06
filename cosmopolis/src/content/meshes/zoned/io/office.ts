@@ -148,10 +148,10 @@ export const glassTower = factory((io) => {
   plaza(io, 0, 0.44, 1.1, 0.5);
   const pf = byL(L, [1, 2, 2, 3, 3]);
   const tf = byL(L, [3, 6, 12, 19, 28]);
-  const tw = byL(L, [0.5, 0.52, 0.54, 0.56, 0.58]), td = byL(L, [0.42, 0.44, 0.46, 0.48, 0.5]);
+  const tw = byL(L, [0.56, 0.6, 0.64, 0.68, 0.7]), td = byL(L, [0.46, 0.48, 0.5, 0.54, 0.56]);
   const z0 = -0.18;
   io.reserve = L >= 3 ? 170 : 90;
-  const py = podium(io, 0, z0, 0.92, 0.62, pf);
+  const py = podium(io, 0, z0, 0.98, 0.66, pf);
   let top = tower(io, { x: s * 0.06, z: z0 - 0.04, y: py, w: tw, d: td, h: storeys(tf) });
   io.reserve = 40;
   if (L >= 3) top = summit(io, summitKind(io, 3), { x: s * 0.06, z: z0 - 0.04, y: top, w: tw, d: td, prestige: io.pr });
@@ -171,9 +171,9 @@ export const corporateHQ = factory((io) => {
   lot(io, 'paved', mix(io.lk.yard, 0xffffff, 0.08));
   const segs = byL(L, [[3], [5, 2], [7, 4, 2], [10, 7, 4], [14, 10, 6]] as number[][]);
   const z0 = -0.2;
-  let w = byL(L, [0.66, 0.66, 0.66, 0.64, 0.64]), d = byL(L, [0.5, 0.5, 0.5, 0.5, 0.5]);
+  let w = byL(L, [0.7, 0.72, 0.74, 0.76, 0.76]), d = byL(L, [0.52, 0.54, 0.56, 0.56, 0.56]);
   io.reserve = 150 + segs.length * 14;
-  const py = podium(io, 0, z0, 0.98, 0.64, 2, io.p.wall2);
+  const py = podium(io, 0, z0, 1.04, 0.68, 2, io.p.wall2);
   let y = py;
   for (let i = 0; i < segs.length; i++) {
     y = tower(io, { x: 0, z: z0 - i * 0.03, y, w, d, h: storeys(segs[i]), seg: i, plain: i < segs.length - 1 });
@@ -208,10 +208,10 @@ export const twinTowers = factory((io) => {
   lot(io, 'paved', mix(io.lk.asphalt, io.lk.yard, 0.45));
   const fl = byL(L, [4, 8, 12, 17, 23]);
   const extra = 1 + ((io.seed >> 4) % 3);
-  const tw = 0.32, td = 0.36, z0 = -0.2;
+  const tw = 0.38, td = 0.42, z0 = -0.2;
   io.reserve = 200;
-  const py = podium(io, 0, z0, 1.08, 0.5, 1);
-  const xa = -0.27 * s, xb = 0.27 * s;
+  const py = podium(io, 0, z0, 1.14, 0.54, 1);
+  const xa = -0.29 * s, xb = 0.29 * s;
   const ha = storeys(fl + extra), hb = storeys(fl);
   const ta = tower(io, { x: xa, z: z0, y: py, w: tw, d: td, h: ha, seg: 0 });
   const tb = tower(io, { x: xb, z: z0, y: py, w: tw, d: td, h: hb, seg: 1 });
@@ -242,7 +242,7 @@ export const mediaTower = factory((io) => {
   const s = flip(io, 37) ? 1 : -1;
   lot(io, 'paved', mix(lk.asphalt, 0x000000, 0.1));
   const tf = byL(L, [3, 6, 10, 15, 21]);
-  const tw = 0.5, td = 0.44, z0 = -0.18;
+  const tw = 0.58, td = 0.5, z0 = -0.18;
   io.reserve = 190;
   const py = podium(io, 0, z0, 0.96, 0.6, 2, shade(io.p.wall, 0.8));
   // wraparound podium screens
@@ -284,7 +284,7 @@ export const helixTower = factory((io) => {
   const col = mix(p.glass, p.trim, 0.2);
   for (let i = 0; i < n; i++) {
     const t = i / Math.max(1, n - 1);
-    const w = 0.56 - t * 0.12, d = 0.34 - t * 0.04;
+    const w = 0.64 - t * 0.12, d = 0.4 - t * 0.05;
     const h = storeys(per, 0);
     if (round) b.cyl(0.5, 0.5, h, { color: col, mat: Mat.Glass, seg: 6, flat: true, sx: w, sz: d, x: 0, z: z0, y, ry: i * twist });
     else b.box(w, h, d, { color: col, mat: Mat.Glass, x: 0, z: z0, y, ry: i * twist, top: shade(p.trim, 0.9) });
@@ -312,7 +312,7 @@ export const megatower = factory((io) => {
   plaza(io, 0, 0.46, 1.06, 0.36);
   const segs = byL(L, [[4, 3], [7, 5], [10, 8, 5], [13, 11, 8], [17, 14, 11]] as number[][]);
   const z0 = -0.16;
-  let w = 0.66, d = 0.58;
+  let w = 0.78, d = 0.66;
   io.reserve = 230;
   const py = podium(io, 0, z0, 1.02, 0.7, 3, io.p.wall2);
   let y = py;

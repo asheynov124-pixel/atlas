@@ -157,12 +157,12 @@ export const tankFarm = factory((io) => {
   io.reserve = L >= 3 ? 40 : 0;
   const hx = 0.32 * s;
   block(io, { x: hx, z: 0.5, w: 0.3, d: 0.18, h: storeys(L >= 4 ? 2 : 1), use: 'ind', color: p.wall });
-  pipeRack(b, -0.42 * s, 0.02, hx, 0.4, 0.12, [lk.pipes[0], lk.pipes[2]], lk.metal);
+  pipeRack(b, -0.52 * s, 0.4, hx - 0.17 * s, 0.4, 0.12, [lk.pipes[0], lk.pipes[2]], lk.metal);
   io.reserve = 0;
   // flare stack from L3 (flame glows day and night)
   if (L >= 3) {
     const fx = -0.12 * s, fz = 0.46, fh = byL(L, [0, 0, 0.9, 1.1, 1.3]);
-    b.cyl(0.018, 0.03, fh, { color: lk.metal, mat: Mat.Metal, ...NP, seg: 4, x: fx, z: fz, y: G });
+    b.cyl(0.018, 0.03, fh, { color: lk.metal, mat: Mat.Plain, ...NP, seg: 4, x: fx, z: fz, y: G });
     b.cone(0.035, 0.12, { color: 0xffa040, mat: Mat.Lava, ...NP, seg: 4, x: fx, z: fz, y: G + fh });
   }
   opt(io, 30, () => truck(b, 0.62 * s, 0.32, -0.5 * s, 0xe8e8e0, 0xd8d8d0));
@@ -215,12 +215,12 @@ export const foundry = factory((io) => {
   const fx = -0.4 * s, fz = -0.26;
   io.reserve = 150;
   // blast furnace: tapered shell, banding, glowing tap-hole, downcomer to the dust catcher
-  b.cyl(0.11, 0.17, fh, { color: lk.metal, mat: Mat.Metal, seg: 8, ...NP, x: fx, z: fz, y: G, top: 0x2a2a2a });
+  b.cyl(0.11, 0.17, fh, { color: lk.metal, mat: Mat.Plain, seg: 8, ...NP, x: fx, z: fz, y: G, top: 0x2a2a2a });
   b.cyl(0.18, 0.19, 0.08, { color: 0x3a3a3a, seg: 8, ...NP, x: fx, z: fz, y: G, capTop: false });
   b.cyl(0.115, 0.115, 0.03, { color: p.accent, seg: 8, ...NP, x: fx, z: fz, y: G + fh * 0.62, capTop: false });
   b.box(0.08, 0.06, 0.03, { color: 0xffa030, mat: Mat.Lava, ...NP, x: fx + 0.06 * s, z: fz + 0.16, y: G + 0.02 });
-  beam(b, [fx, G + fh, fz], [fx + 0.3 * s, G + fh * 0.7, fz - 0.24], 0.04, { color: lk.pipes[0], mat: Mat.Metal, ...NP });
-  b.cyl(0.07, 0.07, fh * 0.55, { color: lk.pipes[0], mat: Mat.Metal, seg: 6, ...NP, x: fx + 0.32 * s, z: fz - 0.26, y: G + 0.06, top: 0x30343c });
+  beam(b, [fx, G + fh, fz], [fx + 0.3 * s, G + fh * 0.7, fz - 0.24], 0.04, { color: lk.pipes[0], mat: Mat.Plain, ...NP });
+  b.cyl(0.07, 0.07, fh * 0.55, { color: lk.pipes[0], mat: Mat.Plain, seg: 6, ...NP, x: fx + 0.32 * s, z: fz - 0.26, y: G + 0.06, top: 0x30343c });
   b.cone(0.07, 0.07, { color: lk.pipes[0], seg: 6, ...NP, x: fx + 0.32 * s, z: fz - 0.26, y: G - 0.01, rx: Math.PI });
   // casting hall with a molten runner from the tap-hole
   io.reserve = 60;
@@ -268,12 +268,12 @@ export const assembly = factory((io) => {
   io.reserve = 0;
   b.group({ x: cx + rx, z: cz, y: G + 0.02 }, () => {
     b.box(0.07, 0.025, 0.13, { color: p.accent, ...DET });
-    b.box(0.055, 0.025, 0.06, { color: 0x1c2430, mat: Mat.Metal, ...DET, y: 0.025 });
+    b.box(0.055, 0.025, 0.06, { color: 0x1c2430, mat: Mat.Plain, ...DET, y: 0.025 });
   });
   if (top.flat) roofGear(io, 0, top.y, z0, w * 0.8, d * 0.8, 3);
   if (L >= 5 && fits(io, 40)) {
     // robotic arm sculpture on the forecourt
-    b.cyl(0.04, 0.05, 0.08, { color: lk.steel, mat: Mat.Metal, seg: 6, ...NP, x: ax, z: 0.62, y: G });
+    b.cyl(0.04, 0.05, 0.08, { color: lk.steel, mat: Mat.Plain, seg: 6, ...NP, x: ax, z: 0.62, y: G });
     beam(b, [ax, G + 0.08, 0.62], [ax - 0.06 * s, G + 0.3, 0.56], 0.03, { color: p.accent, ...NP });
     beam(b, [ax - 0.06 * s, G + 0.3, 0.56], [ax + 0.06 * s, G + 0.38, 0.5], 0.025, { color: p.accent, ...NP });
   }
@@ -303,9 +303,9 @@ export const scrapyard = factory((io) => {
   b.box(0.12, 0.08, 0.14, { color: lk.steel, ...NP, x: mx, z: mz, y: G });
   b.box(0.08, 0.06, 0.06, { color: 0x30343c, ...NP, x: mx, z: mz + 0.03, y: G + 0.08 });
   const tip: [number, number, number] = [mx - 0.24 * s, G + bh, mz - 0.22];
-  beam(b, [mx, G + 0.1, mz], tip, 0.035, { color: lk.steel, mat: Mat.Metal, ...NP });
+  beam(b, [mx, G + 0.1, mz], tip, 0.035, { color: lk.steel, mat: Mat.Plain, ...NP });
   b.box(0.006, bh * 0.45, 0.006, { color: 0x202020, ...NP, x: tip[0], z: tip[2], y: G + bh * 0.55 });
-  b.cyl(0.06, 0.06, 0.025, { color: 0x3a3a3a, mat: Mat.Metal, seg: 6, ...NP, x: tip[0], z: tip[2], y: G + bh * 0.55 - 0.025 });
+  b.cyl(0.06, 0.06, 0.025, { color: 0x3a3a3a, mat: Mat.Plain, seg: 6, ...NP, x: tip[0], z: tip[2], y: G + bh * 0.55 - 0.025 });
   io.reserve = 0;
   // crushed-car cubes waiting by the road
   const cc = byL(L, [3, 4, 5, 6, 6]);

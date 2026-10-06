@@ -172,7 +172,7 @@ export const serverFarm = factory((io) => {
   const rows = byL(L, [1, 2, 2, 3, 3]);
   const fl = byL(L, [1, 1, 2, 2, 3]);
   const w = byL(L, [0.84, 0.92, 1.0, 1.06, 1.1]);
-  const hallCol = io.sid === 'cyber' ? 0x22252e : shade(techWall(io), io.sid === 'classic' ? 0.9 : 0.78);
+  const hallCol = io.sid === 'cyber' ? 0x343846 : shade(techWall(io), io.sid === 'classic' ? 0.9 : 0.78);
   const zs = [-0.48, -0.22, 0.04];
   io.reserve = 60 + rows * 30;
   for (let i = 0; i < rows; i++) {
@@ -276,7 +276,7 @@ export const quantumLab = factory((io) => {
   const gold = io.sid === 'crystal' ? 0xffd0ff : io.sid === 'cyber' ? 0xffd040 : 0xe8b84a;
   for (let k = 0; k < byL(L, [2, 2, 3, 3, 4]); k++) {
     if (!fits(io, 20)) break;
-    b.cyl(0.06 - k * 0.01, 0.06 - k * 0.01, 0.014, { color: gold, mat: Mat.Metal, ...NP, seg: 6, x: qx, z: qz, y: G + qh + 0.02 + k * 0.05 });
+    b.cyl(0.06 - k * 0.01, 0.06 - k * 0.01, 0.014, { color: gold, mat: Mat.Plain, ...NP, seg: 6, x: qx, z: qz, y: G + qh + 0.02 + k * 0.05 });
   }
   if (L >= 4 && fits(io, 40)) b.sphere(0.035, { color: glow, mat: Mat.Glow, ...NP, wSeg: 6, hSeg: 3, x: qx, z: qz, y: G + qh + 0.26 });
   io.reserve = 40;

@@ -98,7 +98,7 @@ export const crusher = factory((io) => {
   io.reserve = 150;
   const top = block(io, { x: hx, z: hz, w: 0.36, d: 0.34, h: storeys(fl), use: 'ind', color: p.ind });
   // feed hopper on legs
-  b.cyl(0.13, 0.05, 0.14, { color: lk.metal, mat: Mat.Metal, seg: 6, ...NP, x: hx + 0.02 * s, z: hz + 0.3, y: G + 0.14, top: shade(oreOf(io), 0.7) });
+  b.cyl(0.13, 0.05, 0.14, { color: lk.metal, mat: Mat.Plain, seg: 6, ...NP, x: hx + 0.02 * s, z: hz + 0.3, y: G + 0.14, top: shade(oreOf(io), 0.7) });
   b.box(0.12, 0.14, 0.12, { color: shade(lk.metal, 0.7), ...NP, x: hx + 0.02 * s, z: hz + 0.3, y: G });
   io.reserve = 60;
   // main conveyor to the coarse stockpile
@@ -134,7 +134,7 @@ export const headframe = factory((io) => {
     lattice(b, fx, fz, G, 0.3, 0.16, fh, byL(L, [1, 2, 2, 3, 3]), lk.steel, 0.024);
     b.box(0.22, 0.05, 0.22, { color: shade(lk.steel, 0.85), ...NP, x: fx, z: fz, y: G + fh });
     // back-leg strut toward the winding house
-    beam(b, [fx + 0.3 * s, G, fz - 0.05], [fx + 0.04 * s, G + fh * 0.9, fz], 0.03, { color: lk.steel, mat: Mat.Metal, ...NP });
+    beam(b, [fx + 0.3 * s, G, fz - 0.05], [fx + 0.04 * s, G + fh * 0.9, fz], 0.03, { color: lk.steel, mat: Mat.Plain, ...NP });
     sheaveY = G + fh + 0.05;
   } else {
     // modern concrete tower headframe
@@ -143,7 +143,7 @@ export const headframe = factory((io) => {
     sheaveY = top + 0.12;
   }
   // sheave wheels
-  for (const dz of [-0.05, 0.05]) b.cyl(0.075, 0.075, 0.02, { color: p.accent, mat: Mat.Metal, ...NP, seg: 8, x: fx + 0.01 * s, z: fz + dz, y: sheaveY + 0.075, rx: Math.PI / 2, capBottom: true });
+  for (const dz of [-0.05, 0.05]) b.cyl(0.075, 0.075, 0.02, { color: p.accent, mat: Mat.Plain, ...NP, seg: 8, x: fx + 0.01 * s, z: fz + dz, y: sheaveY + 0.075, rx: Math.PI / 2, capBottom: true });
   b.box(0.03, 0.03, 0.03, { color: 0xff2a1a, mat: Mat.Light, ...NP, x: fx, z: fz, y: sheaveY + 0.16 });
   // winding house + hoist ropes
   io.reserve = 70;
@@ -154,7 +154,7 @@ export const headframe = factory((io) => {
   io.reserve = 0;
   // ore bin + load-out conveyor
   if (L >= 2 && fits(io, 60)) {
-    b.cyl(0.09, 0.05, 0.16, { color: lk.metal, mat: Mat.Metal, seg: 6, ...NP, x: fx, z: fz + 0.36, y: G + 0.16 });
+    b.cyl(0.09, 0.05, 0.16, { color: lk.metal, mat: Mat.Plain, seg: 6, ...NP, x: fx, z: fz + 0.36, y: G + 0.16 });
     b.box(0.03, 0.16, 0.03, { color: shade(lk.metal, 0.7), ...NP, x: fx, z: fz + 0.36, y: G });
     conveyor(b, [fx, G + 0.2, fz + 0.18], [fx, G + 0.3, fz + 0.34], 0.04, lk.metal);
   }
@@ -184,7 +184,7 @@ export const drillRig = factory((io) => {
   b.box(0.3, 0.09, 0.12, { color: lk.metal, ...NP, x: dx + 0.28 * s, z: dz - 0.16, y: G });
   // pipe rack of drill pipe lying by the road
   io.reserve = 40;
-  for (let k = 0; k < 3; k++) b.cyl(0.018, 0.018, 0.5, { color: lk.pipes[k % lk.pipes.length], mat: Mat.Metal, ...NP, seg: 4, x: 0.16, z: 0.34 + k * 0.04, y: G + 0.035, rz: Math.PI / 2, capTop: false });
+  for (let k = 0; k < 3; k++) b.cyl(0.018, 0.018, 0.5, { color: lk.pipes[k % lk.pipes.length], mat: Mat.Plain, ...NP, seg: 4, x: 0.16, z: 0.34 + k * 0.04, y: G + 0.035, rz: Math.PI / 2, capTop: false });
   if (L <= 2 && fits(io, 40)) {
     // pumpjack nodding over an old well
     const jx = 0.44 * s, jz = -0.42;
@@ -227,7 +227,7 @@ export const slagHeaps = factory((io) => {
   b.plane(0.02, 0.9, { color: 0x6a6e76, ...NP, x: 0.42 * s, z: 0.0, y: G + 0.004 });
   b.plane(0.02, 0.9, { color: 0x6a6e76, ...NP, x: 0.5 * s, z: 0.0, y: G + 0.004 });
   b.box(0.12, 0.04, 0.16, { color: 0x30343c, ...NP, x: 0.46 * s, z: 0.1, y: G });
-  b.cyl(0.07, 0.05, 0.09, { color: 0x4a4440, mat: Mat.Metal, ...NP, seg: 7, x: 0.46 * s, z: 0.1, y: G + 0.04, top: 0xff8030, topMat: Mat.Lava });
+  b.cyl(0.07, 0.05, 0.09, { color: 0x4a4440, mat: Mat.Plain, ...NP, seg: 7, x: 0.46 * s, z: 0.1, y: G + 0.04, top: 0xff8030, topMat: Mat.Lava });
   // smelter shed with a glowing mouth
   io.reserve = 20;
   const top = hall(io, { x: -0.1 * s, z: 0.44, w: 0.42, d: 0.24, h: byL(L, [0.22, 0.24, 0.27, 0.3, 0.32]), doors: 0, windows: false });
@@ -252,8 +252,8 @@ export const refinery = factory((io) => {
     const [cx, cz, r, k] = cols[i];
     const ch = hs * k;
     const c = io.sid === 'cyber' ? 0x3a3f4e : io.sid === 'classic' ? 0xd8d4cc : p.wall2;
-    b.cyl(r, r, ch, { color: c, mat: io.sid === 'classic' ? Mat.Plain : Mat.Metal, seg: 7, x: cx * s, z: cz, y: G, top: shade(c, 0.8) });
-    b.cyl(r * 1.35, r * 1.35, 0.016, { color: lk.steel, mat: Mat.Metal, ...NP, seg: 7, x: cx * s, z: cz, y: G + ch * 0.55, bottom: true } as never);
+    b.cyl(r, r, ch, { color: c, mat: Mat.Plain, seg: 7, x: cx * s, z: cz, y: G, top: shade(c, 0.8) });
+    b.cyl(r * 1.35, r * 1.35, 0.016, { color: lk.steel, mat: Mat.Plain, ...NP, seg: 7, x: cx * s, z: cz, y: G + ch * 0.55, capBottom: true });
     if (lk.glowy && fits(io, 16)) b.cyl(r * 1.02, r * 1.02, 0.014, { color: p.glow, mat: Mat.Glow, ...NP, seg: 7, capTop: false, x: cx * s, z: cz, y: G + ch * 0.82 });
   }
   io.reserve = 70;
@@ -262,7 +262,7 @@ export const refinery = factory((io) => {
   const top = block(io, { x: 0.42 * s, z: 0.46, w: 0.28, d: 0.18, h: storeys(L >= 4 ? 2 : 1), use: 'office', color: p.wall });
   if (fits(io, 30)) {
     const fh = byL(L, [0.9, 1.0, 1.2, 1.4, 1.6]);
-    b.cyl(0.016, 0.026, fh, { color: lk.metal, mat: Mat.Metal, ...NP, seg: 4, x: 0.5 * s, z: -0.36, y: G });
+    b.cyl(0.016, 0.026, fh, { color: lk.metal, mat: Mat.Plain, ...NP, seg: 4, x: 0.5 * s, z: -0.36, y: G });
     b.cone(0.03, 0.11, { color: 0xffa040, mat: Mat.Lava, ...NP, seg: 4, x: 0.5 * s, z: -0.36, y: G + fh });
   }
   io.reserve = 0;
