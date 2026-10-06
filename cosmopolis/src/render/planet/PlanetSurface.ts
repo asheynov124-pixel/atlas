@@ -435,7 +435,7 @@ export class PlanetSurface {
     // sky
     const altitude = D - R;
     const engine = game?.engine;
-    if (!this.clouds.ready && engine && p.spec.cloudCover > 0.005) this.clouds.bake(engine.renderer);
+    if (!this.clouds.ready && engine && Math.max(p.spec.cloudCover, this.cloudOverride ?? 0, this.stormTarget) > 0.005) this.clouds.bake(engine.renderer);
     this.clouds.update(dt, altitude, u.uSurfTime.value, (engine?.tier ?? 2) === 0);
     this.aurora.update(dt);
   }
