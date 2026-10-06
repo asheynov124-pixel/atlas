@@ -1927,3 +1927,30 @@
   position: absolute;
   inset: -6px;
 }
+
+/* ───────────────────────────── shortcuts */
+.sc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 6px 22px;
+}
+.sc-group .cz-section-title {
+  margin: 8px 0 6px;
+}
+.sc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 34px;
+  font-size: 13.5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.sc-label {
+  color: var(--text-2);
+}
+.sc-keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

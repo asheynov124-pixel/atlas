@@ -152,7 +152,7 @@ export function paintPlanet(canvas: HTMLCanvasElement, o: PlanetArtOpts): Promis
   const rowsPerFrame = o.rowsPerFrame ?? 0;
 
   // ── phase A: maps
-  const MW = Math.max(96, Math.min(640, Math.round((Math.PI * 2 * R) / 2.4)));
+  const MW = Math.max(96, Math.min(512, Math.round((Math.PI * 2 * R) / 2.4)));
   const MH = MW >> 1;
   const mapH = new Float32Array(MW * MH);
   const mapC = new Float32Array(MW * MH);
@@ -164,15 +164,15 @@ export function paintPlanet(canvas: HTMLCanvasElement, o: PlanetArtOpts): Promis
     for (let i = 0; i < MW; i++) {
       const lon = ((i + 0.5) / MW) * Math.PI * 2;
       const x = cl * Math.cos(lon), y = sl, z = cl * Math.sin(lon);
-      const wx = noise.fbm(x * 1.6 + 3.1, y * 1.6, z * 1.6, 3) * 0.45;
-      const wy = noise.fbm(x * 1.6, y * 1.6 + 7.7, z * 1.6, 3) * 0.45;
-      let h = noise.fbm(x * 1.05 + wx, y * 1.05 + wy, z * 1.05, 5, 2.05, 0.5);
+      const wx = noise.fbm(x * 1.6 + 3.1, y * 1.6, z * 1.6, 2) * 0.45;
+      const wy = noise.fbm(x * 1.6, y * 1.6 + 7.7, z * 1.6, 2) * 0.45;
+      let h = noise.fbm(x * 1.05 + wx, y * 1.05 + wy, z * 1.05, 4, 2.05, 0.5);
       h += 0.22 * noise.noise(x * 0.5 + 9, y * 0.5, z * 0.5);
       const k = j * MW + i;
       mapH[k] = h;
-      mapC[k] = noise.fbm(x * 2.4 + 11 + wx, y * 4.2, z * 2.4 + wy, 4, 2.2, 0.55);
-      mapM[k] = noise.fbm(x * 3.1 + 5, y * 3.1, z * 3.1, 2);
-      if (o.cityLights) mapN[k] = sstep(0.42, 0.78, noise.noise(x * 26, y * 26, z * 26)) * sstep(0.05, 0.35, noise.fbm(x * 2.6, y * 2.6, z * 2.6, 2));
+      mapC[k] = noise.fbm(x * 2.4 + 11 + wx, y * 4.2, z * 2.4 + wy, 3, 2.2, 0.55);
+      mapM[k] = noise.noise(x * 3.1 + 5, y * 3.1, z * 3.1);
+      if (o.cityLights && h > thresh) mapN[k] = sstep(0.42, 0.78, noise.noise(x * 26, y * 26, z * 26)) * sstep(0.05, 0.35, wx + wy + 0.2);
       else if (P.lava) mapN[k] = Math.pow(sat((1 - Math.abs(noise.noise(x * 4.5, y * 4.5, z * 4.5)) - 0.84) * 7), 2);
     }
   };
@@ -207,13 +207,13 @@ export function paintPlanet(canvas: HTMLCanvasElement, o: PlanetArtOpts): Promis
       const v = lat / Math.PI + 0.5;
       const h = sample(mapH, lon, v);
       let cr: number, cg: number, cb: number;
-      const isWater = h < thresh;
-      if (isWater) {
-        const depth = sat((thresh - h) * 4);
-        cr = mix(P.ocean[0], P.oceanDeep[0], depth);
-        cg = mix(P.ocean[1], P.oceanDeep[1], depth);
-        cb = mix(P.ocean[2], P.oceanDeep[2], depth);
-      } else {
+      // anti-aliased coastline: blend water and land across a band about one pixel wide
+      const band = 1.6 / (R * 2.2);
+      const landF = P.hasOcean ? sstep(thresh - band, thresh + band, h) : 1;
+      const isWater = landF < 0.5;
+      const depth = sat((thresh - h) * 4);
+      const wr = mix(P.ocean[0], P.oceanDeep[0], depth), wg = mix(P.ocean[1], P.oceanDeep[1], depth), wb = mix(P.ocean[2], P.oceanDeep[2], depth);
+      {
         const e = sat((h - thresh) * 1.5);
         const moist = sample(mapM, lon, v) * 0.5 + 0.5;
         const t1 = sstep(0.0, 0.05, e);
@@ -223,6 +223,9 @@ export function paintPlanet(canvas: HTMLCanvasElement, o: PlanetArtOpts): Promis
         cg = mix(mix(P.shore[1], P.low[1], t1), mix(P.land[1], P.high[1], t2), t3);
         cb = mix(mix(P.shore[2], P.low[2], t1), mix(P.land[2], P.high[2], t2), t3);
       }
+      cr = mix(wr, cr, landF);
+      cg = mix(wg, cg, landF);
+      cb = mix(wb, cb, landF);
       const alat = Math.abs(ty);
       if (P.polar) {
         const ice = sstep(0.9, 0.95, alat + (h - thresh) * 0.06);
@@ -234,10 +237,10 @@ export function paintPlanet(canvas: HTMLCanvasElement, o: PlanetArtOpts): Promis
       const diff = sat(nl * 1.05 + 0.04);
       const day = sstep(-0.1, 0.25, nl);
       let lr = cr * (0.04 + diff), lg = cg * (0.04 + diff), lb = cb * (0.06 + diff);
-      if (isWater) {
+      if (landF < 1) {
         const hz = lz + 1;
         const hl = Math.hypot(lx, ly, hz);
-        const spec = Math.pow(sat((px * lx + py * ly + pz * hz) / hl), 70) * 0.85 * day;
+        const spec = Math.pow(sat((px * lx + py * ly + pz * hz) / hl), 70) * 0.85 * day * (1 - landF);
         lr += 255 * spec;
         lg += 245 * spec;
         lb += 230 * spec;

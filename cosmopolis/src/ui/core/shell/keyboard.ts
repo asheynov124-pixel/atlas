@@ -10,7 +10,8 @@ import { game } from '../../../game/instance';
 import { panels } from '../../registry';
 import { notify, ui } from '../../store';
 import { call, closeTopLayer, layerCount, openPanel, uiSound } from '../env';
-import { moreOpen, toggleDock, toggleTool, trayOpen } from './actions';
+import { toggleDock, toggleTool, trayOpen } from './actions';
+import { shortcutsOpen } from './Shortcuts';
 
 function typing(e: KeyboardEvent): boolean {
   const t = e.target as HTMLElement | null;
@@ -87,7 +88,7 @@ export function installKeyboard(): () => void {
       case '?':
       case 'f1':
         if (panels.has('help')) openPanel('help');
-        else moreOpen.value = !moreOpen.value;
+        else shortcutsOpen.value = !shortcutsOpen.value;
         break;
       default:
         handled = false;

@@ -30,9 +30,9 @@ export function MenuBackdrop({ planetType = 'terran' as const }: { planetType?: 
     const pc = planet.current;
     if (pc) {
       // planet disc radius ≈ 40 % of the width on phones, 30 % of the height on wide screens
-      const discR = Math.min(window.innerWidth * 0.4, window.innerHeight * 0.3);
+      const discR = Math.min(window.innerWidth * 0.36, window.innerHeight * 0.3);
       const css = Math.round(discR / 0.27);
-      const px = Math.round(css * Math.min(dpr, 1.5));
+      const px = Math.min(1200, Math.round(css * Math.min(dpr, 1.5)));
       pc.style.width = css + 'px';
       pc.style.height = css + 'px';
       void paintPlanet(pc, { type: planetType, seed: 2350, size: px, rings: true, cityLights: true, discFrac: 0.27, light: [-0.62, -0.38, 0.62], rowsPerFrame: 48 }).then(() => {

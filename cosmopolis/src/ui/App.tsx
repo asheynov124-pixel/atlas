@@ -26,6 +26,7 @@ import { LoadingOverlay } from './core/shell/Loading';
 import { MainMenu } from './core/shell/Menu';
 import { installNewItems } from './core/shell/newItems';
 import { PanelHost } from './core/shell/PanelHost';
+import { ShortcutsModal } from './core/shell/Shortcuts';
 import './core/shell/menu.css';
 import './core/shell/hud.css';
 
@@ -127,6 +128,7 @@ export function App() {
       <CelebrationHost />
       <ToastStack />
       <ConfirmHost />
+      <ShortcutsModal />
       <FpsMeter />
       <LoadingOverlay />
     </div>

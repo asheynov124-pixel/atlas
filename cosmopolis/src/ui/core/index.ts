@@ -31,6 +31,8 @@
  *        adaptive: bottom sheet (drag handle, detents, swipe-to-dismiss) · side panel on landscape phones · floating card on wide screens
  *   <Modal open onClose title icon subtitle size="sm|md|lg|xl" footer dismissible centered>   (bottom card on phones)
  *   <Drawer open onClose side="right|left" title icon width footer actions backdrop>          (tall sheet on phones)
+ *   <ConfirmDialog open title body okLabel cancelLabel danger onResult={(ok) => …}>   (or `await confirmDialog({...})`)
+ *   <ToastStack /> renders ui.toasts — already mounted by the App; post with notify({ title, body, kind, icon, tile })
  *   <Tabs tabs={[{id,label,icon,badge}]} value onChange variant="pills|underline" iconOnly>
  *   <Segmented options={[{value,label,icon,title}]} value onChange size="sm|md" block>
  *   <Slider value min max step onChange onCommit label format icon ticks color>
@@ -59,7 +61,7 @@ import './components.css';
 
 export { Button, IconButton, type ButtonProps, type IconButtonProps, type ButtonVariant, type ButtonSize } from './Button';
 export { Sheet, type SheetProps } from './Sheet';
-export { Modal, Drawer, ConfirmHost, type ModalProps, type DrawerProps } from './Modal';
+export { Modal, Drawer, ConfirmDialog, ConfirmHost, type ModalProps, type DrawerProps, type ConfirmDialogProps } from './Modal';
 export {
   Tabs,
   Segmented,

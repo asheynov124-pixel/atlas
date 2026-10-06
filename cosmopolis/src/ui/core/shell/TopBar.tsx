@@ -6,7 +6,7 @@
  */
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { game } from '../../../game/instance';
-import { Icon } from '../../icons';
+import { Icon, IconOrEmoji } from '../../icons';
 import { panels } from '../../registry';
 import { ui } from '../../store';
 import { Segmented } from '../controls';
@@ -171,7 +171,7 @@ function StatusTray({ open, onClose }: { open: boolean; onClose: () => void }) {
                     openPanel(id);
                   }}
                 >
-                  <Icon name={p.icon && p.icon.length > 3 ? p.icon : id === 'budget' ? 'budget' : id === 'stats' ? 'chart' : id === 'goals' ? 'goal' : 'policy'} size={16} />
+                  <IconOrEmoji value={p.icon ?? 'grid'} size={16} />
                   {p.title}
                 </button>
               );
@@ -309,8 +309,8 @@ export function TopBar() {
             aria-label="Change speed"
             onClick={() => {
               uiSound('tap');
-              const cur = Math.max(1, speed === 0 ? game.clock.lastSpeed || 1 : speed);
-              setSpeed(cur >= 4 ? 1 : cur + 1);
+              if (speed === 0) setSpeed(game.clock.lastSpeed || 1);
+              else setSpeed(speed >= 4 ? 1 : speed + 1);
             }}
           >
             {speed === 0 ? '‖' : `${speed}×`}

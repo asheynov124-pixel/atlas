@@ -211,7 +211,8 @@ class ThumbStudio {
       this.compiled = true;
       try {
         const compileAsync = (r as unknown as { compileAsync?: (s: Scene, c: PerspectiveCamera) => Promise<unknown> }).compileAsync;
-        if (typeof compileAsync === 'function') await compileAsync.call(r, this.scene, cam);
+        const parallel = r.extensions.has('KHR_parallel_shader_compile');
+        if (parallel && typeof compileAsync === 'function') await compileAsync.call(r, this.scene, cam);
       } catch {
         /* compile on first render instead */
       }

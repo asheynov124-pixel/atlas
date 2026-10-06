@@ -119,6 +119,55 @@ export function Drawer(p: DrawerProps) {
   );
 }
 
+export interface ConfirmDialogProps {
+  open: boolean;
+  title?: ComponentChildren;
+  body?: ComponentChildren;
+  okLabel?: string;
+  cancelLabel?: string;
+  /** destructive action: red button + warning icon */
+  danger?: boolean;
+  icon?: string;
+  /** true = confirmed, false = cancelled / dismissed */
+  onResult: (ok: boolean) => void;
+}
+
+/**
+ * A controlled yes/no dialog. For one-off questions prefer the promise API:
+ *   `if (await confirmDialog({ title: 'Demolish?', danger: true })) …`   (ui/store, rendered by ConfirmHost)
+ */
+export function ConfirmDialog(p: ConfirmDialogProps) {
+  const close = (ok: boolean) => {
+    uiSound(ok ? (p.danger ? 'bulldoze' : 'click') : 'close');
+    p.onResult(ok);
+  };
+  return (
+    <Modal
+      open={p.open}
+      onClose={() => close(false)}
+      size="sm"
+      centered
+      noClose
+      sound={false}
+      icon={p.icon ?? (p.danger ? 'alert' : 'help')}
+      title={p.title}
+      class={p.danger ? 'is-danger' : ''}
+      footer={
+        <div class="cz-confirm-actions">
+          <Button variant="glass" block onClick={() => close(false)} sound={false}>
+            {p.cancelLabel ?? 'Cancel'}
+          </Button>
+          <Button variant={p.danger ? 'danger' : 'primary'} block onClick={() => close(true)} sound={false}>
+            {p.okLabel ?? 'OK'}
+          </Button>
+        </div>
+      }
+    >
+      {p.body && <p class="cz-confirm-body">{p.body}</p>}
+    </Modal>
+  );
+}
+
 /** Renders `ui.confirm` (mounted once by the App shell). */
 export function ConfirmHost() {
   const live = ui.confirm.value;
@@ -126,34 +175,15 @@ export function ConfirmHost() {
   const last = useRef(live);
   if (live) last.current = live;
   const req = last.current;
-  const close = (ok: boolean) => {
-    if (!live) return;
-    uiSound(ok ? (live.danger ? 'bulldoze' : 'click') : 'close');
-    live.resolve(ok);
-  };
   return (
-    <Modal
+    <ConfirmDialog
       open={!!live}
-      onClose={() => close(false)}
-      size="sm"
-      centered
-      noClose
-      sound={false}
-      icon={req?.danger ? 'alert' : 'help'}
       title={req?.title}
-      class={req?.danger ? 'is-danger' : ''}
-      footer={
-        <div class="cz-confirm-actions">
-          <Button variant="glass" block onClick={() => close(false)} sound={false}>
-            {req?.cancelLabel ?? 'Cancel'}
-          </Button>
-          <Button variant={req?.danger ? 'danger' : 'primary'} block onClick={() => close(true)} sound={false}>
-            {req?.okLabel ?? 'OK'}
-          </Button>
-        </div>
-      }
-    >
-      {req?.body && <p class="cz-confirm-body">{req.body}</p>}
-    </Modal>
+      body={req?.body}
+      okLabel={req?.okLabel}
+      cancelLabel={req?.cancelLabel}
+      danger={req?.danger}
+      onResult={(ok) => live?.resolve(ok)}
+    />
   );
 }

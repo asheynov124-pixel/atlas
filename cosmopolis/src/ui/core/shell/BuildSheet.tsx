@@ -288,7 +288,7 @@ export function ItemDetail() {
             }}
             sound={false}
           >
-            {unlocked ? (afford ? 'Build' : 'Build anyway') : 'Locked'}
+            {unlocked ? 'Build' : 'Locked'}
           </Button>
         </div>
       }
