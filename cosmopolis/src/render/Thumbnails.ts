@@ -110,9 +110,11 @@ class ThumbStudio {
     return t;
   }
 
+  /** Soft room reflections for metal & glass — only on High/Ultra (PMREM costs a one-off shader compile). */
   private ensureEnv(r: WebGLRenderer): void {
     if (this.envTried) return;
     this.envTried = true;
+    if ((game?.engine?.tier ?? 1) < 2) return;
     try {
       const pm = new PMREMGenerator(r);
       const room = new RoomEnvironment();
@@ -147,7 +149,8 @@ class ThumbStudio {
 
     // framing: fit bbox corners + pedestal ring from a 3/4 elevated view
     const foot = FOOTPRINT_RADIUS[def?.footprint ?? 1] ?? 0.92;
-    const ringR = Math.max(foot, Math.abs(bb.min.x), Math.abs(bb.max.x), Math.abs(bb.min.z), Math.abs(bb.max.z)) * 1.06;
+    const ext = Math.hypot(Math.max(Math.abs(bb.min.x), Math.abs(bb.max.x)), Math.max(Math.abs(bb.min.z), Math.abs(bb.max.z)));
+    const ringR = Math.max(ext * 1.06, foot * 0.72);
     const pts: Vector3[] = [];
     for (let i = 0; i < 8; i++) pts.push(new Vector3(i & 1 ? bb.max.x : bb.min.x, i & 2 ? bb.max.y : bb.min.y, i & 4 ? bb.max.z : bb.min.z));
     for (let i = 0; i < 12; i++) {
@@ -256,7 +259,20 @@ class ThumbStudio {
       g.setIndex(null);
       g.dispose();
     }
-    if (pending) pixels = await pending;
+    if (pending) {
+      // GPU fences normally signal within a frame; if this one lags (software GL, busy GPU) read synchronously
+      const timedOut = Symbol('timeout');
+      const res = await Promise.race([pending, new Promise<typeof timedOut>((r) => setTimeout(() => r(timedOut), 250))]);
+      if (res === timedOut) {
+        pending.catch(() => {});
+        const prev = r.getRenderTarget();
+        try {
+          r.readRenderTargetPixels(rt, 0, 0, px, px, pixels);
+        } finally {
+          r.setRenderTarget(prev);
+        }
+      } else pixels = res;
+    }
     return this.compose(pixels, px, { cx: (eMinX + eMaxX) / 2, cy: (eMinY + eMaxY) / 2, rx: (eMaxX - eMinX) / 2, ry: (eMaxY - eMinY) / 2 });
   }
 

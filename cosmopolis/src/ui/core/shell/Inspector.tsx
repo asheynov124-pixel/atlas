@@ -118,6 +118,7 @@ function BuildingBody({ id, onClose }: { id: number; onClose: () => void }) {
       icon: 'paint',
       label: 'Paint',
       run: () => {
+        setSelection(null);
         selectTool({ id: 'paint', label: 'Paint' });
       },
     },

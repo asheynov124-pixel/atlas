@@ -873,14 +873,22 @@
   transform: scale(0.9);
 }
 @media (max-width: 599px) {
-  .tl-item {
-    max-width: 150px;
-  }
   .tl-bar {
     width: 100%;
+    flex-wrap: wrap;
+    row-gap: 6px;
   }
-  .tl-opts {
+  .tl-item {
     flex: 1 1 0;
+    max-width: none;
+  }
+  /* options get their own scrollable row under the tool on phones */
+  .tl-opts {
+    order: 3;
+    flex: 1 1 100%;
+    border-left: 0;
+    border-top: 1px solid var(--hairline);
+    padding: 6px 2px 0;
   }
 }
 

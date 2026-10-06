@@ -58,7 +58,7 @@ export function Sheet(p: SheetProps) {
   const [snap, setSnap] = useState(Math.min(p.initialSnap ?? 0, snaps.length - 1));
   const [hpx, setHpx] = useState(0);
   const sheetRef = useRef<HTMLElement>(null);
-  const drag = useRef({ active: false, id: -1, y0: 0, t0: 0, base: 0, last: 0, lastT: 0, v: 0, h: 1 });
+  const drag = useRef({ active: false, id: -1, y0: 0, t0: 0, base: 0, last: 0, lastT: 0, v: 0, h: 1, grip: false });
 
   useLayer(p.open, p.onClose);
 
@@ -101,6 +101,7 @@ export function Sheet(p: SheetProps) {
     d.v = 0;
     d.h = el.offsetHeight || 1;
     d.base = hiddenFrac * d.h;
+    d.grip = e.clientY - el.getBoundingClientRect().top < 30;
     try {
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     } catch {
@@ -141,7 +142,7 @@ export function Sheet(p: SheetProps) {
     }
     let best = 0;
     for (let i = 1; i < ys.length; i++) if (Math.abs(ys[i] - projected) < Math.abs(ys[best] - projected)) best = i;
-    if (Math.abs(e.clientY - d.y0) < 4 && performance.now() - d.t0 < 250 && snaps.length > 1) {
+    if (d.grip && Math.abs(e.clientY - d.y0) < 4 && performance.now() - d.t0 < 250 && snaps.length > 1) {
       // tap on the grip toggles between detents
       best = snap === snaps.length - 1 ? 0 : snaps.length - 1;
     }
