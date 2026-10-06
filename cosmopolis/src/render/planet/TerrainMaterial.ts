@@ -201,10 +201,22 @@ if ( tWall ) {
     tAlb = tAlb * ( 0.88 + 0.24 * plate ) * ( 1.0 - seam * 0.5 );
     float blink = step( 0.55, cHash12( vec2( vTile, floor( uSurfTime * 0.6 + plate * 7.0 ) ) ) );
     tEmit += vec3( 0.12, 0.85, 1.0 ) * seam * ( 0.06 + 1.1 * tNightF ) * ( 0.55 + 0.45 * blink ) * uGlow;
-    float dotL = 1.0 - smoothstep( 0.05, 0.08, length( vLocal ) );
-    tEmit += vec3( 1.0, 0.5, 0.2 ) * dotL * step( 0.7, plate ) * tNightF * 1.4 * uGlow;
-    tMetal = 0.72;
-    tRough = 0.36;
+    float rr = length( vLocal );
+    // plate variety: vent grilles, round hatches, status lights
+    if ( plate > 0.86 && tEd > 0.3 ) {
+      vec2 lr = vec2( vLocal.x * 0.8 - vLocal.y * 0.6, vLocal.x * 0.6 + vLocal.y * 0.8 );
+      float gr = step( 0.55, fract( lr.x * 9.0 ) ) * step( abs( lr.y ), 0.3 ) * step( abs( lr.x ), 0.4 );
+      tAlb *= 1.0 - gr * 0.55;
+      tEmit += vec3( 1.0, 0.45, 0.15 ) * gr * tNightF * 0.35 * uGlow;
+    } else if ( plate > 0.72 ) {
+      float hatch = 1.0 - smoothstep( 0.0, 0.02 + tFw, abs( rr - 0.32 ) );
+      tAlb = mix( tAlb, tAlb * 0.6, hatch );
+      tAlb = mix( tAlb, vec3( 0.75, 0.62, 0.15 ), ( 1.0 - smoothstep( 0.28, 0.3, rr ) ) * step( 0.79, plate ) * 0.35 );
+    }
+    float dotL = 1.0 - smoothstep( 0.05, 0.08, rr );
+    tEmit += mix( vec3( 1.0, 0.5, 0.2 ), vec3( 0.3, 1.0, 0.5 ), step( 0.5, fract( plate * 13.0 ) ) ) * dotL * step( 0.6, plate ) * ( 0.25 + 1.2 * tNightF ) * uGlow;
+    tMetal = 0.55;
+    tRough = 0.5;
   } else if ( tBiome == 19 ) {
     vec3 cell = floor( vWPos * 4.0 );
     float hs = tHash13( cell );
@@ -243,10 +255,11 @@ if ( tWall ) {
     float ember = step( 0.992, tHash13( floor( vWPos * 9.0 ) ) );
     tEmit += uLavaCol * ember * ( 0.4 + 0.6 * sin( uSurfTime * 3.0 + tNz * 20.0 ) ) * tNightF * uGlow;
   } else if ( tBiome != 24 ) {
-    tAlb *= ( 0.91 + 0.18 * tNz ) * ( 0.97 + 0.06 * tNoise( vWPos * 9.0 ) );
+    float fine = length( cameraPosition - vWPos ) < 45.0 ? tNoise( vWPos * 9.0 ) : 0.5;
+    tAlb *= ( 0.91 + 0.18 * tNz ) * ( 0.97 + 0.06 * fine );
   }
   // snow line on peaks
-  if ( tBiome != 14 && !tUnder ) {
+  if ( tBiome != 14 && !tUnder && uSnowLine < 20.0 ) {
     float snowA = smoothstep( uSnowLine, uSnowLine + 0.45, tH + ( tNz - 0.5 ) * 0.55 );
     tAlb = mix( tAlb, uSnowCol, snowA );
   }
@@ -436,7 +449,7 @@ export function createTerrainMaterial(u: SurfaceUniforms): MeshStandardMaterial 
       .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\n' + FRAG_MATERIAL)
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n totalEmissiveRadiance += tEmit;')
       .replace('#include <lights_fragment_end>', '#include <lights_fragment_end>\n' + FRAG_CLOUD_SHADOW)
-      .replace('#include <opaque_fragment>', '#include <opaque_fragment>\n gl_FragColor.rgb = tHaze( gl_FragColor.rgb, vWPos, tUp );');
+      .replace('#include <opaque_fragment>', '#include <opaque_fragment>\n if ( uAtmoDensity > 0.005 ) gl_FragColor.rgb = tHaze( gl_FragColor.rgb, vWPos, tUp );');
   };
   mat.customProgramCacheKey = () => 'cosmo-terrain-v1';
   return mat;

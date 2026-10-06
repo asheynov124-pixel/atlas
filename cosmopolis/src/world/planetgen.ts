@@ -923,12 +923,12 @@ function classify(type: PlanetTypeId, arch: PlanetArchetype, c: ClassIn): Biome 
   if (c.mark === M_SHELF) return Biome.Ice;
   switch (type) {
     case 'tundra': {
-      if (tr < -24) return lat > 0.85 && e <= 2 ? Biome.Ice : Biome.Snow;
-      if (cliff || mount > 0.55) return tr < -6 ? Biome.Snow : Biome.Rock;
-      if (shore) return Biome.Beach;
-      if (tr < -10) return m > 0.62 ? Biome.Forest : Biome.Tundra;
-      if (tr < 2) return m > 0.55 ? Biome.Forest : m > 0.4 ? Biome.Tundra : Biome.Grass;
-      return m > 0.6 ? Biome.Forest : m > 0.42 ? Biome.Grass : Biome.Meadow;
+      if (tr < -20) return lat > 0.85 && e <= 2 ? Biome.Ice : Biome.Snow;
+      if (cliff || mount > 0.55) return tr < -4 ? Biome.Snow : Biome.Rock;
+      if (shore) return tr < -8 ? Biome.Snow : Biome.Beach;
+      if (tr < -8) return m > 0.6 ? Biome.Forest : Biome.Tundra;
+      if (tr < 4) return m > 0.56 ? Biome.Forest : Biome.Tundra;
+      return m > 0.62 ? Biome.Forest : m > 0.4 ? Biome.Tundra : Biome.Grass;
     }
     case 'terran': {
       if (t < -11) return lat > 0.85 && e <= 2 ? Biome.Ice : Biome.Snow;

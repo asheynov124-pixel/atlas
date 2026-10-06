@@ -274,6 +274,8 @@ export class PlanetSurface {
     const blue = hsl.h > 0.45 && hsl.h < 0.7;
     u.uShallow.value.setHSL(hsl.h - (blue ? 0.06 : 0.01), Math.min(1, hsl.s * 1.05 + 0.1), Math.min(0.56, blue ? hsl.l * 0.9 + 0.12 : hsl.l * 0.8 + 0.06), SRGBColorSpace);
     u.uDeep.value.setHSL(hsl.h + (blue ? 0.015 : 0), Math.min(1, hsl.s * 1.1), hsl.l * 0.4, SRGBColorSpace);
+    // cold seas: steelier shallows
+    if (spec.temperature < 0) u.uShallow.value.lerp(u.uDeep.value, Math.min(0.4, -spec.temperature / 80));
     u.uMoonCol.value.setRGB(0.05, 0.07, 0.12);
   }
 
