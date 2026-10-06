@@ -96,6 +96,9 @@ export class PropRenderer {
         if (b) queue(b.tiles);
       }),
       bus.on('building:removed', ({ tiles }) => queue(tiles)),
+      bus.on('planet:sea', () => {
+        for (let t = 0; t < this.planet.count; t++) if (this.planet.feature[t] === Feature.Kelp) this.pending.add(t);
+      }),
       bus.on('prop:added', ({ id }) => {
         const pr = this.planet.props.get(id);
         if (pr) this.addProp(pr);
@@ -162,7 +165,10 @@ export class PropRenderer {
     }
     const inr = p.grid.inradius[t] * p.radius;
     const scale = Math.max(0.72, Math.min(1.1, inr));
-    tileMatrix(p, t, 0, _m, { yaw: (hash2(t, 7) % 6283) / 1000, scale });
+    // kelp grows up to (not through) the sea surface
+    let scaleY = 1;
+    if (p.feature[t] === Feature.Kelp && p.isWater(t)) scaleY = Math.max(0.25, Math.min(1, (p.waterHeight - p.heightOf(t) - 0.04) / 0.95));
+    tileMatrix(p, t, 0, _m, { yaw: (hash2(t, 7) % 6283) / 1000, scale, scaleY });
     const tint = TINTS[hash2(t, 3) % TINTS.length];
     const state = stateOf(p.flags[t]);
     if (h >= 0) {

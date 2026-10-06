@@ -57,7 +57,7 @@ const WILLOW = [0x7aa64a, 0x8db85a, 0x6f9a44];
 const LARCH = [0x9ab84a, 0xbab04a, 0x8aa844];
 const CAPS = [0x9a5ad0, 0x3fb8c0, 0xe0703a, 0xd04a8a, 0x6a7ae0];
 const GILLS = [0x7affd8, 0xff9af0, 0xfff07a, 0x9ac8ff];
-const CRYSTALS = [0xb9a4ff, 0x8ad8ff, 0xffa8e8, 0x9ffff0];
+const CRYSTALS = [0x9a7aff, 0x4ad0ff, 0xff6ad8, 0x6affd0];
 const BULBS = [0xc8ff4a, 0x7aff9a, 0xffe04a, 0x4affd0];
 const SNOW = 0xf4f8ff;
 
@@ -179,12 +179,12 @@ const DRAW: Record<TreeSpecies, (b: MeshBuilder, r: Rng) => void> = {
     const h = r.range(0.3, 0.36);
     b.lathe([[0.075, 0], [0.085, 0.06], [0.06, h * 0.6], [0.05, h]], { color: 0x9a8270, seg: b.lod ? 4 : 6, flat: true });
     const c = mix(pick(r, ACACIA), 0x5a8a3a, 0.4);
-    const n = b.lod ? 2 : 4;
+    const n = b.lod ? 2 : 3;
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2 + 0.4;
       b.group({ ry: a, y: h - 0.02 }, () => {
         if (!b.lod) b.cyl(0.012, 0.02, 0.12, { color: 0x8a7260, seg: 3, rz: 0.7, capTop: false, flat: true, detail: true });
-        blob(b, 0.08, 0.1, c, { x: 0.09, sy: 0.6 });
+        b.sphere(0.09, { color: c, mat: F, paint: true, flat: true, wSeg: 4, hSeg: 2, y: 0.1, x: 0.09, sy: 0.6 });
       });
     }
   },
@@ -252,17 +252,18 @@ const DRAW: Record<TreeSpecies, (b: MeshBuilder, r: Rng) => void> = {
     if (!b.lod) for (let i = 0; i < 3; i++) b.box(0.03, 0.012, 0.03, { color: 0xfff6e8, y: h + cr * 0.38, x: Math.cos(i * 2.1) * cr * 0.45, z: Math.sin(i * 2.1) * cr * 0.45, detail: true });
   },
   crystal(b, r) {
+    // a crystal "tree": a faceted trunk that splits into glowing shards
     const c = pick(r, CRYSTALS);
-    const h = r.range(0.4, 0.58);
-    b.prism(6, 0.045, h * 0.7, { color: c, mat: Mat.Plain, paint: true });
-    b.cone(0.045, h * 0.3, { color: mix(c, 0xffffff, 0.3), mat: Mat.Glow, seg: 6, y: h * 0.7, flat: true });
-    const n = b.lod ? 1 : 3;
+    const h = r.range(0.36, 0.5);
+    b.prism(6, 0.05, h * 0.62, { color: mix(c, 0xffffff, 0.3), paint: true, capTop: false });
+    b.cone(0.05, h * 0.3, { color: mix(c, 0xffffff, 0.35), mat: Mat.Glow, seg: 6, y: h * 0.62, flat: true });
+    const n = b.lod ? 2 : 3;
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2 + 0.3;
-      b.group({ ry: a, y: h * (0.25 + i * 0.12) }, () => {
-        b.group({ rz: 0.6, x: 0.02 }, () => {
-          b.prism(5, 0.022, 0.14, { color: shade(c, 1.1), mat: Mat.Plain, paint: true });
-          b.cone(0.022, 0.06, { color: mix(c, 0xffffff, 0.4), mat: Mat.Glow, seg: 5, y: 0.14, flat: true });
+      b.group({ ry: a, y: h * (0.3 + (i % 2) * 0.16) }, () => {
+        b.group({ rz: 0.62, x: 0.025 }, () => {
+          b.prism(5, 0.028, 0.18, { color: mix(c, 0xffffff, 0.4), paint: true, capTop: false });
+          b.cone(0.028, 0.08, { color: mix(c, 0xffffff, 0.45), mat: Mat.Glow, seg: 5, y: 0.18, flat: true });
         });
       });
     }
@@ -275,7 +276,7 @@ const DRAW: Record<TreeSpecies, (b: MeshBuilder, r: Rng) => void> = {
       const lean = r.range(0.12, 0.3);
       b.group({ ry: a }, () => {
         b.cyl(0.008, 0.016, h, { color: 0x6a8a3a, seg: 4, rz: lean, capTop: false, flat: true });
-        b.sphere(r.range(0.04, 0.06), { color: pick(r, BULBS), mat: Mat.Glow, wSeg: b.lod ? 4 : 5, hSeg: 3, flat: true, x: -Math.sin(lean) * h, y: Math.cos(lean) * h + 0.02 });
+        b.sphere(r.range(0.045, 0.065), { color: pick(r, BULBS), mat: Mat.Glow, wSeg: 4, hSeg: 3, flat: true, x: -Math.sin(lean) * h, y: Math.cos(lean) * h + 0.02 });
       });
     }
     if (!b.lod) for (let i = 0; i < 3; i++) b.group({ ry: i * 2.1 }, () => b.pyramid(0.06, 0.12, 0.02, { color: 0x5a7a2e, mat: F, paint: true, rx: 1.1, detail: true }));
@@ -284,7 +285,7 @@ const DRAW: Record<TreeSpecies, (b: MeshBuilder, r: Rng) => void> = {
     const h = r.range(0.5, 0.7);
     const c = 0x8a929c;
     for (const [sx, sz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) b.group({ x: sx * 0.05, z: sz * 0.05 }, () => b.box(0.014, h * 0.85, 0.014, { color: c, mat: Mat.Plain, rx: -sz * 0.06, rz: sx * 0.06 }));
-    if (!b.lod) for (let i = 1; i < 4; i++) b.box(0.1 - i * 0.012, 0.01, 0.1 - i * 0.012, { color: shade(c, 0.85), mat: Mat.Plain, y: (h * 0.85 * i) / 4, detail: true });
+    if (!b.lod) for (let i = 1; i < 3; i++) b.box(0.1 - i * 0.016, 0.01, 0.1 - i * 0.016, { color: shade(c, 0.85), mat: Mat.Plain, y: (h * 0.85 * i) / 3, detail: true });
     b.cyl(0.006, 0.01, h * 0.25, { color: c, mat: Mat.Plain, seg: 3, y: h * 0.82, capTop: false });
     b.box(0.022, 0.022, 0.022, { color: 0xff4040, mat: Mat.Light, y: h * 1.05 });
     if (!b.lod) b.box(0.12, 0.012, 0.012, { color: 0x4ae0ff, mat: Mat.Glow, y: h * 0.62, ry: r.range(0, 3), detail: true });

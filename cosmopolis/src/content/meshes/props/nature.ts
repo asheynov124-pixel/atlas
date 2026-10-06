@@ -163,7 +163,7 @@ function undergrowth(mixId: string): TreeSpecies | null {
     case 'swamp':
       return 'fern';
     case 'toxic':
-      return 'bulb';
+      return null;
     default:
       return 'shrub';
   }
@@ -206,7 +206,7 @@ interface Pal {
 }
 
 const PAL: Record<string, Pal> = {
-  terran: { rock: 0x8a8578, rock2: 0x9c978a, snow: false, crystal: [0x7ad8ff, 0xb9a4ff], ruin: 0xcdbb94, rune: 0x5afff0, flowers: [0xff5a6a, 0xffd23a, 0xffffff, 0xb07aff, 0xff9a3a], plume: 0xd0ff9a },
+  terran: { rock: 0x8a8578, rock2: 0x9c978a, snow: false, crystal: [0x4ad0ff, 0x9a7aff], ruin: 0xcdbb94, rune: 0x5afff0, flowers: [0xff5a6a, 0xffd23a, 0xffffff, 0xb07aff, 0xff9a3a], plume: 0xd0ff9a },
   desert: { rock: 0xb87a4a, rock2: 0xc98f5c, snow: false, crystal: [0xffb84a, 0xff7a4a], ruin: 0xe0c08a, rune: 0x4ad8ff, flowers: [0xff6fa0, 0xffd04a, 0xffffff], plume: 0xffd27a },
   arctic: { rock: 0x8392a2, rock2: 0x9aa8b6, snow: true, crystal: [0x9fe8ff, 0xd0f4ff], ruin: 0xc8d4e0, rune: 0x7ae0ff, flowers: [0xe8f6ff, 0x9fd8ff, 0xc8b8ff], plume: 0xe0f0ff },
   volcanic: { rock: 0x3a302c, rock2: 0x4a3c36, snow: false, crystal: [0xff5a2a, 0xffa02a], ruin: 0x5a4a44, rune: 0xff7a2a, flowers: [0xff7a2a, 0xffc04a], plume: 0xffb08a },
@@ -214,7 +214,7 @@ const PAL: Record<string, Pal> = {
   jungle: { rock: 0x6f7a62, rock2: 0x7f8a6c, snow: false, crystal: [0x7aff9a, 0x4ad8a0], ruin: 0x9aa47a, rune: 0x8aff5a, flowers: [0xff3a7a, 0xffa02a, 0xc05aff, 0xffe04a], plume: 0xc8ff8a },
   barren: { rock: 0x9a958c, rock2: 0xaaa59a, snow: false, crystal: [0x9ab8ff, 0xd0d8ff], ruin: 0xa8a49c, rune: 0x7ad0ff, flowers: [0x9affe0, 0xd0e0ff], plume: 0xd8e4f0 },
   toxic: { rock: 0x6a6a52, rock2: 0x7a7858, snow: false, crystal: [0xb8ff3a, 0x7aff5a], ruin: 0x7a7a5a, rune: 0xc8ff3a, flowers: [0xc8ff4a, 0x7aff9a, 0xffe04a], plume: 0xa8ff4a },
-  crystal: { rock: 0x8a80a0, rock2: 0x9a90b4, snow: false, crystal: [0xb9a4ff, 0x8ad8ff, 0xffa8e8], ruin: 0xd8d0f0, rune: 0xffa8ff, flowers: [0xffa8e8, 0x8ad8ff, 0xb9a4ff], plume: 0xe8c8ff },
+  crystal: { rock: 0x8a80a0, rock2: 0x9a90b4, snow: false, crystal: [0x9a7aff, 0x4ad0ff, 0xff6ad8, 0x6affd0], ruin: 0xd8d0f0, rune: 0xffa8ff, flowers: [0xffa8e8, 0x8ad8ff, 0xb9a4ff], plume: 0xe8c8ff },
   fungal: { rock: 0x7a6a7a, rock2: 0x8a7a8a, snow: false, crystal: [0xff9af0, 0x9ac8ff], ruin: 0xa89aa8, rune: 0xff9af0, flowers: [0x7affd8, 0xff9af0, 0xfff07a], plume: 0xe0b8ff },
   tundra: { rock: 0x7f8288, rock2: 0x90939a, snow: false, crystal: [0x9fe8ff, 0xb9a4ff], ruin: 0xb0b4b8, rune: 0x7ae0ff, flowers: [0xffffff, 0xd0a0ff, 0xffe080], plume: 0xe0f0ff },
   machine: { rock: 0x5a606a, rock2: 0x6a707a, snow: false, crystal: [0x4ae0ff, 0x9a7aff], ruin: 0x6a707a, rune: 0x4ae0ff, flowers: [0x4ae0ff, 0xff4ad8], plume: 0x7ad8ff },
@@ -264,18 +264,18 @@ function ore(b: MeshBuilder, p: Pal, rng: Rng): void {
 }
 
 function crystals(b: MeshBuilder, p: Pal, rng: Rng, scale = 1): void {
-  const pts = scatter(rng, b.lod ? 3 : rng.int(5, 7), 0.48 * scale, 0.14);
+  const pts = scatter(rng, b.lod ? 3 : rng.int(5, 7), 0.42 * scale, 0.12);
   pts.forEach(([x, z], i) => {
     const c = p.crystal[i % p.crystal.length];
-    const h = (i === 0 ? 0.42 : rng.range(0.14, 0.3)) * scale;
-    const r = (i === 0 ? 0.06 : rng.range(0.025, 0.045)) * scale;
-    b.group({ x, z, rx: rng.range(-0.35, 0.35), rz: rng.range(-0.35, 0.35), ry: rng.range(0, 3) }, () => {
-      b.prism(6, r, h * 0.72, { color: c, mat: Mat.Plain });
-      b.cone(r, h * 0.28, { color: mix(c, 0xffffff, 0.35), mat: Mat.Glow, seg: 6, y: h * 0.72, flat: true });
+    const h = (i === 0 ? 0.5 : rng.range(0.18, 0.34)) * scale;
+    const r = (i === 0 ? 0.075 : rng.range(0.03, 0.055)) * scale;
+    b.group({ x, z, rx: i ? rng.range(-0.45, 0.45) : 0, rz: i ? rng.range(-0.45, 0.45) : 0, ry: rng.range(0, 3) }, () => {
+      b.prism(6, r, h * 0.7, { color: mix(c, 0xffffff, 0.38), mat: Mat.Plain });
+      b.cone(r, h * 0.3, { color: mix(c, 0xffffff, 0.15), mat: Mat.Glow, seg: 6, y: h * 0.7, flat: true });
     });
   });
   // glowing ground halo
-  if (!b.lod) b.cyl(0.3 * scale, 0.34 * scale, 0.012, { color: shade(p.crystal[0], 0.55), mat: Mat.Glow, seg: 8, flat: true, detail: true });
+  if (!b.lod) b.cyl(0.26 * scale, 0.3 * scale, 0.012, { color: shade(p.crystal[0], 0.45), mat: Mat.Glow, seg: 8, flat: true, detail: true });
 }
 
 function ice(b: MeshBuilder, rng: Rng): void {
@@ -291,25 +291,36 @@ function ice(b: MeshBuilder, rng: Rng): void {
   });
 }
 
+/** Billowing stylised plume: stacked flat-shaded puffs drifting sideways as they rise. */
+function plume(b: MeshBuilder, rng: Rng, base: number, color: number, holoCore: boolean): void {
+  const n = b.lod ? 2 : 4;
+  let x = 0, z = 0;
+  for (let i = 0; i < n; i++) {
+    const r = 0.07 + i * 0.035;
+    const y = base + 0.06 + i * 0.13 + r * 0.5;
+    x += rng.range(-0.03, 0.05);
+    z += rng.range(-0.03, 0.03);
+    b.sphere(r, { color: shade(color, 1 - i * 0.04), wSeg: b.lod ? 4 : 6, hSeg: 3, flat: true, x, z, y, sy: 0.85 });
+  }
+  if (holoCore) b.cyl(0.05, 0.03, 0.34, { color, mat: Mat.Holo, seg: 6, y: base, capTop: false, flat: true, detail: true });
+}
+
 function gasVent(b: MeshBuilder, p: Pal, rng: Rng): void {
   b.cyl(0.32, 0.38, 0.03, { color: shade(p.rock, 0.6), seg: 9, flat: true, top: shade(p.rock, 0.45) });
   b.cyl(0.07, 0.14, 0.09, { color: shade(p.rock, 0.75), seg: 7, y: 0.03, flat: true, top: 0x1a1a1a });
-  // the holographic gas plume
-  b.cyl(0.13, 0.06, 0.62, { color: p.plume, mat: Mat.Holo, seg: 7, y: 0.11, capTop: false, flat: true });
-  if (!b.lod) {
-    b.sphere(0.1, { color: p.plume, mat: Mat.Holo, wSeg: 5, hSeg: 3, y: 0.78, x: 0.04, flat: true, detail: true });
-    b.sphere(0.06, { color: p.plume, mat: Mat.Holo, wSeg: 4, hSeg: 2, y: 0.95, x: -0.03, flat: true, detail: true });
-    for (const [x, z] of scatter(rng, 3, 0.4, 0.15)) b.box(0.06, 0.04, 0.05, { color: shade(p.rock, 0.8), x, z, ry: rng.range(0, 3), detail: true });
-  }
+  // exotic gas: a glowing holo core inside a coloured billow
+  plume(b, rng, 0.11, mix(p.plume, 0xffffff, 0.35), true);
+  b.cyl(0.08, 0.08, 0.01, { color: p.plume, mat: Mat.Glow, seg: 7, y: 0.115, flat: true });
+  if (!b.lod) for (const [x, z] of scatter(rng, 3, 0.4, 0.15)) b.box(0.06, 0.04, 0.05, { color: shade(p.rock, 0.8), x, z, ry: rng.range(0, 3), detail: true });
 }
 
 function geoVent(b: MeshBuilder, p: Pal, rng: Rng): void {
   b.cyl(0.12, 0.36, 0.12, { color: shade(p.rock, 0.85), seg: 8, flat: true, top: 0x2a2220 });
   b.cyl(0.09, 0.09, 0.012, { color: 0xff6a20, mat: Mat.Lava, seg: 8, y: 0.12, flat: true });
   // lava cracks down the flanks
-  for (let i = 0; i < (b.lod ? 1 : 3); i++) b.box(0.025, 0.012, 0.22, { color: 0xff5a1a, mat: Mat.Lava, ry: i * 2.1 + rng.range(0, 0.5), z: 0.0, x: 0, y: 0.05, rx: 0.45 });
-  b.cyl(0.09, 0.05, 0.5, { color: 0xe8eef4, mat: Mat.Holo, seg: 6, y: 0.13, capTop: false, flat: true });
-  if (!b.lod) b.sphere(0.09, { color: 0xe8eef4, mat: Mat.Holo, wSeg: 5, hSeg: 3, y: 0.68, flat: true, detail: true });
+  for (let i = 0; i < (b.lod ? 1 : 3); i++) b.box(0.025, 0.012, 0.22, { color: 0xff5a1a, mat: Mat.Lava, ry: i * 2.1 + rng.range(0, 0.5), y: 0.05, rx: 0.45 });
+  // white steam
+  plume(b, rng, 0.12, 0xf2f4f6, false);
 }
 
 function stoneRuins(b: MeshBuilder, p: Pal, rng: Rng): void {
@@ -355,7 +366,7 @@ function flowers(b: MeshBuilder, p: Pal, rng: Rng, flavour: string): void {
   const carpets = scatter(rng, b.lod ? 2 : 4, 0.5, 0.3);
   carpets.forEach(([x, z], i) => {
     const c = p.flowers[(i + 1) % p.flowers.length];
-    b.cyl(rng.range(0.16, 0.24), rng.range(0.18, 0.26), 0.008, { color: mix(c, 0x6aaa44, 0.35), mat: glow ? Mat.Glow : Mat.Plain, seg: 7, x, z, flat: true, sx: rng.range(0.8, 1.2) });
+    b.cyl(rng.range(0.13, 0.2), rng.range(0.15, 0.22), 0.008, { color: mix(c, 0x6aaa44, 0.45), mat: Mat.Plain, seg: 7, x, z, flat: true, sx: rng.range(0.8, 1.2) });
   });
   const n = b.lod ? 5 : rng.int(9, 12);
   const pts = scatter(rng, n, 0.62, 0.13);
@@ -443,46 +454,62 @@ function crater(b: MeshBuilder, p: Pal, rng: Rng): void {
   if (!b.lod) for (const [x, z] of scatter(rng, 4, 0.6, 0.2)) if (x * x + z * z > 0.2) b.box(0.05, 0.03, 0.04, { color: p.rock2, x, z, y: 0.03, ry: rng.range(0, 3), detail: true });
 }
 
+/** Per-feature cluster scale (features must read at play distance on a 2-unit tile). */
+const FEATURE_SCALE: Partial<Record<number, number>> = {
+  [Feature.Rocks]: 1.5,
+  [Feature.Ore]: 1.5,
+  [Feature.CrystalDeposit]: 1.9,
+  [Feature.IceDeposit]: 1.5,
+  [Feature.GasVent]: 1.45,
+  [Feature.GeoVent]: 1.45,
+  [Feature.Ruins]: 1.35,
+  [Feature.AlienFlora]: 1.3,
+  [Feature.Kelp]: 1.4,
+  [Feature.Rubble]: 1.3,
+};
+
 /** Draw a non-forest feature cluster. Unknown features draw nothing (caller skips empty geometry). */
 export function drawFeature(b: MeshBuilder, feature: number, flavour: string, rng: Rng, biome = -1): void {
   const p = palOf(flavour);
-  switch (feature) {
-    case Feature.Rocks:
-      rocks(b, p, rng);
-      break;
-    case Feature.Ore:
-      ore(b, p, rng);
-      break;
-    case Feature.CrystalDeposit:
-      crystals(b, p, rng);
-      break;
-    case Feature.IceDeposit:
-      ice(b, rng);
-      break;
-    case Feature.GasVent:
-      gasVent(b, p, rng);
-      break;
-    case Feature.GeoVent:
-      geoVent(b, p, rng);
-      break;
-    case Feature.Ruins:
-      if (flavour.startsWith('machine')) machineRuins(b, p, rng);
-      else stoneRuins(b, p, rng);
-      break;
-    case Feature.Flowers:
-      flowers(b, p, rng, flavour);
-      break;
-    case Feature.AlienFlora:
-      alienFlora(b, p, rng, flavour);
-      break;
-    case Feature.Kelp:
-      kelp(b, rng, biome === Biome.Coral);
-      break;
-    case Feature.Rubble:
-      rubble(b, rng);
-      break;
-    case Feature.Crater:
-      crater(b, p, rng);
-      break;
-  }
+  b.group({ s: FEATURE_SCALE[feature] ?? 1 }, () => {
+    switch (feature) {
+      case Feature.Rocks:
+        rocks(b, p, rng);
+        break;
+      case Feature.Ore:
+        ore(b, p, rng);
+        break;
+      case Feature.CrystalDeposit:
+        crystals(b, p, rng);
+        break;
+      case Feature.IceDeposit:
+        ice(b, rng);
+        break;
+      case Feature.GasVent:
+        gasVent(b, p, rng);
+        break;
+      case Feature.GeoVent:
+        geoVent(b, p, rng);
+        break;
+      case Feature.Ruins:
+        if (flavour.startsWith('machine')) machineRuins(b, p, rng);
+        else stoneRuins(b, p, rng);
+        break;
+      case Feature.Flowers:
+        flowers(b, p, rng, flavour);
+        break;
+      case Feature.AlienFlora:
+        alienFlora(b, p, rng, flavour);
+        break;
+      case Feature.Kelp:
+        kelp(b, rng, biome === Biome.Coral);
+        break;
+      case Feature.Rubble:
+        rubble(b, rng);
+        break;
+      case Feature.Crater:
+        crater(b, p, rng);
+        break;
+    }
+  });
 }
