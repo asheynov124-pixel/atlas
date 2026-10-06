@@ -32,7 +32,7 @@ import { Quaternion, Ray, Vector2, Vector3, type PerspectiveCamera } from 'three
 import type { Game } from '../game/Game';
 import type { System } from '../game/System';
 import type { PlanetView } from './PlanetView';
-import { getItem } from '../content/catalog';
+import { getGeometry, getItem } from '../content/catalog';
 import { settings } from '../core/settings';
 import { pickTile, tileNormal } from '../world/geo';
 import { homeSite } from '../world/planetgen';
@@ -143,6 +143,7 @@ const _ray = new Ray();
 const _ndc = new Vector2();
 const _m = new Vector2();
 const _zp = new Vector3();
+const _clr = { lift: 0, building: false };
 const Y = new Vector3(0, 1, 0);
 
 function curve(table: [number, number][], z: number): number {
@@ -230,6 +231,9 @@ export class CameraRig implements System {
   private followLift = 0;
   private tour: { keys: TourKey[]; t: number; chrome: boolean } | null = null;
   private lastNear = 0;
+  /** anti-clip boom length (1 = full distance; < 1 = pulled in toward the look point by a building) */
+  private boom = 1;
+  private heights = new Map<number, { defId: string; level: number; variant: number; style: string; h: number }>();
   private lastFar = 0;
   private rect: DOMRect | null = null;
   private rectT = 0;
@@ -256,6 +260,8 @@ export class CameraRig implements System {
     this.elastic = 0;
     this.lift = 0;
     this.clipLift = 0;
+    this.boom = 1;
+    this.heights.clear();
     // look at the city (or the recommended settlement site)
     const site = this.citySite();
     tileNormal(p, site, this.target);
@@ -334,17 +340,68 @@ export class CameraRig implements System {
     return p.spec.hasOcean ? Math.max(h, p.waterHeight) : h;
   }
 
-  /** Top of whatever stands on a tile (terrain, water or building), above the planet radius. */
-  private obstacleTop(tile: number): number {
+  /** Is the camera inside a building with the boom at `boom` (uses the frame in _l / _up / _f)? */
+  private blockedAt(boom: number, d: number, ct: number, st: number, pad: number): boolean {
+    _p.copy(_l).addScaledVector(_up, ct * d * boom).addScaledVector(_f, -st * d * boom);
+    return this.clearance(_p, pad).building;
+  }
+
+  /** Height of a building's mesh above its tile (geometry bounds, cached per building). */
+  private buildingHeight(id: number): number {
     const p = this.view!.planet;
-    let h = this.surfaceAt(tile);
-    const bid = p.building[tile];
-    if (bid >= 0) {
-      const b = p.buildings.get(bid);
-      const def = b ? getItem(b.defId) : undefined;
-      if (def) h += (def.height ?? 2) * (def.growable ? 0.5 + 0.12 * b!.level : 1.05);
+    const b = p.buildings.get(id);
+    if (!b) return 0;
+    const c = this.heights.get(id);
+    if (c && c.defId === b.defId && c.level === b.level && c.variant === b.variant && c.style === b.style) return c.h;
+    let h = 0;
+    const def = getItem(b.defId);
+    try {
+      const geo = getGeometry(b.defId, { variant: b.variant, level: b.level, style: b.style });
+      if (geo) {
+        if (!geo.boundingBox) geo.computeBoundingBox();
+        h = geo.boundingBox ? geo.boundingBox.max.y * 1.08 : 0;
+      }
+    } catch {
+      h = 0;
     }
+    if (!(h > 0)) h = (def?.height ?? 2) * (def?.growable ? 0.5 + 0.12 * b.level : 1.05);
+    if (this.heights.size > 4096) this.heights.clear();
+    this.heights.set(id, { defId: b.defId, level: b.level, variant: b.variant, style: b.style, h });
     return h;
+  }
+
+  /**
+   * How far `pos` must rise to clear terrain / water around it (tiles whose hexagon it is over or near), and
+   * whether a building is in the way (then the boom pulls in first). Allocation-free.
+   */
+  private clearance(pos: Vector3, pad: number): { lift: number; building: boolean } {
+    const p = this.view!.planet;
+    const g = p.grid;
+    const R = p.radius;
+    const C = g.center;
+    const len = pos.length();
+    const ux = pos.x / len, uy = pos.y / len, uz = pos.z / len;
+    const t0 = g.tileAt(pos.x, pos.y, pos.z);
+    const alt = len - R;
+    let lift = 0;
+    let building = false;
+    for (let q = g.start[t0] - 1; q < g.start[t0 + 1]; q++) {
+      const t = q < g.start[t0] ? t0 : g.nbr[q];
+      // horizontal distance from the tile centre (world units)
+      const dx = ux - C[t * 3], dy = uy - C[t * 3 + 1], dz = uz - C[t * 3 + 2];
+      const hd = Math.sqrt(dx * dx + dy * dy + dz * dz) * R;
+      const rad = g.inradius[t] * R;
+      const ground = this.surfaceAt(t);
+      if (hd < rad * 1.12 + pad) lift = Math.max(lift, ground + pad - alt);
+      const bid = p.building[t];
+      if (bid >= 0 && hd < rad * 1.02 + pad) {
+        const top = ground + this.buildingHeight(bid) + pad;
+        if (top > alt) building = true;
+      }
+    }
+    _clr.lift = lift;
+    _clr.building = building;
+    return _clr;
   }
 
   // ─────────────────────────────────────────────── programmatic control
@@ -425,7 +482,7 @@ export class CameraRig implements System {
     this.tilt = this.goal.tilt;
     if (this.view) {
       this.groundH = this.surfaceAt(this.targetTile());
-      this.applyPose(0);
+      this.applyPose(0, true);
     }
   }
 
@@ -1055,7 +1112,7 @@ export class CameraRig implements System {
   }
 
   /** Position the camera from the current state (with anti-clip + shake) and refresh matrices. */
-  private applyPose(dt: number): void {
+  private applyPose(dt: number, settle = false): void {
     const v = this.view;
     if (!v) return;
     const cam: PerspectiveCamera = v.camera;
@@ -1068,16 +1125,42 @@ export class CameraRig implements System {
     const ct = Math.cos(tilt), st = Math.sin(tilt);
     _p.copy(_l).addScaledVector(_up, ct * d).addScaledVector(_f, -st * d);
     _cu.copy(_up).multiplyScalar(st).addScaledVector(_f, ct);
-    // anti-clip: stay above terrain, water and building tops around the camera
+    // anti-clip. Buildings: pull the boom in toward the look point (street views survive in downtown);
+    // terrain / water: lift. The boom snaps in instantly and relaxes back out only through clear space.
+    const pad = 0.28 + d * 0.01;
     const g = p.grid;
-    const ct0 = g.tileAt(_p.x, _p.y, _p.z);
-    let top = this.obstacleTop(ct0);
-    for (let q = g.start[ct0]; q < g.start[ct0 + 1]; q++) top = Math.max(top, this.obstacleTop(g.nbr[q]));
-    const need = R + top + 0.32 + d * 0.012 - _p.length();
-    if (need > this.clipLift) this.clipLift = need;
+    let boom = this.boom;
+    if (dt > 0 || settle) {
+      const lookBlocked = p.building[this.targetTile()] >= 0;
+      if (lookBlocked) boom = 1;
+      else {
+        // relax outward; if that runs into a building keep the last clear length, or pull in until clear
+        let next = settle ? 1 : boom + (1 - boom) * (1 - Math.exp(-dt * 2.2));
+        if (next > 0.999) next = 1;
+        if (this.blockedAt(next, d, ct, st, pad)) {
+          next = boom;
+          for (let k = 0; k < 10 && next > 0.12 && this.blockedAt(next, d, ct, st, pad); k++) next = Math.max(0.12, next - 0.1);
+        }
+        boom = next;
+      }
+      this.boom = boom;
+    }
+    _p.copy(_l).addScaledVector(_up, ct * d * boom).addScaledVector(_f, -st * d * boom);
+    // whatever still blocks (terrain, a tower under the look point): rise above it
+    const c = this.clearance(_p, pad);
+    let need = c.lift;
+    if (c.building) {
+      // inside a building we could not pull out of: clear its roof
+      const t0 = g.tileAt(_p.x, _p.y, _p.z);
+      const bid = p.building[t0];
+      if (bid >= 0) need = Math.max(need, this.surfaceAt(t0) + this.buildingHeight(bid) + pad - (_p.length() - R));
+    }
+    if (settle) this.clipLift = Math.max(0, need);
+    else if (need > this.clipLift) this.clipLift = need;
     else if (dt > 0) this.clipLift += (Math.max(0, need) - this.clipLift) * (1 - Math.exp(-dt * 2.5));
     else this.clipLift = Math.max(0, Math.max(need, this.clipLift));
     if (this.clipLift > 0) _p.addScaledVector(_a.copy(_p).normalize(), this.clipLift);
+    const ct0 = g.tileAt(_p.x, _p.y, _p.z);
     // shake (smooth layered noise)
     if (this.shakeT > 0 && dt > 0) {
       this.shakeT = Math.max(0, this.shakeT - dt);

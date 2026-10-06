@@ -177,21 +177,42 @@ describe('CameraRig', () => {
 
   it('never clips into the ground or a tall tower', () => {
     const p = r.planet;
-    // a tall tower right where the street-level camera wants to be
+    const tower = (tile: number, id: number) => {
+      p.buildings.set(id, { id, defId: 'tc_tower', tile, tiles: [tile], rot: 0, level: 1, variant: 0, style: 'classic', state: 0, builtDay: 0 });
+      p.building[tile] = id;
+    };
+    const inside = (): boolean => {
+      const c = r.cam.position;
+      const t = p.grid.tileAt(c.x, c.y, c.z);
+      const bid = p.building[t];
+      return bid >= 0 && c.length() < p.radius + p.heightOf(t) + 31.5;
+    };
+    // street level, then a tall tower right where the camera wants to be: the boom pulls in toward the look point
     r.rig.autoTilt = true;
     r.rig.zoomBy(1e-4);
     settle(r, 3);
+    const full = r.cam.position.distanceTo(r.rig.target.clone().multiplyScalar(p.radius + 0.64));
     const camTile = p.grid.tileAt(r.cam.position.x, r.cam.position.y, r.cam.position.z);
-    p.buildings.set(1, { id: 1, defId: 'tc_tower', tile: camTile, tiles: [camTile], rot: 0, level: 1, variant: 0, style: 'classic', state: 0, builtDay: 0 });
-    p.building[camTile] = 1;
+    tower(camTile, 1);
     settle(r, 1);
-    const ground = p.radius + p.heightOf(camTile);
-    expect(r.cam.position.length()).toBeGreaterThan(ground + 30);
+    expect(inside()).toBe(false);
+    const pulled = r.cam.position.distanceTo(r.rig.target.clone().multiplyScalar(p.radius + 0.64));
+    expect(pulled).toBeLessThan(full - 0.05);
+    // the camera is never below its own ground
+    const below = p.grid.tileAt(r.cam.position.x, r.cam.position.y, r.cam.position.z);
+    expect(r.cam.position.length() - (p.radius + p.heightOf(below))).toBeGreaterThan(0.25);
+    // the tower goes away: the boom relaxes back out
     p.building[camTile] = -1;
     p.buildings.delete(1);
     settle(r, 4);
-    expect(r.cam.position.length() - (p.radius + p.heightOf(camTile))).toBeGreaterThan(0.3);
-    expect(r.cam.position.length() - (p.radius + p.heightOf(camTile))).toBeLessThan(5);
+    const back = r.cam.position.distanceTo(r.rig.target.clone().multiplyScalar(p.radius + 0.64));
+    expect(back).toBeCloseTo(full, 1);
+    // looking at the foot of a tower from inside its footprint: rise above the roof
+    const look = r.rig.targetTile();
+    tower(look, 2);
+    for (const n of p.grid.neighbors(look)) tower(n, 3 + n);
+    settle(r, 1);
+    expect(inside()).toBe(false);
   });
 
   it('flings with inertia after a quick drag and then comes to rest', () => {

@@ -93,6 +93,17 @@ export class InputController implements System {
       el.addEventListener(type, h, opts);
       this.offs.push(() => el.removeEventListener(type, h, opts));
     };
+    // what kind of pointer the player uses (UI taps count too: the first touch of a session is usually a menu)
+    try {
+      if (matchMedia('(pointer: coarse)').matches) this.lastPointerType = 'touch';
+    } catch {
+      /* no media queries */
+    }
+    const kind = (e: PointerEvent) => {
+      this.lastPointerType = e.pointerType === 'touch' || e.pointerType === 'pen' ? e.pointerType : 'mouse';
+    };
+    window.addEventListener('pointerdown', kind, { capture: true, passive: true });
+    this.offs.push(() => window.removeEventListener('pointerdown', kind, { capture: true }));
     on('pointerdown', (e) => this.onDown(e));
     on('pointermove', (e) => this.onMove(e));
     on('pointerup', (e) => this.onUp(e, false));
