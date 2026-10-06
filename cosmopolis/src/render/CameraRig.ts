@@ -1086,6 +1086,8 @@ export class CameraRig implements System {
       }
       if (this.elastic > 1e-4) this.elastic *= Math.exp(-dt * 7);
       else this.elastic = 0;
+      // back out in orbit, the automatic tilt curve takes over again
+      if (!this.autoTilt && !this.pinch && this.goal.distance > this.maxDistance * 0.9) this.autoTilt = true;
       if (this.autoTilt && !this.pinch) this.goal.tilt = this.autoTiltAt(this.goal.distance);
       this.goal.tilt = Math.max(0, Math.min(this.maxTiltAt(this.goal.distance), this.goal.tilt));
       if (!this.pinch && !this.grabbing) {

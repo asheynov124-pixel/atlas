@@ -53,10 +53,11 @@ export class BulldozeTool extends Tool {
         type: 'choice',
         value: this.filter,
         choices: [
-          { value: 'all', label: 'All', icon: 'bulldoze' },
-          { value: 'buildings', label: 'Buildings', icon: 'building' },
-          { value: 'roads', label: 'Roads', icon: 'roads' },
-          { value: 'nature', label: 'Nature', icon: 'tree' },
+          // text-only: every label stays readable in the compact segmented control
+          { value: 'all', label: 'All' },
+          { value: 'buildings', label: 'Buildings' },
+          { value: 'roads', label: 'Roads' },
+          { value: 'nature', label: 'Nature' },
         ],
       },
       {

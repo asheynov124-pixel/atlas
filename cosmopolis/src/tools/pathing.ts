@@ -102,6 +102,8 @@ export function findRoadPath(p: Planet, a: number, b: number, o: RoadPathOptions
   }
   const g = p.grid;
   const C = g.center;
+  // an unreachable end (or start) would make A* burn its whole node budget: go straight to the flagged line
+  if (roadBlockReason(p, b, o) || roadBlockReason(p, a, o)) return fallbackLine(p, a, b, o);
   const maxStep = o.maxStep ?? 3;
   const maxNodes = o.maxNodes ?? 24000;
   const turnCost = o.turnCost ?? 0.55;
@@ -203,8 +205,13 @@ export function findRoadPath(p: Planet, a: number, b: number, o: RoadPathOptions
     if (startReason) return { path, ok: false, blocked: [a], reason: startReason };
     return { path, ok: true, blocked: [] };
   }
-  // fallback: straight line, flag what's wrong
-  const path = g.path(a, b);
+  return fallbackLine(p, a, b, o);
+}
+
+/** The greedy hex line from a to b with every illegal tile (blocked, too steep) flagged. */
+function fallbackLine(p: Planet, a: number, b: number, o: RoadPathOptions): RoadPathResult {
+  const maxStep = o.maxStep ?? 3;
+  const path = p.grid.path(a, b);
   const blocked: number[] = [];
   let reason: string | undefined;
   for (let i = 0; i < path.length; i++) {
@@ -215,7 +222,7 @@ export function findRoadPath(p: Planet, a: number, b: number, o: RoadPathOptions
       reason ??= r;
       continue;
     }
-    if (i > 0 && Math.abs(p.elevation[t] - p.elevation[path[i - 1]]) > maxStep) {
+    if (i > 0 && Math.abs(p.elevation[t] - p.elevation[path[i - 1]]) > maxStep && !p.isWater(t) && !p.isWater(path[i - 1])) {
       blocked.push(t);
       reason ??= 'Too steep — terraform a ramp first';
     }
