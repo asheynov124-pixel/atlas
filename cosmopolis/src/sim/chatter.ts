@@ -210,7 +210,27 @@ export const TEMPLATES: Record<string, string[]> = {
   robot: ['GREETINGS, FELLOW HUMANS. I TOO ENJOY OXYGEN AND SLEEP. 🤖', 'TODAY I LEARNED THE CONCEPT OF "VIBES". PROCESSING… PROCESSING…'],
   alien: ['Visiting {planet}. Your "pizza" is the finest substance in the galaxy. Taking 40 home. 👽🍕', 'Glorp likes {city}. Glorp will tell Glorp\'s 11 siblings.'],
   prof: ['New paper: "On the Gravitational Effects of Too Many Cafés". Peer review pending. 👩‍🔬', 'Education coverage in {city} is {n}%. Science approves (mostly). 📚'],
-  critic: ['Rating {city}: 6/10. Too many roads, not enough fountains. 🧐', 'The new skyline? Derivative. Also, I love it. Don\'t tell anyone.'],
+  critic: ['Rating {city}: 6/10. Too many roads, not enough fountains. 🧐', 'The new skyline? Derivative. Also, I love it. Don\'t tell anyone.', 'Visited the waterfront. The seagulls have better taste than the architects. 🧐', 'Fine. FINE. The new park is nice. Happy now?'],
+  police: [
+    'Suspect apprehended after stealing 400 rubber ducks from the harbour. The ducks are safe. 🦆',
+    'Reminder: jaywalking in low gravity is still jaywalking, even if you float. 🚓',
+    'Patrols increased in {district}. Please stop reporting the moon as "suspicious". 🌕',
+    'A citizen returned a lost wallet with ₡400 inside. We are not crying, you are crying. 💙',
+  ],
+  fireDept: [
+    'Fire contained, no injuries. Please stop deep-frying things on the balcony. 🔥',
+    'Cat rescued from a tree. Cat was not grateful. Business as usual. 🐈',
+    'Smoke detector tip: if it chirps at 3am, it is not haunted. Change the battery. 🔋',
+  ],
+  heist: [
+    'Someone stole the "BEWARE OF THEFT" sign from the plaza. Bold. 🦹',
+    'Heard sirens all night in {district}. Crime is getting out of hand, mayor. 🚨',
+    'My e-bike got stolen. Then my second e-bike. I am now walking out of spite. 🚶',
+  ],
+  yearReview: [
+    'YEAR IN REVIEW: {city} grew {growth} to {pop} citizens. Mood of the year: {mood}. Biggest headache: {problem}. 📰',
+    '{year} WRAPPED: {pop} citizens ({growth}), happiness {happy}%. Citizens\' top complaint: {problem}. Here\'s to next year! 🥂',
+  ],
 };
 
 /** Fill placeholders. */

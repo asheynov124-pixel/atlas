@@ -4,7 +4,7 @@
  * construction, abandonment & collapse, utilities on road/building networks (power / water / oxygen / garbage /
  * data, rationed in neighbourhood blocks), service coverage with capacity, land value, pollution, noise, crime,
  * health, education, happiness, traffic, tourism, research, economy (taxes, upkeep × budget, loans, monthly
- * reports, bankruptcy bailout), districts & 29 policies, 24 lenses, disaster interplay (fire spread, floods,
+ * reports, bankruptcy bailout), districts & 29 policies, 25 lenses, disaster interplay (fire spread, floods,
  * radiation, goo, shelters & shields), city events, Hypernet citizen chatter, and inactive-colony income.
  *
  * Timing: whole sim days arrive via tick(days). The per-building pass is ROLLED across the frames of each day
@@ -12,22 +12,28 @@
  * generator, so no frame pays for a whole day. tick() finishes whatever is left (headless tests work too).
  *
  * CONTRACT (used by UI, progression, overlays, god powers):
- *   tick(days)                            called by Game with whole elapsed sim days
- *   stats: Record<string, number>         MetricId keys + extras (published to ui.stats)
- *   demand: { R, C, I, O }                −1..1            demandReasons() → causes per family
- *   lenses: LensDef[]                     data views (overlay maps; NaN = no data)
- *   policies: PolicyDef[]                 city / district policies   setPolicy(id, on, district?) isPolicyOn()
- *   taxes: { R, C, I, O }                 0..0.3 (UI sliders)        setTax(fam, v)
- *   budget: Record<string, number>        department funding 0.5..1.5 (keys: DEPARTMENTS ids) setBudget()
- *   departments, departmentUpkeep()       budget panel rows
- *   lastMonth / projectedMonth()          MonthReport {income, expenses, totals, net}
- *   loans, loanOffers(), takeLoan(amount?, lender?), repay(id?)
+ *   tick(days)                            called by Game with whole elapsed sim days (update(dt) amortises work)
+ *   stats: Record<string, number>         every MetricId + extras (powerDemand, workers, jobsCommercial, debt,
+ *                                         utilitiesFree bitmask, demandR…, realHappiness…) → ui.stats
+ *   demand: { R, C, I, O }                −1..1            demandReasons() → named causes (+ blockers) per family
+ *   lenses: LensDef[]                     25 overlay maps (values 0..1, NaN = no data)
+ *   policies: PolicyDef[]                 29 policies (SimPolicyDef: effects[], category, satire, mods)
+ *       setPolicy(id, on, district=0) · isPolicyOn(id, district) · policyCost(id, district)
+ *   taxes: { R, C, I, O }                 0..0.3 (UI sliders; or setTax(fam, v))
+ *   budget: Record<DeptId, number>        department funding 0.5..1.5 (or setBudget(dept, v))
+ *   departments · departmentUpkeep() · incomeLabels · expenseLabels   budget panel rows
+ *   lastMonth / projectedMonth()          MonthReport { income{}, expenses{}, totalIncome, totalExpenses, net }
+ *   loans · loanOffers() · takeLoan(amount?, lender?) · repay(id?)
  *   getMetric(id): number
  *   inspectBuilding(id) / inspectTile(tile): InspectRow[]
  *   colonySummary(): ColonySummary        for the empire when leaving the planet
- *   damageResistance(tile) 0..1           (also exported as a module function for god powers)
- *   problemsSummary(), advisor(), districtStats(id), cityHistory(), events, rules/setRule() (sandbox)
- *   traffic: Float32Array via trafficAt(tile) (0..1.5 congestion; −1 off-road) — for the life renderer
+ *   damageResistance(tile) 0..1           shields / blessings / shelters (also exported as a module function)
+ *   problemsSummary() · problemsOf(id) · troubledBuildings() · advisor()   problem icons, advice cards
+ *   districtStats(id) · cityHistory() · citizenSpotlight() · events (active city events)
+ *   rules: SandboxRules · setRule(id, on)  sandbox toggles: freeUtilities, noAbandon, fastGrowth, maxDemand
+ *   trafficAt(tile) (0..1.5 congestion, −1 off-road) · coverageAt(service, tile) — for the life renderer
+ * Events: emits 'sim:day' and 'sim:month'; posts Hypernet news (ui/store pushNews) and toasts (notify, with tiles).
+ * Tile flags: decays Frozen, Scorched, Irradiated, Goo and recedes Flooded on dry land; spreads / fights Burning.
  * Persistence: everything lives in planet.simData.sim (live toJSON while active, plain JSON when unloaded).
  */
 import type { Game } from '../game/Game';
@@ -52,7 +58,7 @@ import { Fields, type FieldContext } from './fields';
 import { Networks } from './networks';
 import { Growth, roadFacing } from './growth';
 import { Hazards, resistanceAt } from './hazards';
-import { SV_DATA, SV_GARBAGE, SV_OXYGEN, SV_POWER, SV_WATER, updateRec } from './buildings';
+import { SV_DATA, SV_GARBAGE, SV_OXYGEN, SV_POWER, SV_WATER, refreshServed, updateRec } from './buildings';
 import { computeDemand, type Fam } from './demand';
 import { computeReport, departmentUpkeep, invalidateEconomyCache, loanOffers, payLoans, annuity, LENDERS, INCOME_LABELS, EXPENSE_LABELS, type EconomyContext } from './economy';
 import { makeLenses } from './lenses';
@@ -185,6 +191,7 @@ export class Simulation implements System {
   private fieldsDirty = true;
   private pendingRemove = new Map<number, RemoveCause>();
   private pendingLevel = new Map<number, number>();
+  private pendingIgnite: number[] = [];
   private carry: { residents: number; happiness: number; edu: number; distress: number } | null = null;
   private offs: (() => void)[] = [];
   private globalOffs: (() => void)[] = [];
@@ -206,6 +213,9 @@ export class Simulation implements System {
   private abandonedToday = 0;
   private catVer = -1;
   private fieldsRestored = false;
+  private lastPausedRefresh = 0;
+  /** buildings changed since the last utilities resolve */
+  private utilDirty = false;
   private realNotes = new Map<string, number>();
 
   constructor(private game: Game) {
@@ -394,6 +404,7 @@ export class Simulation implements System {
     r.idx = this.recs.length;
     this.recs.push(r);
     this.recMap.set(id, r);
+    this.utilDirty = true;
     if (loading) return;
     this.nets?.join(b.tiles);
     this.growth!.dirty = true;
@@ -407,6 +418,7 @@ export class Simulation implements System {
     const r = this.recMap.get(id);
     if (!r) return;
     this.recMap.delete(id);
+    this.utilDirty = true;
     const last = this.recs.pop()!;
     if (last !== r) {
       this.recs[r.idx] = last;
@@ -460,6 +472,11 @@ export class Simulation implements System {
   queueRemoval(id: number, cause: RemoveCause): void {
     if (this.settling) return;
     this.pendingRemove.set(id, cause);
+  }
+
+  queueIgnite(tiles: readonly number[]): void {
+    if (this.settling) return;
+    for (const t of tiles) this.pendingIgnite.push(t);
   }
 
   queueLevel(r: BRec, level: number): void {
@@ -525,7 +542,7 @@ export class Simulation implements System {
       if (clock.speed > 0 && this.recs.length) {
         const target = Math.min(this.recs.length, Math.floor(clock.dayFraction * this.recs.length));
         while (this.cursor < target) updateRec(this, this.recs[this.cursor++]);
-      }
+      } else if (clock.speed === 0) this.pausedRefresh(t0);
       if (this.fieldJob) {
         const budget = Math.max(0.35, FIELD_BUDGET_MS - (performance.now() - t0));
         const end = performance.now() + budget;
@@ -537,6 +554,31 @@ export class Simulation implements System {
     } catch (e) {
       console.error('[sim] update failed', e);
       this.fieldJob = null;
+    }
+  }
+
+  /**
+   * While paused, keep the map honest after edits: re-resolve utility networks (so a new power plant lights its
+   * grid in the lenses / inspector) and refresh coverage fields. Throttled; restarts the current day's pass.
+   */
+  private pausedRefresh(now: number): void {
+    if (now - this.lastPausedRefresh < 400) return;
+    const nets = this.nets!;
+    if (nets.dirty || this.utilDirty) {
+      this.lastPausedRefresh = now;
+      this.utilDirty = false;
+      if (nets.dirty) nets.rebuild();
+      this.reaccumulate();
+      this.addOrbitals();
+      nets.resolve(this.rules.freeUtilities);
+      nets.beginDay();
+      this.cursor = 0;
+      this.acc.reset();
+      for (const r of this.recs) refreshServed(this, r);
+    }
+    if (this.fieldsDirty && !this.fieldJob) {
+      this.lastPausedRefresh = now;
+      this.startFieldJob();
     }
   }
 
@@ -645,6 +687,7 @@ export class Simulation implements System {
     }
     this.addOrbitals();
     nets.resolve(this.rules.freeUtilities);
+    this.utilDirty = false;
     this.dataSupply = nets.totalSupply[U.Data];
     this.utilityAlerts();
     nets.beginDay();
@@ -665,6 +708,7 @@ export class Simulation implements System {
     this.tickEvents();
     // 7. time
     this.day++;
+    if (this.day % 360 === 0) this.yearInReview();
     if (this.day % 30 === 0) this.monthEnd();
     else if (this.day % 5 === 0) this.projected = this.report(false);
     // 8. fields cadence
@@ -680,7 +724,11 @@ export class Simulation implements System {
 
   private applyPending(): void {
     const ops = this.ops;
-    if (!ops || (!this.pendingRemove.size && !this.pendingLevel.size)) return;
+    if (ops && this.pendingIgnite.length) {
+      ops.setFlags(this.pendingIgnite, TileFlag.Burning, true);
+      this.pendingIgnite = [];
+    }
+    if (!ops || (!this.pendingRemove.size && !this.pendingLevel.size && !this.abandonedToday)) return;
     const p = this.planet!;
     for (const [id, cause] of [...this.pendingRemove]) {
       this.pendingRemove.delete(id);
@@ -695,7 +743,7 @@ export class Simulation implements System {
     if (this.abandonedToday > 0) {
       if (this.day - this.lastAbandonNotice > 20) {
         this.lastAbandonNotice = this.day;
-        const r = [...this.recMap.values()].find((x) => x.b.state === BuildingState.Abandoned);
+        const r = this.recs.find((x) => x.b.state === BuildingState.Abandoned);
         const why = r ? this.abandonReason(r) : 'poor conditions';
         this.toast('abandoned', { title: 'Buildings abandoned', body: `Residents are leaving — ${why}.`, icon: '🏚️', kind: 'warn', tile: r?.b.tile });
         this.post(this.persona(), line(this.rng, 'abandoned', this.vars()), r?.b.tile);
@@ -1385,6 +1433,9 @@ export class Simulation implements System {
       ['trafficBot', s.traffic > 35 ? 0.4 : 0, CHARACTERS.traffic],
       ['pollution', s.pollution > 22 ? (s.pollution - 15) / 15 : 0],
       ['crime', s.crime > 28 ? (s.crime - 20) / 15 : 0],
+      ['heist', s.crime > 35 ? 0.6 : 0],
+      ['police', a.population > 300 && this.coverageAvg(SERVICE_INDEX.police) > 0.1 ? 0.35 : 0, CHARACTERS.police],
+      ['fireDept', a.population > 300 && this.coverageAvg(SERVICE_INDEX.fire) > 0.1 ? 0.25 : 0, CHARACTERS.fire],
       ['newcomer', this.demand.R > 0.2 && pop < 50000 ? 1.1 : 0],
       ['jobsPlenty', a.openJobs > Math.max(30, a.workforce * 0.15) ? 0.8 : 0],
       ['unemployed', a.unemploymentFelt > 0.1 ? 1.2 : 0],
@@ -1414,6 +1465,36 @@ export class Simulation implements System {
     const [topic, , who] = pick;
     const extra: Record<string, string | number> = topic === 'trafficBot' ? { n: s.traffic } : topic === 'prof' ? { n: s.education } : {};
     this.post(who ?? this.persona(), line(rng, topic, { ...v, ...extra }));
+  }
+
+  /** Average coverage of a service over populated tiles (cheap estimate from homes). */
+  private coverageAvg(si: number): number {
+    const f = this.fields;
+    if (!f || !this.recs.length) return 0;
+    let sum = 0, n = 0;
+    for (let i = 0; i < this.recs.length; i += Math.max(1, Math.floor(this.recs.length / 64))) {
+      sum += f.cov[si][this.recs[i].b.tile];
+      n++;
+    }
+    return n ? sum / n : 0;
+  }
+
+  /** Cosmo Daily's yearly recap: growth, mood and the citizens' top complaint. */
+  private yearInReview(): void {
+    if (!this.planet || this.agg.population < 50) return;
+    const h = this.history;
+    const pop = this.agg.population;
+    const before = h.population.length >= 12 ? h.population[h.population.length - 12] : h.population[0] ?? 0;
+    const growth = before > 0 ? `${pop >= before ? '+' : '−'}${Math.abs(Math.round(((pop - before) / before) * 100))}%` : 'from nothing';
+    const happy = Math.round(this.stats.happiness ?? 50);
+    const mood = happy >= 75 ? 'blissful' : happy >= 60 ? 'upbeat' : happy >= 45 ? 'meh' : 'grumpy';
+    const top = this.problemsSummary()[0];
+    const year = 2350 + Math.floor(this.day / 360) - 1;
+    this.post(CHARACTERS.news, line(this.rng, 'yearReview', this.vars({ growth, mood, happy, problem: top ? top.label.toLowerCase() : 'nothing, honestly', year })), undefined, true);
+  }
+
+  noteFireSaved(tile: number): void {
+    if (this.cool('fireSaved', 12)) this.post(this.rng.chance(0.5) ? CHARACTERS.fire : this.persona(), line(this.rng, this.rng.chance(0.5) ? 'fireDept' : 'fireOut', this.vars()), tile);
   }
 
   private onPlopped(r: BRec): void {

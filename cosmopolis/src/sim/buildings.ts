@@ -65,6 +65,24 @@ function refreshRoad(sim: Simulation, r: BRec): void {
   r.roadVer = sim.roadVersion;
 }
 
+/** Re-evaluate only which utilities reach a building (no accumulation) — used while the game is paused. */
+export function refreshServed(sim: Simulation, r: BRec): void {
+  const nets = sim.nets!;
+  const net = nets.label[r.b.tile];
+  r.net = net;
+  let served = sim.exempt;
+  if (net >= 0) {
+    const ratio = r.info.priority === 0 ? nets.ratioSvc : nets.ratioGrow;
+    const ok = (u: number) => r.h < ratio[u][net] || ratio[u][net] >= 1;
+    if (r.powerUse <= 0 || ok(U.Power)) served |= SV_POWER;
+    if (r.waterUse <= 0 || ok(U.Water)) served |= SV_WATER;
+    if (r.oxygenUse <= 0 || ok(U.Oxygen)) served |= SV_OXYGEN;
+    if (r.garbageGen <= 0 || ok(U.Garbage)) served |= SV_GARBAGE;
+    if (r.dataUse <= 0 || ok(U.Data)) served |= SV_DATA;
+  }
+  r.served = served;
+}
+
 /** Main daily update for one building. */
 export function updateRec(sim: Simulation, r: BRec): void {
   const p = sim.planet!;
@@ -195,6 +213,8 @@ export function updateRec(sim: Simulation, r: BRec): void {
   served |= sim.exempt;
   // frozen / burning buildings can't use what they get
   const burning = (flags & TileFlag.Burning) !== 0 || state === BuildingState.Burning;
+  // a building set ablaze by state alone (no tile flag) joins the fire simulation
+  if (state === BuildingState.Burning && !(flags & TileFlag.Burning)) sim.queueIgnite(b.tiles);
   const frozen = (flags & TileFlag.Frozen) !== 0;
   r.served = served;
 

@@ -97,7 +97,7 @@ export function computeReport(ctx: EconomyContext, day: number, apply: boolean):
       const base = info.zp.taxBase[lvl];
       let tax = 0;
       if (info.fam === 0) {
-        tax = r.residents * base * (1 + 0.25 * r.edu) * t.R * mods.taxR;
+        tax = r.residents * base * (1 + 0.2 * r.edu) * t.R * mods.taxR;
         income.residential += tax;
       } else if (info.fam === 1) {
         tax = r.workers * base * ctx.customerFactor * t.C * mods.taxC;
@@ -119,7 +119,7 @@ export function computeReport(ctx: EconomyContext, day: number, apply: boolean):
       else if (active && info.income < 0) expenses[dept ?? 'landmarks'] += -info.income;
       // ploppable housing pays residential tax too
       if (active && r.residents > 0) {
-        const tax = r.residents * 40 * (1 + 0.25 * r.edu) * t.R;
+        const tax = r.residents * 33 * (1 + 0.2 * r.edu) * t.R;
         income.residential += tax;
         if (apply) r.taxPaid = tax;
       }

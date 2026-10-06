@@ -87,6 +87,7 @@ export class Hazards {
               if (b.tile === t) {
                 r.burnDays = 0;
                 this.saved++;
+                sim.noteFireSaved(t);
                 if (b.state === BuildingState.Burning) ops.updateBuilding(bid, { state: BuildingState.Active });
               }
             } else if (r.burnDays >= 4 + Math.floor(r.h * 3)) {

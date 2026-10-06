@@ -419,6 +419,7 @@ export class Fields {
           if (si === undefined) continue;
           const st = this.stamp(b.tile, c.radius + fpExtra);
           let strength = Math.max(0, Math.min(1, c.strength)) * eff;
+          strength *= mods.serviceEffect;
           if (c.service === 'police') strength *= mods.police;
           const factor = DEMAND_FACTOR[si];
           if (c.capacity && factor > 0) {

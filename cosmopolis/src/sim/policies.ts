@@ -50,6 +50,8 @@ export interface Mods {
   industryJobs: number;
   /** level-up speed multiplier */
   growthSpeed: number;
+  /** strength of every service's coverage */
+  serviceEffect: number;
 }
 
 export function baseMods(): Mods {
@@ -57,7 +59,7 @@ export function baseMods(): Mods {
     powerUse: 1, waterUse: 1, oxygenUse: 1, garbageGen: 1, dataUse: 1, pollution: 1, noise: 1, traffic: 1, crime: 1,
     happiness: 0, landValue: 0, education: 1, research: 1, tourism: 1, workforce: 1, fireSpread: 1, police: 1,
     transitShare: 0, maxLevelRC: 5, levelLock: false, demandR: 0, demandC: 0, demandI: 0, demandO: 0,
-    taxR: 1, taxC: 1, taxI: 1, taxO: 1, health: 0, incomePer1k: 0, reportedHappiness: 0, industryJobs: 1, growthSpeed: 1,
+    taxR: 1, taxC: 1, taxI: 1, taxO: 1, health: 0, incomePer1k: 0, reportedHappiness: 0, industryJobs: 1, growthSpeed: 1, serviceEffect: 1,
   };
 }
 
@@ -116,7 +118,7 @@ export const POLICIES: SimPolicyDef[] = [
   {
     id: 'heavy_traffic_ban', name: 'Heavy Traffic Ban', icon: '🚛', category: 'transport', scope: 'both', costPer1k: 10, tier: 1,
     description: 'Freight haulers must take the long way round. Quieter streets, grumpier factories.',
-    effects: ['−20% noise', '−10% traffic', 'Industry levels up slower'], mods: { noise: 0.8, traffic: 0.9, demandI: -0.04, growthSpeed: 0.92 },
+    effects: ['−20% noise', '−10% traffic', 'Slower upgrades'], mods: { noise: 0.8, traffic: 0.9, demandI: -0.04, growthSpeed: 0.92 },
   },
   {
     id: 'smoke_detectors', name: 'Smoke Detector Distribution', icon: '🔥', category: 'safety', scope: 'both', costPer1k: 15, tier: 0,
@@ -230,7 +232,7 @@ export const POLICIES: SimPolicyDef[] = [
   {
     id: 'ai_comayor', name: 'AI Co-Mayor', icon: '🖥️', category: 'tech', scope: 'city', costPer1k: 30, tier: 5, satire: true,
     description: 'Optimises everything. Keeps asking whether you are *sure*.',
-    effects: ['+10% service effect', '+5% research', '−1 happiness'], mods: { police: 1.1, research: 1.05, education: 1.05, happiness: -1 },
+    effects: ['+10% service coverage', '+5% research', '−1 happiness'], mods: { serviceEffect: 1.1, research: 1.05, education: 1.05, happiness: -1 },
     cheers: ['The AI co-mayor scheduled my birthday for maximum efficiency. It was 11 minutes long. 🎂'],
   },
   {

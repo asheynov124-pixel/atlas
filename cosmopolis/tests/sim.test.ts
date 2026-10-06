@@ -161,3 +161,27 @@ describe('sim growable sizes & mixed use', () => {
     expect(b.jobs).toBeGreaterThan(0);
   });
 });
+
+describe('sim while paused', () => {
+  it('re-resolves the grid and coverage right after an edit, without advancing time', () => {
+    const h = makeHarness({ mode: 'sandbox' });
+    layoutTown(h, 0);
+    h.days(30);
+    const unpowered = h.sim.problemsSummary().find((p) => p.id === 'power');
+    expect(unpowered?.count ?? 0).toBeGreaterThan(0);
+    h.game.clock.setSpeed(0);
+    const day = h.sim.day;
+    plop(h, 't_power', 0, 9);
+    plop(h, 't_police', 0, 3);
+    h.sim.update(0.016);
+    for (let i = 0; i < 200 && (h.sim as unknown as { fieldJob: unknown }).fieldJob; i++) h.sim.update(0.016);
+    const homes = [...h.sim.recMap.values()].filter((r) => r.info.growable && r.powerUse > 0);
+    expect(homes.length).toBeGreaterThan(0);
+    expect(homes.every((r) => r.served & 1)).toBe(true);
+    const police = h.sim.lenses.find((l) => l.id === 'police')!.values(h.planet);
+    let covered = 0;
+    for (let i = 0; i < police.length; i++) if (police[i] > 0.5) covered++;
+    expect(covered).toBeGreaterThan(10);
+    expect(h.sim.day).toBe(day);
+  });
+});
