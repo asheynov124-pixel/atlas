@@ -2,6 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { makeHarness, layoutTown, plop } from './simHarness';
 import { BuildingState, Zone } from '../src/core/types';
+import { ui } from '../src/ui/store';
 
 // long simulated spans: allow time on busy CI machines
 vi.setConfig({ testTimeout: 60_000 });
@@ -59,6 +60,11 @@ describe('sim growth', () => {
     expect(h.sim.stats.buildings).toBe(0);
     const blockers = h.sim.demandReasons().R.filter((r) => r.blocker);
     expect(blockers.some((b) => /power/i.test(b.text))).toBe(true);
+    // the player is told, with a tile to fly to
+    const hint = ui.toasts.value.find((t) => /power/i.test(t.title));
+    expect(hint).toBeTruthy();
+    expect(typeof hint!.tile).toBe('number');
+    expect(h.sim.advisor()[0].text).toMatch(/power/i);
   });
 
   it('sandbox zones develop even without power', () => {
