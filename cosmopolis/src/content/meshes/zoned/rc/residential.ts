@@ -13,17 +13,10 @@
  */
 import { FL, G, Mat, byL, hedge, hovercar, lerpL, ngon, polyTop, pool, shade, storeys } from './common';
 import { factory } from './rc';
-import { DET, fits, type RC, type SkinCost } from './skin';
+import { DET, fits, need, type RC } from './skin';
 
 const prest = (L: number): number => (L - 1) / 4;
 const side = (rc: RC): number => (rc.vr.chance(0.5) ? 1 : -1);
-
-/** Reserve the mandatory cost of skin elements still to be drawn (pairs of [element, count]) + extra. */
-export function need(rc: RC, parts: [keyof SkinCost, number][] = [], extra = 0): void {
-  let n = extra;
-  for (const [k, c] of parts) n += rc.sk.cost[k] * c;
-  rc.reserve = n;
-}
 
 /** Small hedge line framing a front garden (optional decor). */
 function frontHedges(rc: RC, z: number, gap: number, span = 0.78): void {

@@ -120,6 +120,7 @@ function calibrate(sk: Skin): void {
     ),
     bridge: max((rc) => sk.bridge(rc, -0.1, 0, 0.1, 0, 3, FL * 2, 0.2)),
     terrace: max((rc) => sk.terrace(rc, 0, 0, 1, 0.9, 0.3), (rc) => sk.terrace(rc, 0, 0, 1, 0.3, 0.3)),
+    sign: max(...(['board', 'blade', 'screen', 'holo', 'roof', 'marquee'] as const).map((kind) => (rc: RC) => sk.sign(rc, { w: 0.6, h: 0.2, kind, n: 7 }, 0, 1, 0))),
   };
   sk.cost = c;
 }

@@ -32,7 +32,7 @@ export class IceSkin extends Skin {
   }
 
   override outline(_rc: RC, w: number, d: number): V2[] | null {
-    return roundRect(w, d, Math.min(w, d) * 0.46, 3);
+    return roundRect(w, d, Math.min(w, d) * 0.46, 2);
   }
 
   override roundOutline(w: number, d: number): V2[] {

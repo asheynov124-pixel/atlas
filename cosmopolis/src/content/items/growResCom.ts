@@ -9,6 +9,8 @@
 import { registerItems, type Effects, type ItemDef, type MeshFactory } from '../catalog';
 import { Zone } from '../../core/types';
 import * as R from '../meshes/zoned/rc/residential';
+import * as C from '../meshes/zoned/rc/commercial';
+import * as X from '../meshes/zoned/rc/leisure';
 
 const ZONE_META: Record<number, { tier: number; group: string; family: 'R' | 'C'; density: string }> = {
   [Zone.ResLow]: { tier: 0, group: 'Homes', family: 'R', density: 'low' },
@@ -201,4 +203,139 @@ const RES_HIGH: Grow[] = [
   },
 ];
 
-registerItems([...RES_LOW, ...RES_MED, ...RES_HIGH].map(grow));
+const COM_LOW: Grow[] = [
+  {
+    id: 'rc_cl_corner', name: 'Corner Shop', zone: Zone.ComLow, levels: [1, 4], variants: 10, mesh: C.cornerShop, height: 1.0, icon: '🏪',
+    description: 'A neighbourhood shop with lit windows and flats upstairs; turns the corner as it grows.',
+    flavor: 'Sells milk, batteries and suspiciously fresh asteroid gossip.',
+    effects: { jobs: 8, power: -1, water: -0.5, noise: 4, landValue: 1 },
+  },
+  {
+    id: 'rc_cl_cafe', name: 'Café', zone: Zone.ComLow, levels: [1, 3], variants: 10, mesh: C.cafe, height: 0.7, icon: '☕',
+    description: 'A café with a parasol terrace on the pavement — and on the roof, once business is good.',
+    flavor: 'Its flat white is so flat it violates three laws of physics.',
+    effects: { jobs: 6, power: -0.8, water: -0.6, noise: 3, happiness: 1 },
+  },
+  {
+    id: 'rc_cl_strip', name: 'Strip Plaza', zone: Zone.ComLow, levels: [1, 3], variants: 8, mesh: C.stripPlaza, height: 0.6, icon: '🛍️',
+    description: 'Three little shops in a row behind a parking apron and a glowing roadside pylon.',
+    flavor: 'Three shops, one car park, infinite trolley-return guilt.',
+    effects: { jobs: 14, power: -1.5, water: -0.6, noise: 6 },
+  },
+  {
+    id: 'rc_cl_market', name: 'Market Hall', zone: Zone.ComLow, levels: [2, 5], variants: 8, mesh: C.marketHall, height: 1.0, icon: '🧺',
+    description: 'A covered market hall with striped stalls spilling out onto the square.',
+    flavor: 'Fresh produce from four biomes and a fishmonger who has seen things.',
+    effects: { jobs: 18, power: -1.2, water: -1, noise: 6, landValue: 2, happiness: 1 },
+  },
+  {
+    id: 'rc_cl_shophouse', name: 'Shophouses', zone: Zone.ComLow, levels: [2, 5], variants: 10, mesh: C.shophouses, height: 1.3, icon: '🏬',
+    description: 'Twin narrow shophouses: storefronts and blade signs below, balconies and homes above.',
+    flavor: 'Shop downstairs, nap upstairs. Commute: fourteen stairs.',
+    effects: { jobs: 12, housing: 6, power: -1.5, water: -1, noise: 5 },
+  },
+  {
+    id: 'rc_cl_fuel', name: 'Hover-Fuel Stop', zone: Zone.ComLow, levels: [1, 3], variants: 8, mesh: C.fuelStop, height: 0.7, icon: '⛽',
+    description: 'Fusion-cell pumps under a lit canopy, a snack kiosk and a price pylon you can see from orbit.',
+    flavor: 'Sells wiper fluid for cars that have not had windscreens since 2290.',
+    effects: { jobs: 6, power: -2, noise: 8, pollution: 4 },
+  },
+  {
+    id: 'rc_cl_diner', name: 'Orbit Diner', zone: Zone.ComLow, levels: [1, 3], variants: 8, mesh: C.diner, height: 0.6, icon: '🍔',
+    description: 'A chrome-banded roadside diner with a neon rooftop sign and a hover-car lot.',
+    flavor: 'Open 26 hours a day (it is a long day here).',
+    effects: { jobs: 8, power: -1, water: -0.8, noise: 5, happiness: 1 },
+  },
+];
+
+const COM_HIGH: Grow[] = [
+  {
+    id: 'rc_ch_mall', name: 'Shopping Mall', zone: Zone.ComHigh, levels: [1, 4], variants: 8, mesh: C.mall, height: 1.0, icon: '🛒',
+    description: 'A big-box mall with a glazed atrium entrance, banners and — at level 4 — a glass dome court.',
+    flavor: 'Air-conditioned, sun-proofed and absolutely impossible to leave.',
+    effects: { jobs: 60, power: -3, water: -1.5, noise: 10 },
+  },
+  {
+    id: 'rc_ch_dept', name: 'Department Store', zone: Zone.ComHigh, levels: [2, 5], variants: 8, mesh: C.deptStore, height: 1.6, icon: '🏬',
+    description: 'A grand department store with display windows, a vertical blade sign and a rooftop name.',
+    flavor: 'Seven floors and one escalator that always goes the wrong way.',
+    effects: { jobs: 80, power: -3, water: -1.5, noise: 8, landValue: 3 },
+  },
+  {
+    id: 'rc_ch_trade', name: 'Trade Tower', zone: Zone.ComHigh, levels: [3, 5], variants: 8, mesh: C.tradeTower, height: 8, icon: '🏢',
+    description: 'A glass trading tower on a retail podium, flanked by animated billboards.',
+    flavor: 'Where interplanetary deals close and the billboards never sleep.',
+    effects: { jobs: 180, power: -4, water: -2, noise: 6, landValue: 4 },
+  },
+  {
+    id: 'rc_ch_plaza', name: 'Retail Plaza Tower', zone: Zone.ComHigh, levels: [2, 5], variants: 8, mesh: C.retailPlaza, height: 5, icon: '🏙️',
+    description: 'Shops wrap a planted podium; a slim tower of studios and showrooms rises above.',
+    flavor: 'Shops on the podium, start-ups in the tower, smoothies everywhere.',
+    effects: { jobs: 120, power: -3.5, water: -2, noise: 8, landValue: 2 },
+  },
+  {
+    id: 'rc_ch_galleria', name: 'Galleria', zone: Zone.ComHigh, levels: [3, 5], variants: 8, mesh: C.galleria, height: 1.3, icon: '🏛️',
+    description: 'Two arcades joined by a soaring glass barrel vault — window shopping as a spectator sport.',
+    flavor: 'Visitors have been known to forget which planet they are on.',
+    effects: { jobs: 90, power: -3, water: -1.5, noise: 6, landValue: 5, tourism: 10 },
+  },
+  {
+    id: 'rc_ch_megastore', name: 'Megastore', zone: Zone.ComHigh, levels: [1, 3], variants: 8, mesh: C.megastore, height: 0.8, icon: '📦',
+    description: 'A warehouse-sized store with a giant glowing name and a hover-car park.',
+    flavor: 'Sells everything from socks to starship hulls. Aisle 9 000.',
+    effects: { jobs: 50, power: -3, water: -1, noise: 10, pollution: 2 },
+  },
+  {
+    id: 'rc_ch_dome', name: 'Market Dome', zone: Zone.ComHigh, levels: [2, 5], variants: 8, mesh: C.marketDome, height: 1.2, icon: '🫧',
+    description: 'A climate-controlled bazaar under one enormous glazed dome, topped by a lantern at level 4.',
+    flavor: 'The only market where it has never, ever rained.',
+    effects: { jobs: 70, power: -3, water: -1.5, noise: 6, tourism: 8 },
+  },
+];
+
+const LEISURE: Grow[] = [
+  {
+    id: 'rc_cx_hotel', name: 'Grand Hotel', zone: Zone.ComLeisure, levels: [1, 5], variants: 8, mesh: X.hotel, height: 7, icon: '🏨',
+    description: 'A hotel that grows from a boutique block into a crowned tower with a pool deck.',
+    flavor: 'Every room has a view; the penthouse has two planets.',
+    effects: { jobs: 60, tourism: 60, power: -4, water: -3, noise: 6, landValue: 4 },
+  },
+  {
+    id: 'rc_cx_casino', name: 'Casino', zone: Zone.ComLeisure, levels: [2, 5], variants: 8, mesh: X.casino, height: 4, icon: '🎰',
+    description: 'Golden dome, marquee, giant screen and searchlights — plus a hotel tower at level 4.',
+    flavor: 'The house always wins. The house is also visible from orbit.',
+    effects: { jobs: 80, tourism: 90, income: 300, power: -5, water: -2, noise: 20, happiness: 2, landValue: -2 },
+  },
+  {
+    id: 'rc_cx_club', name: 'Nightclub', zone: Zone.ComLeisure, levels: [1, 4], variants: 8, mesh: X.nightclub, height: 1.0, icon: '🪩',
+    description: 'A dark box wrapped in neon with a holo sign, sky beams and a velvet-rope queue.',
+    flavor: 'The bass registers on seismographs two systems over.',
+    effects: { jobs: 20, tourism: 30, power: -2, noise: 35, happiness: 3, landValue: -3 },
+  },
+  {
+    id: 'rc_cx_arcade', name: 'Holo-Arcade', zone: Zone.ComLeisure, levels: [1, 4], variants: 8, mesh: X.arcade, height: 1.0, icon: '🕹️',
+    description: 'A wall of animated screens with a pixel-art hologram hovering over the roof.',
+    flavor: 'High-score table currently dominated by a sentient toaster.',
+    effects: { jobs: 18, tourism: 25, power: -2.5, noise: 15, happiness: 3 },
+  },
+  {
+    id: 'rc_cx_theatre', name: 'Theatre', zone: Zone.ComLeisure, levels: [2, 5], variants: 8, mesh: X.theatre, height: 1.6, icon: '🎭',
+    description: 'An auditorium with a fly tower, a grand portico and a bulb-lit marquee.',
+    flavor: 'Tonight: Hamlet in zero gravity. To float or not to float.',
+    effects: { jobs: 30, tourism: 40, power: -2, noise: 8, landValue: 5, happiness: 3 },
+  },
+  {
+    id: 'rc_cx_resort', name: 'Sky Resort', zone: Zone.ComLeisure, levels: [4, 5], variants: 6, mesh: X.resort, height: 6.5, icon: '🏝️',
+    description: 'A round resort tower with an infinity pool on the roof and palms at its feet.',
+    flavor: 'An infinity pool forty floors up. Infinity not guaranteed.',
+    effects: { jobs: 70, tourism: 120, power: -5, water: -5, noise: 6, landValue: 6 },
+  },
+  {
+    id: 'rc_cx_cinema', name: 'Starlight Cinema', zone: Zone.ComLeisure, levels: [1, 3], variants: 8, mesh: X.cinema, height: 0.9, icon: '🎬',
+    description: 'A picture palace with a marquee, a tall blade sign and glowing poster screens.',
+    flavor: 'Popcorn engineered for 0.4 g. It still ends up on the floor.',
+    effects: { jobs: 15, tourism: 20, power: -2, noise: 10, happiness: 2 },
+  },
+];
+
+registerItems([...RES_LOW, ...RES_MED, ...RES_HIGH, ...COM_LOW, ...COM_HIGH, ...LEISURE].map(grow));

@@ -76,6 +76,13 @@ export function fits(rc: RC, n: number): boolean {
   return room(rc.b, n + rc.reserve + 12);
 }
 
+/** Reserve the mandatory cost of skin elements still to be drawn (pairs of [element, count]) + extra. */
+export function need(rc: RC, parts: [keyof SkinCost, number][] = [], extra = 0): void {
+  let n = extra;
+  for (const [k, c] of parts) n += rc.sk.cost[k] * c;
+  rc.reserve = n;
+}
+
 export type LotKind = 'lawn' | 'pave' | 'plaza' | 'asphalt' | 'garden';
 export type RoofKind = 'gable' | 'hip' | 'flat' | 'front' | 'shed';
 export type UseKind = 'res' | 'shop' | 'office' | 'hotel' | 'fun';
@@ -184,12 +191,13 @@ export interface SkinCost {
   shop: number;
   bridge: number;
   terrace: number;
+  sign: number;
 }
 
 export abstract class Skin {
   abstract readonly id: StyleId;
   /** measured by rc.ts calibrate() on first use (mandatory parts only) */
-  cost: SkinCost = { house: 120, pod: 90, block: 70, tower: 70, crown: 110, roof: 60, portico: 50, shop: 80, bridge: 40, terrace: 30 };
+  cost: SkinCost = { house: 120, pod: 90, block: 70, tower: 70, crown: 110, roof: 60, portico: 50, shop: 80, bridge: 40, terrace: 30, sign: 40 };
   calibrated = false;
   /** ground colours */
   abstract readonly ground: number;
