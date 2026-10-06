@@ -625,7 +625,7 @@ export class Fields {
         const dens = this.residents[t] + this.workers[t] * 0.4;
         let crT = 0;
         if (dens > 0) {
-          crT = (Math.sqrt(dens) * 2.2 + unemp * 70 + Math.max(0, 40 - lv[t]) * 0.35 + (1 - Math.min(1, edu)) * 10) * mods.crime - covArr[police][t] * 55;
+          crT = (Math.sqrt(dens) * 2.2 + unemp * 45 + Math.max(0, 40 - lv[t]) * 0.35 + (1 - Math.min(1, edu)) * 10) * mods.crime - covArr[police][t] * 55;
           crT = crT < 0 ? 0 : crT > 100 ? 100 : crT;
         }
         crimeTmp[t] = crT;

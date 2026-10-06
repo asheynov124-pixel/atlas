@@ -58,7 +58,7 @@ import { Fields, type FieldContext } from './fields';
 import { Networks } from './networks';
 import { Growth, roadFacing } from './growth';
 import { Hazards, resistanceAt } from './hazards';
-import { SV_DATA, SV_GARBAGE, SV_OXYGEN, SV_POWER, SV_WATER, refreshServed, updateRec } from './buildings';
+import { SV_DATA, SV_GARBAGE, SV_OXYGEN, SV_POWER, SV_WATER, capacityOf, refreshServed, updateRec } from './buildings';
 import { computeDemand, type Fam } from './demand';
 import { computeReport, departmentUpkeep, invalidateEconomyCache, loanOffers, payLoans, annuity, LENDERS, INCOME_LABELS, EXPENSE_LABELS, type EconomyContext } from './economy';
 import { makeLenses } from './lenses';
@@ -407,6 +407,18 @@ export class Simulation implements System {
     this.recMap.set(id, r);
     this.utilDirty = true;
     if (loading) return;
+    // placed ready-made (sandbox demo, showroom, god "instant city"): move people in straight away
+    if (b.state === BuildingState.Active && !b.occupants && info.growable && !this.settling) {
+      const cap = capacityOf(info, b.level, b.tiles.length, this.modsAt(p.district[b.tile]).industryJobs);
+      if (cap.homeCap > 0) {
+        r.residents = Math.round(cap.homeCap * 0.85);
+        b.occupants = r.residents;
+        this.stats.population = (this.stats.population ?? 0) + r.residents;
+      } else {
+        r.workers = Math.round(cap.jobCap * 0.8);
+        b.occupants = r.workers;
+      }
+    }
     this.nets?.join(b.tiles);
     this.growth!.dirty = true;
     if (!info.growable) {

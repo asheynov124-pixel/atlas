@@ -13,6 +13,7 @@ import type { Simulation } from './Simulation';
 import { BRec, P, U } from './state';
 import { BUILD_DAYS, OXYGEN_PER_PERSON, ROAD_CAPACITY, SERVICE_INDEX, WATER_PER_POWER, budgetEffect, footprintMul, isRail, levelUpDays } from './params';
 import type { Mods } from './policies';
+import type { DefInfo } from './defInfo';
 
 const S_POLICE = SERVICE_INDEX.police;
 const S_FIRE = SERVICE_INDEX.fire;
@@ -63,6 +64,17 @@ function refreshRoad(sim: Simulation, r: BRec): void {
   r.roadTile = best;
   r.hasRoad = any;
   r.roadVer = sim.roadVersion;
+}
+
+/** Home / job capacity of a building at a level (growables scale with level and type size). */
+export function capacityOf(info: DefInfo, level: number, tiles: number, industryJobs = 1): { homeCap: number; jobCap: number } {
+  const zp = info.zp;
+  if (!zp) return { homeCap: info.housing, jobCap: info.jobs };
+  const lvl = Math.max(1, Math.min(5, level)) - 1;
+  const lvlRatio = zp.capacity[lvl] / zp.capacity[info.typLevel - 1];
+  const cap = zp.capacity[lvl] * footprintMul(tiles) * info.sizeMul;
+  if (info.fam === 0) return { homeCap: Math.round(cap), jobCap: Math.round(info.extraJobs * lvlRatio) };
+  return { homeCap: Math.round(info.extraHousing * lvlRatio), jobCap: Math.round(cap * (info.fam === 2 ? industryJobs : 1)) };
 }
 
 /** Re-evaluate only which utilities reach a building (no accumulation) — used while the game is paused. */
@@ -251,25 +263,9 @@ export function updateRec(sim: Simulation, r: BRec): void {
   const powered = (served & SV_POWER) !== 0;
   const watered = (served & SV_WATER) !== 0;
   const breathing = (served & SV_OXYGEN) !== 0;
-  let homeCap = 0, jobCap = 0, jobIdx = 4;
-  if (zp) {
-    const lvlRatio = zp.capacity[lvl] / zp.capacity[info.typLevel - 1];
-    const cap = zp.capacity[lvl] * fpMul * info.sizeMul;
-    if (fam === 0) {
-      homeCap = cap;
-      jobCap = info.extraJobs * lvlRatio;
-      jobIdx = 1;
-    } else {
-      jobCap = cap * (fam === 2 ? mods.industryJobs : 1);
-      homeCap = info.extraHousing * lvlRatio;
-      jobIdx = fam;
-    }
-  } else {
-    homeCap = info.housing;
-    jobCap = info.jobs;
-  }
-  homeCap = Math.round(homeCap);
-  jobCap = Math.round(jobCap);
+  const caps = capacityOf(info, b.level, b.tiles.length, mods.industryJobs);
+  const homeCap = caps.homeCap, jobCap = caps.jobCap;
+  const jobIdx = zp ? (fam === 0 ? 1 : fam) : 4;
   r.capacity = fam === 0 || (!zp && homeCap > 0) ? homeCap : jobCap;
   let residents = 0, workers = 0;
   if (homeCap > 0) {
