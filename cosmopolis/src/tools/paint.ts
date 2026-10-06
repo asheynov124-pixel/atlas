@@ -9,7 +9,6 @@ import { Color } from 'three';
 import { Tool, type PointerInfo } from './Tool';
 import type { PickResult } from '../world/geo';
 import type { ToolOption, ToolState } from '../ui/store';
-import { ui } from '../ui/store';
 import { getItem } from '../content/catalog';
 import { chainTiles } from './pathing';
 
@@ -52,9 +51,6 @@ export class PaintTool extends Tool {
     super.enter(state);
     this.picking = false;
     this.hoverId = -1;
-    // painting the inspected building straight away feels natural
-    const sel = ui.selection.value;
-    if (sel?.kind === 'building') this.hoverId = -1;
   }
 
   override exit(): void {

@@ -7,7 +7,8 @@
   position: fixed;
   left: 0;
   top: 0;
-  z-index: 17;
+  /* above the 3D canvas, beneath the HUD (#app is z 10) so sheets and bars always cover it */
+  z-index: 9;
   pointer-events: none;
   display: flex;
   flex-direction: column;

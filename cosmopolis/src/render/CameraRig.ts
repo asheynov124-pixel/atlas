@@ -100,25 +100,32 @@ interface Pinch {
 
 const MIN_D = 2.5;
 const TWIST_THRESHOLD = 0.14;
-/** distance (log space) → automatic tilt */
+/**
+ * Tilt curves keyed by zoom01 (0 = street level … 1 = farthest orbit, log distance), so every planet size gets the
+ * same feel: skyline at street level, oblique over the city, straight down from orbit. (Tuned on f = 40.)
+ */
 const AUTO_TILT: [number, number][] = [
-  [2.5, 1.36],
-  [6, 1.24],
-  [15, 1.06],
-  [30, 0.88],
-  [60, 0.56],
-  [110, 0.24],
-  [180, 0.05],
-  [260, 0],
+  [0, 1.36],
+  [0.18, 1.24],
+  [0.375, 1.06],
+  [0.52, 0.88],
+  [0.665, 0.56],
+  [0.79, 0.24],
+  [0.895, 0.05],
+  [0.97, 0],
 ];
+/** widest tilt allowed (wide views can't look as far up) */
 const MAX_TILT: [number, number][] = [
-  [2.5, 1.5],
-  [10, 1.45],
-  [30, 1.32],
-  [66, 1.08],
-  [150, 0.72],
-  [300, 0.48],
+  [0, 1.5],
+  [0.29, 1.45],
+  [0.52, 1.32],
+  [0.685, 1.08],
+  [0.855, 0.72],
+  [1, 0.48],
 ];
+/** elastic overshoot past the zoom limits (log space): asymptotes, iOS-style */
+const RUBBER_OUT = 0.24;
+const RUBBER_IN = 0.16;
 
 const _up = new Vector3();
 const _f = new Vector3();
@@ -135,15 +142,14 @@ const _q = new Quaternion();
 const _ray = new Ray();
 const _ndc = new Vector2();
 const _m = new Vector2();
+const _zp = new Vector3();
 const Y = new Vector3(0, 1, 0);
 
-function curve(table: [number, number][], d: number): number {
-  if (d <= table[0][0]) return table[0][1];
-  const ld = Math.log(d);
+function curve(table: [number, number][], z: number): number {
+  if (z <= table[0][0]) return table[0][1];
   for (let i = 1; i < table.length; i++) {
-    if (d <= table[i][0]) {
-      const l0 = Math.log(table[i - 1][0]), l1 = Math.log(table[i][0]);
-      const s = (ld - l0) / (l1 - l0);
+    if (z <= table[i][0]) {
+      const s = (z - table[i - 1][0]) / (table[i][0] - table[i - 1][0]);
       const e = s * s * (3 - 2 * s);
       return table[i - 1][1] + (table[i][1] - table[i - 1][1]) * e;
     }
@@ -215,6 +221,7 @@ export class CameraRig implements System {
   private grabMiss = false;
   private pinch: Pinch | null = null;
   private zoomAnchor: { point: Vector3; ndc: Vector2; ttl: number } | null = null;
+  private zoomAnchorStore: { point: Vector3; ndc: Vector2; ttl: number } | null = null;
   private elastic = 0;
   private overscroll = 0;
   private overscrollT = 0;
@@ -256,7 +263,7 @@ export class CameraRig implements System {
     this.heading = this.goal.heading = 0;
     this.autoTilt = true;
     this.distance = this.goal.distance = R * 3.2;
-    this.tilt = this.goal.tilt = curve(AUTO_TILT, this.distance);
+    this.tilt = this.goal.tilt = this.autoTiltAt(this.distance);
     this.groundH = this.surfaceAt(site);
     this.applyPose(0);
     // arrival: descend from orbit toward the city
@@ -289,7 +296,12 @@ export class CameraRig implements System {
   // ─────────────────────────────────────────────── queries
 
   get zoom01(): number {
-    const v = Math.log(this.distance / this.minDistance) / Math.log(this.maxDistance / this.minDistance);
+    return this.zoomOf(this.distance);
+  }
+
+  /** zoom01 of an arbitrary distance */
+  zoomOf(d: number): number {
+    const v = Math.log(Math.max(1e-6, d) / this.minDistance) / Math.log(this.maxDistance / this.minDistance);
     return Math.max(0, Math.min(1, v));
   }
 
@@ -300,11 +312,11 @@ export class CameraRig implements System {
 
   /** Effective tilt limit at a distance (wider views can't look as far up). */
   maxTiltAt(d: number): number {
-    return curve(MAX_TILT, d);
+    return curve(MAX_TILT, this.zoomOf(d));
   }
 
   autoTiltAt(d: number): number {
-    return curve(AUTO_TILT, d);
+    return curve(AUTO_TILT, this.zoomOf(d));
   }
 
   /** Camera altitude above the ground directly below it. */
@@ -562,24 +574,16 @@ export class CameraRig implements System {
     let i = 0;
     while (i < k.length - 2 && time > k[i + 1].t) i++;
     const a = k[i], b = k[i + 1];
-    const prev = k[i - 1], next = k[i + 2];
+    const prev = i > 0 ? k[i - 1] : null, next = i + 2 < k.length ? k[i + 2] : null;
     const span = Math.max(1e-3, b.t - a.t);
     const s = Math.max(0, Math.min(1, (time - a.t) / span));
-    const s2 = s * s, s3 = s2 * s;
-    const h00 = 2 * s3 - 3 * s2 + 1, h10 = s3 - 2 * s2 + s, h01 = -2 * s3 + 3 * s2, h11 = s3 - s2;
-    const tan = (pa: number, pb: number, kPrev: TourKey | undefined, kNext: TourKey | undefined, getter: (x: TourKey) => number, which: 'a' | 'b'): number => {
-      // Catmull-Rom tangents with non-uniform timing; ease to zero at the ends
-      if (which === 'a') return kPrev ? ((pb - getter(kPrev)) / (b.t - kPrev.t)) * span : 0;
-      return kNext ? ((getter(kNext) - pa) / (kNext.t - a.t)) * span : 0;
-    };
-    const comp = (g: (x: TourKey) => number) => {
-      const pa = g(a), pb = g(b);
-      return h00 * pa + h10 * tan(pa, pb, prev, next, g, 'a') + h01 * pb + h11 * tan(pa, pb, prev, next, g, 'b');
-    };
-    this.target.set(comp((x) => x.x), comp((x) => x.y), comp((x) => x.z)).normalize();
-    this.distance = Math.exp(comp((x) => x.ld));
-    this.heading = comp((x) => x.h);
-    this.tilt = Math.max(0, Math.min(this.maxTiltAt(this.distance), comp((x) => x.tilt)));
+    const x = tourComp(a.x, b.x, prev?.x, next?.x, a, b, prev, next, span, s);
+    const y = tourComp(a.y, b.y, prev?.y, next?.y, a, b, prev, next, span, s);
+    const z = tourComp(a.z, b.z, prev?.z, next?.z, a, b, prev, next, span, s);
+    this.target.set(x, y, z).normalize();
+    this.distance = Math.exp(tourComp(a.ld, b.ld, prev?.ld, next?.ld, a, b, prev, next, span, s));
+    this.heading = tourComp(a.h, b.h, prev?.h, next?.h, a, b, prev, next, span, s);
+    this.tilt = Math.max(0, Math.min(this.maxTiltAt(this.distance), tourComp(a.tilt, b.tilt, prev?.tilt, next?.tilt, a, b, prev, next, span, s)));
     this.goal.target.copy(this.target);
     this.goal.distance = this.distance;
     this.goal.heading = this.heading;
@@ -818,7 +822,8 @@ export class CameraRig implements System {
     }
     if (this.autoTilt) this.tilt = this.goal.tilt = this.autoTiltAt(this.distance);
     else this.tilt = this.goal.tilt = Math.min(this.tilt, this.maxTiltAt(this.distance));
-    if (pz.anchor) this.anchorTo(pz.anchor, this.ndc(mx, my, _m));
+    // while following, zoom toward the followed object instead of the fingers
+    if (pz.anchor && !this.followFn) this.anchorTo(pz.anchor, this.ndc(mx, my, _m));
     this.applyPose(0);
   }
 
@@ -841,7 +846,7 @@ export class CameraRig implements System {
     if (!v) return;
     this.finishFlight(false);
     if (this.tour) this.stopTourInternal(true);
-    const point = new Vector3();
+    const point = _zp;
     this.applyPose(0);
     const hit = this.pick(ndc, point);
     const before = this.goal.distance;
@@ -859,12 +864,16 @@ export class CameraRig implements System {
     next = Math.max(this.minDistance, Math.min(this.maxDistance, next));
     this.goal.distance = next;
     if (this.autoTilt) this.goal.tilt = this.autoTiltAt(next);
-    if (!hit) {
+    if (!hit || this.followFn) {
       this.zoomAnchor = null;
       return;
     }
     if (smooth && !this.reduceMotion) {
-      this.zoomAnchor = { point, ndc: ndc.clone(), ttl: 0.9 };
+      const za = this.zoomAnchor ?? (this.zoomAnchorStore ??= { point: new Vector3(), ndc: new Vector2(), ttl: 0 });
+      za.point.copy(point);
+      za.ndc.copy(ndc);
+      za.ttl = 0.9;
+      this.zoomAnchor = za;
     } else {
       this.distance = next;
       this.tilt = this.goal.tilt = Math.min(this.goal.tilt, this.maxTiltAt(next));
@@ -907,10 +916,17 @@ export class CameraRig implements System {
     }
   }
 
+  /** Elastic limits: past either end the distance keeps following the fingers, ever more reluctantly. */
   private rubber(raw: number): number {
     const lo = this.minDistance, hi = this.maxDistance;
-    if (raw < lo) return lo * Math.pow(raw / lo, 0.28);
-    if (raw > hi) return hi * Math.pow(raw / hi, 0.28);
+    if (raw > hi) {
+      const over = Math.log(raw / hi);
+      return hi * Math.exp(RUBBER_OUT * (1 - 1 / (1 + over * 1.6)));
+    }
+    if (raw < lo) {
+      const under = Math.log(lo / raw);
+      return lo * Math.exp(-RUBBER_IN * (1 - 1 / (1 + under * 1.6)));
+    }
     return raw;
   }
 
@@ -1090,6 +1106,18 @@ export class CameraRig implements System {
     }
     cam.updateMatrixWorld();
   }
+}
+
+/**
+ * One component of the tour spline: cubic Hermite between keys a and b with Catmull-Rom tangents (non-uniform
+ * timing), easing to zero velocity at the ends of the tour. Allocation-free.
+ */
+function tourComp(pa: number, pb: number, pp: number | undefined, pn: number | undefined, a: TourKey, b: TourKey, prev: TourKey | null, next: TourKey | null, span: number, s: number): number {
+  const s2 = s * s, s3 = s2 * s;
+  const h00 = 2 * s3 - 3 * s2 + 1, h10 = s3 - 2 * s2 + s, h01 = -2 * s3 + 3 * s2, h11 = s3 - s2;
+  const m0 = prev && pp !== undefined ? ((pb - pp) / (b.t - prev.t)) * span : 0;
+  const m1 = next && pn !== undefined ? ((pn - pa) / (next.t - a.t)) * span : 0;
+  return h00 * pa + h10 * m0 + h01 * pb + h11 * m1;
 }
 
 /** Spherical interpolation between unit vectors (writes out, safe when out aliases a). */

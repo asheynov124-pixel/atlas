@@ -4,7 +4,8 @@
  * 'selection:changed'). Orbitals are picked first through view.orbitals.pickOrbital(ray) when the life renderer
  * provides it; props win over bare ground when the tap lands within half a tile of one. Tapping bare ground while
  * something is selected just dismisses the inspector. Long-press inspects and glides the camera closer.
- * Desktop hover softly outlines the building under the cursor.
+ * Long-press a building to pick it up and move it (iOS home-screen style, via the move tool); long-press bare
+ * ground to inspect it and glide closer. Desktop hover softly outlines the building under the cursor.
  */
 import { Matrix4, Vector3 } from 'three';
 import { Tool, type PointerInfo } from './Tool';
@@ -120,6 +121,11 @@ export class SelectTool extends Tool {
   }
 
   override longPress(hit: PickResult | null, info: PointerInfo): boolean {
+    const p0 = this.mgr.planet;
+    const bid = hit && p0 ? p0.building[hit.tile] : -1;
+    if (bid >= 0 && this.mgr.liftBuilding(bid)) return true;
+    // mouse: a held click on the ground stays an ordinary click / drag
+    if (!info.touch) return false;
     this.tap(hit, info);
     const sel = ui.selection.value;
     const p = this.mgr.planet;

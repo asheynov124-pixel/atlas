@@ -157,7 +157,7 @@ void main() {
   float s = abs(vSide);
   float edge = 1.0 - smoothstep(0.62, 1.0, s);
   float rim = smoothstep(0.55, 0.8, s) * (1.0 - smoothstep(0.85, 1.0, s));
-  float c = fract(vU * 0.9 - s * 0.32 - uTime * 1.25);
+  float c = fract(vU * 0.9 + s * 0.32 - uTime * 1.25);
   float chev = smoothstep(0.0, 0.06, c) * (1.0 - smoothstep(0.26, 0.36, c));
   vec3 col = mix(uColor, uBad, step(0.5, vBad));
   float a = edge * (0.22 + 0.55 * chev) + rim * 0.55;

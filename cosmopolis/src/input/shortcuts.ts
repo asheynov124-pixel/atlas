@@ -72,7 +72,8 @@ export const GESTURES: GestureDef[] = [
   { gesture: 'Double-tap', label: 'Zoom in', icon: 'plus' },
   { gesture: 'Two-finger tap', label: 'Zoom out', icon: 'minus' },
   { gesture: 'Double-tap, hold & slide', label: 'One-handed zoom', icon: 'expand' },
-  { gesture: 'Long-press', label: 'Inspect · precise placement for big buildings', icon: 'target' },
+  { gesture: 'Long-press a building', label: 'Pick it up, slide, lift to set it down', icon: 'target' },
+  { gesture: 'Long-press while placing', label: 'Fine-tune big buildings before they land', icon: 'build' },
   { gesture: 'Drawing tools', label: 'One finger draws, two fingers move the camera', icon: 'brush' },
   { gesture: 'Roads', label: 'Drag, or tap the start then tap the end (keeps chaining)', icon: 'roads' },
 ];

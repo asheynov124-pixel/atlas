@@ -16,7 +16,7 @@
  *           pointerDown/Move/Up(hit, info), cancelStroke(), setOption(id, value), rotate(dir), brush(delta),
  *           home(), update(dt), isDrawing, rotatable, placing, current, rotation, visuals, tag
  */
-import { Vector2, Vector3 } from 'three';
+import { Vector3 } from 'three';
 import type { Game } from '../game/Game';
 import type { System } from '../game/System';
 import { ui, type ToolOption, type ToolState } from '../ui/store';
@@ -42,7 +42,6 @@ import { GodTool } from './god';
 import { MoveTool } from './move';
 
 const DEFAULT_INFO: PointerInfo = { touch: false, shift: false, alt: false, ctrl: false, button: 0 };
-const _c = new Vector2(0, 0);
 
 export class ToolManager implements System {
   current: ToolState | null = null;
@@ -55,7 +54,8 @@ export class ToolManager implements System {
   private readonly select0: SelectTool;
   /** touch: ghosts track the screen centre until the first press */
   private centreTracking = true;
-  private lastCentreSig = '';
+  /** camera target xyz, distance, heading at the last centre preview */
+  private lastCentre = new Float64Array(5);
   private offs: (() => void)[] = [];
 
   constructor(readonly game: Game) {
@@ -173,7 +173,7 @@ export class ToolManager implements System {
     this.current = state && next !== this.select0 ? state : state?.id === 'select' ? state : null;
     this.active = next;
     this.centreTracking = true;
-    this.lastCentreSig = '';
+    this.lastCentre.fill(NaN);
     ui.costPreview.value = null;
     try {
       next.enter(state ?? { id: 'select' });
@@ -282,6 +282,25 @@ export class ToolManager implements System {
     this.publishOptions();
   }
 
+  /** Long-press shortcut: switch to the move tool with this building lifted under the finger. */
+  liftBuilding(id: number): boolean {
+    const p = this.planet;
+    if (!p?.buildings.has(id)) return false;
+    if (ui.selection.value) {
+      ui.selection.value = null;
+      bus.emit('selection:changed', { selection: null });
+    }
+    this.select({ id: 'move', label: 'Move' });
+    const mv = this.tools.move as MoveTool;
+    if (this.active !== mv || !mv.lift(id, true)) return false;
+    try {
+      navigator.vibrate?.(14);
+    } catch {
+      /* not on iOS */
+    }
+    return true;
+  }
+
   /** Fly back over the city. */
   home(): void {
     const p = this.planet;
@@ -356,18 +375,21 @@ export class ToolManager implements System {
     // touch placement tools: preview where the screen centre lands until the first press
     if (this.current && this.centreTracking && this.touch && this.active.placing && this.game.activeView === this.game.planetView) {
       const cam = this.game.camera;
-      const sig = `${cam.target.x.toFixed(4)},${cam.target.y.toFixed(4)},${cam.target.z.toFixed(4)},${cam.distance.toFixed(2)}`;
-      if (sig !== this.lastCentreSig) {
-        this.lastCentreSig = sig;
-        _c.set(0, -0.12);
-        const r = cam.rayAt(_c);
+      const t = cam.target;
+      const c = this.lastCentre;
+      if (t.x !== c[0] || t.y !== c[1] || t.z !== c[2] || cam.distance !== c[3] || cam.heading !== c[4]) {
+        c[0] = t.x;
+        c[1] = t.y;
+        c[2] = t.z;
+        c[3] = cam.distance;
+        c[4] = cam.heading;
         let hit: PickResult | null = null;
         try {
+          // a little below the middle: where the eye rests on a tilted view
           hit = this.game.input.pick(this.game.engine.width / 2, this.game.engine.height * 0.56);
         } catch {
           hit = null;
         }
-        void r;
         this.hover(hit);
       }
     }

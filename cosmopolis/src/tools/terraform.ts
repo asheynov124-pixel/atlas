@@ -141,7 +141,7 @@ export class TerraformTool extends Tool {
       return o;
     }
     o.push({ id: 'size', label: 'Size', type: 'slider', min: 1, max: 5, step: 1, value: this.size + 1, icon: 'brush' });
-    if (SCULPT.has(this.mode)) o.push({ id: 'strength', label: 'Strength', type: 'slider', min: 1, max: 5, step: 1, value: this.strength, icon: 'speed' });
+    if (SCULPT.has(this.mode)) o.push({ id: 'strength', label: 'Strength', type: 'slider', min: 1, max: 5, step: 1, value: this.strength, icon: 'lightning' });
     if (this.mode === 'biome') o.push({ id: 'biome', label: 'Ground', type: 'choice', value: this.biome, choices: BIOMES.map((b) => ({ value: b.value, label: b.label })) });
     if (this.mode === 'deposit') o.push({ id: 'deposit', label: 'Deposit', type: 'choice', value: this.deposit, choices: DEPOSITS.map((d) => ({ value: d.value, label: d.label, icon: d.icon })) });
     if (sb && SCULPT.has(this.mode)) o.push({ id: 'force', label: 'Force', type: 'toggle', icon: 'magic', value: this.force });

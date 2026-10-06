@@ -3,11 +3,15 @@
  * MoveTool — relocate a building without rebuilding it (keeps its name, level, style, paint and residents' sense
  * of identity). Tap a building to lift it (it turns into a blueprint), a ghost follows the pointer — auto-facing
  * roads, R to rotate — tap the new spot to set it down. Esc drops it back. One undo step per move.
+ * Entered while a building is inspected, that building is lifted straight away. `lift(id, hold)` is the
+ * long-press shortcut from the select tool (iOS home-screen style): the finger that pressed carries the ghost and
+ * lifting it sets the building down, then the hand tool returns.
  */
 import { Matrix4 } from 'three';
 import { Tool, type PointerInfo } from './Tool';
 import type { PickResult } from '../world/geo';
 import type { ToolState } from '../ui/store';
+import { ui } from '../ui/store';
 import { getItem } from '../content/catalog';
 import { friendlyReason } from '../game/Commands';
 import { InstState } from '../render/materials';
@@ -24,6 +28,10 @@ export class MoveTool extends Tool {
   private hoverTile = -1;
   private valid = false;
   private reason = '';
+  /** the finger that lifted the building is still down (long-press shortcut) */
+  private holding = false;
+  /** return to the hand tool after one move */
+  private oneShot = false;
 
   override get rotatable(): boolean {
     return this.picked >= 0;
@@ -35,10 +43,34 @@ export class MoveTool extends Tool {
   override enter(state: ToolState): void {
     super.enter(state);
     this.drop();
+    this.oneShot = false;
+    // entered from the inspector: pick the inspected building up right away
+    const sel = ui.selection.value;
+    if (sel?.kind === 'building' && this.mgr.planet?.buildings.has(sel.id)) this.lift(sel.id, false);
   }
 
   override exit(): void {
     this.drop();
+    this.holding = false;
+  }
+
+  /** Pick a building up. `hold`: the pressing finger carries it (release sets it down). */
+  lift(id: number, hold: boolean): boolean {
+    const p = this.mgr.planet;
+    const b = p?.buildings.get(id);
+    if (!p || !b) return false;
+    this.drop();
+    this.picked = id;
+    this.manualRot = false;
+    this.rot = b.rot;
+    this.holding = hold;
+    this.oneShot = hold;
+    this.game.planetView?.buildings.forceState(id, InstState.Blueprint);
+    this.mgr.sfx('open');
+    this.mgr.setHint(hold ? 'Slide to the new spot · lift your finger to set it down' : this.hint());
+    this.hoverTile = -1;
+    this.evaluate(b.tile);
+    return true;
   }
 
   override hint(): string {
@@ -127,37 +159,82 @@ export class MoveTool extends Tool {
     if (this.picked < 0) {
       const bid = p.building[hit.tile];
       if (bid < 0) return;
-      this.picked = bid;
-      this.manualRot = false;
-      this.rot = p.buildings.get(bid)!.rot;
-      this.game.planetView?.buildings.forceState(bid, InstState.Blueprint);
-      this.mgr.sfx('open');
-      this.mgr.setHint(this.hint());
+      this.lift(bid, false);
       this.hoverTile = -1;
       this.evaluate(hit.tile);
       return;
     }
+    this.setDown(hit.tile);
+  }
+
+  /** Try to set the lifted building down on `tile`. */
+  private setDown(tile: number): boolean {
+    const p = this.mgr.planet;
+    const id = this.picked;
+    const b = p?.buildings.get(id);
+    if (!p || !b) {
+      this.drop();
+      return false;
+    }
+    if (tile === b.tile && this.rot === b.rot) {
+      // put back where it was
+      this.drop();
+      this.mgr.setHint(this.oneShot ? null : this.hint());
+      return false;
+    }
     this.hoverTile = -1;
-    this.evaluate(hit.tile);
+    this.evaluate(tile);
     if (!this.valid) {
       this.game.commands.feedback("Can't put it there", this.reason);
-      return;
+      return false;
     }
-    const id = this.picked;
     this.game.planetView?.buildings.forceState(id, null);
-    const ok = this.game.commands.move(id, hit.tile, this.rot, { free: this.mgr.sandbox });
+    const ok = this.game.commands.move(id, tile, this.rot, { free: this.mgr.sandbox });
     if (ok) {
       const fp = getItem(p.buildings.get(id)?.defId ?? '')?.footprint ?? 1;
-      this.mgr.pulseAt(hit.tile, fp > 1 ? 3.5 : 1.5, TOOL_COLORS.ok);
+      this.mgr.pulseAt(tile, fp > 1 ? 3.5 : 1.5, TOOL_COLORS.ok);
       this.picked = -1;
       this.drop();
-      this.mgr.setHint('Moved · pick up another, or ✕ to finish');
+      this.mgr.setHint(this.oneShot ? 'Moved · long-press any building to move it' : 'Moved · pick up another, or ✕ to finish');
     } else this.game.planetView?.buildings.forceState(id, InstState.Blueprint);
+    return ok;
+  }
+
+  override move(hit: PickResult | null): void {
+    if (!this.holding) return;
+    if (hit) this.evaluate(hit.tile);
+  }
+
+  override up(hit: PickResult | null): void {
+    if (!this.holding) return;
+    this.holding = false;
+    if (hit && this.picked >= 0) this.setDown(hit.tile);
+    if (this.picked >= 0) this.drop();
+    if (this.oneShot) {
+      this.oneShot = false;
+      this.mgr.select(null);
+    }
+  }
+
+  override cancelStroke(): void {
+    if (!this.holding) return;
+    this.holding = false;
+    this.drop();
+    if (this.oneShot) {
+      this.oneShot = false;
+      this.mgr.select(null);
+    }
   }
 
   override escape(): boolean {
     if (this.picked < 0) return false;
     this.drop();
+    this.holding = false;
+    if (this.oneShot) {
+      this.oneShot = false;
+      this.mgr.select(null);
+      return true;
+    }
     this.mgr.setHint(this.hint());
     return true;
   }

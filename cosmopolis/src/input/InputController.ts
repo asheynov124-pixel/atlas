@@ -4,13 +4,16 @@
  * active tool.
  *
  *   Touch   1 finger: tap (tool / select) · drag = grab-pan with fling (or DRAW when a drawing tool is active)
- *           double-tap = zoom in · double-tap-hold-slide = one-handed zoom · long-press = inspect (or the tool's
- *           precision mode, e.g. fine-placing a big building)
+ *           double-tap = zoom in · double-tap-hold-slide = one-handed zoom · long-press = pick a building up and
+ *           carry it (ground: inspect & glide closer; placing: the tool's precision mode for big buildings)
  *           2 fingers: pinch zoom toward the fingers + twist rotate + pan, or a parallel vertical slide = tilt;
- *           a quick two-finger tap zooms out. A second finger landing mid-stroke cancels the stroke (rolled back).
- *   Mouse   left = tool (or grab-pan when the tool doesn't draw) · right / middle drag = rotate + tilt ·
- *           wheel = zoom at the cursor (trackpad pinch too) · hover feeds ghost previews (picked once per frame,
- *           re-picked when the camera moves under a still cursor).
+ *           a quick two-finger tap zooms out. A second finger landing mid-stroke (or mid-hold) cancels the stroke
+ *           (rolled back) and becomes a camera gesture.
+ *   Mouse   left = tool (or grab-pan when the tool doesn't draw; click-and-hold on a building picks it up) ·
+ *           right / middle drag = rotate + tilt · wheel = zoom at the cursor (trackpad pinch too) · hover feeds
+ *           ghost previews (picked once per frame, re-picked when the camera moves under a still cursor).
+ * A long-press timer that fires late (busy main thread) is re-checked after queued input drains, so a slow frame
+ * never turns a drag into a hold. `longPressMs` is adjustable (tests).
  *   Keys    see input/shortcuts.ts (continuous WASD/QE/RF/±, Space, 1–4, Ctrl+Z…), exported for the help panel.
  * The first gesture unlocks audio (iOS). A touch during the cinematic tour cancels it and is swallowed.
  * Only active while the planet surface is the active view (other views own their input).
@@ -50,9 +53,12 @@ export class InputController implements System {
   /** ray of the most recent pick (tools use it for orbitals) */
   readonly lastRay = new Ray();
   lastPointerType: 'mouse' | 'touch' | 'pen' = 'mouse';
+  /** press-and-hold delay (ms); tests raise it to rule long-presses out on slow headless frames */
+  longPressMs = LONG_PRESS_MS;
   private ptrs = new Map<number, Ptr>();
   private mode: Mode = 'idle';
   private longTimer: ReturnType<typeof setTimeout> | null = null;
+  private longDeferred = false;
   private lastTap = { t: -1e9, x: 0, y: 0 };
   private dblCandidate = false;
   private quick = { ndc: new Vector2(), lastY: 0 };
@@ -61,6 +67,7 @@ export class InputController implements System {
   private drawMove = { x: 0, y: 0, dirty: false };
   private lastCam = new Float32Array(16);
   private ndcTmp = new Vector2();
+  private ndcMove = new Vector2();
   private panTmp = new Vector2();
   private info: PointerInfo = { touch: false, shift: false, alt: false, ctrl: false, button: 0 };
   private offs: (() => void)[] = [];
@@ -206,7 +213,7 @@ export class InputController implements System {
       this.mode = 'swallow';
       return;
     }
-    if (this.mode === 'swallow') return;
+    if (this.mode === 'swallow' && this.ptrs.size !== 2) return;
     if (this.ptrs.size === 1) {
       g.camera.interrupt();
       g.camera.refreshRect();
@@ -220,6 +227,11 @@ export class InputController implements System {
           g.tools.pointerDown(this.pick(ptr.x, ptr.y), this.infoFor(e, ptr));
         } else this.mode = 'pending';
         if (e.button === 0 && performance.now() - this.lastTap.t < DOUBLE_TAP_MS && Math.hypot(ptr.x - this.lastTap.x, ptr.y - this.lastTap.y) < 12) this.dblCandidate = true;
+        // click-and-hold on a building picks it up (the select tool decides)
+        if (this.mode === 'pending' && e.button === 0 && !this.dblCandidate) {
+          this.longDeferred = false;
+          this.longTimer = setTimeout(() => this.onLongPress(), this.longPressMs);
+        }
         return;
       }
       this.mode = 'pending';
@@ -227,13 +239,18 @@ export class InputController implements System {
       if (!g.tools.isDrawing && now - this.lastTap.t < DOUBLE_TAP_MS && Math.hypot(ptr.x - this.lastTap.x, ptr.y - this.lastTap.y) < 42) this.dblCandidate = true;
       // press preview (ghosts appear under the finger)
       g.tools.hover(this.pick(ptr.x, ptr.y));
-      if (!g.tools.isDrawing && !this.dblCandidate) this.longTimer = setTimeout(() => this.onLongPress(), LONG_PRESS_MS);
+      if (!g.tools.isDrawing && !this.dblCandidate) {
+        this.longDeferred = false;
+        this.longTimer = setTimeout(() => this.onLongPress(), this.longPressMs);
+      }
       return;
     }
     if (this.ptrs.size === 2) {
+      // a second finger always becomes a camera gesture, whatever the first one was doing
       this.clearLong();
       if (this.mode === 'draw' || this.mode === 'hold') g.tools.cancelStroke();
       if (this.mode === 'pan') g.camera.grabEnd();
+      this.drawMove.dirty = false;
       const two = this.twoPtrs()!;
       g.camera.pinchStart(two[0].x, two[0].y, two[1].x, two[1].y);
       this.mode = 'multi';
@@ -278,7 +295,7 @@ export class InputController implements System {
         }
         break;
       case 'pan':
-        g.camera.grabMove(this.ndc(ptr.x, ptr.y));
+        g.camera.grabMove(g.camera.ndc(ptr.x, ptr.y, this.ndcMove));
         break;
       case 'draw':
       case 'hold':
@@ -379,13 +396,23 @@ export class InputController implements System {
     this.longTimer = null;
     if (this.mode !== 'pending' || this.ptrs.size !== 1) return;
     const ptr = this.ptrs.values().next().value!;
-    const hit = this.pick(ptr.x, ptr.y);
-    try {
-      navigator.vibrate?.(10);
-    } catch {
-      /* not on iOS */
+    // a timer that fires late means the main thread was busy: moves may still be queued behind it, so let input
+    // drain first (input outranks timers) and only then decide it really was a press-and-hold
+    if (!this.longDeferred && performance.now() - ptr.t0 > this.longPressMs + 120) {
+      this.longDeferred = true;
+      this.longTimer = setTimeout(() => this.onLongPress(), 32);
+      return;
     }
-    this.mode = this.game.tools.longPress(hit, this.infoFor(null, ptr)) ? 'hold' : 'swallow';
+    const hit = this.pick(ptr.x, ptr.y);
+    const took = this.game.tools.longPress(hit, this.infoFor(null, ptr));
+    if (ptr.type !== 'mouse')
+      try {
+        navigator.vibrate?.(10);
+      } catch {
+        /* no haptics on iOS Safari */
+      }
+    // a mouse button held still stays a click / drag when the tool has no use for the hold
+    this.mode = took ? 'hold' : ptr.type === 'mouse' ? 'pending' : 'swallow';
   }
 
   private onWheel(e: WheelEvent): void {

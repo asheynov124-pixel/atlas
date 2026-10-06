@@ -300,6 +300,7 @@ export class RoadTool extends Tool {
     this.dragging = true;
     this.start = this.anchor >= 0 ? this.anchor : hit.tile;
     this.end = hit.tile;
+    this.mgr.setHint(this.hint());
     if (this.start !== this.end) this.preview(this.start, this.end);
     else this.hoverAt(hit.tile);
   }
