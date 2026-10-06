@@ -59,3 +59,19 @@ describe('sim persistence', () => {
     expect(a.sim.stats.buildings).toBeGreaterThan(0);
   });
 });
+
+describe('sim persistence edge cases', () => {
+  it('a structuredClone of an active planet does not throw and restores to sane defaults', () => {
+    const a = makeHarness();
+    layoutTown(a, 0);
+    plop(a, 't_power', 0, 9);
+    a.days(20);
+    const clone = structuredClone(a.planet.serialize());
+    const planet = Planet.deserialize(clone, footprintOf);
+    const b = makeHarness({ planet });
+    expect(b.sim.taxes.R).toBeCloseTo(0.09);
+    expect(b.sim.stats.buildings).toBe(a.planet.buildings.size);
+    b.days(5);
+    expect(Number.isFinite(b.sim.day)).toBe(true);
+  });
+});

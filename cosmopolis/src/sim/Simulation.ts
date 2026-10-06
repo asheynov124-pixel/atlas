@@ -207,7 +207,7 @@ export class Simulation implements System {
   private projected: MonthReport | null = null;
   private orbitalCoverage = new Float32Array(SERVICE_INDEX.spiritual + 1);
   private ctx: FieldContext | null = null;
-  private liveRef: { toJSON: () => SavedState } | null = null;
+  private liveRef: LiveSimState | null = null;
   private abandonCause = new Map<number, string>();
   private lastAbandonNotice = -999;
   private abandonedToday = 0;
@@ -293,7 +293,8 @@ export class Simulation implements System {
     this.fieldsRestored = false;
     if (state?.fields) this.restoreFields(state.fields);
     this.settle();
-    this.liveRef = { toJSON: () => this.serialize() };
+    this.liveRef = new LiveSimState();
+    LIVE.set(this.liveRef, this);
     planet.simData.sim = this.liveRef;
     this.publishStats();
     this.projected = this.report(false);
@@ -1760,6 +1761,17 @@ export class Simulation implements System {
       recs: col,
       fields,
     };
+  }
+}
+
+/**
+ * Placeholder stored in planet.simData.sim while the planet is active: JSON.stringify (saves, snapshots) calls
+ * toJSON() and gets the live state. No own properties, so structuredClone yields a harmless {} instead of throwing.
+ */
+const LIVE = new WeakMap<LiveSimState, Simulation>();
+class LiveSimState {
+  toJSON(): SavedState | Record<string, never> {
+    return LIVE.get(this)?.serialize() ?? {};
   }
 }
 
