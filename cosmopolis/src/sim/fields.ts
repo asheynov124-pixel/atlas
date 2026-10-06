@@ -354,6 +354,7 @@ export class Fields {
     if (this.lvBaseDirty) this.computeLvBase();
     if (this.roadsDirty) this.rebuildRoads();
     for (const a of this.covAcc) a.fill(0);
+    yield;
     this.polAcc.fill(0);
     this.noiseAcc.fill(0);
     this.lvAcc.fill(0);
