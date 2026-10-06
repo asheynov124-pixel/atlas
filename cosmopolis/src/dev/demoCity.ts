@@ -9,6 +9,7 @@ import { Rng } from '../core/rng';
 import { allItems, growablesFor, itemsByCategory, type ItemDef } from '../content/catalog';
 import type { Game } from '../game/Game';
 import type { Planet } from '../world/planet';
+import { homeSite } from '../world/planetgen';
 
 export interface DemoResult {
   center: number;
@@ -84,7 +85,9 @@ export function buildDemoCity(game: Game, kind = 'city'): DemoResult | null {
   const big = kind === 'metropolis';
   const R = big ? 12 : 9;
   const rng = new Rng(4242);
-  const center = findCitySite(p, R);
+  // prefer the generator's guaranteed settlement plain; fall back to a search
+  const plain = (p.ext.terrain as { site?: number } | undefined)?.site;
+  const center = typeof plain === 'number' && plain >= 0 && plain < p.count && !p.isWater(plain) ? homeSite(p) : findCitySite(p, R);
   const g = p.grid;
   const day = Math.floor(game.clock.day);
 

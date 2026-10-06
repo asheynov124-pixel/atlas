@@ -9,6 +9,7 @@ import { allItems, type ItemDef } from '../content/catalog';
 import type { Game } from '../game/Game';
 import type { Planet } from '../world/planet';
 import { findCitySite } from './demoCity';
+import { homeSite } from '../world/planetgen';
 
 export interface ShowroomOptions {
   category?: Category | 'all';
@@ -63,7 +64,8 @@ export function showroom(game: Game, o: ShowroomOptions = {}): { placed: number;
   const orbitals = defs.filter((d) => d.placement === 'orbit');
   defs = defs.filter((d) => d.placement !== 'orbit');
 
-  const site = findCitySite(p, 14, 99);
+  const plain = (p.ext.terrain as { site?: number } | undefined)?.site;
+  const site = typeof plain === 'number' && plain >= 0 ? homeSite(p) : findCitySite(p, 14, 99);
   const g = p.grid;
   const R = 15 + Math.min(10, Math.floor(defs.length / 12));
   const area = g.disk(site, R);
