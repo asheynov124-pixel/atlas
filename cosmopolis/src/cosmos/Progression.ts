@@ -414,8 +414,9 @@ export class Progression implements System {
     const done = (ok: boolean, label: string, have?: number, need?: number, waived?: boolean): ReqStatus => ({ req, ok: sandbox || ok, label, have, need, waived });
     switch (kind) {
       case 'tier': {
+        // progress is shown in citizens (the ladder's main currency); the tier's signature goal is part of reaching it
         const n = Number(a);
-        return done(c.tier >= n, `Reach ${TIER_NAMES[n] ?? 'tier ' + n}`, c.tier, n);
+        return done(c.tier >= n, `Reach ${TIER_NAMES[n] ?? 'tier ' + n}`, Math.round(this.totalPop()), TIER_POP[n] ?? 0);
       }
       case 'tag': {
         const t = a as ProgressTag;

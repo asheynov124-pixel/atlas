@@ -139,7 +139,7 @@ export function buildGalaxyCloud(g: Galaxy, seed: number, R: number, count: numb
         put(i, Math.cos(th) * rr, gauss(rng) * 0.018 * R * (1.2 - rn * 0.6), Math.sin(th) * rr, tmp, (0.25 + close * 0.75) * (knot ? 1.6 : 1) * rng.range(0.6, 1.1), knot ? rng.range(1.4, 2.4) : rng.range(0.5, 1.3));
         if (opts.dust && rng.chance(0.09) && rn > 0.12 && rn < 0.9) {
           const dth = armAngle(g, rn, arm) - 0.16 + gauss(rng) * 0.05;
-          dustPts.push(Math.cos(dth) * rn * R, gauss(rng) * 0.006 * R, Math.sin(dth) * rn * R, rng.range(2.5, 5.5) * s);
+          dustPts.push(Math.cos(dth) * rn * R, gauss(rng) * 0.006 * R, Math.sin(dth) * rn * R, rng.range(1.6, 3.4) * s);
         }
       }
     } else if (g.kind === 'elliptical') {
@@ -231,7 +231,7 @@ export function buildGalaxyCloud(g: Galaxy, seed: number, R: number, count: numb
     dg.setAttribute('position', new BufferAttribute(dp, 3));
     dg.setAttribute('color', new BufferAttribute(dc, 3));
     dg.setAttribute('aSize', new BufferAttribute(ds, 1));
-    const dm = new ShaderMaterial({ vertexShader: VERT, fragmentShader: DUST_FRAG, uniforms: { ...uniforms, uMaxPx: { value: 60 }, uDust: { value: 0.42 } }, blending: NormalBlending, transparent: true, depthWrite: false });
+    const dm = new ShaderMaterial({ vertexShader: VERT, fragmentShader: DUST_FRAG, uniforms: { ...uniforms, uMaxPx: { value: 34 }, uDust: { value: 0.2 } }, blending: NormalBlending, transparent: true, depthWrite: false });
     dust = new Points(dg, dm);
     dust.frustumCulled = false;
     dust.renderOrder = 2;

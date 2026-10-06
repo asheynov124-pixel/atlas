@@ -115,12 +115,12 @@ export class GalaxyView extends CosmosView {
     this.scene.add(this.disc);
     const R = galaxy.radius;
     const count = Math.round(galaxy.stars * (ctx.lowPower ? 0.7 : 1));
-    this.cloud = buildGalaxyCloud(galaxy, seed, R, count, ctx.pixelRatio, { dust: true, brightness: 0.55 });
+    this.cloud = buildGalaxyCloud(galaxy, seed, R, count, ctx.pixelRatio, { dust: true, brightness: 0.55, maxPx: 6 });
     this.disc.add(this.cloud.stars);
     if (this.cloud.dust) this.disc.add(this.cloud.dust);
     // bulge glow
     const bulgeColor = new Color(galaxy.colors[0]).lerp(new Color(0xffffff), 0.35);
-    const bm = new ShaderMaterial({ vertexShader: BILLBOARD_VERT, fragmentShader: BULGE_FRAG, uniforms: { uColor: { value: bulgeColor }, uIntensity: { value: galaxy.kind === 'ring' ? 0.55 : galaxy.kind === 'elliptical' ? 1.1 : 0.9 }, uScale: { value: R * (galaxy.kind === 'elliptical' ? 1.2 : 0.62) } }, blending: AdditiveBlending, transparent: true, depthWrite: false });
+    const bm = new ShaderMaterial({ vertexShader: BILLBOARD_VERT, fragmentShader: BULGE_FRAG, uniforms: { uColor: { value: bulgeColor }, uIntensity: { value: galaxy.kind === 'ring' ? 0.45 : galaxy.kind === 'elliptical' ? 0.8 : 0.6 }, uScale: { value: R * (galaxy.kind === 'elliptical' ? 1.2 : 0.62) } }, blending: AdditiveBlending, transparent: true, depthWrite: false });
     this.mats.push(bm);
     const bulge = new Mesh(planeGeo(), bm);
     bulge.frustumCulled = false;
@@ -217,8 +217,8 @@ export class GalaxyView extends CosmosView {
     this.flyFrom.copy(this.cam.target);
     this.flyT = snap ? 1 : 0;
     const R = this.galaxy.radius;
-    if (id) this.cam.set({ dist: R * 0.55, pitch: 0.75 }, false);
-    else this.cam.set({ dist: R * 2.5, pitch: 0.95, yaw: snap ? 0.4 : this.cam.goalYaw }, false);
+    if (id) this.cam.set({ dist: R * 1.05, pitch: 0.82 }, false);
+    else this.cam.set({ dist: R * 2.2, pitch: 0.95, yaw: snap ? 0.4 : this.cam.goalYaw }, false);
     if (snap) {
       const idx = id ? this.galaxy.systems.findIndex((s) => s.id === id) : -1;
       this.disc.updateMatrixWorld();

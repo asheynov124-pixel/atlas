@@ -25,6 +25,7 @@ import type { PlanetSpec, PlanetTypeId, StarKind } from '../core/types';
 import { bus } from '../core/events';
 import { settings } from '../core/settings';
 import { Rng, hashString } from '../core/rng';
+import { Vector3 } from 'three';
 import { PLANET_TYPES } from '../content/planetTypes';
 import { notify, ui } from '../ui/store';
 import type { View } from '../render/View';
@@ -74,6 +75,16 @@ interface WarpState {
   frames: number;
 }
 
+/** The parts of the planet CameraRig the cosmos uses (read defensively — tools owns the rig). */
+interface CamLike {
+  target?: Vector3;
+  distance?: number;
+  maxDistance?: number;
+  heading?: number;
+  tilt?: number;
+  flyTo?: (where: number | Vector3, o: { distance?: number; heading?: number; tilt?: number; duration?: number }) => Promise<void>;
+}
+
 const LEVEL_ORDER: Record<CosmosLevel, number> = { system: 0, galaxy: 1, universe: 2 };
 
 function reduceMotion(): boolean {
@@ -103,6 +114,10 @@ export class Cosmos implements System {
   private paramsDone = false;
   private offs: (() => void)[] = [];
   private lastTap = { id: '', t: 0 };
+  /** screen rect of the HUD info card + height of the top chrome (CSS px) — the views shift their lens around it */
+  private frame: { card: { left: number; top: number; right: number; bottom: number } | null; top: number } = { card: null, top: 110 };
+  /** planet camera pose when the star map was opened (restored on the way back) */
+  private planetPose: { target: Vector3; distance: number; heading: number; tilt: number } | null = null;
 
   constructor(private game: Game) {}
 
@@ -461,15 +476,23 @@ export class Cosmos implements System {
         const gid = (focusId && this.galaxyOf(focusId)?.id) || cx.galaxyId.value || this.galaxyOf(cur)?.id || 'g0';
         const v = this.makeGalaxyView(gid);
         if (!v) return;
+        const explicit = !!focusId && !!findSystem(this.galaxies, focusId);
         const sysFocus = (focusId && (findSystem(this.galaxies, focusId)?.id ?? this.systemOf(focusId)?.id)) || (prevLevel === 'system' ? cx.systemId.value : curSys?.galaxyId === gid ? curSys.id : null);
         if (sysFocus && v.galaxy.systems.some((s) => s.id === sysFocus)) {
-          v.focus(sysFocus, prevLevel !== 'galaxy');
-          if (prevLevel === 'system') {
+          if (explicit && prevLevel !== 'system') {
+            // asked for a particular system: fly to it and open its card
+            v.focus(sysFocus, prevLevel !== 'galaxy');
+            v.select(sysFocus);
+            cx.selected.value = { kind: 'system', id: sysFocus };
+          } else {
+            // zooming out is about the big picture: start at the system we came from, then pull back to frame the
+            // whole galaxy ("you are here" stays marked); cards open on tap
+            v.focus(sysFocus, true);
             v.cam.dist = 6;
-            v.cam.goalDist = v.galaxy.radius * 0.55;
+            v.focus(null, false);
+            v.select(null);
+            cx.selected.value = null;
           }
-          v.select(sysFocus);
-          cx.selected.value = { kind: 'system', id: sysFocus };
         } else {
           v.focus(null, true);
           v.select(null);
@@ -483,17 +506,17 @@ export class Cosmos implements System {
         const gid = (focusId && this.galaxyOf(focusId)?.id) || cx.galaxyId.value || this.galaxyOf(cur)?.id || 'g0';
         v.refreshStates();
         v.focus(gid, prevLevel !== 'universe');
-        if (prevLevel === 'galaxy') {
-          v.cam.dist = 60;
-          v.cam.goalDist = 260;
-        }
-        v.select(gid);
-        cx.selected.value = { kind: 'galaxy', id: gid };
+        if (prevLevel === 'galaxy') v.cam.dist = 90;
+        // the big picture: frame where you came from, cards open on tap
+        v.select(null);
+        cx.selected.value = null;
         this.setLevel('universe', gid);
         next = v;
         mode = 'out';
       }
       if (!next) return;
+      if (fromPlanet) this.savePlanetPose();
+      this.applyFrameShift(true, next);
       g.audio.sfx(fromPlanet ? 'whoosh' : 'open');
       this.transition(next, mode, instant ? 0 : fromPlanet ? 1.0 : 0.85);
     } catch (e) {
@@ -538,11 +561,16 @@ export class Cosmos implements System {
     const g = this.game;
     if (!g.planetView || this.warp) return;
     if (g.activeView === g.planetView && !this.blend) return;
-    const cam = g.camera as unknown as { distance?: number; maxDistance?: number; flyTo?: (w: unknown, o: unknown) => unknown; target?: unknown };
+    const cam = g.camera as unknown as CamLike;
     try {
-      if (typeof cam.maxDistance === 'number') cam.distance = cam.maxDistance;
       const R = g.planet?.radius ?? 60;
-      if (typeof cam.flyTo === 'function') void cam.flyTo(cam.target, { distance: R * 1.55, duration: 1.4 });
+      const pose = this.planetPose;
+      this.planetPose = null;
+      if (typeof cam.maxDistance === 'number') cam.distance = cam.maxDistance;
+      if (typeof cam.flyTo === 'function') {
+        if (pose) void cam.flyTo(pose.target, { distance: pose.distance, heading: pose.heading, tilt: pose.tilt, duration: 1.5 });
+        else if (cam.target) void cam.flyTo(cam.target, { distance: R * 1.55, duration: 1.4 });
+      }
     } catch {
       /* camera optional */
     }
@@ -555,6 +583,19 @@ export class Cosmos implements System {
     });
   }
 
+  private savePlanetPose(): void {
+    const cam = this.game.camera as unknown as CamLike;
+    try {
+      if (cam.target instanceof Vector3 && typeof cam.distance === 'number') {
+        // a pinch past the limit leaves the camera at max distance — come back a little closer than that
+        const d = typeof cam.maxDistance === 'number' ? Math.min(cam.distance, cam.maxDistance * 0.78) : cam.distance;
+        this.planetPose = { target: cam.target.clone(), distance: d, heading: cam.heading ?? 0, tilt: cam.tilt ?? 0.5 };
+      }
+    } catch {
+      this.planetPose = null;
+    }
+  }
+
   private restoreMood(): void {
     try {
       const t = this.game.clock.timeOfDay;
@@ -565,10 +606,61 @@ export class Cosmos implements System {
     }
   }
 
+  // ───────────────────────────── framing around the HUD
+
+  /** The HUD reports where its info card is (null = none) and where the top chrome ends. */
+  setHudFrame(card: { left: number; top: number; right: number; bottom: number } | null, top: number): void {
+    this.frame = { card, top };
+    this.applyFrameShift(false);
+  }
+
+  /** Shift the active view's lens so the selected body sits in the free part of the screen, not under the card. */
+  private applyFrameShift(snap: boolean, view?: CosmosView): void {
+    const v = view ?? this.activeCosmosView();
+    if (!v) return;
+    const W = this.game.engine.width, H = this.game.engine.height;
+    const r = this.frame.card;
+    let sx = 0, sy = 0;
+    if (r && cx.selected.value) {
+      const w = r.right - r.left;
+      if (w > W * 0.6) {
+        // bottom card (portrait phones): centre the free band between the top chrome and the card
+        const freeTop = Math.min(this.frame.top, H * 0.3);
+        sy = Math.max(0, H / 2 - (freeTop + r.top) / 2);
+      } else if (r.left < W * 0.3 && r.bottom - r.top > H * 0.45) {
+        // left-docked card (landscape phones, big screens): centre the free band right of it
+        sx = Math.max(0, (r.right + (W - 64)) / 2 - W / 2);
+      }
+    }
+    v.setFrameShift(sx, sy, snap);
+  }
+
   // ───────────────────────────── input (from the cosmos HUD gesture layer)
 
   rotate(dx: number, dy: number): void {
     this.activeCosmosView()?.rotate(dx, dy);
+  }
+
+  /** Drag released: keep a little orbit momentum. */
+  fling(): void {
+    this.activeCosmosView()?.cam.fling();
+  }
+
+  /** Re-send the active view's labels to the DOM label layer (it mounted late or was rebuilt). */
+  refreshLabels(): void {
+    this.activeCosmosView()?.refreshLabels();
+  }
+
+  /** A body's name tag was tapped: select it; tapping the selected tag again enters it. */
+  labelTap(id: string): void {
+    if (this.blend || this.warp) return;
+    const sel = cx.selected.value;
+    if (sel && sel.id === id) {
+      this.activate(id);
+      return;
+    }
+    this.lastTap = { id, t: performance.now() };
+    this.select(id);
   }
 
   zoom(f: number): void {
@@ -609,6 +701,7 @@ export class Cosmos implements System {
     if (!id) {
       v.select(null);
       cx.selected.value = null;
+      this.applyFrameShift(false);
       return;
     }
     let kind: 'planet' | 'star' | 'system' | 'galaxy' = 'planet';
@@ -618,6 +711,7 @@ export class Cosmos implements System {
     v.select(id);
     v.focus(id, false);
     cx.selected.value = { kind, id };
+    this.applyFrameShift(false);
     this.game.audio.sfx('tap');
   }
 
@@ -731,6 +825,8 @@ export class Cosmos implements System {
           w.stage = 'fade';
           w.t = 0;
           this.flashT = 1;
+          // the jump is over: the HUD title goes, the flash fades out over the new world
+          cx.warping.value = null;
         }
       } else if (w.stage === 'fade') {
         this.flashT = Math.max(0, 1 - w.t / (reduceMotion() ? 0.3 : 0.9));
@@ -758,17 +854,13 @@ export class Cosmos implements System {
     warpView.dispose();
     this.disposeViews(null);
     // cinematic fly-in from orbit
+    this.planetPose = null;
     try {
-      const cam = g.camera as unknown as { distance?: number; maxDistance?: number; flyTo?: (w: unknown, o: unknown) => unknown; snap?: () => void };
+      const cam = g.camera as unknown as CamLike;
       const R = g.planet?.radius ?? 60;
-      let tile: number | undefined;
-      const site = (g.planet?.ext?.terrain as { site?: number } | undefined)?.site;
-      if (typeof site === 'number') tile = site;
-      if (typeof cam.maxDistance === 'number') {
-        cam.distance = cam.maxDistance;
-        cam.snap?.();
-      }
-      if (typeof cam.flyTo === 'function') void cam.flyTo(tile ?? (g.camera as unknown as { target: unknown }).target, { distance: R * 0.9, tilt: 0.55, duration: 2.4 });
+      // start from the edge of orbit and glide down onto the city (or the recommended settlement site)
+      if (typeof cam.maxDistance === 'number') cam.distance = cam.maxDistance;
+      if (typeof cam.flyTo === 'function' && cam.target) void cam.flyTo(cam.target, { distance: R * 0.95, tilt: 0.55, duration: reduceMotion() ? 0.3 : 2.6 });
     } catch {
       /* camera optional */
     }

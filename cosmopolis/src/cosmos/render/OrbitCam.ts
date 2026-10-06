@@ -30,6 +30,12 @@ export class OrbitCam {
   private idle = 0;
   /** stiffness of the damping (higher = snappier) */
   stiffness = 6;
+  /**
+   * Framing factor applied to the real camera distance (set by the view on resize): portrait phones have a narrow
+   * horizontal field of view, so the camera backs off to frame bodies like a landscape screen would. All the
+   * distances above (goal, limits) stay in "design units".
+   */
+  fit = 1;
 
   constructor(readonly camera: PerspectiveCamera) {}
 
@@ -91,7 +97,7 @@ export class OrbitCam {
 
   private apply(): void {
     const cp = Math.cos(this.pitch);
-    _off.set(Math.sin(this.yaw) * cp, Math.sin(this.pitch), Math.cos(this.yaw) * cp).multiplyScalar(this.dist);
+    _off.set(Math.sin(this.yaw) * cp, Math.sin(this.pitch), Math.cos(this.yaw) * cp).multiplyScalar(this.dist * this.fit);
     this.camera.position.copy(this.target).add(_off);
     this.camera.lookAt(this.target);
   }

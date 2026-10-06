@@ -12,7 +12,7 @@
  *   • warp HUD + full-screen flash (driven directly by Cosmos via fxHost)
  * Esc: deselect, then back to the planet.
  */
-import { useEffect, useMemo, useRef } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import { game } from '../../game/instance';
 import { ui, confirmDialog, notify } from '../../ui/store';
@@ -27,6 +27,7 @@ import type { ReqStatus } from '../Progression';
 import { cx, fxHost } from '../state';
 import { DomLabels } from './labels';
 import { planetArt } from './planetArt';
+import { galaxyArt } from './galaxyArt';
 
 const cosmos = () => game?.cosmos;
 
@@ -152,7 +153,16 @@ function StarAvatar({ sys, size }: { sys: StarSystem; size: number }) {
   );
 }
 
-function GalaxyAvatar({ g, size, locked }: { g: Galaxy; size: number; locked?: boolean }) {
+export function GalaxyAvatar({ g, size, locked }: { g: Galaxy; size: number; locked?: boolean }) {
+  const url = useMemo(() => {
+    try {
+      return galaxyArt(g, size, !!locked);
+    } catch (e) {
+      console.warn('[cosmos] galaxy portrait failed', e);
+      return '';
+    }
+  }, [g, size, locked]);
+  if (url) return <img class="cx-avatar cx-gal-img" src={url} width={size} height={size} alt="" draggable={false} />;
   return (
     <span class={'cx-gal-art kind-' + g.kind + (locked ? ' is-locked' : '')} style={{ width: size, height: size, '--a': hexCss(g.colors[0]), '--b': hexCss(g.colors[1]) } as Record<string, string | number>}>
       <i />
@@ -180,7 +190,9 @@ function StateChip({ state, text }: { state: LabelState; text?: string }) {
   );
 }
 
-function Reqs({ reqs }: { reqs: ReqStatus[] }) {
+function Reqs({ reqs: all }: { reqs: ReqStatus[] }) {
+  // waived requirements (e.g. no such building exists yet) are not worth a line
+  const reqs = all.filter((r) => !r.waived);
   if (!reqs.length) return null;
   return (
     <div class="cx-reqs" role="list" aria-label="Requirements">
@@ -201,14 +213,14 @@ function Reqs({ reqs }: { reqs: ReqStatus[] }) {
   );
 }
 
-function Fact({ icon, label, value }: { icon: string; label: string; value: ComponentChildren }) {
+function Fact({ icon, label, value, tone }: { icon: string; label: string; value: ComponentChildren; tone?: 'good' | 'warn' | 'bad' }) {
   return (
-    <div class="cx-fact">
-      <Icon name={icon} size={15} class="cx-fact-icon" />
-      <div class="cx-fact-text">
-        <span class="cx-fact-v num">{value}</span>
-        <span class="cx-fact-l">{label}</span>
-      </div>
+    <div class={'cx-fact' + (tone ? ' is-' + tone : '')}>
+      <span class="cx-fact-v num">{value}</span>
+      <span class="cx-fact-l">
+        <Icon name={icon} size={12} class="cx-fact-icon" />
+        {label}
+      </span>
     </div>
   );
 }
@@ -235,10 +247,10 @@ function CardShell({ art, title, sub, chips, children, actions, onClose }: { art
 
 const tempText = (c: number) => `${c > 0 ? '' : c < 0 ? '−' : ''}${Math.abs(Math.round(c))}°C`;
 
-function atmoText(e: { atmosphere: { density: number; breathable: boolean } }): string {
-  if (e.atmosphere.density < 0.1) return 'Vacuum';
-  if (e.atmosphere.breathable) return e.atmosphere.density > 1.2 ? 'Thick, breathable' : 'Breathable';
-  return e.atmosphere.density > 1.3 ? 'Dense, toxic' : 'Unbreathable';
+function atmo(e: { atmosphere: { density: number; breathable: boolean } }): { text: string; tone: 'good' | 'warn' | 'bad' } {
+  if (e.atmosphere.density < 0.1) return { text: 'None', tone: 'bad' };
+  if (e.atmosphere.breathable) return { text: e.atmosphere.density > 1.2 ? 'Rich' : e.atmosphere.density < 0.75 ? 'Thin' : 'Fresh', tone: 'good' };
+  return { text: 'Toxic', tone: 'warn' };
 }
 
 // ───────────────────────────────────────────── cards
@@ -281,7 +293,8 @@ function PlanetCard({ id, onClose }: { id: string; onClose: () => void }) {
   const sandbox = game.empire.sandbox;
   const colony = game.empire.s.colonies[id];
   const moons = sys ? sys.planets.filter((p) => p.parent === id) : [];
-  const typeName = giant ? (entry?.giant?.ice ? 'Ice giant' : 'Gas giant') : entry?.kind === 'moon' ? `${arch?.name ?? spec.type} moon` : `${arch?.name ?? spec.type} world`;
+  const base = (arch?.name ?? spec.type).replace(/ (Moon|World)$/, '');
+  const typeName = giant ? (entry?.giant?.ice ? 'Ice giant' : 'Gas giant') : entry?.kind === 'moon' ? `${base} moon` : `${base} world`;
   const where = parent ? `Moon of ${c.planetSpec(parent.id)?.name ?? parent.name}` : sys ? sys.name : '';
   const tiles = 10 * spec.frequency * spec.frequency + 2;
   let cta: ComponentChildren = null;
@@ -304,20 +317,20 @@ function PlanetCard({ id, onClose }: { id: string; onClose: () => void }) {
       {!giant && (
         <div class="cx-facts">
           <Fact icon="gravity" label="Gravity" value={`${spec.gravity.toFixed(2)} g`} />
-          <Fact icon="temperature" label="Climate" value={tempText(spec.temperature)} />
-          <Fact icon="oxygen" label="Air" value={atmoText(spec)} />
-          <Fact icon="grid" label="Surface" value={`${fmtCompact(tiles)} tiles`} />
+          <Fact icon="temperature" label="Mean" value={tempText(spec.temperature)} />
+          <Fact icon="oxygen" label="Air" value={atmo(spec).text} tone={atmo(spec).tone} />
+          <Fact icon="grid" label="Tiles" value={fmtCompact(tiles)} />
         </div>
       )}
       {!giant && arch && (
         <div class="cx-tags">
-          {arch.resources.map((r) => (
+          {arch.resources.slice(0, 3).map((r) => (
             <span class="cx-tag is-res" key={r}>
               <Icon name="sparkles" size={12} />
               {r}
             </span>
           ))}
-          {arch.hazards.slice(0, 3).map((h) => (
+          {arch.hazards.slice(0, 2).map((h) => (
             <span class="cx-tag is-haz" key={h}>
               <Icon name="alert" size={12} />
               {h.replace(/-/g, ' ')}
@@ -373,7 +386,7 @@ function StarCard({ id, onClose }: { id: string; onClose: () => void }) {
       <div class="cx-facts">
         <Fact icon="planet" label="Worlds" value={worlds} />
         <Fact icon="moon" label="Moons" value={moons} />
-        <Fact icon="sun" label="Luminosity" value={`${info.lum.toFixed(1)} L☉`} />
+        <Fact icon="sun" label="Light" value={`${info.lum.toFixed(1)} L☉`} />
         <Fact icon="flag" label="Colonies" value={sys.planets.filter((p) => cosmos()!.isFounded(p.id)).length} />
       </div>
     </CardShell>
@@ -408,7 +421,7 @@ function SystemCard({ id, onClose }: { id: string; onClose: () => void }) {
       <p class="cx-card-desc">{sys.description}</p>
       <div class="cx-facts">
         <Fact icon="planet" label="Worlds" value={worlds} />
-        <Fact icon="flag" label="Habitable" value={colonisable} />
+        <Fact icon="flag" label="Livable" value={colonisable} />
         <Fact icon="home" label="Colonies" value={cols} />
         <Fact icon="sun" label="Star" value={info.spectral} />
       </div>
@@ -442,23 +455,53 @@ function GalaxyCard({ id, onClose }: { id: string; onClose: () => void }) {
     >
       <p class="cx-card-desc">{g.description}</p>
       <div class="cx-facts">
-        <Fact icon="starSystem" label="Star systems" value={g.systems.length} />
-        <Fact icon="planet" label="Habitable worlds" value={worlds} />
+        <Fact icon="starSystem" label="Systems" value={g.systems.length} />
+        <Fact icon="planet" label="Livable" value={worlds} />
         <Fact icon="flag" label="Colonies" value={g.systems.reduce((n, s) => n + s.planets.filter((p) => c.isFounded(p.id)).length, 0)} />
-        <Fact icon="star" label="Stars drawn" value={fmtCompact(g.stars)} />
+        <Fact icon="star" label="Stars" value={`${Math.round(g.stars / 300)}B`} />
       </div>
       {state === 'locked' && <Reqs reqs={reqs} />}
     </CardShell>
   );
 }
 
+/** Report the card's screen rect (and where the top chrome ends) so the 3D view can frame around it. */
+function useReportFrame(ref: { current: HTMLElement | null }, key: string): void {
+  const vp = viewport.value;
+  useLayoutEffect(() => {
+    const report = () => {
+      const crumbs = document.querySelector('.cx-crumbs');
+      const top = crumbs ? crumbs.getBoundingClientRect().bottom + 6 : 110;
+      const card = ref.current?.querySelector('.cx-card') as HTMLElement | null;
+      if (!card) {
+        cosmos()?.setHudFrame(null, top);
+        return;
+      }
+      const r = card.getBoundingClientRect();
+      cosmos()?.setHudFrame({ left: r.left, top: r.top, right: r.right, bottom: r.bottom }, top);
+    };
+    report();
+    const card = ref.current?.querySelector('.cx-card');
+    const ro = card && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => report()) : null;
+    if (card) ro?.observe(card);
+    // the entrance animation moves the card a little — measure once more when it has settled
+    const t = setTimeout(report, 450);
+    return () => {
+      ro?.disconnect();
+      clearTimeout(t);
+    };
+  }, [key, vp.w, vp.h]);
+}
+
 function InfoCard() {
   const sel = cx.selected.value;
+  const ref = useRef<HTMLDivElement>(null);
+  useReportFrame(ref, sel ? sel.kind + ':' + sel.id : '');
   if (!sel) return <IdleBar />;
   const close = () => cosmos()?.select(null);
   const body = sel.kind === 'planet' ? <PlanetCard id={sel.id} onClose={close} /> : sel.kind === 'star' ? <StarCard id={sel.id} onClose={close} /> : sel.kind === 'system' ? <SystemCard id={sel.id} onClose={close} /> : <GalaxyCard id={sel.id} onClose={close} />;
   return (
-    <div class="cx-bottom" key={sel.id}>
+    <div class="cx-bottom" key={sel.id} ref={ref}>
       {body}
     </div>
   );
@@ -492,19 +535,28 @@ function Breadcrumb() {
   if (lvl === 'system' && s) items.push({ level: 'system', label: s.name, icon: 'starSystem' });
   return (
     <nav class="cx-crumbs" aria-label="Location">
-      <button type="button" class="cx-back glass" aria-label={`Back to ${ui.cityName.value || 'your planet'}`} title="Back to the surface (Esc)" onClick={() => c.backToPlanet()}>
-        <Icon name="arrowLeft" size={18} />
-        <Icon name="planet" size={18} />
+      <button type="button" class="cx-back glass" aria-label={`Back to ${ui.cityName.value || 'your planet'}`} title="Back to the surface (Esc)" onClick={() => (uiSound('close'), c.backToPlanet())}>
+        <Icon name="arrowLeft" size={20} />
       </button>
       <div class="cx-trail glass">
         {items.map((it, i) => {
           const cur = it.level === lvl;
+          // the universe crumb collapses to its icon once there is a deeper level to show
+          const iconOnly = i === 0 && !cur;
           return (
             <>
               {i > 0 && <Icon name="chevronRight" size={13} class="cx-trail-sep" key={'s' + i} />}
-              <button type="button" key={it.level} class={'cx-trail-item' + (cur ? ' is-current' : '')} aria-current={cur ? 'page' : undefined} disabled={cur} onClick={() => c.openView(it.level, it.level === 'universe' ? cx.galaxyId.value : it.level === 'galaxy' ? cx.systemId.value : undefined)}>
-                {i === 0 && <Icon name={it.icon} size={14} />}
-                <span class="ellipsis">{it.label}</span>
+              <button
+                type="button"
+                key={it.level}
+                class={'cx-trail-item' + (cur ? ' is-current' : '') + (iconOnly ? ' is-icon' : '')}
+                aria-label={it.label}
+                aria-current={cur ? 'page' : undefined}
+                disabled={cur}
+                onClick={() => c.openView(it.level, it.level === 'universe' ? cx.galaxyId.value : it.level === 'galaxy' ? cx.systemId.value : undefined)}
+              >
+                {(i === 0 || cur) && <Icon name={it.icon} size={15} />}
+                {!iconOnly && <span class="ellipsis">{it.label}</span>}
               </button>
             </>
           );
@@ -546,7 +598,11 @@ function SideControls() {
   return (
     <div class="cx-side">
       <SideButton icon={lvl === 'system' ? 'galaxy' : 'universe'} label={lvl === 'system' ? 'Zoom out to the galaxy' : 'Zoom out to the universe'} onClick={() => c.levelUp()} disabled={lvl === 'universe'} />
-      <SideButton icon={lvl === 'universe' ? 'galaxy' : lvl === 'galaxy' ? 'starSystem' : 'planet'} label="Zoom in" onClick={() => c.zoomIn()} disabled={lvl === 'system' && !(cx.selected.value?.id === game.planet?.spec.id)} />
+      {lvl === 'system' ? (
+        <SideButton icon="planet" label={`Back to ${ui.cityName.value || 'the surface'}`} onClick={() => c.backToPlanet()} />
+      ) : (
+        <SideButton icon={lvl === 'universe' ? 'galaxy' : 'starSystem'} label={lvl === 'universe' ? 'Enter the galaxy' : 'Enter the star system'} onClick={() => c.zoomIn()} />
+      )}
       <SideButton icon="locate" label="Find my world" onClick={findMe} />
       <div class="cx-side-gap" />
       <SideButton icon="globe" label="Colonies" onClick={() => openPanel('colonies')} badge={colonies > 1 ? colonies : null} />

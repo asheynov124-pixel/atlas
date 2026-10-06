@@ -42,7 +42,7 @@ varying vec3 vColor;
 void main() {
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   gl_Position = projectionMatrix * mv;
-  gl_PointSize = clamp(aSize * uK / max(1.0, -mv.z), 1.0, 14.0) * uPR;
+  gl_PointSize = clamp(aSize * uK / max(1.0, -mv.z), 1.0, 3.5) * uPR;
   vColor = color;
 }
 `;
@@ -68,7 +68,7 @@ interface GalRec {
   state: LabelState;
 }
 
-const GAL_R = 62;
+const GAL_R = 88;
 
 export class UniverseView extends CosmosView {
   readonly kind = 'universe' as const;
@@ -109,7 +109,7 @@ export class UniverseView extends CosmosView {
       const near = nodes.map((b, j) => ({ j, d: a.distanceTo(b) })).filter((x) => x.j !== i).sort((x, y) => x.d - y.d).slice(0, 3);
       for (const n of near) if (!edges.some(([p, q]) => (p === n.j && q === i) || (p === i && q === n.j))) edges.push([i, n.j]);
     });
-    const N = ctx.lowPower ? 9000 : 16000;
+    const N = ctx.lowPower ? 12000 : 22000;
     const pos = new Float32Array(N * 3);
     const col = new Float32Array(N * 3);
     const size = new Float32Array(N);
@@ -120,7 +120,7 @@ export class UniverseView extends CosmosView {
       const [a, b] = edges[Math.floor(rng.next() * edges.length)];
       const t = rng.next();
       v.copy(nodes[a]).lerp(nodes[b], t);
-      const spread = 18 + 40 * Math.sin(t * Math.PI);
+      const spread = 10 + 26 * Math.sin(t * Math.PI);
       v.x += (rng.next() + rng.next() - 1) * spread;
       v.y += (rng.next() + rng.next() - 1) * spread;
       v.z += (rng.next() + rng.next() - 1) * spread;
@@ -129,11 +129,11 @@ export class UniverseView extends CosmosView {
       pos[i * 3 + 2] = v.z;
       tmp.copy(cA).lerp(cB, rng.next());
       if (rng.chance(0.06)) tmp.copy(cC);
-      const lum = rng.range(0.05, 0.22);
+      const lum = rng.range(0.05, 0.2) * (1.3 - Math.sin(t * Math.PI) * 0.5);
       col[i * 3] = tmp.r * lum;
       col[i * 3 + 1] = tmp.g * lum;
       col[i * 3 + 2] = tmp.b * lum;
-      size[i] = rng.range(3, 9);
+      size[i] = rng.range(1.5, 4);
     }
     const wg = new BufferGeometry();
     wg.setAttribute('position', new BufferAttribute(pos, 3));
@@ -185,7 +185,7 @@ export class UniverseView extends CosmosView {
     this.flyFrom.copy(this.cam.target);
     this.flyT = snap ? 1 : 0;
     if (id) this.cam.set({ dist: GAL_R * 4.2, pitch: 0.55 }, false);
-    else this.cam.set({ dist: 1250, pitch: 0.42, yaw: snap ? 0.3 : this.cam.goalYaw }, false);
+    else this.cam.set({ dist: 980, pitch: 0.42, yaw: snap ? 0.3 : this.cam.goalYaw }, false);
     if (snap) {
       const r = id ? this.gals.find((x) => x.g.id === id) : null;
       this.cam.goalTarget.copy(r ? r.pos : this.zero);

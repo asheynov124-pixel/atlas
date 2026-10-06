@@ -91,7 +91,7 @@ export const TIERS: TierDef[] = [
     pop: 400,
     blurb: 'People are actually choosing to live here.',
     reward: { money: 10_000, research: 60 },
-    signature: { id: 'sig.rci', title: 'Something for everyone', description: 'Have homes, shops and industry growing at the same time.', icon: 'zones', measure: (c) => [Math.min(1, c.metric('residentialBuildings')) + Math.min(1, c.metric('commercialBuildings')) + Math.min(1, c.metric('industrialBuildings')), 3], unit: 'zone types' },
+    signature: { id: 'sig.rci', title: 'Something for everyone', description: 'Have homes, shops and industry growing at the same time.', icon: 'zones', measure: (c) => [Math.min(1, c.metric('residentialBuildings') + c.metric('housing')) + Math.min(1, c.metric('commercialBuildings') + c.metric('jobsCommercial')) + Math.min(1, c.metric('industrialBuildings') + c.metric('jobsIndustrial')), 3], unit: 'zone types' },
     opens: 'Medium-density zoning, first services and parks.',
   },
   {
@@ -236,7 +236,7 @@ export const GOALS: GoalDef[] = [
 
   // ── creator ─────────────────────────────────────────────────────────
   { id: 'make.pink', title: 'Think Pink', description: 'Paint a building pink.', icon: 'palette', category: 'creator', measure: (c) => [Math.min(1, c.counter('cosmos.pink')), 1], reward: { money: 5_000, research: 20 } },
-  { id: 'make.rename', title: 'Name Dropper', description: 'Give a building a name of its own.', icon: 'name', category: 'creator', measure: (c) => [Math.min(1, c.counter('cosmos.renamed')), 1], reward: { money: 3_000, research: 10 } },
+  { id: 'make.rename', title: 'Name Dropper', description: 'Give a building a name of its own.', icon: 'tag', category: 'creator', measure: (c) => [Math.min(1, c.counter('cosmos.renamed')), 1], reward: { money: 3_000, research: 10 } },
   { id: 'make.studio', title: 'Architect', description: 'Save a design in the Architect Studio.', icon: 'custom', category: 'creator', measure: (c) => [c.customDesigns(), 1], unit: 'design', reward: { money: 10_000, research: 40 } },
   { id: 'make.studio5', title: 'Starchitect', description: 'Save 5 designs in the Architect Studio.', icon: 'custom', category: 'creator', measure: (c) => [c.customDesigns(), 5], unit: 'designs', reward: { money: 50_000, research: 150 } },
   { id: 'make.styles', title: 'Eclectic Taste', description: 'Have buildings in 3 architectural styles on one world.', icon: 'brush', category: 'creator', measure: (c) => [c.stylesUsed(), 3], unit: 'styles', reward: { money: 15_000, research: 50 }, minTier: 1 },
