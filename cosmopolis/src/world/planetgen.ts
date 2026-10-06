@@ -964,8 +964,9 @@ function classify(type: PlanetTypeId, arch: PlanetArchetype, c: ClassIn): Biome 
     case 'ocean': {
       if (t < -11) return Biome.Ice;
       if (cliff || mount > 0.6) return Biome.Rock;
-      if (shore || e <= 0) return Biome.Beach;
-      return m > 0.55 ? Biome.Jungle : Biome.Grass;
+      if (shore) return Biome.Beach;
+      if (e <= 0 && c.crys < -0.2) return Biome.Beach;
+      return m > 0.58 ? Biome.Jungle : m > 0.4 ? Biome.Grass : Biome.Meadow;
     }
     case 'jungle': {
       if (t < -8) return Biome.Tundra;
@@ -991,7 +992,7 @@ function classify(type: PlanetTypeId, arch: PlanetArchetype, c: ClassIn): Biome 
     }
     case 'crystal': {
       if (lat > 0.9 || e >= 10) return Biome.Ice;
-      if (shore) return Biome.Salt;
+      if (shore && c.crys < 0.05) return Biome.Salt;
       if (c.crys > 0.18 || mount > 0.45) return Biome.Crystal;
       if (cliff) return Biome.Rock;
       if (e <= 1 && m < 0.45) return Biome.Salt;
@@ -1038,8 +1039,40 @@ function biomes(G: Gen): void {
     ci.crys = nX.fbm(C[i * 3] * 4.2 + 9, C[i * 3 + 1] * 4.2, C[i * 3 + 2] * 4.2, 2);
     ci.mark = G.mark[i];
     let b = classify(spec.type, arch, ci);
-    if (G.core[i] && (b === Biome.Rock || b === Biome.Mountain || b === Biome.Lava)) b = arch.biomes.low[0];
+    if (G.core[i] && (b === Biome.Rock || b === Biome.Mountain || b === Biome.Lava)) b = plainBiome(spec.type);
     p.biome[i] = b;
+  }
+  despeckle(G);
+}
+
+/** A land tile whose biome no neighbour shares adopts the most common land biome around it (keeps coasts & lava). */
+function despeckle(G: Gen): void {
+  const { p, g, n } = G;
+  const src = Uint8Array.from(p.biome);
+  const counts = new Uint8Array(32);
+  for (let i = 0; i < n; i++) {
+    if (G.sea && p.elevation[i] < 0) continue;
+    const b = src[i];
+    if (b === Biome.Beach || b === Biome.Lava || G.mark[i] === M_SHELF) continue;
+    let same = false;
+    counts.fill(0);
+    let best = -1, bestC = 0;
+    for (let q = g.start[i]; q < g.start[i + 1]; q++) {
+      const m = g.nbr[q];
+      if (G.sea && p.elevation[m] < 0) continue;
+      const nb = src[m];
+      if (nb === b) {
+        same = true;
+        break;
+      }
+      if (nb === Biome.Beach || nb === Biome.Lava) continue;
+      const c = ++counts[nb];
+      if (c > bestC) {
+        bestC = c;
+        best = nb;
+      }
+    }
+    if (!same && best >= 0 && bestC >= 2) p.biome[i] = best;
   }
 }
 
@@ -1116,6 +1149,22 @@ function features(G: Gen): void {
   }
 }
 
+/** Friendly ground for a settlement plain on each archetype. */
+function plainBiome(type: PlanetTypeId): Biome {
+  switch (type) {
+    case 'desert': return Biome.Desert;
+    case 'arctic': return Biome.Snow;
+    case 'volcanic': return Biome.Volcanic;
+    case 'jungle': return Biome.Meadow;
+    case 'barren': return Biome.Regolith;
+    case 'toxic': return Biome.Toxic;
+    case 'crystal': return Biome.Crystal;
+    case 'fungal': return Biome.Meadow;
+    case 'machine': return Biome.Metal;
+    default: return Biome.Grass;
+  }
+}
+
 function woodiness(b: Biome): number {
   switch (b) {
     case Biome.Forest: return 1.25;
@@ -1136,7 +1185,6 @@ function woodiness(b: Biome): number {
 function dressSite(G: Gen, site: number): void {
   const { p, g, spec, arch } = G;
   const rng = new Rng(hash2(spec.seed | 0, 141));
-  const low = arch.biomes.low;
   const friendly = new Set<Biome>([Biome.Grass, Biome.Meadow, Biome.Savanna, Biome.Desert, Biome.Tundra, Biome.Regolith, Biome.Volcanic, Biome.Metal, Biome.Fungal, Biome.Toxic, Biome.Crystal, Biome.Snow, Biome.Salt, Biome.Jungle, Biome.Forest, Biome.Ash, Biome.Swamp, Biome.Crater]);
   let placedOre = false;
   for (const t of g.disk(site, Math.round(spec.frequency * 0.3))) {
@@ -1145,7 +1193,8 @@ function dressSite(G: Gen, site: number): void {
     const b = p.biome[t] as Biome;
     if (core === 1) {
       if (!friendly.has(b) || b === Biome.Forest || b === Biome.Jungle || b === Biome.Swamp) {
-        p.biome[t] = spec.type === 'terran' || spec.type === 'tundra' ? (hashFloat(t, 9) < 0.3 ? Biome.Meadow : Biome.Grass) : low[0];
+        const pb = plainBiome(spec.type);
+        p.biome[t] = pb === Biome.Grass && hashFloat(t, 9) < 0.3 ? Biome.Meadow : pb;
       }
       const f = p.feature[t];
       if (f === Feature.DenseTrees || f === Feature.Rocks || f === Feature.Ruins || f === Feature.AlienFlora) p.feature[t] = rng.chance(0.15) ? (arch.features[Feature.Trees] ? Feature.Trees : Feature.None) : Feature.None;

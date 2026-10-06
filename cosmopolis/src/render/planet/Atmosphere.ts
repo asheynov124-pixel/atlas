@@ -57,7 +57,8 @@ void main() {
   }
   float mu = dot( rd, uSunDir );
   float phase = 0.75 + 0.55 * pow( max( mu, 0.0 ), 10.0 ) + 0.2 * mu * mu;
-  vec3 col = 1.0 - exp( -sum * uDensity * 0.06 * phase );
+  vec3 col = 1.0 - exp( -sum * ( 0.45 + 0.55 * min( uDensity, 1.0 ) ) * 0.06 * phase );
+  col *= 0.92 - 0.25 * smoothstep( 0.6, 0.95, dot( uColor, vec3( 0.3, 0.59, 0.11 ) ) );
   gl_FragColor = vec4( col * uIntensity, 1.0 );
   #include <tonemapping_fragment>
   #include <colorspace_fragment>

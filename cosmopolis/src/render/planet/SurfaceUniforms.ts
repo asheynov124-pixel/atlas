@@ -51,6 +51,8 @@ export interface SurfaceUniforms {
   uWaterGlow: { value: number };
   /** 0 → water drawn opaque-ish, 1 → normal transparency */
   uWaterClarity: { value: number };
+  /** surface animation clock (seconds; slowed down when settings.reduceMotion) */
+  uSurfTime: { value: number };
 }
 
 export function createSurfaceUniforms(): SurfaceUniforms {
@@ -98,5 +100,6 @@ export function createSurfaceUniforms(): SurfaceUniforms {
     uFoamCol: { value: new Color(0xf4fbff) },
     uWaterGlow: { value: 0 },
     uWaterClarity: { value: 1 },
+    uSurfTime: { value: 0 },
   };
 }

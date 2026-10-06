@@ -34,19 +34,19 @@ export const BIOME_COLORS: Record<Biome, number> = {
   [Biome.Ice]: 0xcde7f7,
   [Biome.Rock]: 0x8f8577,
   [Biome.Mountain]: 0x7a7169,
-  [Biome.Volcanic]: 0x3d3432,
+  [Biome.Volcanic]: 0x473c39,
   [Biome.Lava]: 0xff6a1c,
-  [Biome.Regolith]: 0xa3a3a6,
-  [Biome.Crater]: 0x77787d,
+  [Biome.Regolith]: 0xb0afb0,
+  [Biome.Crater]: 0x5f6066,
   [Biome.Crystal]: 0xb7a0f6,
-  [Biome.Toxic]: 0x9cb032,
+  [Biome.Toxic]: 0x8f8a44,
   [Biome.Fungal]: 0xa066b4,
   [Biome.Salt]: 0xf2ede2,
   [Biome.Swamp]: 0x58723f,
   [Biome.Ash]: 0x625a58,
   [Biome.Metal]: 0x7e8894,
   [Biome.Coral]: 0xf08f7c,
-  [Biome.Meadow]: 0x9fcd63,
+  [Biome.Meadow]: 0x93c75e,
 };
 
 type Role = 'land' | 'lowland' | 'highland' | 'shore' | 'snow' | 'rock';
@@ -67,7 +67,7 @@ const ROLE: Partial<Record<Biome, [Role, number]>> = {
   [Biome.Beach]: ['shore', 0.6],
   [Biome.Salt]: ['shore', 0.28],
   [Biome.Regolith]: ['land', 0.5],
-  [Biome.Crater]: ['lowland', 0.55],
+  [Biome.Crater]: ['lowland', 0.3],
   [Biome.Volcanic]: ['land', 0.5],
   [Biome.Ash]: ['highland', 0.45],
   [Biome.Crystal]: ['land', 0.42],
@@ -245,7 +245,7 @@ export function tileColor(planet: Planet, i: number, pal: SurfacePalette, out: R
   }
   // per-tile jitter: brightness ±6 %, tiny hue drift
   const h1 = hashFloat(i, seed, 7), h2 = hashFloat(i, seed, 8);
-  const k = 0.94 + h1 * 0.12;
+  const k = 0.955 + h1 * 0.08;
   out.r = clamp01(out.r * k + (h2 - 0.5) * 0.02);
   out.g = clamp01(out.g * k);
   out.b = clamp01(out.b * k - (h2 - 0.5) * 0.02);

@@ -51,6 +51,7 @@ uniform float uCloudShadow;
 uniform float uCloudR;
 uniform float uWaterGlow;
 uniform float uWaterClarity;
+uniform float uSurfTime;
 uniform vec3 uShallow;
 uniform vec3 uDeep;
 uniform vec3 uFoamCol;
@@ -67,18 +68,20 @@ void main() {
   vec3 V = toCam / dist;
   float depth = max( uWaterR - uRadius - vBed, 0.0 );
   float far = smoothstep( 25.0, 160.0, dist );
-  float t = uTime;
+  float t = uSurfTime;
   // ── waves: sum of plane waves in world space, gradient projected on the tangent plane
   vec3 p = vWPos;
   vec3 grad = vec3( 0.0 );
-  float amp = 1.0 - far * 0.85;
+  float amp = 1.0 - far * 0.92;
   vec3 d1 = vec3( 0.83, 0.12, 0.54 ), d2 = vec3( -0.31, 0.62, 0.72 ), d3 = vec3( 0.47, -0.79, 0.39 ), d4 = vec3( -0.72, -0.25, -0.65 );
   grad += d1 * ( 0.07 * cos( dot( p, d1 ) * 1.7 + t * 1.15 ) );
   grad += d2 * ( 0.06 * cos( dot( p, d2 ) * 2.3 - t * 1.4 ) );
   grad += d3 * ( 0.05 * cos( dot( p, d3 ) * 3.9 + t * 1.9 ) );
   grad += d4 * ( 0.04 * cos( dot( p, d4 ) * 6.1 - t * 2.5 ) );
+#ifndef LOW_Q
   float rn = tNoise( p * 4.0 + vec3( t * 0.5, -t * 0.4, t * 0.3 ) );
-  grad += ( vec3( rn, tNoise( p * 4.0 + 7.0 - t * 0.45 ), tNoise( p * 4.0 - 3.0 + t * 0.35 ) ) - 0.5 ) * 0.16 * ( 1.0 - far );
+  grad += ( vec3( rn, tNoise( p * 4.0 + 7.0 - t * 0.45 ), tNoise( p * 4.0 - 3.0 + t * 0.35 ) ) - 0.5 ) * 0.16 * ( 1.0 - far ) * ( 1.0 - far );
+#endif
   grad *= amp;
   grad -= up * dot( grad, up );
   vec3 N = normalize( up - grad );
@@ -91,7 +94,7 @@ void main() {
   // ── body colour by depth
   float dk = 1.0 - exp( -depth * 1.25 );
   vec3 body = mix( uShallow, uDeep, dk );
-  vec3 col = body * ( 0.12 + 0.95 * NdL * day ) + body * 0.04;
+  vec3 col = body * ( 0.1 + 0.95 * NdL * day ) * ( 0.25 + 0.75 * day ) + body * 0.025;
 
   // cloud shadows
   float csh = 1.0;

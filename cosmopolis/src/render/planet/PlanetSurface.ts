@@ -64,6 +64,10 @@ const SNOW_LEVEL: Record<PlanetTypeId, number> = {
 };
 const AURORA: Partial<Record<PlanetTypeId, number>> = { arctic: 0.95, tundra: 0.7, crystal: 0.35 };
 const WATER_GLOW: Partial<Record<PlanetTypeId, number>> = { toxic: 0.4, machine: 0.65, crystal: 0.22 };
+/** cloud colour per archetype (ash on volcanic worlds, sulphur on toxic ones…) */
+const CLOUD_TINT: Partial<Record<PlanetTypeId, number>> = {
+  volcanic: 0x6e625c, toxic: 0xdfe88a, fungal: 0xf6d6ee, crystal: 0xece2ff, desert: 0xf6e6cc, machine: 0xd8eef2, arctic: 0xf4f8ff,
+};
 
 const _cam = new Vector3();
 const _dir = new Vector3();
@@ -139,6 +143,7 @@ export class PlanetSurface {
     view.root.add(this.atmosphere.mesh);
     this.clouds = new Clouds(p.radius, spec.cloudCover, spec.seed | 0, u);
     this.clouds.enabled = settings.value.clouds;
+    this.clouds.setTint(CLOUD_TINT[spec.type] ?? 0xffffff);
     view.root.add(this.clouds.mesh);
     this.aurora = new Aurora(p.radius, AURORA[spec.type] ?? 0);
     view.root.add(this.aurora.mesh);
@@ -161,9 +166,10 @@ export class PlanetSurface {
       bus.on('building:removed', ({ tiles }) => td.refreshTiles(tiles)),
       bus.on('settings:changed', () => {
         this.clouds.enabled = settings.value.clouds;
-        this.applyGrid();
       }),
+      bus.on('quality:changed', ({ tier }) => this.applyQuality(tier)),
     );
+    this.applyQuality(game?.engine?.tier ?? 2);
   }
 
   // ─────────────────────────────────────────── public API
@@ -266,7 +272,7 @@ export class PlanetSurface {
     const hsl = { h: 0, s: 0, l: 0 };
     new Color(spec.oceanColor || arch.oceanColor).getHSL(hsl, SRGBColorSpace);
     const blue = hsl.h > 0.45 && hsl.h < 0.7;
-    u.uShallow.value.setHSL(hsl.h - (blue ? 0.06 : 0.01), Math.min(1, hsl.s * 1.05 + 0.1), Math.min(0.56, hsl.l * 0.9 + 0.12), SRGBColorSpace);
+    u.uShallow.value.setHSL(hsl.h - (blue ? 0.06 : 0.01), Math.min(1, hsl.s * 1.05 + 0.1), Math.min(0.56, blue ? hsl.l * 0.9 + 0.12 : hsl.l * 0.8 + 0.06), SRGBColorSpace);
     u.uDeep.value.setHSL(hsl.h + (blue ? 0.015 : 0), Math.min(1, hsl.s * 1.1), hsl.l * 0.4, SRGBColorSpace);
     u.uMoonCol.value.setRGB(0.05, 0.07, 0.12);
   }
@@ -348,8 +354,16 @@ export class PlanetSurface {
     }
   }
 
-  private applyGrid(): void {
-    /* evaluated each frame in update(); kept for settings changes */
+  /** Low tier: cheaper shader paths (no caustics / ripple noise / cloud shadows). */
+  private applyQuality(tier: number): void {
+    const low = tier <= 0;
+    for (const m of [this.terrainMaterial, this.waterMaterial] as Material[]) {
+      const defs = ((m as Material & { defines?: Record<string, unknown> }).defines ??= {});
+      if (low === !!defs.LOW_Q) continue;
+      if (low) defs.LOW_Q = 1;
+      else delete defs.LOW_Q;
+      m.needsUpdate = true;
+    }
   }
 
   // ─────────────────────────────────────────── frame
@@ -369,6 +383,7 @@ export class PlanetSurface {
     const p = this.planet;
     const u = this.uniforms;
     const k = 1 - Math.exp(-dt * 7);
+    u.uSurfTime.value += dt * (settings.value.reduceMotion ? 0.3 : 1);
     // fades
     const gridT = this.gridWanted && settings.value.grid ? 1 : 0;
     u.uGrid.value += (gridT - u.uGrid.value) * k;
@@ -419,7 +434,7 @@ export class PlanetSurface {
     const altitude = D - R;
     const engine = game?.engine;
     if (!this.clouds.ready && engine && p.spec.cloudCover > 0.005) this.clouds.bake(engine.renderer);
-    this.clouds.update(dt, altitude, game?.clock.time ?? 0, (engine?.tier ?? 2) === 0);
+    this.clouds.update(dt, altitude, u.uSurfTime.value, (engine?.tier ?? 2) === 0);
     this.aurora.update(dt);
   }
 

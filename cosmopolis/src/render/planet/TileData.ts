@@ -19,7 +19,7 @@ import type { SurfaceUniforms } from './SurfaceUniforms';
 export type ColorRamp = 'heat' | 'good' | 'bad' | 'cool' | 'rainbow' | ((v: number) => number);
 
 export interface TileOverlay {
-  /** per-tile scalar 0..1 rendered through a ramp; null hides */
+  /** per-tile scalar 0..1 rendered through a ramp (NaN / negative = transparent); null hides */
   showValues(values: ArrayLike<number> | null, ramp?: ColorRamp, opacity?: number): void;
   /** per-tile explicit colours (0xRRGGBB, negative = transparent); null hides */
   showColors(colors: ArrayLike<number> | null, opacity?: number): void;
@@ -202,7 +202,8 @@ export class TileData implements TileOverlay {
     const lut = this.lut;
     for (let i = 0; i < n; i++) {
       const v = values[i];
-      if (!(v >= 0 || v < 0) || Number.isNaN(v)) {
+      // NaN / negative / missing = no data → transparent
+      if (!(v >= 0)) {
         d[i * 4 + 3] = 0;
         continue;
       }

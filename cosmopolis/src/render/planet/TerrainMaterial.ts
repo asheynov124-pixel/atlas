@@ -59,6 +59,7 @@ uniform float uSeed;
 uniform float uGlow;
 uniform float uCloudShadow;
 uniform float uCloudR;
+uniform float uSurfTime;
 uniform vec3 uRock;
 uniform vec3 uStrata;
 uniform vec3 uSnowCol;
@@ -148,31 +149,48 @@ if ( tWall ) {
 } else {
   // ── tile tops: biome surface effects
   if ( tBiome == 14 ) {
-    float n1 = tNoise( vWPos * 1.1 + vec3( 0.0, uTime * 0.12, uTime * 0.05 ) );
-    float n2 = tNoise( vWPos * 3.3 - vec3( uTime * 0.09 ) );
-    float crust = smoothstep( 0.4, 0.62, n1 * 0.62 + n2 * 0.38 );
-    vec3 hot = mix( vec3( 1.0, 0.25, 0.02 ), vec3( 1.0, 0.72, 0.22 ), n2 );
-    tAlb = mix( hot * 0.45, vec3( 0.08, 0.055, 0.045 ), crust );
-    float pulse = 0.8 + 0.2 * sin( uTime * 1.7 + n1 * 9.0 );
-    tEmit += hot * pow( 1.0 - crust, 1.5 ) * 2.6 * pulse * uGlow + uLavaCol * 0.12 * uGlow;
+    vec3 lp = vWPos;
+    float n1 = tNoise( lp * 1.05 + vec3( 0.0, uSurfTime * 0.1, uSurfTime * 0.04 ) );
+    float n2 = tNoise( lp * 3.1 - vec3( uSurfTime * 0.07 ) );
+    float lf = n1 * 0.64 + n2 * 0.36;
+    float crust = smoothstep( 0.43, 0.56, lf );
+    float seam = 1.0 - smoothstep( 0.0, 0.035 + tFw * 0.5, abs( lf - 0.495 ) );
+    vec3 melt = mix( vec3( 0.85, 0.1, 0.01 ), vec3( 1.0, 0.42, 0.04 ), smoothstep( 0.2, 0.45, lf ) * ( 1.0 - crust ) );
+    tAlb = mix( melt * 0.35, vec3( 0.075, 0.055, 0.05 ) * ( 0.8 + 0.4 * n2 ), crust );
+    float pulse = 0.82 + 0.18 * sin( uSurfTime * 1.6 + n1 * 9.0 );
+    tEmit += ( melt * ( 1.0 - crust ) * 1.7 + vec3( 1.0, 0.8, 0.4 ) * seam * 1.3 * ( 1.0 - crust * 0.6 ) ) * pulse * uGlow;
     tRough = mix( 0.45, 0.92, crust );
   } else if ( tBiome == 17 ) {
+    // cut-gem tiles: six facets per hex with their own brightness, glowing facet edges, round glints
     vec3 V = normalize( cameraPosition - vWPos );
     float fres = 1.0 - abs( dot( tUp, V ) );
-    vec3 iri = 0.6 + 0.4 * cos( 6.2831 * ( fres * 1.3 + tNz * 0.7 + vec3( 0.0, 0.33, 0.67 ) ) );
-    tAlb = mix( tAlb, tAlb * iri * 1.35, 0.45 );
-    vec3 cell = floor( vWPos * 7.0 );
-    float hs = tHash13( cell );
-    float tw = step( 0.962, hs ) * pow( 0.5 + 0.5 * sin( uTime * ( 2.0 + hs * 4.0 ) + hs * 40.0 ), 6.0 );
-    tEmit += vec3( 1.0, 0.92, 1.0 ) * tw * 3.0 + tAlb * 0.14 * tNightF * uGlow;
-    tRough = 0.22;
+    float seg = 6.2831853 / tDeg;
+    float facet = floor( tAng / seg + 0.5 );
+    float fb = cHash12( vec2( vTile + 0.5, facet ) );
+    tAlb *= 0.84 + 0.3 * fb;
+    vec3 iri = 0.62 + 0.38 * cos( 6.2831 * ( fres * 1.1 + fb * 0.35 + vec3( 0.0, 0.33, 0.67 ) ) );
+    tAlb = mix( tAlb, tAlb * iri * 1.3, 0.28 );
+    float ca = abs( fract( tAng / seg ) - 0.5 ) * seg * length( vLocal );
+    float edge = ( 1.0 - smoothstep( 0.0, 0.02 + tFw, ca ) ) * step( 0.12, 1.0 - tEd );
+    tAlb = mix( tAlb, tAlb * 1.25 + 0.05, edge * 0.6 );
+    vec3 gp = vWPos * 6.0;
+    float hs = tHash13( floor( gp ) );
+    float pt = 1.0 - smoothstep( 0.0, 0.16, length( fract( gp ) - 0.5 ) );
+    float tw = step( 0.94, hs ) * pt * pow( 0.5 + 0.5 * sin( uSurfTime * ( 2.0 + hs * 4.0 ) + hs * 40.0 ), 4.0 );
+    tEmit += vec3( 1.0, 0.94, 1.0 ) * tw * 3.5 + tAlb * ( 0.1 + 0.35 * edge ) * tNightF * uGlow;
+    tRough = 0.2;
     tMetal = 0.12;
   } else if ( tBiome == 18 ) {
-    float n = tNoise( vWPos * 1.7 + vec3( uTime * 0.04 ) );
-    float pool = smoothstep( 0.6, 0.68, n );
-    tAlb = mix( tAlb * ( 0.85 + 0.3 * tNz ), vec3( 0.42, 0.78, 0.06 ), pool * 0.7 );
-    tEmit += vec3( 0.45, 1.0, 0.12 ) * pool * ( 0.15 + 0.85 * tNightF ) * ( 0.75 + 0.25 * sin( uTime * 2.3 + n * 25.0 ) ) * uGlow;
-    tRough = mix( 0.85, 0.22, pool );
+    // sludge pools: dark glossy acid with glowing rims and popping bubbles
+    float n = tNoise( vWPos * 2.6 + vec3( uSurfTime * 0.03 ) ) * 0.7 + tNz * 0.3;
+    float pool = smoothstep( 0.6, 0.63, n );
+    float rim = pool * ( 1.0 - smoothstep( 0.63, 0.69, n ) );
+    float near = 1.0 - smoothstep( 50.0, 140.0, length( cameraPosition - vWPos ) );
+    tAlb = mix( tAlb * ( 0.85 + 0.3 * tNz ), vec3( 0.12, 0.17, 0.03 ), pool * ( 0.4 + 0.6 * near ) );
+    vec3 bc = floor( vWPos * 9.0 + vec3( 0.0, floor( uSurfTime * 1.7 ), 0.0 ) );
+    float bub = step( 0.93, tHash13( bc ) ) * ( 1.0 - smoothstep( 0.1, 0.3, length( fract( vWPos * 9.0 ) - 0.5 ) ) ) * ( pool - rim );
+    tEmit += vec3( 0.55, 1.0, 0.1 ) * ( rim * 0.7 + pool * 0.08 + bub * 1.4 ) * ( 0.25 + 0.95 * tNightF ) * uGlow;
+    tRough = mix( 0.85, 0.1, pool );
   } else if ( tBiome == 23 ) {
     float ring = 1.0 - smoothstep( 0.0, 0.025 + tFw, abs( tEd - 0.24 ) );
     float seg = 6.2831853 / tDeg;
@@ -181,7 +199,7 @@ if ( tWall ) {
     float seam = max( ring, rad );
     float plate = cHash12( vec2( vTile, 3.0 ) );
     tAlb = tAlb * ( 0.88 + 0.24 * plate ) * ( 1.0 - seam * 0.5 );
-    float blink = step( 0.55, cHash12( vec2( vTile, floor( uTime * 0.6 + plate * 7.0 ) ) ) );
+    float blink = step( 0.55, cHash12( vec2( vTile, floor( uSurfTime * 0.6 + plate * 7.0 ) ) ) );
     tEmit += vec3( 0.12, 0.85, 1.0 ) * seam * ( 0.06 + 1.1 * tNightF ) * ( 0.55 + 0.45 * blink ) * uGlow;
     float dotL = 1.0 - smoothstep( 0.05, 0.08, length( vLocal ) );
     tEmit += vec3( 1.0, 0.5, 0.2 ) * dotL * step( 0.7, plate ) * tNightF * 1.4 * uGlow;
@@ -194,9 +212,10 @@ if ( tWall ) {
     float spot = ( 1.0 - smoothstep( 0.1, 0.3, length( fc ) ) ) * step( 0.8, hs );
     vec3 glow = mix( vec3( 1.0, 0.32, 0.85 ), vec3( 0.3, 0.95, 1.0 ), step( 0.9, hs ) );
     tAlb = mix( tAlb * ( 0.9 + 0.2 * tNz ), glow * 0.6, spot * 0.5 );
-    tEmit += glow * spot * ( 0.12 + 1.5 * tNightF ) * ( 0.8 + 0.2 * sin( uTime * 1.5 + hs * 30.0 ) ) * uGlow;
+    tEmit += glow * spot * ( 0.12 + 1.5 * tNightF ) * ( 0.8 + 0.2 * sin( uSurfTime * 1.5 + hs * 30.0 ) ) * uGlow;
   } else if ( tBiome == 9 || tBiome == 10 ) {
-    float sp = step( 0.986, tHash13( floor( vWPos * 14.0 ) ) );
+    vec3 sgp = vWPos * 12.0;
+    float sp = step( 0.97, tHash13( floor( sgp ) ) ) * ( 1.0 - smoothstep( 0.0, 0.14, length( fract( sgp ) - 0.5 ) ) );
     tEmit += vec3( 0.9, 0.95, 1.0 ) * sp * 0.7 * ( 1.0 - tNightF );
     tAlb *= 0.95 + 0.07 * tNz;
     tRough = tBiome == 10 ? 0.3 : 0.78;
@@ -204,15 +223,27 @@ if ( tWall ) {
     float rip = sin( dot( vWPos, vec3( 2.1, 1.3, 1.7 ) ) * 3.0 + tNz * 4.0 );
     tAlb *= 0.955 + 0.045 * rip + 0.05 * ( tHash13( floor( vWPos * 30.0 ) ) - 0.5 );
   } else if ( tBiome == 21 ) {
-    float wet = smoothstep( 0.5, 0.66, tNoise( vWPos * 2.0 ) );
-    tAlb = mix( tAlb, tAlb * 0.5 + vec3( 0.02, 0.05, 0.04 ), wet );
-    tRough = mix( 0.85, 0.18, wet );
+    float wet = smoothstep( 0.45, 0.8, tNoise( vWPos * 1.6 ) * 0.75 + tNz * 0.25 );
+    tAlb = mix( tAlb * ( 0.95 + 0.1 * tNz ), tAlb * 0.72 + vec3( 0.01, 0.035, 0.035 ), wet );
+    tRough = mix( 0.85, 0.24, wet );
+  } else if ( tBiome == 15 || tBiome == 16 ) {
+    // regolith: pock-marked with micro-craters (dark floors, bright rims)
+    vec3 cp = vWPos * 2.4;
+    vec3 ci = floor( cp );
+    float ch = tHash13( ci );
+    float cr = length( fract( cp ) - 0.5 );
+    float rad = 0.12 + 0.22 * fract( ch * 7.31 );
+    float isC = step( 0.55, ch );
+    float floorD = isC * ( 1.0 - smoothstep( rad - 0.04, rad, cr ) );
+    float rimB = isC * ( 1.0 - smoothstep( 0.0, 0.05, abs( cr - rad - 0.025 ) ) );
+    tAlb *= ( 0.93 + 0.14 * tNz ) * ( 1.0 - floorD * 0.22 + rimB * 0.18 ) * ( 0.96 + 0.08 * tHash13( floor( vWPos * 20.0 ) ) );
+    tRough = 0.95;
   } else if ( tBiome == 13 || tBiome == 22 ) {
     tAlb *= 0.9 + 0.2 * tNz;
     float ember = step( 0.992, tHash13( floor( vWPos * 9.0 ) ) );
-    tEmit += uLavaCol * ember * ( 0.4 + 0.6 * sin( uTime * 3.0 + tNz * 20.0 ) ) * tNightF * uGlow;
+    tEmit += uLavaCol * ember * ( 0.4 + 0.6 * sin( uSurfTime * 3.0 + tNz * 20.0 ) ) * tNightF * uGlow;
   } else if ( tBiome != 24 ) {
-    tAlb *= 0.9 + 0.2 * tNz;
+    tAlb *= ( 0.91 + 0.18 * tNz ) * ( 0.97 + 0.06 * tNoise( vWPos * 9.0 ) );
   }
   // snow line on peaks
   if ( tBiome != 14 && !tUnder ) {
@@ -226,18 +257,20 @@ if ( tWall ) {
       tAlb *= mix( 1.0, 0.72, wash );
       if ( tRough < 0.0 ) tRough = 0.9;
       tRough = mix( tRough, 0.22, wash );
-      float lap = 0.5 + 0.5 * sin( uTime * 1.3 + cHash12( vec2( vTile, 9.0 ) ) * 6.0 );
+      float lap = 0.5 + 0.5 * sin( uSurfTime * 1.3 + cHash12( vec2( vTile, 9.0 ) ) * 6.0 );
       float line = 1.0 - smoothstep( 0.0, 0.03 + tFw, abs( tEd - 0.06 - lap * 0.12 ) );
       tAlb = mix( tAlb, vec3( 0.95, 0.98, 1.0 ), line * 0.55 * ( 1.0 - tNightF * 0.6 ) );
     }
+#ifndef LOW_Q
     if ( tUnder ) {
       float depth = tSeaH - tH;
       vec3 q = vWPos * 1.7;
-      float c1 = sin( q.x + uTime * 0.9 ) + sin( q.y * 1.3 - uTime * 0.7 ) + sin( q.z * 1.1 + uTime * 0.8 );
-      float c2 = sin( q.x * 1.9 - uTime * 0.6 + c1 ) + sin( q.z * 2.1 + uTime * 0.5 - c1 );
+      float c1 = sin( q.x + uSurfTime * 0.9 ) + sin( q.y * 1.3 - uSurfTime * 0.7 ) + sin( q.z * 1.1 + uSurfTime * 0.8 );
+      float c2 = sin( q.x * 1.9 - uSurfTime * 0.6 + c1 ) + sin( q.z * 2.1 + uSurfTime * 0.5 - c1 );
       float caus = pow( 0.5 + 0.5 * sin( c1 * 1.7 + c2 ), 7.0 );
       tEmit += vec3( 0.55, 0.85, 1.0 ) * caus * max( 0.0, dot( tUp, uSunDir ) ) * 0.32 * ( 1.0 - smoothstep( 0.0, 1.4, depth ) );
     }
+#endif
   }
 }
 
@@ -246,17 +279,17 @@ if ( tFlags != 0 ) {
   if ( ( tFlags & 4 ) != 0 ) {
     float ash = tNoise( vWPos * 3.0 );
     tAlb = mix( tAlb, vec3( 0.05, 0.045, 0.04 ) + ash * 0.06, 0.84 );
-    tEmit += vec3( 1.0, 0.3, 0.05 ) * step( 0.984, tHash13( floor( vWPos * 10.0 ) ) ) * ( 0.5 + 0.5 * sin( uTime * 5.0 + ash * 20.0 ) ) * 0.9;
+    tEmit += vec3( 1.0, 0.3, 0.05 ) * step( 0.984, tHash13( floor( vWPos * 10.0 ) ) ) * ( 0.5 + 0.5 * sin( uSurfTime * 5.0 + ash * 20.0 ) ) * 0.9;
     tRough = 1.0;
   }
   if ( ( tFlags & 1 ) != 0 ) {
     tAlb *= 0.32;
-    float e = tNoise( vWPos * 2.6 + vec3( 0.0, -uTime * 1.3, uTime * 0.4 ) );
-    float fl = smoothstep( 0.48, 0.85, e ) * ( 0.6 + 0.4 * sin( uTime * 13.0 + e * 30.0 ) );
+    float e = tNoise( vWPos * 2.6 + vec3( 0.0, -uSurfTime * 1.3, uSurfTime * 0.4 ) );
+    float fl = smoothstep( 0.48, 0.85, e ) * ( 0.6 + 0.4 * sin( uSurfTime * 13.0 + e * 30.0 ) );
     tEmit += vec3( 1.0, 0.36, 0.06 ) * ( fl * 2.8 + 0.22 );
   }
   if ( ( tFlags & 2 ) != 0 ) {
-    float rip = 0.5 + 0.5 * sin( dot( vWPos, vec3( 3.0, 2.0, 2.5 ) ) * 2.0 - uTime * 2.0 );
+    float rip = 0.5 + 0.5 * sin( dot( vWPos, vec3( 3.0, 2.0, 2.5 ) ) * 2.0 - uSurfTime * 2.0 );
     tAlb = mix( tAlb, vec3( 0.09, 0.24, 0.35 ), 0.62 );
     tRough = 0.05 + 0.06 * rip;
     tMetal = 0.08;
@@ -267,21 +300,21 @@ if ( tFlags != 0 ) {
     tEmit += vec3( 0.6, 0.82, 1.0 ) * step( 0.978, tHash13( floor( vWPos * 16.0 ) ) ) * 0.7;
   }
   if ( ( tFlags & 16 ) != 0 ) {
-    float gn = 0.5 + 0.5 * sin( dot( vWPos, vec3( 7.0, 5.0, 6.0 ) ) + uTime * 3.0 ) * sin( dot( vWPos, vec3( -4.0, 6.0, 3.0 ) ) - uTime * 2.0 );
+    float gn = 0.5 + 0.5 * sin( dot( vWPos, vec3( 7.0, 5.0, 6.0 ) ) + uSurfTime * 3.0 ) * sin( dot( vWPos, vec3( -4.0, 6.0, 3.0 ) ) - uSurfTime * 2.0 );
     tAlb = vec3( 0.36 + 0.26 * gn ) * vec3( 0.95, 0.96, 1.05 );
     tMetal = 0.95;
     tRough = 0.28;
     tEmit += vec3( 0.45, 0.32, 0.9 ) * pow( gn, 8.0 ) * 0.7;
   }
   if ( ( tFlags & 32 ) != 0 ) {
-    float p = 0.5 + 0.5 * sin( uTime * 3.0 + tH * 4.0 );
+    float p = 0.5 + 0.5 * sin( uSurfTime * 3.0 + tH * 4.0 );
     tAlb = mix( tAlb, vec3( 0.55, 0.75, 0.15 ), 0.35 );
     tEmit += vec3( 0.35, 1.0, 0.2 ) * ( 0.22 + 0.35 * p ) * ( 0.6 + 0.4 * tNoise( vWPos * 3.0 ) );
   }
   if ( ( tFlags & 64 ) != 0 ) {
-    float sh = 0.5 + 0.5 * sin( uTime * 2.0 + dot( vWPos, vec3( 1.0 ) ) * 1.5 );
+    float sh = 0.5 + 0.5 * sin( uSurfTime * 2.0 + dot( vWPos, vec3( 1.0 ) ) * 1.5 );
     tAlb = mix( tAlb, vec3( 1.0, 0.86, 0.48 ), 0.32 );
-    tEmit += vec3( 1.0, 0.8, 0.35 ) * ( 0.28 + 0.32 * sh ) + vec3( 1.0, 0.95, 0.7 ) * step( 0.975, tHash13( floor( vWPos * 12.0 + floor( uTime * 3.0 ) ) ) ) * 1.6;
+    tEmit += vec3( 1.0, 0.8, 0.35 ) * ( 0.28 + 0.32 * sh ) + vec3( 1.0, 0.95, 0.7 ) * step( 0.975, tHash13( floor( vWPos * 12.0 + floor( uSurfTime * 3.0 ) ) ) ) * 1.6;
   }
   if ( ( tFlags & 128 ) != 0 && uGrid > 0.01 && !tWall ) {
     float st = step( 0.5, fract( dot( vWPos, vec3( 1.0 ) ) * 2.2 ) );
@@ -343,7 +376,7 @@ if ( uOverlay > 0.001 ) {
   vec4 hl = texelFetch( uHighTex, tuv, 0 );
   if ( hl.a > 0.002 ) {
     vec3 hc = tSrgb( hl.rgb );
-    float pulse = 0.78 + 0.22 * sin( uTime * 4.5 );
+    float pulse = 0.78 + 0.22 * sin( uSurfTime * 4.5 );
     float fillA = hl.a * pulse * ( tWall ? 0.6 : 1.0 );
     tAlb = mix( tAlb, hc, fillA * 0.5 );
     tEmit += hc * fillA * 0.38;

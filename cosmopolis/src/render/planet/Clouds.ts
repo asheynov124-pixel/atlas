@@ -83,7 +83,7 @@ void main() {
   vec3 V = normalize( cameraPosition - vWPos );
   float rim = pow( 1.0 - abs( dot( dir, V ) ), 3.0 );
   col += rim * 0.22 * day * uTint;
-  float a = d * uOpacity * ( 0.78 + 0.22 * day );
+  float a = d * uOpacity * ( 0.7 + 0.2 * day );
   gl_FragColor = vec4( col, a );
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
