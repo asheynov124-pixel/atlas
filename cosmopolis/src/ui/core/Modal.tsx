@@ -3,11 +3,11 @@
  * Modal (centred card; a bottom card on phones), Drawer (side panel; a tall bottom sheet on phones) and the
  * ConfirmHost that renders `ui.confirm` requests (use `confirmDialog()` from ui/store to ask).
  */
-import type { ComponentChildren } from 'preact';
+import type { ComponentChildren, Ref } from 'preact';
 import { Icon, IconOrEmoji } from '../icons';
 import { ui } from '../store';
 import { Button } from './Button';
-import { useLayer, uiSound } from './env';
+import { useDialogFocus, useLayer, uiSound } from './env';
 import { usePresence } from './presence';
 import { useEffect, useRef } from 'preact/hooks';
 
@@ -33,7 +33,9 @@ export interface ModalProps {
 export function Modal(p: ModalProps) {
   const { mounted, shown } = usePresence(p.open, 280);
   const dismissible = p.dismissible ?? true;
+  const ref = useRef<HTMLElement>(null);
   useLayer(p.open, () => dismissible && p.onClose());
+  useDialogFocus(p.open && mounted, ref);
   useEffect(() => {
     if (p.sound === false) return;
     if (p.open) uiSound('open');
@@ -42,7 +44,7 @@ export function Modal(p: ModalProps) {
   return (
     <div class={'cz-modal-root' + (shown ? ' is-shown' : '') + (p.centered ? ' is-centered' : '')}>
       <div class="cz-backdrop pe" onClick={() => dismissible && p.onClose()} aria-hidden="true" />
-      <section class={`cz-modal cz-modal-${p.size ?? 'md'} glass-strong pe ${p.class ?? ''}`} role="dialog" aria-modal="true" aria-label={typeof p.title === 'string' ? p.title : undefined}>
+      <section ref={ref as Ref<HTMLElement>} class={`cz-modal cz-modal-${p.size ?? 'md'} glass-strong pe ${p.class ?? ''}`} role="dialog" aria-modal="true" aria-label={typeof p.title === 'string' ? p.title : undefined}>
         {(p.title || p.icon || !p.noClose) && (
           <header class="cz-modal-head">
             {p.icon && (

@@ -9,7 +9,7 @@
 import type { ComponentChildren, JSX, Ref } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { Icon, IconOrEmoji } from '../icons';
-import { useLayer, viewport, uiSound } from './env';
+import { useDialogFocus, useLayer, viewport, uiSound } from './env';
 import { usePresence } from './presence';
 
 export interface SheetProps {
@@ -61,6 +61,7 @@ export function Sheet(p: SheetProps) {
   const drag = useRef({ active: false, id: -1, y0: 0, t0: 0, base: 0, last: 0, lastT: 0, v: 0, h: 1, grip: false });
 
   useLayer(p.open, p.onClose);
+  useDialogFocus(p.open && (p.backdrop ?? true), sheetRef);
 
   useEffect(() => {
     if (p.open) {

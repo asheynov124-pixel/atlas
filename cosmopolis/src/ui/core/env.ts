@@ -262,3 +262,25 @@ export function call<T extends object>(obj: T | null | undefined, method: string
   }
   return undefined;
 }
+
+/**
+ * Keyboard users: move focus into a dialog when it opens and give it back when it closes (non-touch devices only,
+ * so iOS never pops the keyboard or scrolls unexpectedly).
+ */
+export function useDialogFocus(open: boolean, ref: { current: HTMLElement | null }): void {
+  useEffect(() => {
+    if (!open || viewport.value.touch) return;
+    const prev = document.activeElement as HTMLElement | null;
+    const t = setTimeout(() => {
+      const el = ref.current;
+      if (!el || el.contains(document.activeElement)) return;
+      const first = el.querySelector<HTMLElement>('input, [autofocus]') ?? el;
+      if (first === el && !el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+      first.focus({ preventScroll: true });
+    }, 30);
+    return () => {
+      clearTimeout(t);
+      if (prev && document.contains(prev)) prev.focus({ preventScroll: true });
+    };
+  }, [open]);
+}

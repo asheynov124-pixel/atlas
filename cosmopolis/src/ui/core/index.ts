@@ -111,6 +111,7 @@ export {
   closePanel,
   setSelection,
   useLayer,
+  useDialogFocus,
   pushLayer,
   closeTopLayer,
   useLongPress,

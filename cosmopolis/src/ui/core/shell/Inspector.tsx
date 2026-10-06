@@ -5,6 +5,7 @@
  * actions Paint · Rename · Locate · Info · Bulldoze (confirm). Tiles: terrain / zone summary + sim.inspectTile.
  * Props and orbitals: name + remove.
  */
+import type { Ref } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { getItem, type ItemDef } from '../../../content/catalog';
 import { zoneInfo } from '../../../content/zones';
@@ -15,7 +16,7 @@ import { Icon } from '../../icons';
 import { confirmDialog, ui } from '../../store';
 import { InspectRows, Stars, Chip } from '../display';
 import { TextInput } from '../controls';
-import { call, setSelection, uiSound, useLayer } from '../env';
+import { call, setSelection, uiSound, useLayer, viewport } from '../env';
 import { usePresence } from '../presence';
 import { detailItem, selectTool } from './actions';
 import { CATEGORY_META } from './buildModel';
@@ -321,11 +322,52 @@ export function Inspector() {
     if (!sel || sel.kind !== 'building') return;
     if (!game.planet?.buildings.has(sel.id)) setSelection(null);
   }, [keyOf(sel)]);
+  // phones: swipe the card down to dismiss it
+  const ref = useRef<HTMLElement>(null);
+  const swipe = useRef<{ id: number; y0: number; dy: number } | null>(null);
+  const onDown = (e: PointerEvent) => {
+    if (!viewport.value.phone) return;
+    if ((e.target as HTMLElement).closest('button, input, .in-rows')) return;
+    swipe.current = { id: e.pointerId, y0: e.clientY, dy: 0 };
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+  };
+  const onMove = (e: PointerEvent) => {
+    const sw = swipe.current;
+    if (!sw || sw.id !== e.pointerId) return;
+    sw.dy = Math.max(0, e.clientY - sw.y0);
+    if (ref.current) {
+      ref.current.style.transition = 'none';
+      ref.current.style.transform = `translateY(${sw.dy}px)`;
+    }
+  };
+  const onUp = (e: PointerEvent) => {
+    const sw = swipe.current;
+    if (!sw || sw.id !== e.pointerId) return;
+    swipe.current = null;
+    if (ref.current) {
+      ref.current.style.transition = '';
+      ref.current.style.transform = '';
+    }
+    if (sw.dy > 70) close();
+  };
   if (!mounted) return null;
   const s = last.current;
   if (!s) return null;
   return (
-    <aside class={'in-root glass-strong pe' + (shown ? ' is-shown' : '')} aria-label="Inspector" key={keyOf(s)}>
+    <aside
+      ref={ref as Ref<HTMLElement>}
+      class={'in-root glass-strong pe' + (shown ? ' is-shown' : '')}
+      aria-label="Inspector"
+      key={keyOf(s)}
+      onPointerDown={onDown}
+      onPointerMove={onMove}
+      onPointerUp={onUp}
+      onPointerCancel={onUp}
+    >
       <button type="button" class="cz-close in-close" aria-label="Close inspector" onClick={close}>
         <Icon name="close" size={17} />
       </button>
