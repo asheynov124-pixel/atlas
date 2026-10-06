@@ -46,9 +46,9 @@ export const STAR_LOOKS: Record<StarKind, StarLook> = {
     flavor: 'Warm, patient and good for another 30 billion years. Excellent for long-term mortgages.',
   },
   red: {
-    kind: 'red', name: 'Red giant', color: 0xff8d5e, light: 0xffa77a, intensity: 2.5, disc: 0.05, discGlow: 14,
+    kind: 'red', name: 'Red dwarf', color: 0xff8d5e, light: 0xffa77a, intensity: 2.5, disc: 0.05, discGlow: 14,
     corona: 0.7, glare: 0.6, ambient: 0x41294f, sky: 1.15,
-    flavor: 'Swollen, ruddy and dramatic. Every hour is golden hour.',
+    flavor: 'Small, ruddy and huge in your sky, because you live so close. Every hour is golden hour.',
   },
   white: {
     kind: 'white', name: 'White star', color: 0xf4f6ff, light: 0xf6f8ff, intensity: 3.5, disc: 0.016, discGlow: 32,
@@ -71,8 +71,8 @@ export const STAR_LOOKS: Record<StarKind, StarLook> = {
     flavor: 'Two suns, two shadows, twice the sunsets. Sundials here are a nightmare.',
   },
   blackhole: {
-    kind: 'blackhole', name: 'Black hole', color: 0xffb070, light: 0xffc79c, intensity: 1.9, disc: 0.02, discGlow: 18,
-    corona: 0, glare: 0.5, ambient: 0x2c2350, sky: 0.9, special: 'blackhole',
+    kind: 'blackhole', name: 'Black hole', color: 0xffb070, light: 0xffc79c, intensity: 1.9, disc: 0.034, discGlow: 18,
+    corona: 0, glare: 0.26, ambient: 0x2c2350, sky: 0.9, special: 'blackhole',
     flavor: 'The accretion disc lights your streets. Please do not feed the singularity.',
   },
 };

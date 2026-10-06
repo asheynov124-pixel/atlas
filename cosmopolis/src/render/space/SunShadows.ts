@@ -21,6 +21,8 @@ export class SunShadows {
   private lastFocus = new Vector3(Infinity, 0, 0);
   private lastSun = new Vector3();
   private intensity = 0;
+  /** snap the fade on the first update after enabling (no visible fade-in on load) */
+  private primed = false;
 
   constructor(
     private light: DirectionalLight,
@@ -56,6 +58,7 @@ export class SunShadows {
     r.shadowMap.needsUpdate = true;
     this.light.shadow.needsUpdate = on;
     this.lastFocus.set(Infinity, 0, 0);
+    this.primed = false;
   }
 
   /**
@@ -67,8 +70,9 @@ export class SunShadows {
   update(dt: number, focus: Vector3, camDistance: number, sunDir: Vector3, sunElev: number): void {
     if (!this.enabled) return;
     const s = this.light.shadow;
-    const target = (1 - smooth(40, 75, camDistance)) * smooth(-0.02, 0.14, sunElev) * 0.88;
-    this.intensity += (target - this.intensity) * Math.min(1, dt * 4);
+    const target = (1 - smooth(40, 75, camDistance)) * smooth(-0.03, 0.08, sunElev) * 0.88;
+    this.intensity = this.primed ? this.intensity + (target - this.intensity) * Math.min(1, dt * 4) : target;
+    this.primed = true;
     s.intensity = this.intensity;
     if (this.intensity < 0.01) return;
     // quantised half-extent of the frustum

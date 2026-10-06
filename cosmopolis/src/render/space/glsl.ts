@@ -89,8 +89,8 @@ float ridged( vec3 p, int oct ) {
 `;
 
 /**
- * Crater field: 3D Worley cells, each with a random crater (bowl + raised rim + central peak). Returns height offset
- * (≈ -1 … 0.4) — needs GLSL_HASH.
+ * Crater field: 3D Worley cells, each with a random crater (bowl + raised rim + central peak), summed so overlaps stay
+ * smooth. Returns a height offset (≈ -1.2 … 0.6) — needs GLSL_HASH.
  */
 export const GLSL_CRATERS = /* glsl */ `
 float craterLayer( vec3 p, float density ) {
@@ -111,11 +111,11 @@ float craterLayer( vec3 p, float density ) {
       float bowl = t < 1.0 ? ( t * t - 1.0 ) : 0.0;
       float rim = exp( -( t - 1.0 ) * ( t - 1.0 ) * 18.0 ) * 0.38;
       float peak = exp( -t * t * 60.0 ) * 0.35 * step( 0.6, rnd.y );
-      float contrib = bowl * 0.9 + rim + peak;
-      h = abs( contrib ) > abs( h ) ? contrib : h;
+      // craters overlap additively (smooth everywhere, so screen-space derivatives never spike)
+      h += bowl * 0.9 + rim + peak;
     }
   }
-  return h;
+  return clamp( h, -1.2, 0.6 );
 }
 `;
 

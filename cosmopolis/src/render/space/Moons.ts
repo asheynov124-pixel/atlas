@@ -59,23 +59,32 @@ vec3 perturb( vec3 pos, vec3 n, float h ) {
   return normalize( abs( det ) * n - grad );
 }
 
+// fade a feature of spatial frequency f out before it shrinks below a few pixels (no sparkle, no aliasing)
+float visible( float f, float fp ) { return 1.0 - smoothstep( 0.08, 0.22, f * fp ); }
+
 void main() {
-  vec3 p = normalize( vObj ) * 2.0 + uSeed;
+  vec3 dirO = normalize( vObj );
+  vec3 p = dirO * 2.0 + uSeed;
+  float fp = length( fwidth( dirO * 2.0 ) );
   int type = int( uType + 0.5 );
   vec3 alb = uColor;
   float h = 0.0;
   vec3 emit = vec3( 0.0 );
   float spec = 0.0;
   float big = fbm( p * 0.9, 4 );
-  float detail = fbm( p * 6.0, 4 );
-  // craters on (almost) every rocky body
+  float detail = fbm( p * 6.0, 4 ) * visible( 12.0, fp );
+  // craters on (almost) every rocky body; finer layers only once they're big enough on screen to read
   float craterAmt = ( type == 5 || type == 6 || type == 9 ) ? 0.0 : ( type == 2 || type == 4 ) ? 0.35 : 1.0;
   if ( craterAmt > 0.0 ) {
-    float c1 = craterLayer( p * 2.2, 0.55 );
-    float c2 = craterLayer( p * 6.5 + 3.1, 0.7 );
-    float c3 = craterLayer( p * 17.0 + 7.7, 0.75 );
+    float v1 = visible( 2.2, fp );
+    float v2 = visible( 6.5, fp );
+    float v3 = visible( 17.0, fp );
+    float c1 = v1 > 0.0 ? craterLayer( p * 2.2, 0.55 ) * v1 : 0.0;
+    float c2 = v2 > 0.0 ? craterLayer( p * 6.5 + 3.1, 0.7 ) * v2 : 0.0;
+    float c3 = v3 > 0.0 ? craterLayer( p * 17.0 + 7.7, 0.75 ) * v3 : 0.0;
     h += ( c1 * 0.9 + c2 * 0.45 + c3 * 0.2 ) * craterAmt;
-    alb *= 1.0 + c1 * 0.12 * craterAmt - min( c2, 0.0 ) * 0.05;
+    // fresh ejecta are bright, old crater floors darker
+    alb *= 1.0 + ( max( c1, 0.0 ) * 0.25 + min( c1, 0.0 ) * 0.08 + max( c2, 0.0 ) * 0.12 ) * craterAmt;
   }
   h += detail * 0.12;
   if ( type == 0 || type == 1 ) {
@@ -130,7 +139,7 @@ void main() {
   }
   // ---------------------------------------------------------------- lighting
   vec3 n0 = normalize( vNormalW );
-  vec3 n = perturb( vPosW, n0, h * uRadius * 0.05 );
+  vec3 n = normalize( mix( n0, perturb( vPosW, n0, h * uRadius * 0.035 ), 0.85 ) );
   vec3 V = normalize( cameraPosition - vPosW );
   float ndl = dot( n, uSunDir );
   float ndl0 = dot( n0, uSunDir );

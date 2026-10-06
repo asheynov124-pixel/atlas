@@ -74,7 +74,7 @@ void main() {
   float fwd = pow( max( mu, 0.0 ), 6.0 );
   vec3 col;
   if ( litSide ) col = alb * ( 0.18 + lit * 0.95 );
-  else col = alb * ( lit * 0.35 * ( 1.0 - dens * 0.7 ) + fwd * 1.6 * ( 1.0 - dens * 0.5 ) );
+  else col = alb * ( 0.05 + lit * 0.55 * ( 1.0 - dens * 0.6 ) + fwd * 1.6 * ( 1.0 - dens * 0.5 ) );
   col += alb * fwd * 0.4;
   // planet shadow (soft penumbra)
   float tca = dot( -vPosW, uSunDir );

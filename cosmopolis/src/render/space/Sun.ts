@@ -134,6 +134,8 @@ void main() {
 
 export class SunDisc {
   readonly mesh: Mesh;
+  /** disc colour after setLook (linear) — the owner tints it per frame (apocalypse, horizon) */
+  readonly base = new Color(1, 1, 1);
   private material: ShaderMaterial;
   private angle = 0;
 
@@ -168,10 +170,16 @@ export class SunDisc {
     this.mesh.renderOrder = -10;
   }
 
-  setLook(look: StarLook): void {
+  /**
+   * @param companion binary partner colour (sRGB hex) overriding the look's default
+   * @param tint catalogue colour blended 35 % into the disc colour
+   */
+  setLook(look: StarLook, companion?: number, tint?: number): void {
     const u = this.material.uniforms;
-    u.uColor.value.set(look.color);
-    u.uColor2.value.set(look.companion ?? look.color);
+    this.base.set(look.color);
+    if (tint !== undefined) this.base.lerp(_tint.set(tint), 0.35);
+    u.uColor.value.copy(this.base);
+    u.uColor2.value.set(companion ?? look.companion ?? look.color);
     u.uDisc.value = look.disc;
     u.uGlow.value = look.discGlow;
     u.uCorona.value = look.corona;
@@ -201,6 +209,7 @@ export class SunDisc {
 }
 
 const _warm = new Color(1.0, 0.42, 0.16);
+const _tint = new Color();
 
 // ─────────────────────────────────────────────────────────────────────────────── lens flares
 

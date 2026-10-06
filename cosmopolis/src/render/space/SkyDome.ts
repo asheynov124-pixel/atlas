@@ -69,6 +69,24 @@ function randomDir(rng: Rng, out = new Vector3()): Vector3 {
   return out.set(r * Math.cos(a), z, r * Math.sin(a));
 }
 
+const _hsl = { h: 0, s: 0, l: 0 };
+
+/** Catalogue colours are pastel UI tints; nebula gas needs rich, saturated emission colours of the same hue. */
+function vivid(hex: number, sat: number, light: number): Color {
+  const c = new Color(hex);
+  c.getHSL(_hsl);
+  return c.setHSL(_hsl.h, Math.max(_hsl.s, sat), light);
+}
+
+/** Circular hue distance (0..0.5). */
+function hueGap(a: number, b: number): number {
+  const d = Math.abs(a - b) % 1;
+  return Math.min(d, 1 - d);
+}
+
+/** Accent hues real emission nebulae show: H-alpha rose, OIII teal, sulphur amber, reflection violet. */
+const ACCENTS = [0.94, 0.48, 0.08, 0.76];
+
 /** Deterministic sky layout for a theme (also used by the starfield to crowd stars into the galactic band). */
 export function skyLayout(theme: SkyTheme): SkyLayout {
   const rng = new Rng((theme.seed ^ 0x5eed5) >>> 0);
@@ -79,15 +97,24 @@ export function skyLayout(theme: SkyTheme): SkyLayout {
   const tmp = randomDir(rng);
   const galC = tmp.addScaledVector(galN, -tmp.dot(galN)).normalize();
   const pal = rng.pick(PALETTES);
-  const colA = new Color(theme.colors?.[0] ?? pal[0]);
-  const colB = new Color(theme.colors?.[1] ?? pal[1]);
+  const colA = vivid(theme.colors?.[0] ?? pal[0], 0.8, 0.62);
+  const colB = vivid(theme.colors?.[1] ?? pal[1], 0.78, 0.6);
   const colC = new Color(pal[2]);
-  if (theme.colors) colC.copy(colA).lerp(colB, 0.5).lerp(new Color(1, 1, 1), 0.35);
+  if (theme.colors) {
+    // pick the accent hue farthest from both catalogue colours so the gas never turns muddy
+    colA.getHSL(_hsl);
+    const hA = _hsl.h;
+    colB.getHSL(_hsl);
+    const hB = _hsl.h;
+    let best = ACCENTS[0];
+    for (const h of ACCENTS) if (Math.min(hueGap(h, hA), hueGap(h, hB)) > Math.min(hueGap(best, hA), hueGap(best, hB))) best = h;
+    colC.setHSL(best, 0.85, 0.6);
+  }
   const nebulae: Vector4[] = [];
   for (let i = 0; i < 3; i++) {
     // first nebula sits on the galactic plane near the centre (emission nebulae trace the arms)
     const d = i === 0 ? galC.clone().addScaledVector(galN, rng.range(-0.15, 0.15)).applyAxisAngle(galN, rng.range(-0.9, 0.9)).normalize() : randomDir(rng);
-    const radius = i === 0 ? rng.range(0.55, 0.8) : rng.range(0.35, 0.65);
+    const radius = i === 0 ? rng.range(0.42, 0.6) : rng.range(0.24, 0.42);
     nebulae.push(new Vector4(d.x, d.y, d.z, Math.cos(radius)));
   }
   const galaxies: Vector4[] = [];
@@ -181,37 +208,56 @@ vec3 sky( vec3 d ) {
   float bulge = pow( toC, 10.0 ) * exp( -lat * lat / 0.04 );
   float glowBand = exp( -latW * latW / ( width * width * 6.0 ) );
   if ( band > 0.004 || bulge > 0.004 ) {
-    float haze = fbm( p * 8.0 + w, 5 ) * 0.5 + 0.5;
-    float grains = fbm( p * 34.0, 3 ) * 0.5 + 0.5;
-    float dust = ridged( p * 4.6 + w * 0.7, 5 );
-    float lane = smoothstep( 0.42, 0.8, dust ) * exp( -latW * latW / ( width * width * 0.3 ) );
-    vec3 bandCol = mix( vec3( 0.52, 0.6, 0.9 ), vec3( 1.0, 0.8, 0.58 ), smoothstep( 0.55, 1.0, toC ) );
-    float bandI = band * ( 0.25 + 0.75 * haze * haze ) * ( 0.55 + 0.6 * grains * grains ) + bulge * 1.3;
-    col += bandCol * bandI * 0.13 * ( 1.0 - lane * 0.92 );
-    col += mix( uColA, uColB, 0.5 ) * band * haze * 0.012;
-    col += vec3( 0.06, 0.025, 0.012 ) * lane * band * 0.1;
+    float haze = fbm( p * 7.0 + w, 5 ) * 0.5 + 0.5;
+    float grains = fbm( p * 30.0, 3 ) * 0.5 + 0.5;
+    // a soft central rift (like the Milky Way's Great Rift) broken into clouds, plus scattered dark clouds
+    float rift = exp( -pow( ( latW + 0.03 * w.y ) / ( width * 0.38 ), 2.0 ) ) * smoothstep( 0.38, 0.62, fbm( p * 2.4 + w, 4 ) * 0.5 + 0.5 );
+    float clouds = smoothstep( 0.56, 0.74, fbm( p * 4.2 + w * 0.8, 4 ) * 0.5 + 0.5 ) * band;
+    float lane = max( rift, clouds * 0.8 );
+    vec3 bandCol = mix( vec3( 0.55, 0.62, 0.92 ), vec3( 1.0, 0.82, 0.6 ), smoothstep( 0.55, 1.0, toC ) );
+    float bandI = band * ( 0.25 + 0.75 * haze * haze ) * ( 0.6 + 0.55 * grains * grains ) + bulge * 0.7;
+    col += bandCol * bandI * 0.11 * ( 1.0 - lane * 0.88 );
+    col += mix( uColA, uColB, haze ) * band * haze * 0.01;
+    col += vec3( 0.05, 0.022, 0.012 ) * lane * band * 0.08;
   }
   col += mix( vec3( 0.35, 0.4, 0.6 ), vec3( 0.8, 0.6, 0.45 ), toC ) * glowBand * 0.012;
-  // ── emission nebulae: domain-warped fbm clouds, bright filaments, dark globules
+  // ── emission nebulae: soft glowing gas with a cool OIII heart and a warm H-alpha shell, rose accent patches,
+  //    white-gold star-forming cores, a few bright ionisation fronts and broad dark dust clouds in silhouette.
+  //    Irregular outlines (noise-displaced radius) and a gentle low-frequency warp keep them organic, not marbled.
   for ( int i = 0; i < 3; i++ ) {
     float c = dot( d, uNeb[ i ].xyz );
-    float m = smoothstep( uNeb[ i ].w, 1.0, c );
+    if ( c < uNeb[ i ].w - 0.25 ) continue;
+    float fi = float( i );
+    vec3 q = d * 1.8 + uSeedOff * ( 0.37 * ( fi + 1.0 ) );
+    float rr = acos( clamp( c, -1.0, 1.0 ) ) / acos( uNeb[ i ].w );
+    rr += fbm( q * 1.2 + 11.0, 3 ) * 0.45;
+    float m = 1.0 - smoothstep( 0.1, 1.0, rr );
     if ( m <= 0.0 ) continue;
-    vec3 q = d * 2.6 + uSeedOff * ( 0.37 * float( i + 1 ) );
-    vec3 wq = vec3( fbm( q, 4 ), fbm( q + 5.2, 4 ), fbm( q + 9.7, 4 ) );
-    float n = fbm( q * 1.7 + wq * 1.9, 6 ) * 0.5 + 0.5;
-    float fil = 1.0 - abs( snoise( q * 3.4 + wq * 2.2 ) );
-    fil = pow( fil, 7.0 );
-    float body = smoothstep( 0.3, 0.9, n + m * 0.3 - 0.15 ) * m;
-    vec3 ncol = mix( uColA, uColB, smoothstep( -0.35, 0.35, wq.x + float( i ) * 0.3 - 0.3 ) );
-    vec3 neb = ncol * body * body * 0.3 + uColC * fil * m * n * 0.16;
-    neb += mix( ncol, vec3( 1.0 ), 0.5 ) * pow( body, 6.0 ) * 0.25;
-    float glob = smoothstep( 0.58, 0.82, fbm( q * 3.6 - wq * 1.3, 4 ) * 0.5 + 0.5 ) * m;
-    col = ( col + neb ) * ( 1.0 - glob * 0.8 );
+    float lead = 1.0 - fi * 0.18;
+    vec3 wq = vec3( fbm( q * 0.6, 3 ), fbm( q * 0.6 + 5.2, 3 ), fbm( q * 0.6 + 9.7, 3 ) );
+    vec3 qw = q + wq * 0.6;
+    float dens = ( fbm( qw * 1.5, 5 ) * 0.5 + 0.5 ) * 0.75 + ( fbm( qw * 3.3 + 2.0, 4 ) * 0.5 + 0.5 ) * 0.25;
+    float gas = smoothstep( 0.4, 0.82, dens + ( m - 0.6 ) * 0.45 ) * smoothstep( 0.0, 0.5, m );
+    // colour: broad patches of the two emission colours, leaning cool toward the heart (saturation restored
+    // through the blend so complementary pairs never go grey), rose accent patches
+    float zone = smoothstep( 0.36, 0.64, fbm( qw * 0.75 + 3.3, 3 ) * 0.5 + 0.5 + ( rr - 0.45 ) * 0.35 );
+    vec3 ec = mix( uColB, uColA, zone );
+    float el = dot( ec, vec3( 0.2126, 0.7152, 0.0722 ) );
+    ec = max( mix( vec3( el ), ec, 1.0 + 3.0 * zone * ( 1.0 - zone ) ), 0.0 );
+    float acc = smoothstep( 0.58, 0.82, fbm( qw * 1.1 - 6.1, 3 ) * 0.5 + 0.5 );
+    ec = mix( ec, uColC, acc * 0.7 );
+    // ionisation fronts, hot cores
+    float fil = smoothstep( 0.72, 0.96, ridged( qw * 1.7 + 4.0, 3 ) ) * gas;
+    float core = pow( gas, 2.6 );
+    // dust clouds and a few dark globules
+    float dust = smoothstep( 0.55, 0.74, fbm( qw * 1.4 - 2.0, 4 ) * 0.5 + 0.5 ) * smoothstep( 0.0, 0.45, m );
+    dust = max( dust, smoothstep( 0.67, 0.78, fbm( qw * 3.2 + 8.0, 3 ) * 0.5 + 0.5 ) * m * 0.9 );
+    vec3 glow = ec * ( gas * 0.13 + fil * 0.07 + m * 0.008 ) + mix( ec, vec3( 1.0, 0.94, 0.86 ), 0.6 ) * core * 0.16;
+    col = col * ( 1.0 - dust * 0.75 * m ) + glow * lead * ( 1.0 - dust * 0.85 );
   }
   // ── faint intergalactic wisps everywhere so no part of the sky is dead flat
-  float wisp = fbm( p * 1.25 + w * 0.6, 5 ) * 0.5 + 0.5;
-  col += mix( uColB, uColA, wisp ) * pow( wisp, 4.0 ) * 0.035;
+  float wisp = fbm( p * 1.1 + w * 0.4, 5 ) * 0.5 + 0.5;
+  col += mix( uColB, uColA, wisp ) * pow( wisp, 5.0 ) * 0.02;
   // ── unresolved star dust
   float sd = sHash13( floor( d * 900.0 ) );
   col += vec3( 0.7, 0.75, 0.9 ) * step( 0.9965, sd ) * ( 0.03 + band * 0.08 );
@@ -233,8 +279,9 @@ const DOME_VERT = /* glsl */ `
 varying vec3 vDir;
 ${GLSL_SKY_VERTEX}
 void main() {
-  vDir = mat3( modelMatrix ) * position;
-  gl_Position = skyClip( vDir );
+  // sample in sky space (the cube turns with the sky group), project in world space
+  vDir = position;
+  gl_Position = skyClip( mat3( modelMatrix ) * position );
 }
 `;
 

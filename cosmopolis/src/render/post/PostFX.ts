@@ -113,6 +113,7 @@ export class PostFX {
   private tilt: TiltShiftEffect | null = null;
   private chroma: ChromaticAberrationEffect | null = null;
   private topology = '';
+  private bloomThreshold = 0.92;
   private tier: number;
   private failed = false;
   private halfFloat = true;
@@ -173,6 +174,8 @@ export class PostFX {
   render(scene: Scene, camera: Camera, dt: number): void {
     const engine = this.engine;
     const r = engine.renderer;
+    // hints given since the previous render (hint() stamps the current frame count) apply to this one
+    const hints = this.hintFrame === this.frame ? this.hints : null;
     this.frame++;
     r.info.reset();
     const next = this.quality.sample(performance.now(), engine.tier, settings.value.quality, engine.mobile);
@@ -182,22 +185,23 @@ export class PostFX {
     }
     const p = this.params;
     const look = gradeLook(p.grade);
-    const hints = this.hintFrame === this.frame ? this.hints : null;
     const k = this.stateInit ? 1 - Math.exp(-Math.max(0, dt) * 5) : 1;
     this.stateInit = true;
     const u = this.user;
     u.exposure = p.exposure;
     u.contrast = p.contrast;
-    u.saturation = p.saturation;
+    // day-for-night: a touch cooler and less saturated after dark, so nights read moody-blue (lights stay warm)
+    const night = hints ? Math.max(0, Math.min(1, hints.night)) : 0;
+    u.saturation = p.saturation * (1 - 0.14 * night);
     u.vignette = p.vignette;
-    u.temperature = p.temperature + (hints?.warmth ?? 0);
+    u.temperature = p.temperature + (hints?.warmth ?? 0) - 0.22 * night;
     blendGrade(this.state, look, u, k);
     const exposureMul = hints?.exposure ?? 1;
 
     if (this.tier > 0 && !this.failed) {
       try {
         this.ensure(scene, camera);
-        this.apply(dt, look.bloom, hints?.night ?? 0, exposureMul);
+        this.apply(dt, look.bloom, night, exposureMul);
         r.toneMapping = NoToneMapping;
         this.syncClearColor();
         this.composer!.render(dt);
@@ -278,10 +282,11 @@ export class PostFX {
         main.push(this.tilt);
       }
       if (bloomOn) {
+        this.bloomThreshold = this.halfFloat ? 0.92 : 0.78;
         const bloom = new CosmoBloom({
           blendFunction: BlendFunction.ADD,
           mipmapBlur: true,
-          luminanceThreshold: this.halfFloat ? 0.92 : 0.78,
+          luminanceThreshold: this.bloomThreshold,
           luminanceSmoothing: 0.32,
           intensity: p.bloom,
           radius: 0.74,
@@ -321,7 +326,12 @@ export class PostFX {
   /** Push live parameters into the effects. */
   private apply(dt: number, bloomMul: number, night: number, exposureMul: number): void {
     const p = this.params;
-    if (this.bloom) this.bloom.intensity = p.bloom * bloomMul * (1 + 0.3 * night);
+    if (this.bloom) {
+      // nights: a lower threshold so lit windows, street lamps and neon glow; days: only true highlights bloom
+      const n = Math.max(0, Math.min(1, night));
+      this.bloom.intensity = p.bloom * bloomMul * (1 + 0.55 * n);
+      this.bloom.luminanceMaterial.threshold = this.bloomThreshold * (1 - 0.32 * n);
+    }
     if (this.tilt) {
       const t = Math.max(0, Math.min(1, p.tiltShift));
       this.tilt.focusArea = 0.62 - 0.42 * t;

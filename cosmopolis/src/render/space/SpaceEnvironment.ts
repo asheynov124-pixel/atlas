@@ -49,14 +49,33 @@ interface CosmosLike {
   galaxies?: {
     id: string;
     colors?: [number, number];
-    systems?: { id: string; star?: StarKind; planets?: { id: string; orbit?: number; parent?: string; spec?: PlanetSpec }[] }[];
+    systems?: {
+      id: string;
+      star?: StarKind;
+      companion?: StarKind;
+      planets?: { id: string; orbit?: number; parent?: string; spec?: PlanetSpec; kind?: string; giant?: { colors: [number, number, number] } }[];
+    }[];
   }[];
+}
+
+/** Per-frame scene hints for PostFX (see PostFX.hint). */
+interface SceneHint {
+  exposure: number;
+  warmth: number;
+  night: number;
+}
+
+/** Optional extras cosmos passes with setStar (binary companion kind, catalogue colour). */
+export interface StarOptions {
+  companion?: StarKind;
+  color?: number;
 }
 
 interface SystemContext {
   seed: number;
   colors?: [number, number];
   star: StarKind;
+  companion?: StarKind;
   siblings: SkyPlanetInfo[];
 }
 
@@ -69,7 +88,11 @@ const _ndc = new Vector2();
 const _c = new Color();
 const _c2 = new Color();
 
+const ORIGIN = new Vector3();
 const WARM = new Color(1.0, 0.5, 0.24);
+const EMBER = new Color(1.0, 0.26, 0.08);
+const DUSK_FILL = new Color(0x8a6fb0);
+const GOLDEN_GROUND = new Color(0x6a4630);
 const APOC_LIGHT = new Color(1.0, 0.32, 0.12);
 const NIGHT_SKY = new Color(0x5a7cc4);
 const NIGHT_GROUND = new Color(0x0b0e18);
@@ -94,10 +117,19 @@ function lookupSystem(spec: PlanetSpec): SystemContext {
         ctx.seed = hashString(s.id) ^ 0x1f2e3d;
         if (g.colors) ctx.colors = g.colors;
         if (s.star && STAR_LOOKS[s.star]) ctx.star = s.star;
+        if (s.companion && STAR_LOOKS[s.companion]) ctx.companion = s.companion;
         const myOrbit = me.orbit ?? 0;
         for (const p of s.planets ?? []) {
           if (p === me || p.parent || !p.spec) continue;
-          ctx.siblings.push(skyInfo(p.spec.type, !!p.spec.rings, (p.orbit ?? 0) < myOrbit, hashString(p.id)));
+          const info = skyInfo(p.spec.type, !!p.spec.rings, (p.orbit ?? 0) < myOrbit, hashString(p.id));
+          if (p.giant?.colors) {
+            // gas & ice giants: banded discs in their catalogue colours, a little larger in the sky
+            info.colorA = p.giant.colors[0];
+            info.colorB = p.giant.colors[1];
+            info.banded = true;
+            info.size *= 1.6;
+          }
+          ctx.siblings.push(info);
           if (ctx.siblings.length >= 6) break;
         }
         return ctx;
@@ -161,6 +193,7 @@ export class SpaceEnvironment {
   private layers: Record<SpaceLayer, boolean> = { sky: true, stars: true, sun: true, flares: true, moons: true, rings: true, planets: true };
   private offs: (() => void)[] = [];
   private disposed = false;
+  private hintOut: SceneHint = { exposure: 1, warmth: 0, night: 0 };
 
   constructor(private view: PlanetView) {
     const scene = view.scene;
@@ -223,12 +256,18 @@ export class SpaceEnvironment {
     this.update(0);
   }
 
-  /** Change the star (colour, disc, light, specials). */
-  setStar(kind: StarKind): void {
+  /**
+   * Change the star (colour, disc, light, specials). `opts.companion` picks the binary partner's kind; `opts.color`
+   * (a catalogue tint) nudges the disc colour — never for a black hole, whose catalogue colour is, fittingly, black.
+   */
+  setStar(kind: StarKind, opts?: StarOptions): void {
     const look = STAR_LOOKS[kind] ?? STAR_LOOKS.yellow;
     this.star = look.kind;
     this.look = look;
-    this.sun.setLook(look);
+    const companion = opts?.companion ?? this.ctx.companion;
+    const compColor = companion && STAR_LOOKS[companion] ? STAR_LOOKS[companion].color : undefined;
+    const tint = look.special !== 'blackhole' && typeof opts?.color === 'number' && opts.color > 0 ? opts.color : undefined;
+    this.sun.setLook(look, compColor, tint);
   }
 
   /** A brief flash of world light (explosions, supernova, lightning, divine smite…). */
@@ -292,7 +331,7 @@ export class SpaceEnvironment {
     const localDay = smooth(-0.14, 0.2, sunElev);
     const orbitDay = 0.5 + 0.5 * camUp.dot(sunDir);
     this.daylight = localDay + (orbitDay - localDay) * far;
-    this.golden = smooth(-0.1, 0.06, sunElev) * (1 - smooth(0.08, 0.42, sunElev)) * (1 - far);
+    this.golden = smooth(-0.1, 0.05, sunElev) * (1 - smooth(0.06, 0.22, sunElev)) * (1 - far);
 
     // ── eclipse at the focus (moons crossing the sun)
     let eclipse = 1;
@@ -320,12 +359,14 @@ export class SpaceEnvironment {
       this.flashColor.b += f.color.b * f.intensity * env;
     }
 
-    // ── sun light
+    // ── sun light: warms to gold as it sinks, embers right at the horizon (thick air reddens more)
     const sunUp = smooth(-0.2, 0.05, sunElev);
     const sunFade = sunUp + (1 - sunUp) * far;
+    const golden = this.golden;
+    const ember = smooth(0.09, -0.06, sunElev) * sunUp * (1 - far) * atmo;
     const light = this.sunLight;
-    light.color.set(look.light).lerp(WARM, this.golden * 0.75 * (0.4 + 0.6 * atmo)).lerp(APOC_LIGHT, apoc * 0.7);
-    light.intensity = look.intensity * sunFade * eclipse * pulse * this.sunBoost * (1 - apoc * 0.25);
+    light.color.set(look.light).lerp(WARM, golden * (0.5 + 0.4 * atmo)).lerp(EMBER, ember * 0.55).lerp(APOC_LIGHT, apoc * 0.7);
+    light.intensity = look.intensity * sunFade * eclipse * pulse * this.sunBoost * (1 + 0.6 * golden) * (1 - apoc * 0.25);
     light.position.copy(sunDir).multiplyScalar(R * 6);
     light.target.position.set(0, 0, 0);
     light.target.updateMatrixWorld();
@@ -336,29 +377,32 @@ export class SpaceEnvironment {
       this.shadows.update(dt, _v, zoomDist, sunDir, sunElev);
     }
 
-    // ── ambient + hemisphere (planet-aware "up" = focus normal)
+    // ── ambient + hemisphere (planet-aware "up" = focus normal). Close up: moody-blue but readable nights, a dusky
+    //    violet fill at golden hour so the warm key light carries the scene. From orbit the fill drops so the
+    //    terminator reads and night-side city lights sparkle.
     const day = this.daylight;
     const atmoCol = _c2.set(spec.atmosphere.color);
     const amb = this.ambient;
-    amb.color.set(look.ambient).lerp(_c.set(0x93a6c9).lerp(atmoCol, 0.25), day);
-    amb.intensity = 1.55 + (0.42 - 1.55) * day;
+    amb.color.set(look.ambient).lerp(_c.set(0x93a6c9).lerp(atmoCol, 0.25), day).lerp(DUSK_FILL, golden * 0.6);
+    const ambLocal = (1.55 + (0.42 - 1.55) * day) * (1 - 0.5 * golden);
+    amb.intensity = ambLocal + (0.62 - ambLocal) * far;
     amb.color.lerp(APOC_LIGHT, apoc * 0.4);
     amb.color.r += this.flashColor.r * 0.6;
     amb.color.g += this.flashColor.g * 0.6;
     amb.color.b += this.flashColor.b * 0.6;
     const hemi = this.hemi;
     hemi.position.copy(focusDir);
-    hemi.color.copy(NIGHT_SKY).lerp(_c.set(0xb4cdf2).lerp(atmoCol, 0.4), day).lerp(GOLDEN_SKY, this.golden * 0.55);
+    hemi.color.copy(NIGHT_SKY).lerp(_c.set(0xb4cdf2).lerp(atmoCol, 0.4), day).lerp(GOLDEN_SKY, golden * 0.75);
     hemi.color.lerp(APOC_LIGHT, apoc * 0.5);
-    hemi.groundColor.copy(NIGHT_GROUND).lerp(DAY_GROUND, day);
-    hemi.intensity = (0.55 + (0.5 - 0.55) * day) * (0.55 + 0.45 * atmo);
+    hemi.groundColor.copy(NIGHT_GROUND).lerp(DAY_GROUND, day).lerp(GOLDEN_GROUND, golden * 0.6);
+    hemi.intensity = (0.55 + (0.5 - 0.55) * day) * (0.55 + 0.45 * atmo) * (1 - 0.7 * far) * (1 - 0.5 * golden);
 
-    // ── sky
+    // ── sky: down in the air by day the deep sky fades to a faint ghost (stars first), at night it's all there
     const insideAtmo = (1 - smooth(R * 0.02, R * 0.35, altitude)) * atmo;
     const camDay = smooth(-0.2, 0.12, camUp.dot(sunDir));
-    const wash = insideAtmo * camDay;
+    const wash = (1 - smooth(R * 0.1, R * 0.6, altitude)) * atmo * camDay;
     const glare = this.vis * look.glare;
-    const skyI = look.sky * (1 - 0.95 * wash) * (1 - 0.5 * glare);
+    const skyI = look.sky * (1 - 0.9 * wash) * (1 - 0.5 * glare);
     this.skyGroup.rotation.y = -((game?.clock.timeOfDay ?? 0) * Math.PI * 2);
     this.skyGroup.updateMatrixWorld();
     if (this.sky) {
@@ -366,7 +410,7 @@ export class SpaceEnvironment {
       this.sky.tint.setRGB(1, 1, 1).lerp(APOC_LIGHT, apoc * 0.6);
       this.sky.update(dt);
     }
-    this.stars.intensity = skyI;
+    this.stars.intensity = skyI * (1 - 0.6 * wash);
     this.stars.twinkle = reduce ? 0 : 0.06 + 0.4 * insideAtmo;
     this.stars.extinction = insideAtmo;
     this.stars.up.copy(camUp);
@@ -384,7 +428,7 @@ export class SpaceEnvironment {
     // ── sun disc + flares
     const camElev = camUp.dot(sunDir);
     const horizonWarm = (1 - smooth(0.0, 0.3, camElev)) * insideAtmo;
-    _c.set(look.color).lerp(APOC_LIGHT, apoc * 0.5);
+    _c.copy(this.sun.base).lerp(APOC_LIGHT, apoc * 0.5);
     this.sun.update(dt, reduce ? 0 : time, sunDir, this.sunBoost * (1 - wash * 0.25), horizonWarm, _c);
     let vis = 0;
     _v.copy(sunDir).transformDirection(cam.matrixWorldInverse);
@@ -394,7 +438,7 @@ export class SpaceEnvironment {
       const edge = 1 - smooth(0.92, 1.5, Math.max(Math.abs(_ndc.x), Math.abs(_ndc.y)));
       if (edge > 0) {
         // planet occlusion (sphere test with a little terrain margin), then moons
-        let occ = occlusion(camPos, sunDir, _w.set(0, 0, 0), R + 0.15, look.disc * 1.3);
+        let occ = occlusion(camPos, sunDir, ORIGIN, R + 0.15, look.disc * 1.3);
         for (const b of bodies) occ *= occlusion(camPos, sunDir, b.pos, b.radius, look.disc * 1.3);
         vis = edge * occ;
       }
@@ -402,7 +446,7 @@ export class SpaceEnvironment {
     this.vis += (vis - this.vis) * Math.min(1, dt * 14 + (dt === 0 ? 1 : 0));
     this.sunVisibility = this.vis;
     const flareOn = this.layers.flares && this.layers.sun && (game?.engine?.tier ?? 1) >= 1;
-    _c.set(look.color).lerp(WARM, horizonWarm * 0.6);
+    _c.copy(this.sun.base).lerp(WARM, horizonWarm * 0.6);
     this.flares.update(_ndc, cam.aspect, flareOn ? this.vis * look.glare * this.sunBoost * (1 - wash * 0.35) : 0, _c, reduce ? 0 : cam.rotation.z * 0.5 + time * 0.01);
 
     // ── moons & rings
@@ -412,8 +456,12 @@ export class SpaceEnvironment {
     this.rings?.update(sunDir, sunCol);
 
     // ── hint the grade: slightly brighter exposure at night so cities read, a hair warmer at golden hour
-    const post = game?.engine?.post as unknown as { hint?: (h: { exposure: number; warmth: number; night: number }) => void } | undefined;
-    post?.hint?.({ exposure: 1 + 0.2 * (1 - day) * (1 - far * 0.6), warmth: this.golden * 0.15, night: 1 - day });
+    const post = game?.engine?.post as unknown as { hint?: (h: SceneHint) => void } | undefined;
+    const hint = this.hintOut;
+    hint.exposure = (1 + 0.2 * (1 - day) * (1 - far * 0.6)) * (1 + 0.08 * golden);
+    hint.warmth = golden * 0.4;
+    hint.night = 1 - day;
+    post?.hint?.(hint);
   }
 
   dispose(): void {
