@@ -148,7 +148,7 @@ export class OrbitTool extends Tool {
     const plan = planOrbit(pos, INC[this.inc], this.orbitMul(), p.radius);
     const up = pos.clone().normalize();
     v.reticle.show(pos, up, 2.2, TOOL_COLORS.accent, true);
-    v.showOrbit(p.radius * this.orbitMul(), plan.normal, TOOL_COLORS.accent);
+    v.showOrbit(p.radius * this.orbitMul(), plan.normal, TOOL_COLORS.accent, plan.insertion);
     const cost = this.game.empire.sandbox ? 0 : this.def.cost;
     const afford = this.game.empire.canAfford(this.def.cost);
     this.mgr.setCost(cost, afford, afford ? undefined : `Needs ${money(this.def.cost)}`);

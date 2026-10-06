@@ -7,7 +7,7 @@
  *   ribbon      glowing chevron ribbon along road / god paths (preallocated buffers, red where blocked)
  *   reticle     pulsing targeting ring with rotating ticks and a sky beam (god powers, road anchors, orbit sites)
  *   pulses      expanding rings for placement / demolition feedback (pool)
- *   orbitRing   dashed preview of an orbit about to be launched
+ *   orbitRing   dashed, drifting tube along the orbit about to be launched (reads even edge-on) + insertion bead
  *   launches    rocket flares rising from the surface into orbit (orbital tool), then a callback
  * Tile highlights go through `view.surface.overlay.setHighlight` with change detection (no redundant uploads).
  * Nothing allocates per frame; geometries come from the catalog cache (never disposed here) or are owned.
@@ -27,6 +27,7 @@ import {
   RingGeometry,
   ShaderMaterial,
   SphereGeometry,
+  TorusGeometry,
   Vector3,
 } from 'three';
 import { getGeometry, type GeoKey } from '../content/catalog';
@@ -466,11 +467,15 @@ export class ToolVisuals {
   private pulses: Pulse[] = [];
   private orbitRing: Mesh;
   private orbitMat: ShaderMaterial;
-  private orbitGeo = new RingGeometry(0.994, 1, 256, 1);
+  /** thin tube so the preview reads even when seen edge-on (looking straight down at the launch pad) */
+  private orbitGeo = new TorusGeometry(1, 0.0042, 5, 320);
+  private bead: Mesh;
   private launches: Launch[] = [];
   private headGeo = new SphereGeometry(1, 14, 10);
   private headMat: ShaderMaterial;
   private hl = new Map<string, { tiles: number[]; color: number; opacity: number }>();
+  private beadPos = new Vector3();
+  private beadSize = 0.5;
   private time = 0;
 
   constructor(readonly view: PlanetView) {
@@ -494,6 +499,12 @@ export class ToolVisuals {
       depthWrite: false,
       blending: AdditiveBlending,
     });
+    this.bead = new Mesh(this.headGeo, this.headMat);
+    this.bead.frustumCulled = false;
+    this.bead.matrixAutoUpdate = false;
+    this.bead.renderOrder = 9;
+    this.bead.visible = false;
+    this.group.add(this.bead);
   }
 
   // ── highlights (overlay channels, change-detected)
@@ -571,16 +582,23 @@ export class ToolVisuals {
   }
 
   // ── orbit preview
-  showOrbit(radius: number, planeNormal: Vector3, color = TOOL_COLORS.accent): void {
+  /** Orbit preview: ring of `radius` in the plane with `planeNormal`; `insertion` marks where the craft arrives. */
+  showOrbit(radius: number, planeNormal: Vector3, color = TOOL_COLORS.accent, insertion?: Vector3): void {
     _q.setFromUnitVectors(Z, _n.copy(planeNormal).normalize());
     this.orbitRing.matrix.compose(_v.set(0, 0, 0), _q, _w.set(radius, radius, radius));
     this.orbitRing.matrixWorldNeedsUpdate = true;
     (this.orbitMat.uniforms.uColor.value as Color).setHex(color);
     this.orbitRing.visible = true;
+    if (insertion) {
+      this.beadPos.copy(insertion);
+      this.beadSize = Math.max(0.35, radius * 0.012);
+      this.bead.visible = true;
+    } else this.bead.visible = false;
   }
 
   hideOrbit(): void {
     this.orbitRing.visible = false;
+    this.bead.visible = false;
   }
 
   // ── launches
@@ -615,6 +633,11 @@ export class ToolVisuals {
     this.reticle.update(dt);
     this.anchor.update(dt);
     if (this.orbitRing.visible) this.orbitMat.uniforms.uTime.value = this.time;
+    if (this.bead.visible) {
+      const k = this.beadSize * (1 + 0.25 * Math.sin(this.time * 6));
+      this.bead.matrix.makeScale(k, k, k).setPosition(this.beadPos);
+      this.bead.matrixWorldNeedsUpdate = true;
+    }
     for (const p of this.pulses) {
       if (p.t >= p.dur) {
         p.mesh.visible = false;

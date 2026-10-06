@@ -56,6 +56,8 @@ export class ToolManager implements System {
   private centreTracking = true;
   /** camera target xyz, distance, heading at the last centre preview */
   private lastCentre = new Float64Array(5);
+  private centreYCache = 0;
+  private centreYAt = -1e9;
   private offs: (() => void)[] = [];
 
   constructor(readonly game: Game) {
@@ -174,6 +176,7 @@ export class ToolManager implements System {
     this.active = next;
     this.centreTracking = true;
     this.lastCentre.fill(NaN);
+    this.centreYAt = -1e9;
     ui.costPreview.value = null;
     try {
       next.enter(state ?? { id: 'select' });
@@ -282,6 +285,31 @@ export class ToolManager implements System {
     this.publishOptions();
   }
 
+  /**
+   * Vertical middle of the 3D view left uncovered by the HUD (top bar … tool bar), so the touch preview lands
+   * where the player can see it in portrait and landscape alike. Layout is read at most twice a second.
+   */
+  private centreY(): number {
+    const h = this.game.engine.height;
+    const now = performance.now();
+    if (now - this.centreYAt < 500 && this.centreYCache > 0) return this.centreYCache;
+    this.centreYAt = now;
+    let bottom = h * 0.78;
+    let top = Math.min(90, h * 0.12);
+    try {
+      const bar = typeof document !== 'undefined' ? document.querySelector('.tl-bar') : null;
+      const r = bar?.getBoundingClientRect();
+      if (r && r.height > 0 && r.top > h * 0.3) bottom = r.top;
+      const tb = typeof document !== 'undefined' ? document.querySelector('.tb-root') : null;
+      const t = tb?.getBoundingClientRect();
+      if (t && t.height > 0 && t.bottom < h * 0.4) top = t.bottom;
+    } catch {
+      /* no DOM */
+    }
+    this.centreYCache = Math.max(top + 20, Math.min(bottom - 20, (top + bottom) / 2 + (bottom - top) * 0.08));
+    return this.centreYCache;
+  }
+
   /** Long-press shortcut: switch to the move tool with this building lifted under the finger. */
   liftBuilding(id: number): boolean {
     const p = this.planet;
@@ -385,8 +413,7 @@ export class ToolManager implements System {
         c[4] = cam.heading;
         let hit: PickResult | null = null;
         try {
-          // a little below the middle: where the eye rests on a tilted view
-          hit = this.game.input.pick(this.game.engine.width / 2, this.game.engine.height * 0.56);
+          hit = this.game.input.pick(this.game.engine.width / 2, this.centreY());
         } catch {
           hit = null;
         }

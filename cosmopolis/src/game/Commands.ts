@@ -969,6 +969,34 @@ function rebiome(p: Planet, ops: PlanetOps, tiles: number[]): void {
   for (const [b, list] of groups) ops.setBiome(list, b);
 }
 
+/** Two-word versions of PlanetOps reasons for tight spots (tool bar cost slot, floating tags). */
+export function shortReason(r?: string): string {
+  switch (r) {
+    case 'Needs road access':
+      return 'Needs a road';
+    case 'Something is in the way':
+      return 'Occupied';
+    case 'Terrain too steep':
+      return 'Too steep';
+    case 'Cannot build on water':
+      return 'On water';
+    case 'Must be placed on water':
+      return 'Needs water';
+    case 'Needs a matching resource deposit':
+      return 'Needs a deposit';
+    case 'Must be on the coast':
+      return 'Needs coast';
+    case 'Only one per planet':
+      return 'Already built';
+    case 'Tile is locked':
+      return 'Locked';
+    case undefined:
+      return 'Not here';
+    default:
+      return r.length > 22 ? r.replace(/ —.*$/, '') : r;
+  }
+}
+
 /** Turn PlanetOps reasons into friendlier guidance. */
 export function friendlyReason(r?: string): string {
   switch (r) {

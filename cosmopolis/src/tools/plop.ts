@@ -6,6 +6,8 @@
  * drag-painted in rows (one undo step per stroke); big items get a long-press precision mode on touch (the ghost
  * follows the finger, release to build). Options: style override (styleable items), variant shuffle, and in the
  * sandbox "Free build" (ignore rules) and "Replace" (clear what is in the way).
+ * Service buildings preview their coverage area around the ghost (tinted by service, outlined at the edge);
+ * polluters show how far their smog reaches.
  */
 import { Matrix4 } from 'three';
 import { Tool, type PointerInfo } from './Tool';
@@ -14,12 +16,44 @@ import type { ToolOption, ToolState } from '../ui/store';
 import { getItem, type ItemDef } from '../content/catalog';
 import { STYLES, STYLE_IDS } from '../content/styles';
 import type { StyleId } from '../core/types';
-import { friendlyReason, type PlaceVerdict } from '../game/Commands';
+import { friendlyReason, shortReason, type PlaceVerdict } from '../game/Commands';
 import { buildingMatrix, footprintFacing, money } from './util';
 import { chainTiles } from './pathing';
 import { TOOL_COLORS } from './visuals';
 
 const _m = new Matrix4();
+
+/** Coverage tint per service (range preview under the ghost). */
+const SERVICE_COLOR: Record<string, number> = {
+  police: 0x6f8cff,
+  fire: 0xff7a5c,
+  health: 0xff8ab0,
+  education: 0xffd36b,
+  research: 0xa77bff,
+  leisure: 0x7cf0a0,
+  transit: 0x5ef0ff,
+  deathcare: 0xb8c2d6,
+  garbage: 0xc9a27a,
+  data: 0x4fd2ff,
+  tourism: 0xffb3e6,
+  spiritual: 0xe8d27a,
+};
+const SERVICE_NAME: Record<string, string> = {
+  police: 'Police',
+  fire: 'Fire',
+  health: 'Health',
+  education: 'Schools',
+  research: 'Research',
+  leisure: 'Leisure',
+  transit: 'Transit',
+  deathcare: 'Deathcare',
+  garbage: 'Waste',
+  data: 'Data',
+  tourism: 'Tourism',
+  spiritual: 'Spirit',
+};
+/** beyond this radius only the edge band is drawn (cheap, still readable) */
+const FILL_MAX = 14;
 
 export class PlopTool extends Tool {
   readonly id = 'plop';
@@ -37,6 +71,8 @@ export class PlopTool extends Tool {
   private strokeLast = -1;
   private strokeCount = 0;
   private holding = false;
+  private rangeKey = '';
+  private rangeLabel = '';
 
   override get drawing(): boolean {
     return this.def?.footprint === 1;
@@ -147,8 +183,44 @@ export class PlopTool extends Tool {
     v?.ghost.hide();
     v?.highlight('tool', null);
     v?.highlight('tool-bad', null);
+    v?.highlight('tool-range', null);
+    this.rangeKey = '';
     this.mgr.hideTag();
     this.mgr.setCost(null);
+  }
+
+  /** Coverage / pollution reach of the item (tiles), its tint and a short label. */
+  private reach(): { radius: number; color: number; label: string } | null {
+    const d = this.def;
+    if (!d) return null;
+    let best: { radius: number; color: number; label: string } | null = null;
+    for (const c of d.coverage ?? []) if (c.radius > 0 && (!best || c.radius > best.radius)) best = { radius: Math.round(c.radius), color: SERVICE_COLOR[c.service] ?? TOOL_COLORS.accent, label: `${SERVICE_NAME[c.service] ?? c.service} · ${Math.round(c.radius)} tiles` };
+    if (!best && (d.effects?.pollution ?? 0) > 0) {
+      const r = Math.round(d.effects?.radius ?? 4);
+      best = { radius: r, color: TOOL_COLORS.warn, label: `Pollutes ${r} tiles around` };
+    }
+    return best;
+  }
+
+  /** Tint the coverage area around the ghost (footprint excluded so the ghost's own tiles stay readable). */
+  private showRange(tile: number, footprint: number[]): void {
+    const v = this.mgr.visuals;
+    const p = this.mgr.planet;
+    const r = this.reach();
+    if (!v || !p || !r) {
+      v?.highlight('tool-range', null);
+      this.rangeLabel = '';
+      return;
+    }
+    const key = `${tile}|${r.radius}`;
+    this.rangeLabel = r.label;
+    if (key === this.rangeKey) return;
+    this.rangeKey = key;
+    const fp = this.def!.footprint;
+    const rad = r.radius + (fp === 19 ? 2 : fp === 7 ? 1 : 0);
+    const own = new Set(footprint);
+    const tiles = (rad <= FILL_MAX ? p.grid.disk(tile, rad) : p.grid.ring(tile, rad)).filter((t) => !own.has(t));
+    v.highlight('tool-range', tiles, r.color, rad <= FILL_MAX ? 0.13 : 0.4);
   }
 
   private refresh(): void {
@@ -176,16 +248,18 @@ export class PlopTool extends Tool {
     const style = this.style === 'auto' ? p.city.style : this.style;
     v.ghost.show(d.id, { variant: this.variant % Math.max(1, d.variants ?? 1), level: 1, style }, buildingMatrix(p, d.id, tile, this.rot, _m), ok);
     const tiles = verdict.tiles.length ? verdict.tiles : [tile];
+    this.showRange(tile, tiles);
     v.highlight('tool', ok ? tiles : tiles.filter((t) => !verdict.blocked.includes(t)), ok ? (verdict.forced ? TOOL_COLORS.warn : TOOL_COLORS.ok) : TOOL_COLORS.bad, ok ? 0.42 : 0.3);
     v.highlight('tool-bad', verdict.blocked.length ? verdict.blocked : null, verdict.forced ? TOOL_COLORS.warn : TOOL_COLORS.bad, 0.6);
-    this.mgr.setCost(verdict.cost, ok, ok ? undefined : friendlyReason(verdict.reason).replace(/ —.*$/, ''));
+    this.mgr.setCost(verdict.cost, ok, ok ? undefined : shortReason(verdict.reason));
     if (ok) {
       this.mgr.setHint(verdict.forced ? (verdict.blocked.length ? 'Sandbox: this will replace what is there' : `Sandbox: rules ignored (${(verdict.reason ?? '').toLowerCase()})`) : this.hint());
-      if (verdict.cost > 0) this.mgr.showTag(tile, money(verdict.cost), 'ok', d.name);
-      else this.mgr.showTag(tile, d.name, 'ok');
+      const sub = this.rangeLabel || (verdict.cost > 0 ? d.name : '');
+      if (verdict.cost > 0) this.mgr.showTag(tile, money(verdict.cost), 'ok', sub);
+      else this.mgr.showTag(tile, d.name, 'ok', this.rangeLabel);
     } else {
       this.mgr.setHint(friendlyReason(verdict.reason));
-      this.mgr.showTag(tile, friendlyReason(verdict.reason).replace(/ —.*$/, ''), 'bad');
+      this.mgr.showTag(tile, shortReason(verdict.reason), 'bad');
     }
   }
 
@@ -260,7 +334,8 @@ export class PlopTool extends Tool {
       this.stroke.push(t);
       this.justPlaced = -1;
       this.hoverTile = -1;
-      if (this.place(t, this.strokeCount > 0)) this.strokeCount++;
+      // strokes stay quiet: the tag and hint already explain a refused tile
+      if (this.place(t, true)) this.strokeCount++;
     }
   }
 
@@ -282,7 +357,11 @@ export class PlopTool extends Tool {
     if (!this.stroke) return;
     this.stroke = null;
     this.game.commands.end();
-    if (this.strokeCount > 1 && this.def) this.mgr.setHint(`Built ${this.strokeCount} × ${this.def.name}`);
+    const d = this.def;
+    if (!d) return;
+    if (this.strokeCount > 1) this.mgr.setHint(`Built ${this.strokeCount} × ${d.name}`);
+    else if (this.strokeCount === 1) this.mgr.setHint(`${d.name} built · ${this.mgr.touch ? 'tap' : 'click'} again for another`);
+    else this.game.commands.sfx('error', 0.3, 0.3);
   }
 
   override cancelStroke(): void {

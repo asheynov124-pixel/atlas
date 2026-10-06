@@ -13,12 +13,14 @@ import type { PickResult } from '../world/geo';
 import type { ToolState } from '../ui/store';
 import { ui } from '../ui/store';
 import { getItem } from '../content/catalog';
-import { friendlyReason } from '../game/Commands';
+import { friendlyReason, shortReason } from '../game/Commands';
 import { InstState } from '../render/materials';
 import { buildingMatrix, footprintFacing } from './util';
 import { TOOL_COLORS } from './visuals';
 
 const _m = new Matrix4();
+/** categories PlanetOps never asks for road access */
+const NO_ROAD = new Set(['decor', 'orbital', 'zones', 'roads', 'custom']);
 
 export class MoveTool extends Tool {
   readonly id = 'move';
@@ -28,6 +30,7 @@ export class MoveTool extends Tool {
   private hoverTile = -1;
   private valid = false;
   private reason = '';
+  private short = '';
   /** the finger that lifted the building is still down (long-press shortcut) */
   private holding = false;
   /** return to the hand tool after one move */
@@ -117,20 +120,24 @@ export class MoveTool extends Tool {
     // its own footprint is not "in the way"
     const blocked = c.blocked.filter((t) => p.building[t] !== b.id);
     let ok = c.ok || (c.reason === 'Something is in the way' && blocked.length === 0);
-    let reason = friendlyReason(c.reason);
-    if (ok && !c.ok && c.reason === 'Something is in the way' && def?.placement === 'surface' && def.category !== 'decor') {
-      const roadOk = tiles.some((t) => p.hasRoadAccess(t));
-      if (!roadOk && (def.requires?.road ?? true)) {
+    let raw = c.reason;
+    if (ok && !c.ok && def) {
+      // only its own footprint was "in the way": the road rule still applies (mirrors PlanetOps.checkPlace)
+      const needsRoad = def.requires?.road ?? (def.placement === 'surface' && !NO_ROAD.has(def.category));
+      if (needsRoad && !tiles.some((t) => p.hasRoadAccess(t))) {
         ok = false;
-        reason = friendlyReason('Needs road access');
+        raw = 'Needs road access';
       }
     }
+    // sandbox: anything goes on free ground
+    if (!ok && this.mgr.sandbox && blocked.length === 0 && raw !== 'Tile is locked') ok = true;
     this.valid = ok;
-    this.reason = reason;
+    this.reason = friendlyReason(raw);
+    this.short = shortReason(raw);
     v.ghost.show(b.defId, { variant: b.variant, level: b.level, style: b.style }, buildingMatrix(p, b.defId, tile, this.rot, _m), ok);
     v.highlight('tool', tiles.filter((t) => !blocked.includes(t)), ok ? TOOL_COLORS.ok : TOOL_COLORS.bad, 0.4);
     v.highlight('tool-bad', blocked.length ? blocked : null, TOOL_COLORS.bad, 0.6);
-    this.mgr.showTag(tile, ok ? b.name ?? def?.name ?? 'Building' : reason.replace(/ —.*$/, ''), ok ? 'ok' : 'bad', ok ? 'Set it down here' : '');
+    this.mgr.showTag(tile, ok ? b.name ?? def?.name ?? 'Building' : this.short, ok ? 'ok' : 'bad', ok ? 'Set it down here' : '');
   }
 
   override hover(hit: PickResult | null): void {
