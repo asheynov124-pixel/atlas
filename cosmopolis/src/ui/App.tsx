@@ -1,93 +1,131 @@
 /**
- * OWNER: UI core agent.
- * App — the shell: loading screen, main menu & new-game flow, HUD (top bar, side rails, bottom dock), build sheet
- * with 3D thumbnails, inspector card, tool options bar, toasts, confirm dialog, registered panels & overlays.
- * (Foundation stub: functional but plain.)
+ * OWNER: ui-core.
+ * App — the shell: loading overlay, main menu & new-game flow, in-game HUD (top bar, rails, dock, tool bar,
+ * build sheet with 3D thumbnails, inspector), registered panels & overlays, toasts, confirm dialog, milestone
+ * celebrations, FPS meter and desktop keyboard shortcuts. The component kit lives in ui/core (see its index).
+ *
+ * Test hook: window.__cosmoUI = { openCategory(cat), closeSheet(), showDetail(itemId), celebrate(title?),
+ *   select(sel), more(open), tray(open) } — used by the screenshot scripts.
  */
-import { useState } from 'preact/hooks';
+import { effect } from '@preact/signals';
+import { useEffect } from 'preact/hooks';
+import { getItem } from '../content/catalog';
+import { bus } from '../core/events';
+import { settings } from '../core/settings';
+import type { Category, Selection } from '../core/types';
 import { game } from '../game/instance';
-import { ui, dismissToast } from './store';
-import { panels, overlays } from './registry';
-import { itemsByCategory } from '../content/catalog';
-import type { Category } from '../core/types';
+import { overlays } from './registry';
+import { ui } from './store';
+import { ConfirmHost, ToastStack } from './core';
+import { setSelection } from './core/env';
+import { closeSheet, detailItem, moreOpen, openCategory, trayOpen } from './core/shell/actions';
+import { CelebrationHost, celebrateForTest, installCelebrations } from './core/shell/Celebration';
+import { FpsMeter, Hud } from './core/shell/Hud';
+import { installKeyboard } from './core/shell/keyboard';
+import { LoadingOverlay } from './core/shell/Loading';
+import { MainMenu } from './core/shell/Menu';
+import { PanelHost } from './core/shell/PanelHost';
+import './core/shell/menu.css';
+import './core/shell/hud.css';
 
-const CATS: Category[] = ['roads', 'zones', 'power', 'water', 'services', 'education', 'leisure', 'transit', 'industry', 'landmarks', 'orbital', 'decor', 'custom'];
+declare global {
+  interface Window {
+    __cosmoUI?: {
+      openCategory: (cat: Category) => void;
+      closeSheet: () => void;
+      showDetail: (itemId: string) => void;
+      celebrate: (title?: string) => void;
+      select: (sel: Selection) => void;
+      more: (open: boolean) => void;
+      tray: (open: boolean) => void;
+    };
+  }
+}
+
+/** Root-level attributes: reduce motion, glass quality, UI scale. */
+function useRootAttributes(): void {
+  useEffect(() => {
+    const root = document.documentElement;
+    const apply = () => {
+      const s = settings.value;
+      if (s.reduceMotion) root.setAttribute('data-reduce-motion', '');
+      else root.removeAttribute('data-reduce-motion');
+      let tier = 2;
+      try {
+        tier = game?.engine?.tier ?? 2;
+      } catch {
+        /* default */
+      }
+      if (tier <= 0) root.setAttribute('data-glass', 'solid');
+      else root.removeAttribute('data-glass');
+    };
+    const stop = effect(() => {
+      void settings.value;
+      apply();
+    });
+    const off = bus.on('quality:changed', apply);
+    // the catalog grows while modules register; bump the UI version so menus re-filter
+    const offs = [
+      bus.on('catalog:changed', () => ui.catalogVersion.value++),
+      bus.on('unlock', () => ui.catalogVersion.value++),
+      bus.on('planet:loaded', () => ui.catalogVersion.value++),
+    ];
+    return () => {
+      stop();
+      off();
+      offs.forEach((o) => o());
+    };
+  }, []);
+}
+
+function useTestHooks(): void {
+  useEffect(() => {
+    window.__cosmoUI = {
+      openCategory: (cat) => openCategory(cat),
+      closeSheet,
+      showDetail: (id) => {
+        const d = getItem(id);
+        if (d) detailItem.value = d;
+      },
+      celebrate: (title) => celebrateForTest(title),
+      select: (sel) => setSelection(sel),
+      more: (open) => (moreOpen.value = open),
+      tray: (open) => (trayOpen.value = open),
+    };
+    return () => {
+      delete window.__cosmoUI;
+    };
+  }, []);
+}
 
 export function App() {
+  useRootAttributes();
+  useTestHooks();
+  useEffect(() => {
+    const offKeys = installKeyboard();
+    const offCelebrate = installCelebrations();
+    return () => {
+      offKeys();
+      offCelebrate();
+    };
+  }, []);
   const screen = ui.screen.value;
+  const scale = settings.value.uiScale || 1;
+  const scaled = Math.abs(scale - 1) > 0.01;
+  const style = scaled ? { zoom: String(scale), width: `calc(100vw / ${scale})`, height: `calc(100dvh / ${scale})` } : undefined;
   return (
-    <div class="app">
-      {screen === 'menu' && <Menu />}
+    <div class={'app' + (screen === 'menu' ? ' on-menu' : '') + (scaled ? ' scaled' : '')} style={style}>
+      {screen === 'menu' && <MainMenu />}
       {screen === 'game' && <Hud />}
-      {overlays.map((o) => <o.component key={o.id} />)}
-      {ui.loading.value && <div class="loading">{ui.loading.value}</div>}
-      <Toasts />
-    </div>
-  );
-}
-
-function Menu() {
-  return (
-    <div class="menu">
-      <h1>COSMOPOLIS</h1>
-      <button onClick={() => game.newGame('career')}>Career</button>
-      <button onClick={() => game.newGame('sandbox')}>Sandbox</button>
-      <button onClick={() => void game.load('auto')}>Continue</button>
-    </div>
-  );
-}
-
-function Hud() {
-  const [cat, setCat] = useState<Category | null>(null);
-  const panelId = ui.panel.value;
-  const P = panelId ? panels.get(panelId) : undefined;
-  return (
-    <>
-      <div class="topbar">
-        <span>{ui.cityName.value}</span>
-        <span>👥 {ui.population.value.toLocaleString()}</span>
-        <span>₡ {ui.money.value.toLocaleString()}</span>
-        <span>{ui.dateLabel.value}</span>
-        {[0, 1, 2, 3].map((s) => (
-          <button key={s} class={ui.speed.value === s ? 'on' : ''} onClick={() => game.clock.setSpeed(s)}>
-            {s === 0 ? '⏸' : '▶'.repeat(s)}
-          </button>
-        ))}
-      </div>
-      {cat && (
-        <div class="sheet">
-          {itemsByCategory(cat).map((d) => (
-            <button key={d.id} onClick={() => game.tools.select({ id: d.zone !== undefined ? 'zone' : d.road ? 'road' : 'plop', itemId: d.id, label: d.name })}>
-              {d.icon ?? '▫️'} {d.name}
-            </button>
-          ))}
-        </div>
-      )}
-      <div class="dock">
-        {CATS.map((c) => (
-          <button key={c} class={cat === c ? 'on' : ''} onClick={() => setCat(cat === c ? null : c)}>
-            {c}
-          </button>
-        ))}
-        <button onClick={() => game.tools.select(null)}>✕</button>
-      </div>
-      {P && (
-        <div class="panel">
-          <P.component onClose={() => (ui.panel.value = null)} />
-        </div>
-      )}
-    </>
-  );
-}
-
-function Toasts() {
-  return (
-    <div class="toasts">
-      {ui.toasts.value.map((t) => (
-        <div key={t.id} class="toast" onClick={() => dismissToast(t.id)}>
-          {t.icon} <b>{t.title}</b> {t.body}
-        </div>
+      {overlays.map((o) => (
+        <o.component key={o.id} />
       ))}
+      <PanelHost />
+      <CelebrationHost />
+      <ToastStack />
+      <ConfirmHost />
+      <FpsMeter />
+      <LoadingOverlay />
     </div>
   );
 }
