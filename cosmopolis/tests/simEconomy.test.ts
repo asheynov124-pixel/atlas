@@ -116,3 +116,33 @@ describe('sim economy', () => {
     expect(h.sim.loans.some((l) => /bailout/i.test(l.lender))).toBe(true);
   });
 });
+
+describe('sim districts', () => {
+  it('district policies apply only inside the district and report district stats', () => {
+    const h = makeHarness({ frequency: 20 });
+    layoutTown(h, 0);
+    plop(h, 't_power', 0, 9);
+    plop(h, 't_water', 0, 9);
+    const d = h.ops.createDistrict('Old Town', 0xffaa00);
+    const tiles = h.planet.grid.disk(0, 4);
+    h.ops.setDistrict(tiles, d.id);
+    expect(h.sim.setPolicy('heritage', true, d.id)).toBe(true);
+    expect(h.sim.isPolicyOn('heritage', d.id)).toBe(true);
+    expect(h.sim.isPolicyOn('heritage', 0)).toBe(false);
+    expect(h.sim.modsAt(d.id).levelLock).toBe(true);
+    expect(h.sim.modsAt(0).levelLock).toBe(false);
+    h.days(200);
+    let inside = 0, insideAbove1 = 0;
+    for (const r of h.sim.recMap.values()) {
+      if (!r.info.growable || h.planet.district[r.b.tile] !== d.id) continue;
+      inside++;
+      if (r.b.level > 1) insideAbove1++;
+    }
+    expect(inside).toBeGreaterThan(0);
+    expect(insideAbove1).toBe(0);
+    const st = h.sim.districtStats(d.id);
+    expect(st.population).toBeGreaterThan(0);
+    expect(st.buildings).toBe(inside);
+    expect(h.sim.areaName(tiles[0])).toBe('Old Town');
+  });
+});

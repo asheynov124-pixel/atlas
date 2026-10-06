@@ -215,6 +215,7 @@ export class Simulation implements System {
   private fieldsRestored = false;
   private lastPausedRefresh = 0;
   private policySig = '';
+  private projectedAt = -1e9;
   /** buildings changed since the last utilities resolve */
   private utilDirty = false;
   private realNotes = new Map<string, number>();
@@ -972,8 +973,14 @@ export class Simulation implements System {
 
   /** Live projection of this month's budget (for the budget panel). */
   projectedMonth(): MonthReport {
-    if (!this.projected) this.projected = this.report(false);
-    return this.projected;
+    // UI sliders may write taxes / budget directly: refresh the projection at most 4× a second
+    const now = performance.now();
+    if ((!this.projected || now - this.projectedAt > 250) && this.planet) {
+      this.projected = this.report(false);
+      this.projectedAt = now;
+      this.stats.monthlyIncome = this.projected.net;
+    }
+    return this.projected ?? this.report(false);
   }
 
   departmentUpkeep(): Record<DeptId, number> {
