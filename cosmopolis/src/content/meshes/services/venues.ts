@@ -420,7 +420,7 @@ export function amusementPark(ctx: MeshContext): void {
     b.box(0.07, 1.6, 0.07, { color: 0xf4f4f6, x: fx + 0.45, y: G, z: fz + s * 0.12, rz: 0.3 });
   }
   b.group({ x: fx, y: fy, z: fz }, () => {
-    b.torus(R, 0.035, { color: 0xf4f4f6, seg: 24, tube: 3, rx: Math.PI / 2 });
+    b.torus(R, 0.035, { color: 0xfff0d8, mat: Mat.Light, seg: 24, tube: 3, rx: Math.PI / 2 });
     b.cyl(0.08, 0.08, 0.3, { color: 0xe0453a, seg: 8, rx: Math.PI / 2, z: -0.15 });
     const n = 10;
     for (let i = 0; i < n; i++) {
@@ -462,7 +462,7 @@ export function amusementPark(ctx: MeshContext): void {
       b.box(0.04, 0.06, 0.12, { color: i % 2 ? 0xffffff : 0xffb8d8, x: Math.sin(a) * 0.38, y: 0.18 + (i % 2) * 0.05, z: Math.cos(a) * 0.38, ry: a + Math.PI / 2, detail: true });
     }
     b.cone(0.58, 0.3, { color: 0xe0453a, seg: 8, flat: true, y: 0.44 });
-    b.cyl(0.58, 0.58, 0.04, { color: 0xffffff, seg: 8, y: 0.42, capTop: false });
+    b.cyl(0.58, 0.58, 0.04, { color: 0xffe8b0, mat: Mat.Light, seg: 8, y: 0.42, capTop: false });
     b.sphere(0.05, { color: 0xffd04a, mat: Mat.Glow, y: 0.78, wSeg: 6, hSeg: 4 });
   });
   // drop tower (front-right)
