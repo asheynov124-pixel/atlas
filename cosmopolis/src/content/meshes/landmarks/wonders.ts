@@ -137,7 +137,7 @@ export function galacticSenate({ b, rng }: Ctx): void {
   ringOf(6, 2.9, (x, z, a) => b.box(0.12, 0.012, 1.7, { color: 0x9fe8ff, mat: Mat.Glow, x, z, y, ry: a, paint: false }), Math.PI / 6);
   // stem
   b.cyl(0.9, 1.25, 2.3, { color: 0x9fd0f0, mat: Mat.Glass, seg: 16, y, paint: false });
-  ringOf(8, 1.15, (x, z) => b.cyl(0.06, 0.06, 2.3, { color: P.gold, mat: Mat.Metal, seg: 4, x, z, y, paint: false }));
+  ringOf(8, 1.15, (x, z) => b.cyl(0.06, 0.06, 2.3, { color: P.gold, seg: 4, x, z, y, paint: false }));
   y += 2.3;
   // the saucer chamber
   const seg = b.lod ? 16 : 32;
@@ -175,7 +175,7 @@ export function stellarForge({ b, rng }: Ctx): void {
   plaza(b, 19, 0x3a3e48, { field: 0x4a4f5e, fieldR: 0.92, round: true, kerb: 0xff8a2a });
   // heat-sink fins radiating out
   ringOf(12, 3.3, (x, z, a) => {
-    b.box(0.12, 0.9, 1.4, { color: 0x6a707e, mat: Mat.Metal, x, z, y: G, ry: a, paint: false });
+    b.box(0.12, 0.9, 1.4, { color: 0x6a707e, x, z, y: G, ry: a, paint: false });
     b.box(0.13, 0.05, 1.2, { color: 0xff7a2a, mat: Mat.Glow, x, z, y: G + 0.9, ry: a, paint: false, detail: true });
   }, Math.PI / 12);
   // base reactor drum
@@ -214,7 +214,7 @@ export function warpGate({ b, rng }: Ctx): void {
   b.box(5.2, 0.35, 1.8, { color: 0x4a4f5e, y: G, top: 0x5a6070, paint: false });
   const R = 3.45, cy = 4.3, seg = b.lod ? 32 : 56;
   // the ring itself: armoured torus + glowing inner rim + chevrons
-  vring(b, R, 0.42, { color: 0x6a707e, mat: Mat.Metal, y: cy, seg, tube: 8, paint: false });
+  vring(b, R, 0.42, { color: 0x6a707e, y: cy, seg, tube: 8, paint: false });
   vring(b, R - 0.45, 0.09, { color: P.cyan, mat: Mat.Glow, y: cy, seg, tube: 4, paint: false });
   vring(b, R + 0.44, 0.05, { color: 0x9a7aff, mat: Mat.Glow, y: cy, seg, tube: 3, paint: false, detail: true });
   ringOf(12, R, (x, yy, a) => {
@@ -264,7 +264,7 @@ export function shieldGenerator({ b, rng }: Ctx): void {
   ringOf(6, 2.6, (x, z) => {
     b.cyl(0.42, 0.48, 1.1, { color: 0x5a606e, seg: 10, x, z, y: G, paint: false });
     for (let j = 0; j < 3; j++) b.cyl(0.44, 0.44, 0.06, { color: P.cyan, mat: Mat.Glow, seg: 10, x, z, y: G + 0.25 + j * 0.3, capTop: false, paint: false });
-    b.dome(0.4, { color: 0x8a90a0, mat: Mat.Metal, x, z, y: G + 1.1, h: 0.25, wSeg: 10, hSeg: 3, paint: false });
+    b.dome(0.4, { color: 0x8a90a0, x, z, y: G + 1.1, h: 0.25, wSeg: 10, hSeg: 3, paint: false });
     strut(b, [x * 0.85, G + 1.2, z * 0.85], [x * 0.2, 3.0, z * 0.2], 0.03, 0.03, { color: 0x9fe8ff, mat: Mat.Glow, seg: 4, paint: false, detail: true });
   });
   // the emitter tower
@@ -273,7 +273,7 @@ export function shieldGenerator({ b, rng }: Ctx): void {
   for (let j = 0; j < 5; j++) b.torus(0.7 - j * 0.06, 0.07, { color: j % 2 ? 0x9fe8ff : P.cyan, mat: Mat.Glow, y: G + 1.4 + j * 1.1, seg: 18, tube: 4, paint: false });
   const ty = G + 7.0;
   // three prongs cradling the crystal
-  ringOf(3, 0.4, (x, z) => taper(b, [[x, ty - 0.1, z], [x * 2.6, ty + 0.9, z * 2.6], [x * 1.6, ty + 2.1, z * 1.6]], 0.12, 0.05, { color: 0xd8dee8, mat: Mat.Metal, seg: 5, paint: false }));
+  ringOf(3, 0.4, (x, z) => taper(b, [[x, ty - 0.1, z], [x * 2.6, ty + 0.9, z * 2.6], [x * 1.6, ty + 2.1, z * 1.6]], 0.12, 0.05, { color: 0xd8dee8, seg: 5, paint: false }));
   shard(b, 0.42, 1.0, 0x9fefff, { y: ty + 0.6, tip: 0.9, mat: Mat.Glow });
   b.cone(0.42, 0.6, { color: 0x9fefff, mat: Mat.Glow, rx: Math.PI, y: ty + 0.6, seg: 6, flat: true, paint: false });
   beam(b, 4.0, 0.14, 0xbff4ff, { y: ty + 2.4 });
@@ -294,12 +294,12 @@ export function weatherDominion({ b, rng }: Ctx): void {
   for (const [y, n, r] of [[9.0, 3, 2.3], [12.0, 3, 1.7]] as [number, number, number][]) {
     ringOf(n, r, (x, z) => {
       strut(b, [0, y, 0], [x, y + 0.6, z], 0.12, 0.06, { color: 0xc8d0dc, seg: 5, paint: false });
-      b.sphere(0.28, { color: 0xd8dee8, mat: Mat.Metal, x, y: y + 0.6, z, wSeg: 10, hSeg: 6, paint: false });
+      b.sphere(0.28, { color: 0xd8dee8, x, y: y + 0.6, z, wSeg: 10, hSeg: 6, paint: false });
       b.cone(0.18, 0.45, { color: 0x9fe8ff, mat: Mat.Holo, x, y: y + 0.3, z, rx: Math.PI, seg: 6, paint: false, detail: true });
     }, y > 10 ? Math.PI / 3 : 0);
   }
-  b.torus(1.5, 0.08, { color: 0x8a90a0, mat: Mat.Metal, y: 10.6, rx: 0.12, seg: 28, tube: 5, paint: false });
-  b.torus(1.2, 0.06, { color: 0x8a90a0, mat: Mat.Metal, y: 13.6, rz: 0.15, seg: 24, tube: 4, paint: false });
+  b.torus(1.5, 0.08, { color: 0x8a90a0, y: 10.6, rx: 0.12, seg: 28, tube: 5, paint: false });
+  b.torus(1.2, 0.06, { color: 0x8a90a0, y: 13.6, rz: 0.15, seg: 24, tube: 4, paint: false });
   // the captive storm
   const sy = 17.0;
   b.sphere(1.5, { color: 0x6a7aa0, mat: Mat.Holo, y: sy, wSeg: b.lod ? 12 : 18, hSeg: b.lod ? 8 : 12, paint: false });
@@ -347,7 +347,7 @@ export function gravityDefier({ b, rng }: Ctx): void {
   const [tx, ty, tz] = tops[0];
   b.cyl(0.55, 0.6, 0.1, { color: P.marble, seg: 10, x: tx, z: tz, y: ty, paint: false });
   ringOf(6, 0.45, (x, z) => b.cyl(0.05, 0.05, 0.6, { color: P.marble, seg: 6, x: tx + x, z: tz + z, y: ty + 0.1, paint: false }));
-  b.dome(0.55, { color: P.gold, mat: Mat.Metal, x: tx, z: tz, y: ty + 0.7, h: 0.4, wSeg: 10, hSeg: 4, paint: false });
+  b.dome(0.55, { color: P.gold, x: tx, z: tz, y: ty + 0.7, h: 0.4, wSeg: 10, hSeg: 4, paint: false });
   // glowing chains between islands and down to the pylons
   for (let i = 0; i < tops.length - 1; i++) strut(b, [tops[i][0], tops[i][1] - 0.3, tops[i][2]], [tops[i + 1][0], tops[i + 1][1] - 0.6, tops[i + 1][2]], 0.03, 0.03, { color: 0x9fe8ff, mat: Mat.Glow, seg: 4, paint: false });
   ringOf(3, 3.3, (x, z, _a, i) => strut(b, [x * 0.92, 2.1, z * 0.92], [tops[i + 1][0], tops[i + 1][1] - 0.9, tops[i + 1][2]], 0.025, 0.025, { color: 0x9fe8ff, mat: Mat.Glow, seg: 4, paint: false, detail: true }), Math.PI / 3);
@@ -377,8 +377,8 @@ export function timeSpire({ b, rng }: Ctx): void {
   b.cone(0.8, 1.2, { color: 0xbfe6ff, mat: Mat.Glass, seg: 10, y: y + 1.2, paint: false });
   b.cone(0.5, 0.65, { color: 0xffc040, mat: Mat.Lava, seg: 8, y, paint: false });
   b.cyl(0.03, 0.03, 1.2, { color: 0xffe080, mat: Mat.Glow, seg: 4, y: y + 0.6, paint: false });
-  b.cyl(0.85, 0.85, 0.12, { color: P.gold, mat: Mat.Metal, seg: 12, y: y + 2.4, paint: false });
-  b.cyl(0.85, 0.85, 0.12, { color: P.gold, mat: Mat.Metal, seg: 12, y: y - 0.12, paint: false });
+  b.cyl(0.85, 0.85, 0.12, { color: P.gold, seg: 12, y: y + 2.4, paint: false });
+  b.cyl(0.85, 0.85, 0.12, { color: P.gold, seg: 12, y: y - 0.12, paint: false });
   y += 2.52;
   // upper needle
   for (let i = 0; i < 8; i++) {
@@ -391,7 +391,7 @@ export function timeSpire({ b, rng }: Ctx): void {
   // floating rings at different tilts
   const rings: [number, number, number, number][] = [[2.2, 4.3, 0.25, 0], [1.8, 8.0, -0.3, 0.2], [2.6, 10.2, 0.15, -0.35], [1.4, 13.5, 0.4, 0.1], [1.0, 16.2, -0.2, -0.3]];
   for (const [R, ry, rx, rz] of rings) {
-    b.torus(R, 0.07, { color: P.gold, mat: Mat.Metal, y: ry, rx, rz, seg: 32, tube: 4, paint: false });
+    b.torus(R, 0.07, { color: P.gold, y: ry, rx, rz, seg: 32, tube: 4, paint: false });
     b.torus(R - 0.12, 0.025, { color: 0xffe8a0, mat: Mat.Glow, y: ry, rx, rz, seg: 32, tube: 3, paint: false, detail: true });
   }
   // holographic clock faces
@@ -420,12 +420,12 @@ export function matrioshkaNode({ b, rng }: Ctx): void {
     b.box(0.14, 0.03, 0.14, { color: 0xffffff, mat: Mat.Glow, x: Math.sin(a) * r1, z: Math.cos(a) * r1, y: G, paint: false, detail: true });
   }
   // radiator fins and pedestal
-  ringOf(8, 2.6, (x, z, a) => b.box(0.08, 1.4, 1.0, { color: 0x4a4f5e, mat: Mat.Metal, x, z, y: G, ry: a, paint: false }), Math.PI / 8);
+  ringOf(8, 2.6, (x, z, a) => b.box(0.08, 1.4, 1.0, { color: 0x4a4f5e, x, z, y: G, ry: a, paint: false }), Math.PI / 8);
   b.cyl(1.2, 1.6, 1.0, { color: 0x3a3f4e, seg: 12, y: G, paint: false });
   const cy = 5.2, seg = b.lod ? 28 : 44;
   // outer shell: metal meridians + equator, studded nodes
-  for (let k = 0; k < 3; k++) vring(b, 3.4, 0.11, { color: 0x6a707e, mat: Mat.Metal, y: cy, ry: (k / 3) * Math.PI, seg, tube: 5, paint: false });
-  b.torus(3.4, 0.13, { color: 0x6a707e, mat: Mat.Metal, y: cy, seg, tube: 5, paint: false });
+  for (let k = 0; k < 3; k++) vring(b, 3.4, 0.11, { color: 0x6a707e, y: cy, ry: (k / 3) * Math.PI, seg, tube: 5, paint: false });
+  b.torus(3.4, 0.13, { color: 0x6a707e, y: cy, seg, tube: 5, paint: false });
   ringOf(8, 3.4, (x, z) => b.box(0.3, 0.3, 0.3, { color: 0x9a7aff, mat: Mat.Glow, x, z, y: cy - 0.15, paint: false }));
   // middle shell: holographic computronium lattice
   for (let k = 0; k < 4; k++) vring(b, 2.3, 0.04, { color: 0x7ae8ff, mat: Mat.Holo, y: cy, ry: (k / 4) * Math.PI + 0.4, seg: 36, tube: 3, paint: false });
@@ -523,7 +523,7 @@ export function cosmicCathedral({ b, rng }: Ctx): void {
     b.gable(1.3, 0.9, 2.6, { color: roof, z: 2.1, y: G + 2.0, ry: Math.PI / 2, paint: false });
     // end facade: rose window + portal + twin pinnacles
     vdisc(b, 0.38, 0.05, { color: 0x6a4aff, mat: Mat.Screen, z: 3.42, y: G + 1.45, seg: 14, paint: false });
-    b.torus(0.4, 0.04, { color: P.gold, mat: Mat.Metal, rx: Math.PI / 2, z: 3.45, y: G + 1.45, seg: 14, tube: 3, paint: false, detail: true });
+    b.torus(0.4, 0.04, { color: P.gold, rx: Math.PI / 2, z: 3.45, y: G + 1.45, seg: 14, tube: 3, paint: false, detail: true });
     b.box(0.4, 0.75, 0.04, { color: 0xffd890, mat: Mat.Light, z: 3.42, y: G, paint: false });
     for (const s of [-1, 1]) {
       b.box(0.22, 2.4, 0.22, { color: stone, x: s * 0.7, z: 3.35, y: G, paint: false });
@@ -557,11 +557,11 @@ export function intergalacticGate({ b, rng }: Ctx): void {
   b.torus(2.0, 0.05, { color: 0xb07aff, mat: Mat.Glow, y: G + 0.25, seg: 28, tube: 3, paint: false });
   const cy = 5.6, seg = b.lod ? 32 : 56;
   // gyroscope rings
-  vring(b, 4.0, 0.34, { color: 0x4a4658, mat: Mat.Metal, y: cy, seg, tube: 7, paint: false });
+  vring(b, 4.0, 0.34, { color: 0x4a4658, y: cy, seg, tube: 7, paint: false });
   vring(b, 4.0, 0.06, { color: 0xffd890, mat: Mat.Glow, y: cy, z: 0.34, seg, tube: 3, paint: false, detail: true });
   b.push({ y: cy });
-  b.torus(3.35, 0.26, { color: P.gold, mat: Mat.Metal, rx: Math.PI / 2, ry: 1.05, rz: 0.35, seg, tube: 6, paint: false });
-  b.torus(2.7, 0.2, { color: 0x8a7aa8, mat: Mat.Metal, rx: 0.5, rz: -0.4, seg, tube: 5, paint: false });
+  b.torus(3.35, 0.26, { color: P.gold, rx: Math.PI / 2, ry: 1.05, rz: 0.35, seg, tube: 6, paint: false });
+  b.torus(2.7, 0.2, { color: 0x8a7aa8, rx: 0.5, rz: -0.4, seg, tube: 5, paint: false });
   b.torus(2.72, 0.05, { color: 0xb07aff, mat: Mat.Glow, rx: 0.5, rz: -0.4, seg, tube: 3, paint: false });
   b.pop();
   // captive galaxy vortex

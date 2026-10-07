@@ -438,7 +438,7 @@ export function truss(b: MeshBuilder, w: number, y0: number, y1: number, color: 
   const x = o.x ?? 0, z = o.z ?? 0, r = o.r ?? 0.02;
   const hw = w / 2;
   const corners: V2[] = [[-hw, -hw], [hw, -hw], [hw, hw], [-hw, hw]];
-  for (const [cx, cz] of corners) b.cyl(r, r, y1 - y0, { color, seg: 4, x: x + cx, z: z + cz, y: y0, paint: false, mat: Mat.Metal });
+  for (const [cx, cz] of corners) b.cyl(r, r, y1 - y0, { color, seg: 4, x: x + cx, z: z + cz, y: y0, paint: false });
   const bays = o.bays ?? Math.max(1, Math.round((y1 - y0) / (w * 1.2)));
   if (o.detail && b.lod === 1) return;
   for (let i = 0; i < bays; i++) {
@@ -446,7 +446,7 @@ export function truss(b: MeshBuilder, w: number, y0: number, y1: number, color: 
     for (let k = 0; k < 4; k++) {
       const [ax, az] = corners[k], [bx, bz] = corners[(k + 1) % 4];
       const up = (i + k) % 2 === 0;
-      b.tube([[x + ax, up ? ya : yb, z + az], [x + bx, up ? yb : ya, z + bz]], r * 0.7, { color, seg: 3, mat: Mat.Metal, paint: false, detail: true });
+      b.tube([[x + ax, up ? ya : yb, z + az], [x + bx, up ? yb : ya, z + bz]], r * 0.7, { color, seg: 3, paint: false, detail: true });
     }
   }
 }

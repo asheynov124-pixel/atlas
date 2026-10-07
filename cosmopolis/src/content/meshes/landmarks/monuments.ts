@@ -36,7 +36,7 @@ export function landerMemorial({ b, rng }: Ctx): void {
   // antenna mast + dish
   b.cyl(0.02, 0.025, 0.55, { color: P.steel, seg: 4, y: y0 + 1.45, x: 0.12, paint: false });
   beacon(b, 0.12, y0 + 2.02, 0, 0.04, P.red, Mat.Glow);
-  b.dome(0.16, { color: P.chrome, mat: Mat.Metal, x: -0.35, y: y0 + 1.05, z: -0.3, rx: -0.6, h: 0.06, wSeg: 8, hSeg: 2, paint: false, detail: true });
+  b.dome(0.16, { color: P.chrome, x: -0.35, y: y0 + 1.05, z: -0.3, rx: -0.6, h: 0.06, wSeg: 8, hSeg: 2, paint: false, detail: true });
   // RCS pods with glowing tips
   ringOf(4, 0.8, (x, z, a) => {
     b.box(0.14, 0.2, 0.14, { color: P.hullDark, x, z, y: y0 + 0.66, ry: a, paint: false });
@@ -50,12 +50,10 @@ export function landerMemorial({ b, rng }: Ctx): void {
     strut(b, [x * 0.5, y0, z * 0.5], [x * 1.1, G + 0.3, z * 1.1], 0.03, 0.03, { color: P.hullDark, seg: 4, paint: false, detail: true });
     b.cyl(0.14, 0.17, 0.05, { color: P.hullDark, seg: 8, x: foot[0], z: foot[2], y: G, paint: false });
   }, Math.PI / 4);
-  // boarding ramp down to the plaza (front, +Z)
-  b.push({ z: 0.75, y: G });
-  b.quad([-0.24, y0 - 0.02, 0], [0.24, y0 - 0.02, 0], [0.24, 0.0, 0.95], [-0.24, 0.0, 0.95], { color: P.steel }, 0x8a909a, Mat.Metal);
-  b.quad([0.24, y0 - 0.02, 0], [-0.24, y0 - 0.02, 0], [-0.24, 0.0, 0.95], [0.24, 0.0, 0.95], { color: P.steel }, 0x5a606a, Mat.Plain);
-  b.pop();
-  b.box(0.4, 0.42, 0.04, { color: 0xffe6a8, mat: Mat.Light, z: 0.79, y: y0 + 0.02, paint: false });
+  // boarding ramp down to the plaza (front, +Z) and the lit hatch
+  b.wedge(0.3, y0 - G - 0.02, 0.85, { color: 0xb8bec8, z: 0.74 + 0.42, y: G, paint: false });
+  b.box(0.36, 0.44, 0.06, { color: P.hullDark, z: 0.76, y: y0 - 0.02, paint: false });
+  b.box(0.26, 0.34, 0.03, { color: 0xffe6a8, mat: Mat.Light, z: 0.8, y: y0 + 0.02, paint: false });
   // memorial plaques + flags + lamps + a wreath of trees
   ringOf(3, 1.85, (x, z, a) => {
     b.box(0.42, 0.16, 0.1, { color: P.granite, x, z, y: G, ry: a, paint: false });
@@ -72,12 +70,12 @@ export function foundersMonument({ b, rng }: Ctx): void {
   plaza(b, 1, P.marbleWarm, { field: P.paving, fieldR: 0.84 });
   let y = steps(b, 0.86, 3, 0.04, 0.08, P.stone);
   b.cyl(0.11, 0.15, 1.5, { color: P.marble, seg: 4, ry: Math.PI / 4, flat: true, y, paint: false });
-  b.cyl(0, 0.11, 0.16, { color: P.gold, seg: 4, ry: Math.PI / 4, flat: true, y: y + 1.5, mat: Mat.Metal, paint: false });
+  b.cyl(0, 0.11, 0.16, { color: P.gold, seg: 4, ry: Math.PI / 4, flat: true, y: y + 1.5, paint: false });
   beacon(b, 0, y + 1.68, 0, 0.03, P.amber, Mat.Glow);
   // gilded band + inscription glow
-  b.cyl(0.145, 0.145, 0.04, { color: P.gold, seg: 4, ry: Math.PI / 4, flat: true, y: y + 0.18, mat: Mat.Metal, paint: false });
+  b.cyl(0.145, 0.145, 0.04, { color: P.gold, seg: 4, ry: Math.PI / 4, flat: true, y: y + 0.18, paint: false });
   y = G + 0.08;
-  ringOf(3, 0.32, (x, z, a) => figure(b, { x, z, y, h: 0.24, ry: a, color: P.bronze, mat: Mat.Metal, kind: 'plain', right: [0.18, 0.62, 0.12], detail: true }), Math.PI / 3);
+  ringOf(3, 0.32, (x, z, a) => figure(b, { x, z, y, h: 0.24, ry: a, color: P.bronze, kind: 'plain', right: [0.18, 0.62, 0.12], detail: true }), Math.PI / 3);
   ringOf(4, 0.62, (x, z) => lamp(b, x, z, 0.18, P.lamp), Math.PI / 4);
   ringOf(4, 0.66, (x, z) => tree(b, x, z, 0.75, 'blossom', rng, G, true));
 }
@@ -98,7 +96,7 @@ export function clockTower({ b }: Ctx): void {
     const sx = Math.sin(a), sz = Math.cos(a);
     b.push({ x: sx * 0.305, z: sz * 0.305, y: cy + 0.28, ry: a });
     vdisc(b, 0.2, 0.03, { color: 0xfff2d0, mat: Mat.Light, seg: 16, paint: false });
-    b.torus(0.205, 0.018, { color: P.gold, mat: Mat.Metal, rx: Math.PI / 2, seg: 16, tube: 4, z: 0.02, paint: false, detail: true });
+    b.torus(0.205, 0.018, { color: P.gold, rx: Math.PI / 2, seg: 16, tube: 4, z: 0.02, paint: false, detail: true });
     b.box(0.018, 0.14, 0.01, { color: P.dark, y: -0.01, z: 0.022, rz: 0.5, paint: false });
     b.box(0.018, 0.1, 0.01, { color: P.dark, y: -0.01, z: 0.024, rz: -1.9, paint: false });
     b.pop();
@@ -106,7 +104,7 @@ export function clockTower({ b }: Ctx): void {
   // belfry: four corner columns, bell, roof
   const by = cy + 0.62;
   ringOf(4, 0.3, (x, z) => b.box(0.07, 0.4, 0.07, { color: stone, x, z, y: by, paint: false }), Math.PI / 4);
-  b.cone(0.13, 0.2, { color: P.gold, mat: Mat.Metal, seg: 10, y: by + 0.12, paint: false });
+  b.cone(0.13, 0.2, { color: P.gold, seg: 10, y: by + 0.12, paint: false });
   b.sphere(0.04, { color: P.amber, mat: Mat.Light, y: by + 0.12, wSeg: 6, hSeg: 3, paint: false });
   b.box(0.58, 0.05, 0.58, { color: trim, y: by + 0.4, paint: false });
   b.cyl(0, 0.42, 0.95, { color: P.copper, seg: 4, ry: Math.PI / 4, flat: true, y: by + 0.45, paint: false });
@@ -159,7 +157,7 @@ export function pioneerStatue({ b, rng }: Ctx): void {
   b.cyl(0.24, 0.26, 0.28, { color: P.stone, seg: 8, y, flat: true, paint: false });
   b.box(0.2, 0.06, 0.012, { color: P.gold, mat: Mat.Glow, y: y + 0.12, z: 0.24, paint: false, detail: true });
   const fy = y + 0.28;
-  const hands = figure(b, { y: fy, h: 0.95, color: 0xe6ebf2, mat: Mat.Metal, kind: 'suit', visor: P.amber, right: [0.22, 1.02, 0.06], left: [-0.18, 0.5, 0.12] });
+  const hands = figure(b, { y: fy, h: 0.95, color: 0xe6ebf2, kind: 'suit', visor: P.amber, right: [0.22, 1.02, 0.06], left: [-0.18, 0.5, 0.12] });
   // flag pole held in the left hand, planted beside the boot
   const px = hands.left[0] * 0.95, pz = hands.left[2] * 0.95;
   b.cyl(0.01, 0.012, 1.22, { color: P.chrome, seg: 4, x: px, z: pz, y: fy, paint: false });
@@ -190,7 +188,7 @@ export function grandArch({ b, rng }: Ctx): void {
   // legs taper from thick feet to a slender crown
   for (let i = 0; i < n; i++) {
     const tA = Math.abs(-1 + (2 * i) / n), tB = Math.abs(-1 + (2 * (i + 1)) / n);
-    strut(b, pts[i], pts[i + 1], 0.12 + 0.2 * tA, 0.12 + 0.2 * tB, { color: 0xd7dee8, mat: Mat.Metal, seg: 3, flat: true, paint: false, caps: false });
+    strut(b, pts[i], pts[i + 1], 0.12 + 0.2 * tA, 0.12 + 0.2 * tB, { color: 0xe4eaf2, seg: 3, flat: true, paint: false, caps: false });
     strut(b, [pts[i][0] * 0.93, pts[i][1] - 0.06 - 0.12 * tA, 0.0], [pts[i + 1][0] * 0.93, pts[i + 1][1] - 0.06 - 0.12 * tB, 0], 0.03, 0.03, { color: P.cyan, mat: Mat.Glow, seg: 4, paint: false });
   }
   ringOf(2, 2.05, (x, z) => b.box(0.7, 0.08, 0.7, { color: P.granite, x, z, y: G, paint: false }), Math.PI / 2);
@@ -232,7 +230,7 @@ export function rocketGarden({ b, rng }: Ctx): void {
   const rocket = (x: number, z: number, h: number, r: number, body: number, band: number, boosters: number) => {
     b.cyl(r * 1.4, r * 1.6, 0.08, { color: P.granite, seg: 8, x, z, y: G, paint: false });
     const y0 = G + 0.08 + r * 0.6;
-    b.cyl(r * 0.55, r * 0.8, r * 0.6, { color: P.hullDark, seg: 8, x, z, y: G + 0.08, mat: Mat.Metal, paint: false });
+    b.cyl(r * 0.55, r * 0.8, r * 0.6, { color: P.hullDark, mat: Mat.Metal, seg: 8, x, z, y: G + 0.08, paint: false });
     b.cyl(r, r, h * 0.72, { color: body, seg: 10, x, z, y: y0, paint: false });
     b.cyl(r * 1.01, r * 1.01, h * 0.06, { color: band, seg: 10, x, z, y: y0 + h * 0.22, paint: false });
     b.cyl(r * 1.01, r * 1.01, h * 0.04, { color: band, seg: 10, x, z, y: y0 + h * 0.55, paint: false, detail: true });
@@ -276,14 +274,14 @@ export function ascensionColumn({ b, rng }: Ctx): void {
   b.box(0.3, 0.05, 0.012, { color: P.gold, mat: Mat.Glow, y: y + 0.14, z: 0.18, paint: false, detail: true });
   y += 0.3;
   b.cyl(0.1, 0.12, 2.3, { color: P.marble, seg: 10, y, paint: false });
-  b.tube(helix(0.115, y + 0.05, y + 2.25, 3.5, b.lod ? 12 : 28), 0.018, { color: P.gold, mat: Mat.Metal, seg: 4, paint: false, detail: true });
+  b.tube(helix(0.115, y + 0.05, y + 2.25, 3.5, b.lod ? 12 : 28), 0.018, { color: P.gold, seg: 4, paint: false, detail: true });
   y += 2.3;
   b.box(0.28, 0.08, 0.28, { color: P.marble, y, paint: false });
   b.torus(0.2, 0.02, { color: 0xfff0c0, mat: Mat.Glow, y: y + 0.42, seg: 16, tube: 4, paint: false });
   y += 0.08;
-  figure(b, { y, h: 0.5, color: P.gold, mat: Mat.Metal, kind: 'robe', right: [0.12, 1.1, 0.06], left: [-0.26, 0.62, 0.1] });
+  figure(b, { y, h: 0.5, color: P.gold, kind: 'robe', right: [0.12, 1.1, 0.06], left: [-0.26, 0.62, 0.1] });
   // wings
-  for (const s of [-1, 1]) b.box(0.03, 0.34, 0.12, { color: P.gold, mat: Mat.Metal, x: s * 0.12, y: y + 0.3, z: -0.08, rz: s * -0.55, ry: s * 0.4, paint: false });
+  for (const s of [-1, 1]) b.box(0.03, 0.34, 0.12, { color: P.gold, x: s * 0.12, y: y + 0.3, z: -0.08, rz: s * -0.55, ry: s * 0.4, paint: false });
   ringOf(4, 0.62, (x, z) => lamp(b, x, z, 0.18), Math.PI / 4);
   ringOf(2, 0.66, (x, z) => tree(b, x, z, 0.75, 'round', rng, G, true), Math.PI / 2);
 }
@@ -346,8 +344,8 @@ export function neonPagoda({ b, rng }: Ctx): void {
     y += 0.2;
   }
   // sorin finial
-  b.cyl(0.03, 0.04, 1.1, { color: P.gold, mat: Mat.Metal, seg: 6, y, paint: false });
-  for (let k = 0; k < 5; k++) b.torus(0.09 - k * 0.01, 0.015, { color: P.gold, mat: Mat.Metal, y: y + 0.25 + k * 0.13, seg: 10, tube: 3, paint: false, detail: true });
+  b.cyl(0.03, 0.04, 1.1, { color: P.gold, seg: 6, y, paint: false });
+  for (let k = 0; k < 5; k++) b.torus(0.09 - k * 0.01, 0.015, { color: P.gold, y: y + 0.25 + k * 0.13, seg: 10, tube: 3, paint: false, detail: true });
   b.sphere(0.08, { color: 0xffe0a0, mat: Mat.Glow, y: y + 1.15, wSeg: 8, hSeg: 4, paint: false });
   // torii gate at the front
   const tz = 1.95;
@@ -390,7 +388,7 @@ export function megadomeHall(ctx: Ctx): void {
       const t = (j / 5) * (Math.PI / 2);
       pts.push([Math.sin(a) * Math.cos(t) * 0.86, dy + 0.42 + Math.sin(t) * 1.02, Math.cos(a) * Math.cos(t) * 0.86]);
     }
-    b.tube(pts, 0.02, { color: trim, mat: Mat.Metal, seg: 3, paint: false, detail: true });
+    b.tube(pts, 0.02, { color: trim, seg: 3, paint: false, detail: true });
   }
   b.cyl(0.14, 0.16, 0.22, { color: trim, seg: 8, y: dy + 1.4, paint: false });
   b.sphere(0.08, { color: accent, mat: Mat.Glow, y: dy + 1.7, wSeg: 6, hSeg: 4, paint: false });
@@ -482,7 +480,7 @@ export function pyramidOfLight({ b }: Ctx): void {
     const a = (k / 4) * TAU;
     b.box(W, 0.03, 0.03, { color: 0xffe08a, mat: Mat.Glow, x: Math.sin(a) * hw, z: Math.cos(a) * hw, y: y0, ry: a + Math.PI / 2, paint: false });
   }
-  b.pyramid(0.36, 0.28, 0.36, { color: P.gold, mat: Mat.Metal, y: y0 + H - 0.26, paint: false });
+  b.pyramid(0.36, 0.28, 0.36, { color: P.gold, y: y0 + H - 0.26, paint: false });
   beacon(b, 0, y0 + H + 0.04, 0, 0.07, 0xfff4d0, Mat.Glow);
   beam(b, 7.5, 0.12, 0xfff0c0, { y: y0 + H, seg: 8 });
   // little pyramids at the corners
@@ -508,7 +506,7 @@ export function colossus({ b, rng }: Ctx): void {
   // torch: handle + cup + flame
   const tx = hands.right[0] * h, ty = y + hands.right[1] * h, tz = hands.right[2] * h;
   b.cyl(0.07, 0.05, 0.42, { color: patina, seg: 6, x: tx, y: ty - 0.12, z: tz, paint: false });
-  b.cyl(0.16, 0.08, 0.14, { color: P.gold, mat: Mat.Metal, seg: 8, x: tx, y: ty + 0.3, z: tz, paint: false });
+  b.cyl(0.16, 0.08, 0.14, { color: P.gold, seg: 8, x: tx, y: ty + 0.3, z: tz, paint: false });
   b.cone(0.13, 0.42, { color: 0xffa040, mat: Mat.Lava, seg: 6, x: tx, y: ty + 0.42, z: tz, paint: false });
   b.cone(0.07, 0.3, { color: 0xfff0a0, mat: Mat.Glow, seg: 5, x: tx, y: ty + 0.44, z: tz, paint: false });
   // charter tablet
@@ -555,7 +553,7 @@ export function holoMoon({ b, rng }: Ctx): void {
   y += 0.2;
   // projector pylons
   ringOf(3, 1.25, (x, z) => {
-    strut(b, [x, G + 0.3, z], [x * 0.75, 2.0, z * 0.75], 0.12, 0.06, { color: 0x4a4f5e, mat: Mat.Metal, seg: 5, caps: true, paint: false });
+    strut(b, [x, G + 0.3, z], [x * 0.75, 2.0, z * 0.75], 0.12, 0.06, { color: 0x4a4f5e, seg: 5, caps: true, paint: false });
     beacon(b, x * 0.75, 2.05, z * 0.75, 0.07, P.cyan, Mat.Glow);
     strut(b, [x * 0.75, 2.05, z * 0.75], [0, 3.3, 0], 0.01, 0.01, { color: 0x9fe8ff, mat: Mat.Holo, seg: 3, paint: false, detail: true });
   }, Math.PI / 3);
@@ -585,7 +583,7 @@ export function magCoasterTower({ b, rng }: Ctx): void {
   // the track: a double helix of rails with glowing undersides
   const n = b.lod ? 22 : 44;
   const track = helix(1.4, 0.45, top - 0.3, 2.6, n);
-  b.tube(track, 0.07, { color: P.magenta, mat: Mat.Metal, seg: 4, paint: false });
+  b.tube(track, 0.07, { color: P.magenta, seg: 4, paint: false });
   b.tube(helix(1.4, 0.37, top - 0.38, 2.6, n), 0.025, { color: P.cyan, mat: Mat.Glow, seg: 3, paint: false });
   // supports from the tower to the track
   for (let i = 2; i < track.length; i += b.lod ? 3 : 4) {
@@ -682,7 +680,7 @@ export function floatingCathedral({ b, rng }: Ctx): void {
   beacon(b, 0, cy + 3.3, -0.2, 0.05, P.gold, Mat.Glow);
   // rose window (stained glass shifting colours) + portal
   vdisc(b, 0.26, 0.04, { color: 0x6a4aff, mat: Mat.Screen, y: cy + 0.95, z: 1.01, seg: 14, paint: false });
-  b.torus(0.27, 0.025, { color: P.gold, mat: Mat.Metal, rx: Math.PI / 2, y: cy + 0.95, z: 1.03, seg: 14, tube: 3, paint: false, detail: true });
+  b.torus(0.27, 0.025, { color: P.gold, rx: Math.PI / 2, y: cy + 0.95, z: 1.03, seg: 14, tube: 3, paint: false, detail: true });
   b.box(0.24, 0.42, 0.03, { color: 0xffd890, mat: Mat.Light, y: cy, z: 1.01, paint: false });
   // flying buttresses
   for (const s of [-1, 1]) for (const z of [-0.6, 0.3]) strut(b, [s * 0.95, cy, z], [s * 0.42, cy + 0.8, z], 0.04, 0.03, { color: stone, seg: 4, paint: false, detail: true });
@@ -766,10 +764,10 @@ export function cosmicClock({ b, rng }: Ctx): void {
   plaza(b, 7, 0x2a2e3a, { field: 0x3a3f4e, fieldR: 0.92, round: true, kerb: P.brass });
   // zodiac ring on the ground
   ringOf(12, 1.95, (x, z, a) => b.box(0.32, 0.012, 0.08, { color: 0xffd890, mat: Mat.Glow, x, z, y: G + 0.012, ry: a + Math.PI / 2, paint: false }));
-  b.torus(1.7, 0.02, { color: P.brass, mat: Mat.Metal, y: G + 0.02, seg: 32, tube: 3, sy: 0.5, paint: false });
+  b.torus(1.7, 0.02, { color: P.brass, y: G + 0.02, seg: 32, tube: 3, sy: 0.5, paint: false });
   // pedestal
-  b.cyl(0.6, 0.8, 0.3, { color: P.brass, mat: Mat.Metal, seg: 12, y: G, paint: false });
-  b.cyl(0.14, 0.22, 2.4, { color: P.brass, mat: Mat.Metal, seg: 8, y: G + 0.3, paint: false });
+  b.cyl(0.6, 0.8, 0.3, { color: P.brass, seg: 12, y: G, paint: false });
+  b.cyl(0.14, 0.22, 2.4, { color: P.brass, seg: 8, y: G + 0.3, paint: false });
   // the sun
   const sy = 3.05;
   b.sphere(0.5, { color: 0xffb040, mat: Mat.Lava, y: sy, wSeg: 14, hSeg: 10, paint: false });
@@ -783,7 +781,7 @@ export function cosmicClock({ b, rng }: Ctx): void {
     [2.12, 0.18, -0.06, 0.18, 0xd8b890],
   ];
   orbits.forEach(([R, rx, rz, pr, col], i) => {
-    b.torus(R, 0.022, { color: P.brass, mat: Mat.Metal, y: sy, rx, rz, seg: 28, tube: 3, paint: false });
+    b.torus(R, 0.022, { color: P.brass, y: sy, rx, rz, seg: 28, tube: 3, paint: false });
     const a = 0.7 + i * 1.3;
     // planet position on the tilted ring
     const px = Math.sin(a) * R, pz = Math.cos(a) * R;
@@ -800,7 +798,7 @@ export function cosmicClock({ b, rng }: Ctx): void {
       pts.push([s * Math.cos(t) * 2.2, sy + Math.sin(t) * 2.2, 0]);
     }
     pts.unshift([s * 2.15, G, 0]);
-    b.tube(pts, 0.04, { color: P.brass, mat: Mat.Metal, seg: 4, paint: false });
+    b.tube(pts, 0.04, { color: P.brass, seg: 4, paint: false });
   }
   lampRing(b, 8, 2.25, 0.2, P.lamp, 0.2);
   crowd(b, rng, 9, 1.0, 1.6);
@@ -815,7 +813,7 @@ export function haloGate({ b, rng }: Ctx): void {
   for (let i = -4; i <= 4; i++) b.box(0.5, 0.008, 0.08, { color: 0x9fe8ff, mat: Mat.Glow, z: i * 0.5, y: G + 0.16, paint: false, detail: true });
   // the halo
   const R = 2.15, cy = 2.55;
-  vring(b, R, 0.22, { color: 0xd8dee8, mat: Mat.Metal, y: cy, seg: b.lod ? 24 : 40, tube: 6, paint: false });
+  vring(b, R, 0.22, { color: 0xd8dee8, y: cy, seg: b.lod ? 24 : 40, tube: 6, paint: false });
   vring(b, R - 0.24, 0.05, { color: P.cyan, mat: Mat.Glow, y: cy, seg: b.lod ? 24 : 40, tube: 4, paint: false });
   vring(b, R + 0.24, 0.03, { color: P.magenta, mat: Mat.Glow, y: cy, seg: b.lod ? 24 : 40, tube: 3, paint: false, detail: true });
   // chevron nodes around the halo
