@@ -632,7 +632,7 @@ export class Robots implements FxObject {
   private geo = robotGeometry();
 
   constructor(parent: Object3D, readonly max: number) {
-    this.mesh = kitInstanced(this.geo, max, InstState.Normal, fxMetalMaterial());
+    this.mesh = kitInstanced(this.geo, max, InstState.Normal);
     this.mesh.count = 0;
     this.mesh.name = 'fx-robots';
     parent.add(this.mesh);

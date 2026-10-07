@@ -63,6 +63,8 @@ export abstract class Effect {
   private loops: LoopHandle[] = [];
   private timers = new Map<string, number>();
   private ended = false;
+  /** beams released at a given effect time (FX-clock based, so they pause with the effect) */
+  private timedBeams: { beam: Beam; until: number }[] = [];
   private static seq = 1;
 
   constructor(readonly ctx: PowerCtx) {
@@ -138,6 +140,22 @@ export abstract class Effect {
     const b = this.ctx.fx.beams.get();
     this.beamsOwned.push(b);
     return b;
+  }
+  /** A beam that switches itself off after `seconds` of effect time. */
+  flashBeam(seconds: number): Beam {
+    const b = this.beam();
+    this.timedBeams.push({ beam: b, until: this.t + seconds });
+    return b;
+  }
+  /** Called by GodPowers each frame after step(): expires timed beams. */
+  tickBeams(): void {
+    if (!this.timedBeams.length) return;
+    for (let i = this.timedBeams.length - 1; i >= 0; i--) {
+      const tb = this.timedBeams[i];
+      if (this.t < tb.until) continue;
+      this.timedBeams.splice(i, 1);
+      this.releaseBeam(tb.beam);
+    }
   }
   releaseBeam(b: Beam | null): void {
     if (!b) return;

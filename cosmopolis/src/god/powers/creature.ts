@@ -233,9 +233,8 @@ class UfoEffect extends Effect {
     const tile = near.length ? near[Math.floor(this.rng.next() * near.length)].tile : this.randomTileNear(this.tileAt(s.pos), tilesToAngle(this.planet, 3));
     const from = s.ufo.belly(new Vector3());
     const to = this.pos(tile, new Vector3(), 0.6);
-    const beam = this.beam().set(from, to, 0.12, 0xff3a6a, 2.2);
+    const beam = this.flashBeam(0.16).set(from, to, 0.12, 0xff3a6a, 2.2);
     beam.u.uCore.value.setHex(0xffe0ea);
-    setTimeout(() => this.releaseBeam(beam), 160);
     this.fx.particles.emit(PRESETS.laser, to, _n.copy(to).normalize(), 12, 2);
     this.fx.particles.emit(PRESETS.spark, to, _n, 10, 1.2);
     this.sfx('laser', 0.6, 0.9 + this.rng.next() * 0.3);
@@ -249,8 +248,7 @@ class UfoEffect extends Effect {
     const up = _n.copy(s.pos).normalize();
     tangents(up, _e1, _e2);
     const sat = up.clone().multiplyScalar(this.R * 1.7).addScaledVector(_e1, this.R * 0.3);
-    const beam = this.beam().set(sat, s.pos, 0.25, 0x7af0ff, 2.4);
-    setTimeout(() => this.releaseBeam(beam), 220);
+    this.flashBeam(0.22).set(sat, s.pos, 0.25, 0x7af0ff, 2.4);
     this.fx.particles.emit(PRESETS.blueSpark, s.pos, up, 24, 1.6);
     this.sfx('laser', 0.8, 0.7);
     if (--s.hp <= 0) {
@@ -623,7 +621,9 @@ class KrakenEffect extends Effect {
     const p = this.planet;
     const sea = openSea(p, ctx.target.tile, 20);
     const lair = sea >= 0 ? offshore(p, sea, 2, 6) : ctx.target.tile;
-    this.coastTile = ctx.target.tile;
+    // the stretch of coast between the lair and where the player tapped
+    const route = p.grid.path(lair, ctx.target.tile);
+    this.coastTile = route.find((t) => !p.isWater(t)) ?? ctx.target.tile;
     this.nrm(lair, this.center);
     const n = 6;
     this.tent = this.own(new Tentacles(this.fx.planetGroup, n) as Tentacles & FxObject);
@@ -631,7 +631,10 @@ class KrakenEffect extends Effect {
     const toCoast = this.nrm(this.coastTile, new Vector3()).sub(this.center);
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2;
-      const d = this.center.clone().addScaledVector(_e1, Math.cos(a) * tilesToAngle(p, 3)).addScaledVector(_e2, Math.sin(a) * tilesToAngle(p, 3)).addScaledVector(toCoast, 0.35).normalize();
+      const d = this.center.clone().addScaledVector(_e1, Math.cos(a) * tilesToAngle(p, 3)).addScaledVector(_e2, Math.sin(a) * tilesToAngle(p, 3)).addScaledVector(toCoast, 0.5).normalize();
+      // keep every arm's root in the water
+      const bt = p.grid.tileAt(d.x, d.y, d.z);
+      if (!p.isWater(bt)) d.copy(this.center).addScaledVector(_e1, Math.cos(a) * tilesToAngle(p, 2)).addScaledVector(_e2, Math.sin(a) * tilesToAngle(p, 2)).normalize();
       const base = d.multiplyScalar(this.R + p.waterHeight - 0.6);
       this.arms.push({ base, tip: base.clone(), target: null, targetPos: base.clone(), state: 'rise', t: -i * 0.35, seed: this.rng.next() * 10, flyer: null });
     }
@@ -1033,8 +1036,7 @@ class RobotEffect extends Effect {
     const tgt = b.target!;
     const from = _a.copy(b.pos).addScaledVector(b.up, 1.3 * b.scale);
     const to = this.pos(tgt.tile, _b, Math.min(2.5, buildingHeight(tgt) * 0.5));
-    const beam = this.beam().set(from, to, 0.06, 0xff2a2a, 2.4);
-    setTimeout(() => this.releaseBeam(beam), 140);
+    this.flashBeam(0.14).set(from, to, 0.06, 0xff2a2a, 2.4);
     this.fx.particles.emit(PRESETS.laser, to, _n.copy(to).normalize(), 8, 1.4);
     this.sfx('laser', 0.35, 1.3 + this.rng.next() * 0.3);
     if (++b.zaps < 3) return;

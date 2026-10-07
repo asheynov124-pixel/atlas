@@ -100,47 +100,60 @@ const MOON_NAMES = ['Selene', 'Nyx', 'Tiny', 'Pebble', 'Moony McMoonface', 'Luna
 // ───────────────────────────────────────────────────────────── spawn moon
 
 class MoonEffect extends Effect {
-  private dur = 9;
+  private dur = 11.5;
   private spec: MoonSpec;
-  private fx3: MoonFx;
-  private spot = new Vector3();
+  private fx3: MoonFx | null = null;
+  private aimAt = 2.4;
   constructor(ctx: PowerCtx) {
     super(ctx);
     const p = this.planet;
     const used = p.spec.moons.map((m) => m.distance);
-    let dist = 3.2 + this.rng.next() * 2.4;
+    let dist = 3.2 + this.rng.next() * 1.6;
     for (let i = 0; i < 8 && used.some((d) => Math.abs(d - dist) < 0.7); i++) dist = 3 + this.rng.next() * 4;
     const type = (ctx.choice as PlanetTypeId) || MOON_TYPES[Math.floor(this.rng.next() * MOON_TYPES.length)];
-    // place it where the camera can see it: phase toward the camera's side
-    const cam = ctx.view.camera.position.clone().normalize();
-    const inc = (this.rng.next() - 0.5) * 0.5;
-    const phase = Math.atan2(cam.z, cam.x) + 0.35;
     this.spec = {
       name: MOON_NAMES[Math.floor(this.rng.next() * MOON_NAMES.length)] + (p.spec.moons.length ? ' ' + 'IVXLC'[p.spec.moons.length % 5] : ''),
-      radius: 0.1 + 0.08 * this.k + this.rng.next() * 0.05,
+      radius: 0.12 + 0.07 * this.k + this.rng.next() * 0.04,
       distance: dist,
       color: MOON_COLORS[type] ?? 0xb8b2a8,
       type,
-      speed: 0.015 + this.rng.next() * 0.025,
-      inclination: inc,
-      phase,
+      speed: 0.012 + this.rng.next() * 0.02,
+      inclination: 0,
+      phase: 0,
     };
-    this.fx3 = this.fx.addPersistent(new MoonFx(ctx.view, this.spec));
-    this.fx3.grow = 0.001;
-    this.fx3.update(0, 0);
-    this.spot.copy(this.fx3.position);
-    this.god.frame(this.spot.clone().normalize(), this.R * 3.4, 0.2, 2.4);
-    this.god.banner('A NEW MOON', `${this.spec.name} is born`, 'moon', 0xa77bff, 3.6);
+    // pull out to orbit; the moon is born rising over the planet's limb (an "earthrise")
+    this.god.frame(ctx.target.tile, this.R * 3.5, 0.03, 2.2);
+    this.god.banner('A NEW MOON', 'Gathering the rubble of the system…', 'moon', 0xa77bff, 3.6);
     this.sfx('magic', 1, 0.6);
     this.loop('hum', 0.4);
+  }
+  private aim(): void {
+    const view = this.ctx.view;
+    const m = view.camera.matrixWorld;
+    const right = _e1.setFromMatrixColumn(m, 0).normalize();
+    const up = _e2.setFromMatrixColumn(m, 1).normalize();
+    const fwd = _n.setFromMatrixColumn(m, 2).normalize().negate();
+    const u = _a.copy(up).multiplyScalar(0.5).addScaledVector(fwd, 0.82).addScaledVector(right, 0.12).normalize();
+    // orbital elements that put the moon at u now (Moons: pos = (cos a, sin a·sin i, sin a·cos i)·d)
+    const a = Math.acos(Math.max(-1, Math.min(1, u.x)));
+    this.spec.phase = a;
+    this.spec.inclination = Math.atan2(u.y, u.z);
+    this.fx3 = this.fx.addPersistent(new MoonFx(view, this.spec));
+    this.fx3.grow = 0.001;
+    this.spec.name = this.spec.name;
+    this.god.banner(this.spec.name.toUpperCase(), 'A moon is born', 'moon', 0xc8b8ff, 3.2);
   }
   step(dt: number): void {
     const u = this.t / this.dur;
     this.progress = clamp01(u);
-    const pos = this.fx3.position;
-    this.fx3.grow = easeOut(smooth(0.15, 0.85, u));
+    if (this.once('aim', this.aimAt)) this.aim();
+    const m3 = this.fx3;
+    if (!m3) return;
+    const pos = m3.position;
+    const g = smooth(this.aimAt + 0.5, this.dur * 0.85, this.t);
+    m3.grow = Math.max(0.001, easeOut(g));
     // debris and glowing dust stream in from all sides and accrete
-    if (u < 0.8 && this.every('accrete', 0.03, dt)) {
+    if (g < 0.95 && this.every('accrete', 0.03, dt)) {
       const r = this.spec.radius * this.R * 6;
       for (let i = 0; i < 3; i++) {
         _a.set(fxRand() - 0.5, fxRand() - 0.5, fxRand() - 0.5).normalize();
@@ -150,7 +163,7 @@ class MoonEffect extends Effect {
         if (fxRand() < 0.3) this.fx.particles.emitAt(PRESETS.ember, _b.x, _b.y, _b.z, v.x, v.y, v.z, 4, 1);
       }
     }
-    if (this.once('flash', this.dur * 0.82)) {
+    if (this.once('flash', this.dur * 0.85)) {
       this.fx.particles.emit(PRESETS.flash, pos, _n.copy(pos).normalize(), 1, 0, 6);
       this.sfx('chime', 1, 0.6);
     }
@@ -163,7 +176,7 @@ class MoonEffect extends Effect {
   }
   protected override cleanup(): void {
     // interrupted before it formed: let it go
-    if (!this.planet.spec.moons.includes(this.spec)) this.fx.remove(this.fx3);
+    if (this.fx3 && !this.planet.spec.moons.includes(this.spec)) this.fx.remove(this.fx3);
   }
 }
 
@@ -436,8 +449,7 @@ class WormholeEffect extends Effect {
         if (f) f.data[0] = f.scale.x;
       },
     });
-    const beam = this.beam().set(this.pos(b.tile, _a), this.center, 1.5, 0x9a6bff, 0.8, BeamStyle.Tractor);
-    setTimeout(() => this.releaseBeam(beam), 2600);
+    this.flashBeam(2.6).set(this.pos(b.tile, _a), this.center, 1.5, 0x9a6bff, 0.8, BeamStyle.Tractor);
     this.sfx('alien', 0.5, 0.6);
   }
   private emerge(): void {

@@ -352,6 +352,7 @@ export class GodPowers implements System {
           e.t += fdt;
           try {
             e.step(fdt);
+            e.tickBeams();
           } catch (err) {
             console.error('[god] effect step failed', e.ctx.def.id, err);
             e.done = true;

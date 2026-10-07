@@ -223,12 +223,15 @@ export class Damage {
     const ang0 = g.angle(center, center);
     void ang0;
     const maxA = Math.max(1e-4, g.angle(center, rim[0] ?? center));
+    // dry craters on land: the floor never sinks below the sea (a crater lake only where it was already wet)
+    const floor = p.spec.hasOcean && !p.isWater(center) ? p.seaOffset : -99;
     for (const t of bowl) {
       const a = g.angle(center, t) / maxA;
-      lv.push(p.elevation[t] - Math.round(depth * (1 - a * a)));
+      const want = p.elevation[t] - Math.round(depth * (1 - a * a));
+      lv.push(p.isWater(t) ? want : Math.max(floor, want));
     }
     this.ops.setElevation(bowl, lv);
-    this.ops.setElevation(rim, rim.map((t) => p.elevation[t] + (depth >= 2 ? 1 : 0)));
+    this.ops.setElevation(rim, rim.map((t) => p.elevation[t] + (depth >= 4 ? 2 : depth >= 2 ? 1 : 0)));
     this.biome(bowl, biome);
     const feat = bowl.filter((t) => !p.isWater(t) && p.building[t] < 0 && p.road[t] === 0);
     if (feat.length) this.ops.setFeature(feat.slice(0, Math.max(1, Math.ceil(feat.length * 0.3))), Feature.Crater);
