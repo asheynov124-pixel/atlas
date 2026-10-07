@@ -1,0 +1,21 @@
+{
+  "name": "cloud-campus-sandbox",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Personal, non-commercial superhero physics sandbox on a floating campus.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --open",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "matter-js": "^0.20.0"
+  },
+  "devDependencies": {
+    "@types/matter-js": "^0.20.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.3"
+  }
+}

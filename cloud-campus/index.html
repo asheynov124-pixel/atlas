@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cloud Campus Sandbox</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%237af7ff'/%3E%3Cpath d='M6 20h20v4H6z' fill='%233d7fd6'/%3E%3C/svg%3E" />
+    <style>
+      :root {
+        --ink: #13203a;
+        --panel: rgba(16, 26, 48, 0.78);
+        --panel-edge: rgba(255, 255, 255, 0.14);
+        --text: #eef3ff;
+        --muted: #9fb0d0;
+        --accent: #7af7ff;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0; height: 100%; overflow: hidden;
+        background: #8cc3f0; color: var(--text);
+        font: 13px/1.35 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        user-select: none; -webkit-user-select: none;
+      }
+      canvas#game { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; cursor: crosshair; }
+      #hud { position: fixed; inset: 0; pointer-events: none; }
+      #hud > * { pointer-events: auto; }
+      .panel { background: var(--panel); border: 1px solid var(--panel-edge); border-radius: 10px; backdrop-filter: blur(6px); }
+
+      #topbar { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; gap: 8px; align-items: center; pointer-events: none; }
+      #topbar .title { font-weight: 800; letter-spacing: .02em; padding: 6px 10px; pointer-events: auto; }
+      #topbar .title small { font-weight: 500; color: var(--muted); margin-left: 6px; }
+      #stats { padding: 6px 10px; color: var(--muted); pointer-events: auto; font-variant-numeric: tabular-nums; }
+      #stats b { color: var(--text); font-weight: 600; }
+      #topbar .spacer { flex: 1; }
+      #buttons { display: flex; gap: 6px; pointer-events: auto; }
+      button.chip {
+        font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--panel-edge);
+        border-radius: 999px; padding: 5px 11px; cursor: pointer;
+      }
+      button.chip:hover { border-color: rgba(255,255,255,.4); }
+      button.chip.on { background: #2b6a7a; border-color: var(--accent); }
+      button.chip kbd { font: 11px ui-monospace, monospace; color: var(--muted); margin-right: 5px; }
+
+      #toasts { position: absolute; top: 58px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; }
+      .toast { padding: 7px 14px; border-radius: 999px; background: var(--panel); border: 1px solid var(--panel-edge); animation: toast 3.2s ease forwards; white-space: nowrap; }
+      @keyframes toast { 0% { opacity: 0; transform: translateY(-6px); } 8% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; } }
+
+      #slots { position: absolute; left: 10px; bottom: 92px; padding: 8px 10px; min-width: 270px; max-width: 330px; }
+      #slots .who { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; }
+      #slots .swatch { width: 14px; height: 14px; border-radius: 4px; border: 1px solid rgba(255,255,255,.5); }
+      #slots .role { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; padding: 2px 6px; border-radius: 999px; background: rgba(255,255,255,.12); color: var(--muted); }
+      #slots .blurb { color: var(--muted); margin: 3px 0 8px; }
+      #slots .row { display: flex; gap: 8px; }
+      .slot { position: relative; flex: 1; border-radius: 8px; padding: 6px 8px 6px 34px; background: rgba(255,255,255,.07); overflow: hidden; min-height: 40px; }
+      .slot .key { position: absolute; left: 6px; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; font: 700 12px ui-monospace, monospace; background: rgba(255,255,255,.16); }
+      .slot .name { font-weight: 600; }
+      .slot .sub { font-size: 11px; color: var(--muted); }
+      .slot .cd { position: absolute; inset: 0; background: rgba(0,0,0,.45); transform-origin: left; pointer-events: none; }
+      .slot.empty { opacity: .45; }
+      #slots .passives { margin-top: 7px; display: flex; gap: 6px; flex-wrap: wrap; }
+      #slots .passive { font-size: 11px; padding: 2px 7px; border-radius: 999px; background: rgba(122,247,255,.14); color: var(--accent); }
+      #slots .status { font-size: 11px; color: #ffcf7a; margin-top: 5px; min-height: 14px; }
+
+      #strip { position: absolute; left: 10px; right: 10px; bottom: 10px; height: 72px; display: flex; gap: 6px; padding: 7px; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+      .card { flex: 0 0 auto; width: 92px; border-radius: 8px; padding: 5px 7px; cursor: pointer; background: rgba(255,255,255,.06); border: 1px solid transparent; position: relative; }
+      .card:hover { background: rgba(255,255,255,.12); }
+      .card.on { border-color: var(--accent); background: rgba(122,247,255,.12); }
+      .card .bar { height: 5px; border-radius: 3px; margin-bottom: 5px; }
+      .card .n { font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .card .r { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+      .card .x { position: absolute; top: 2px; right: 4px; color: var(--muted); font-size: 12px; opacity: 0; }
+      .card:hover .x { opacity: 1; }
+      .card .x:hover { color: #ff9a8a; }
+      .card.add { display: grid; place-items: center; color: var(--muted); font-weight: 600; text-align: center; border: 1px dashed rgba(255,255,255,.25); }
+
+      #help { position: absolute; right: 10px; top: 54px; width: 290px; padding: 9px 11px; font-size: 12px; transition: opacity .4s; }
+      #help h3 { margin: 0 0 6px; font-size: 13px; }
+      #help table { border-collapse: collapse; width: 100%; }
+      #help td { padding: 1px 0; vertical-align: top; }
+      #help td:first-child { color: var(--accent); font: 11px ui-monospace, monospace; white-space: nowrap; padding-right: 10px; }
+      #help .try { margin-top: 7px; color: #ffcf7a; }
+      #help.hidden { opacity: 0; pointer-events: none; }
+
+      #menu { position: absolute; inset: 60px 50% auto 50%; transform: translateX(-50%); width: min(880px, 94vw); max-height: calc(100vh - 190px); overflow: auto; padding: 14px; }
+      #menu.hidden { display: none; }
+      #menu h2 { margin: 0 0 4px; font-size: 16px; }
+      #menu p { margin: 0 0 10px; color: var(--muted); }
+      #menu h4 { margin: 12px 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+      #menu .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 7px; }
+      .spawn { text-align: left; font: inherit; color: var(--text); background: rgba(255,255,255,.06); border: 1px solid transparent; border-radius: 8px; padding: 7px 9px; cursor: pointer; }
+      .spawn:hover { background: rgba(255,255,255,.13); border-color: rgba(255,255,255,.25); }
+      .spawn .n { font-weight: 700; display: flex; align-items: center; gap: 6px; }
+      .spawn .d { font-size: 11px; color: var(--muted); margin-top: 2px; }
+      .spawn .p { font-size: 10px; color: var(--accent); margin-top: 3px; }
+      .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    </style>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div id="hud">
+      <div id="topbar">
+        <div class="title panel">Cloud Campus Sandbox<small>fan physics toybox</small></div>
+        <div id="stats" class="panel"></div>
+        <div class="spacer"></div>
+        <div id="buttons"></div>
+      </div>
+      <div id="toasts"></div>
+      <div id="slots" class="panel"></div>
+      <div id="help" class="panel"></div>
+      <div id="menu" class="panel hidden"></div>
+      <div id="strip" class="panel"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
