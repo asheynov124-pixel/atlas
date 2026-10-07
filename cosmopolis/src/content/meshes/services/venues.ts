@@ -9,7 +9,7 @@
 import type { MeshContext } from '../../catalog';
 import {
   C, G, TAU, FUN, Mat, lot, block, door, canopy, sign, car, carRow, flag, lamp, lampRing, tree, bench, person, crowd, path,
-  ringPath, pool, rect, steps, flowers, roundRect, ellipse, disc, fence, stringLights, umbrella, halfDisc, edging, type V2,
+  ringPath, pool, rect, steps, flowers, roundRect, ellipse, disc, fence, stringLights, umbrella, halfDisc, edging, grove, bush, type V2,
 } from './parts';
 
 // ─────────────────────────────────────────────────────────── sports venues
@@ -89,23 +89,25 @@ export function zeroGDome(ctx: MeshContext): void {
   const { b, rng } = ctx;
   lot(b, 7, 0xd8dce6);
   b.lathe([[1.6, 0], [1.6, 0.12], [1.3, 0.38], [1.05, 0.42]], { color: 0x3a3e4a, mat: Mat.WindowSmall, seg: 20, y: G });
-  b.torus(1.05, 0.06, { color: 0x7ae0ff, mat: Mat.Glow, seg: 24, tube: 4, y: G + 0.44 });
+  b.torus(1.05, 0.06, { color: 0x7ae0ff, mat: Mat.Glow, seg: 20, tube: 3, y: G + 0.44 });
   for (let i = 0; i < 3; i++) {
     const a = (i / 3) * TAU + 0.5;
     b.box(0.08, 0.95, 0.12, { color: 0xdfe4ec, x: Math.sin(a) * 1.05, y: G + 0.4, z: Math.cos(a) * 1.05, rx: Math.cos(a) * 0.3, rz: -Math.sin(a) * 0.3 });
   }
   const cy = G + 1.75;
-  b.sphere(1.15, { color: 0x9ad8ff, mat: Mat.Glass, y: cy, wSeg: 14, hSeg: 9 });
-  b.torus(1.17, 0.025, { color: 0xf4f4f6, seg: 28, tube: 3, y: cy });
-  b.torus(1.42, 0.035, { color: 0xffb04a, mat: Mat.Holo, seg: 28, tube: 3, y: cy + 0.25, rx: 0.2 });
+  b.sphere(1.15, { color: 0xbfe6ff, y: cy, wSeg: 12, hSeg: 8, flat: true });
+  b.torus(1.17, 0.025, { color: 0x7ae0ff, mat: Mat.Glow, seg: 20, tube: 3, y: cy });
+  b.torus(1.17, 0.02, { color: 0x7ae0ff, mat: Mat.Glow, seg: 20, tube: 3, y: cy, rx: Math.PI / 2 });
+  b.torus(1.17, 0.02, { color: 0x7ae0ff, mat: Mat.Glow, seg: 20, tube: 3, y: cy, rx: Math.PI / 2, ry: Math.PI / 2 });
+  b.torus(1.42, 0.035, { color: 0xffb04a, mat: Mat.Holo, seg: 24, tube: 3, y: cy + 0.25, rx: 0.2 });
   for (let i = 0; i < 6; i++) {
     const a = rng.next() * TAU, e = rng.range(-0.6, 0.8);
     b.sphere(0.07, { color: i % 2 ? 0xff7ad8 : 0x7affa0, mat: Mat.Glow, x: Math.sin(a) * 1.3 * Math.cos(e), y: cy + Math.sin(e) * 1.3, z: Math.cos(a) * 1.3 * Math.cos(e), wSeg: 6, hSeg: 4 });
   }
   b.sphere(0.12, { color: 0xffffff, mat: Mat.Glow, y: cy + 1.25, wSeg: 6, hSeg: 4 });
   sign(b, 0, G + 0.14, 1.62, 0.8, 0.08, 0x7ae0ff);
-  crowd(b, rng, 0, 1.95, 0.5, 10);
-  lampRing(b, 2.05, 8, 0.3, C.lampCool, 0.4);
+  crowd(b, rng, 0, 1.95, 0.5, 6);
+  lampRing(b, 2.05, 6, 0.3, C.lampCool, 0.4);
 }
 
 // ─────────────────────────────────────────────────────────── entertainment
@@ -145,7 +147,7 @@ export function operaHouse(ctx: MeshContext): void {
       b.group({ ry: Math.PI / 2, sx: 1, sy, sz: sx }, () => {
         b.lathe([[r, 0], [r * 0.93, r * 0.38], [r * 0.72, r * 0.72], [r * 0.4, r * 0.93], [0.001, r]], { color: 0xf8f6f0, seg: 8, arc: Math.PI, flat: true });
       });
-      halfDisc(b, r * sx, r * sy, 6, { color: 0xc8a070, mat: Mat.Glass, z: 0.002 });
+      halfDisc(b, r * sx * 0.97, r * sy * 0.94, 6, { color: 0xffe2b0, mat: Mat.Light, z: 0.004 });
     });
   };
   // main hall (three nested sails) + small hall
@@ -249,7 +251,8 @@ export function driveIn(ctx: MeshContext): void {
   // snack bar + projector beam
   b.box(0.5, 0.22, 0.3, { color: 0xf4f0e8, mat: Mat.WindowSmall, x: 0, y: G, z: 1.25 });
   for (let i = 0; i < 4; i++) b.box(0.125, 0.04, 0.32, { color: i % 2 ? 0xffffff : 0xe0453a, x: -0.19 + i * 0.125, y: G + 0.22, z: 1.25 });
-  b.cyl(0.02, 0.4, 2.6, { color: 0xbfd8ff, mat: Mat.Holo, seg: 6, x: 0, y: G + 0.26, z: 1.1, rx: -Math.PI / 2 + 0.04, capTop: false, detail: true });
+  b.box(0.12, 0.1, 0.12, { color: 0x3a3e46, x: 0, y: G + 0.26, z: 1.18 });
+  b.cyl(0.035, 0.035, 0.04, { color: 0xfff6d8, mat: Mat.Light, seg: 8, x: 0, y: G + 0.31, z: 1.12, rx: -Math.PI / 2, paint: false });
   sign(b, 0.95, G + 0.4, 1.6, 0.5, 0.14, 0xff4ad0);
   b.box(0.04, 0.4, 0.04, { color: 0x3a3e46, x: 0.95, y: G, z: 1.6 });
   for (let i = 0; i < 5; i++) b.box(0.03, 0.03, 0.01, { color: 0xfff27a, mat: Mat.Glow, x: 0.77 + i * 0.09, y: G + 0.56, z: 1.6, detail: true, paint: false });
@@ -261,9 +264,14 @@ export function driveIn(ctx: MeshContext): void {
 /** Alien zoo: crystal pen, tentacle lagoon, sky-grazer jungle, sandworm dunes, aviary dome and a grand gate. */
 export function alienZoo(ctx: MeshContext): void {
   const { b, rng } = ctx;
-  lot(b, 19, 0xd8d0bc, { border: C.paving });
+  lot(b, 19, C.lawn, { border: C.paving });
   ringPath(b, 1.6, 0.26, C.path, 18);
   path(b, 0, 4.3, 0, 1.65, 0.4);
+  for (const a of [0.86, 2.33, -2.35, -0.86]) path(b, Math.sin(a) * 1.68, Math.cos(a) * 1.68, Math.sin(a) * 2.15, Math.cos(a) * 2.15, 0.22);
+  disc(b, 0.6, 0.006, C.paving, { y: G, z: 3.05, seg: 12 });
+  b.box(0.42, 0.22, 0.3, { color: 0xffcf3a, mat: Mat.WindowSmall, x: 0.95, y: G, z: 3.0, ry: -0.3 });
+  b.wedge(0.48, 0.07, 0.2, { color: 0x6a4a8a, x: 0.95, y: G + 0.22, z: 3.0, ry: -0.3 + Math.PI });
+  for (const a of [Math.PI / 2, Math.PI, -Math.PI / 2]) grove(b, rng, Math.sin(a) * 3.15, Math.cos(a) * 3.15, 0, 0.55, 3, ['round', 'palm', 'alien'], 1.15);
   // gate
   for (const x of [-0.45, 0.45]) {
     b.cyl(0.12, 0.14, 0.7, { color: 0x6a4a8a, seg: 6, x, y: G, z: 3.65 });
@@ -272,9 +280,9 @@ export function alienZoo(ctx: MeshContext): void {
   b.box(1.1, 0.12, 0.16, { color: 0x6a4a8a, x: 0, y: G + 0.62, z: 3.65 });
   sign(b, 0, G + 0.5, 3.75, 0.7, 0.1, 0x7affa0);
   // crystal pen (back-left)
-  const cx = -2.2, cz = -2.0;
-  disc(b, 0.85, 0.02, 0x7a5aa0, { x: cx, y: G, z: cz, seg: 12 });
-  fence(b, ellipse(1.75, 1.75, 12, cx, cz), 0.1, 0xd8d8dc, true, G, 0.012, Mat.Plain);
+  const cx = -2.15, cz = -2.1;
+  disc(b, 1.0, 0.02, 0x7a5aa0, { x: cx, y: G, z: cz, seg: 12 });
+  fence(b, ellipse(2.05, 2.05, 12, cx, cz), 0.1, 0xd8d8dc, true, G, 0.012, Mat.Plain);
   for (let i = 0; i < 6; i++) b.cone(0.07, rng.range(0.2, 0.45), { color: rng.pick([0x9a7aff, 0xff6ad8, 0x6affd0]), mat: Mat.Glow, seg: 5, x: cx + rng.range(-0.6, 0.6), y: G, z: cz + rng.range(-0.6, 0.5), rz: rng.range(-0.3, 0.3), paint: false });
   for (let i = 0; i < 2; i++) {
     b.group({ x: cx + (i ? 0.3 : -0.25), y: G + 0.02, z: cz + (i ? 0.35 : 0.1), ry: rng.next() * TAU }, () => {
@@ -285,8 +293,8 @@ export function alienZoo(ctx: MeshContext): void {
     });
   }
   // tentacle lagoon (back-right)
-  const lx = 2.2, lz = -1.95;
-  pool(b, ellipse(1.75, 1.45, 14, lx, lz), ellipse(1.61, 1.31, 14, lx, lz), 0.05, 0xa8a090);
+  const lx = 2.15, lz = -2.05;
+  pool(b, ellipse(2.0, 1.7, 14, lx, lz), ellipse(1.86, 1.56, 14, lx, lz), 0.05, 0xa8a090);
   for (let k = 0; k < 4; k++) {
     const a = (k / 4) * TAU + 0.3, ox = lx + Math.sin(a) * 0.4, oz = lz + Math.cos(a) * 0.3;
     b.tube([[ox, G + 0.04, oz], [ox + 0.05, G + 0.3, oz + 0.04], [ox + 0.16, G + 0.48, oz - 0.02], [ox + 0.22, G + 0.4, oz - 0.08]], 0.04 - k * 0.004, { color: 0x9a3ab0, seg: 5, paint: false });
@@ -294,9 +302,9 @@ export function alienZoo(ctx: MeshContext): void {
   b.tube([[lx - 0.6, G + 0.04, lz + 0.3], [lx - 0.5, G + 0.5, lz + 0.3], [lx - 0.3, G + 0.7, lz + 0.25], [lx - 0.15, G + 0.62, lz + 0.2]], 0.06, { color: 0x2a8a8a, seg: 6, paint: false });
   b.box(0.12, 0.08, 0.16, { color: 0x2a8a8a, x: lx - 0.12, y: G + 0.6, z: lz + 0.2, ry: 0.5 });
   // sky-grazer jungle (front-left)
-  const jx = -2.3, jz = 1.75;
-  disc(b, 0.85, 0.02, 0x3a8a3a, { x: jx, y: G, z: jz, seg: 12 });
-  for (let i = 0; i < 4; i++) tree(b, jx + rng.range(-0.65, 0.65), jz + rng.range(-0.6, 0.5), 1.3, 'alien', rng);
+  const jx = -2.25, jz = 1.95;
+  disc(b, 1.0, 0.02, 0x3a8a3a, { x: jx, y: G, z: jz, seg: 12 });
+  for (let i = 0; i < 6; i++) tree(b, jx + rng.range(-0.75, 0.75), jz + rng.range(-0.7, 0.6), 1.3, i % 2 ? 'alien' : 'round', rng);
   b.group({ x: jx + 0.15, y: G + 0.02, z: jz + 0.1, ry: 0.7 }, () => {
     b.sphere(0.2, { color: 0xd88a3a, y: 0.42, sz: 1.5, sy: 0.8, wSeg: 8, hSeg: 5 });
     for (const [x, z] of [[-0.1, 0.18], [0.1, 0.18], [-0.1, -0.18], [0.1, -0.18]]) b.cyl(0.035, 0.045, 0.36, { color: 0xb86a2a, seg: 5, x, z });
@@ -305,8 +313,8 @@ export function alienZoo(ctx: MeshContext): void {
     b.box(0.08, 0.02, 0.02, { color: 0x1a1a1a, y: 1.18, z: 0.52, detail: true });
   });
   // sandworm dunes (front-right)
-  const dx = 2.3, dz = 1.8;
-  disc(b, 0.85, 0.03, 0xe8c888, { x: dx, y: G, z: dz, seg: 12 });
+  const dx = 2.25, dz = 1.95;
+  disc(b, 1.0, 0.03, 0xe8c888, { x: dx, y: G, z: dz, seg: 12 });
   const arc: [number, number, number][] = [];
   for (let i = 0; i <= 6; i++) {
     const t = i / 6;
@@ -323,13 +331,13 @@ export function alienZoo(ctx: MeshContext): void {
     b.box(0.12, 0.012, 0.04, { color: 0xffcf3a, mat: Mat.Glow, x: Math.sin(a) * 0.7, y: G + rng.range(0.9, 1.3), z: Math.cos(a) * 0.7, ry: a, rz: 0.3, detail: true, paint: false });
   }
   // visitors, benches, trees
-  crowd(b, rng, 0, 2.3, 0.9, 10);
-  crowd(b, rng, -1.5, 0.0, 0.6, 5);
+  crowd(b, rng, 0, 2.6, 0.7, 8);
+  crowd(b, rng, -1.5, 0.0, 0.5, 4);
   for (let i = 0; i < 8; i++) {
     const a = (i / 8) * TAU + 0.4;
     bench(b, Math.sin(a) * 1.9, Math.cos(a) * 1.9, a + Math.PI);
   }
-  edging(b, rng, 19, 10, ['round', 'palm', 'alien'], { frac: 0.92, skip: [[5.9, 6.3], [0, 0.4]] });
+  edging(b, rng, 19, 12, ['round', 'palm', 'alien'], { frac: 0.95, skip: [[5.9, 6.3], [0, 0.4], [0.45, 1.25], [1.95, 2.75], [3.55, 4.35], [5.05, 5.85]] });
 }
 
 /** Aquarium: wave-roofed glass hall, a towering water column of fish and a whale breaching from the plaza pool. */
@@ -351,9 +359,13 @@ export function aquarium(ctx: MeshContext): void {
   // whale breaching from the plaza pool
   pool(b, ellipse(1.3, 0.7, 14, 0.4, 0.75), ellipse(1.2, 0.6, 14, 0.4, 0.75), 0.03);
   b.group({ x: 0.4, y: G + 0.05, z: 0.75, ry: 0.4, rx: -0.5 }, () => {
-    b.sphere(0.2, { color: 0x4a6a8a, z: 0.1, sz: 1.9, sy: 0.85, wSeg: 10, hSeg: 6 });
-    b.box(0.36, 0.02, 0.12, { color: 0x3a5a7a, z: -0.32, rx: 0.4 });
-    b.box(0.14, 0.12, 0.02, { color: 0xe8eef2, y: -0.08, z: 0.28, detail: true });
+    b.sphere(0.2, { color: 0x3a5a86, z: 0.1, sz: 1.9, sy: 0.85, wSeg: 10, hSeg: 6 });
+    b.sphere(0.17, { color: 0xe8eef2, y: -0.05, z: 0.16, sz: 1.7, sy: 0.6, wSeg: 8, hSeg: 4 });
+    b.cyl(0.04, 0.09, 0.22, { color: 0x3a5a86, seg: 6, z: -0.3, rx: -Math.PI / 2 - 0.3 });
+    for (const sx of [-1, 1]) b.box(0.2, 0.015, 0.09, { color: 0x2a4a76, x: sx * 0.09, y: 0.06, z: -0.55, ry: sx * 0.5, rx: -0.3 });
+    for (const sx of [-1, 1]) b.box(0.16, 0.015, 0.07, { color: 0x2a4a76, x: sx * 0.2, y: -0.06, z: 0.2, rz: sx * -0.5 });
+    b.box(0.02, 0.02, 0.02, { color: 0x111111, x: 0.14, y: 0.02, z: 0.38, detail: true });
+    b.box(0.02, 0.02, 0.02, { color: 0x111111, x: -0.14, y: 0.02, z: 0.38, detail: true });
   });
   b.sphere(0.07, { color: 0xbfe8ff, mat: Mat.Water, x: 0.55, y: G + 0.65, z: 0.85, sy: 1.6, wSeg: 6, hSeg: 4, detail: true });
   sign(b, 0.2, G + 0.3, -0.31, 0.7, 0.07, 0x3ad0ff);
@@ -365,9 +377,42 @@ export function aquarium(ctx: MeshContext): void {
 /** Amusement park: Ferris wheel, looping roller coaster, carousel, drop tower, fairy-tale gate and balloons. */
 export function amusementPark(ctx: MeshContext): void {
   const { b, rng } = ctx;
-  lot(b, 19, 0xe8dcc8, { border: C.paving });
-  ringPath(b, 2.0, 0.3, 0xd8c8a8, 18);
-  path(b, 0, 4.3, 0, 2.0, 0.45, 0xd8c8a8);
+  lot(b, 19, C.lawn, { border: C.paving });
+  ringPath(b, 2.0, 0.42, 0xe8dcc8, 18);
+  path(b, 0, 4.3, 0, 2.0, 0.5, 0xe8dcc8);
+  b.plane(1.5, 0.6, { color: 0xe8dcc8, x: -1.85, y: G + 0.004, z: -1.75, paint: false });
+  // central fountain plaza
+  disc(b, 0.62, 0.008, 0xe8dcc8, { x: -0.7, y: G, z: 0.3, seg: 12 });
+  disc(b, 0.26, 0.05, 0xd8d0c0, { x: -0.7, y: G, z: 0.3, seg: 10 });
+  disc(b, 0.22, 0.006, C.water, { x: -0.7, y: G + 0.048, z: 0.3, seg: 10, mat: Mat.Water, topMat: Mat.Water });
+  b.cyl(0.015, 0.03, 0.22, { color: 0xbfe8ff, mat: Mat.Water, seg: 5, x: -0.7, y: G + 0.05, z: 0.3 });
+  // teacups
+  b.group({ x: 0.45, y: G, z: 1.1 }, () => {
+    b.cyl(0.42, 0.44, 0.04, { color: 0xffb8d8, seg: 12 });
+    b.cyl(0.06, 0.06, 0.14, { color: 0xffd04a, seg: 6, y: 0.04 });
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * TAU;
+      b.cyl(0.09, 0.06, 0.08, { color: FUN[(i * 2) % FUN.length], top: 0xf4f0e8, seg: 8, x: Math.sin(a) * 0.27, y: 0.04, z: Math.cos(a) * 0.27 });
+    }
+  });
+  // swing ride
+  b.group({ x: 1.2, y: G, z: 2.8 }, () => {
+    b.cyl(0.05, 0.07, 0.95, { color: 0xf4f4f6, seg: 6 });
+    b.cone(0.42, 0.18, { color: 0x9a5ae0, seg: 8, flat: true, y: 0.95 });
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * TAU;
+      b.box(0.006, 0.3, 0.006, { color: 0xdddddd, x: Math.sin(a) * 0.4, y: 0.66, z: Math.cos(a) * 0.4, rz: Math.sin(a) * 0.35, rx: -Math.cos(a) * 0.35, detail: true, paint: false });
+      b.box(0.05, 0.03, 0.05, { color: FUN[i], x: Math.sin(a) * 0.5, y: 0.64, z: Math.cos(a) * 0.5, detail: true, paint: false });
+    }
+  });
+  // bumper-car pavilion
+  b.box(0.9, 0.2, 0.6, { color: 0x3a3e46, x: 0.1, y: G, z: -3.1 });
+  for (let i = 0; i < 6; i++) b.box(0.15, 0.06, 0.62, { color: i % 2 ? 0xffffff : 0x3a7ae0, x: -0.275 + i * 0.15, y: G + 0.2, z: -3.1 });
+  sign(b, 0.1, G + 0.12, -2.795, 0.5, 0.06, 0xff7ab8);
+  // ice-cream stand
+  b.cyl(0.16, 0.16, 0.18, { color: 0xffe0f0, seg: 8, x: -1.35, y: G, z: 2.8 });
+  b.cone(0.12, 0.2, { color: 0xc8a070, seg: 6, x: -1.35, y: G + 0.18, z: 2.8, rx: Math.PI });
+  b.sphere(0.12, { color: 0xff9ac8, x: -1.35, y: G + 0.42, z: 2.8, wSeg: 6, hSeg: 4 });
   // Ferris wheel (back-left)
   const fx = -1.85, fz = -1.75, fy = G + 1.45, R = 1.15;
   for (const s of [-1, 1]) {
@@ -380,7 +425,7 @@ export function amusementPark(ctx: MeshContext): void {
     const n = 10;
     for (let i = 0; i < n; i++) {
       const a = (i / n) * TAU;
-      b.box(0.025, R, 0.025, { color: 0xf4f4f6, x: Math.sin(a) * R * 0.5, y: Math.cos(a) * R * 0.5, rz: -a });
+      b.box(0.025, R, 0.025, { color: 0xf4f4f6, rz: -a });
       b.box(0.14, 0.12, 0.12, { color: FUN[i % FUN.length], x: Math.sin(a) * R, y: Math.cos(a) * R - 0.1 });
       b.box(0.03, 0.03, 0.03, { color: C.lamp, mat: Mat.Light, x: Math.sin(a + 0.31) * R, y: Math.cos(a + 0.31) * R, z: 0.04, detail: true, paint: false });
     }
@@ -388,7 +433,7 @@ export function amusementPark(ctx: MeshContext): void {
   // roller coaster (right): ellipse circuit with hills and a loop
   const cx = 1.55, cz = -0.65;
   const pts: [number, number, number][] = [];
-  const N = b.lod ? 12 : 22;
+  const N = b.lod ? 12 : 20;
   for (let i = 0; i <= N; i++) {
     const t = (i / N) * TAU;
     const h = 0.35 + 0.65 * Math.max(0, Math.sin(t * 2 + 0.6)) + (i === 0 || i === N ? 0 : 0.08 * Math.sin(t * 5));
@@ -443,9 +488,9 @@ export function amusementPark(ctx: MeshContext): void {
     b.box(0.26, 0.14, 0.18, { color: 0xf4f0e8, x, y: G, z });
     b.wedge(0.3, 0.05, 0.12, { color: col, x, y: G + 0.14, z: z + 0.08, ry: Math.PI });
   }
-  crowd(b, rng, 0, 2.0, 1.4, 16);
-  crowd(b, rng, 0, 0.3, 0.8, 6);
-  lampRing(b, 2.25, 10, 0.3, C.lamp, 0.3);
+  crowd(b, rng, 0, 2.2, 1.2, 10);
+  crowd(b, rng, -0.7, 0.3, 0.6, 4);
+  lampRing(b, 2.3, 8, 0.3, C.lamp, 0.3);
   edging(b, rng, 19, 8, ['round', 'blossom', 'palm'], { frac: 0.93, skip: [[5.9, 6.3], [0, 0.4], [3.3, 4.6], [0.6, 2.3]] });
 }
 
@@ -511,9 +556,16 @@ export function waterPark(ctx: MeshContext): void {
 export function beachResort(ctx: MeshContext): void {
   const { b, rng } = ctx;
   lot(b, 7, C.sand, { border: 0xe0c890 });
-  for (let i = 0; i < 3; i++) block(b, 2.0 - i * 0.3, 0.42 - i * 0.12, 0.6 - i * 0.12, { color: 0xf8f6f0, roof: 0xe8e2d6, x: 0, z: -1.15 + i * 0.12 + 0.0, y: G + i * 0.0, mat: Mat.Window });
-  b.box(2.02, 0.025, 0.04, { color: 0x3ad0c0, x: 0, y: G + 0.2, z: -0.84, paint: false });
-  for (let i = 0; i < 5; i++) b.box(0.3, 0.012, 0.08, { color: 0xffffff, x: -0.8 + i * 0.4, y: G + 0.21, z: -0.81, detail: true });
+  let hy = G;
+  for (let i = 0; i < 4; i++) {
+    const w = 2.1 - i * 0.32, d = 0.62 - i * 0.1, h = 0.2, z = -1.08 - i * 0.05;
+    b.box(w, h, d, { color: 0xf8f6f0, mat: Mat.Window, top: 0xe8e2d6, x: 0, y: hy, z });
+    b.box(w + 0.02, 0.02, 0.06, { color: i % 2 ? 0x3ad0c0 : 0xffffff, x: 0, y: hy + h - 0.01, z: z + d / 2 + 0.02, paint: false });
+    for (let k = 0; k < 3; k++) bush(b, -w / 2 + 0.2 + k * (w - 0.4) / 2, z + d / 2 - 0.02, 0.04, 0x4f9a3a, hy + h);
+    hy += h;
+  }
+  umbrella(b, -0.15, -1.25, 0xff7ab8, 0.9, hy);
+  umbrella(b, 0.15, -1.25, 0x3ad0c0, 0.9, hy);
   pool(b, roundRect(1.4, 0.5, 0.2, 2, 0, -0.25), roundRect(1.32, 0.42, 0.18, 2, 0, -0.25), 0.04, 0xf4f0e8);
   for (let i = 0; i < 3; i++) {
     const x = 1.25 + (i % 2) * 0.35, z = -0.5 + i * 0.45;
