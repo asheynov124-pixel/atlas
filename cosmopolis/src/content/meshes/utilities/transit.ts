@@ -362,11 +362,11 @@ export const massDriver = factory((u) => {
   // rail from the breech (z +1.3, low) up and out over the back (z −4.6, high)
   const z0 = 1.3, y0 = PAD_TOP + 0.35, z1 = -4.6, y1 = PAD_TOP + 4.2;
   const at = (t: number): [number, number] => [z0 + (z1 - z0) * t, y0 + (y1 - y0) * t * t * 0.55 + (y1 - y0) * t * 0.45];
-  for (const s of [-1, 1]) {
-    for (let k = 0; k < 6; k++) {
-      const [za, ya] = at(k / 6), [zb, yb] = at((k + 1) / 6);
-      beam(u, [s * 0.16, ya, za], [s * 0.16, yb, zb], 0.07, 0.07, { color: 0x5a606c });
-    }
+  for (let k = 0; k < 6; k++) {
+    const [za, ya] = at(k / 6), [zb, yb] = at((k + 1) / 6);
+    for (const s of [-1, 1]) beam(u, [s * 0.16, ya + 0.04, za], [s * 0.16, yb + 0.04, zb], 0.06, 0.06, { color: 0x8a909c });
+    beam(u, [0, ya - 0.02, za], [0, yb - 0.02, zb], 0.5, 0.07, { color: shade(C.concrete, 0.85) });
+    beam(u, [0, ya + 0.0, za], [0, yb + 0.0, zb], 0.08, 0.012, { color: glow, mat: Mat.Glow, ...NP, detail: true });
   }
   // coil rings along the rail
   for (let k = 0; k < 9; k++) {
