@@ -172,14 +172,16 @@ export function galacticSenate({ b, rng }: Ctx): void {
 
 /** A captive miniature star in a magnetic cage of rings and pylons, plasma piped down to transformers. */
 export function stellarForge({ b, rng }: Ctx): void {
-  plaza(b, 19, 0x3a3e48, { field: 0x4a4f5e, fieldR: 0.92, round: true, kerb: 0xff8a2a });
+  plaza(b, 19, 0x4a4f5c, { field: 0x5a606e, fieldR: 0.92, round: true, kerb: 0xff8a2a });
+  // molten channel ring
+  b.torus(2.45, 0.12, { color: 0xff8a2a, mat: Mat.Lava, y: G + 0.02, seg: 32, tube: 3, sy: 0.3, paint: false });
   // heat-sink fins radiating out
   ringOf(12, 3.3, (x, z, a) => {
-    b.box(0.12, 0.9, 1.4, { color: 0x6a707e, x, z, y: G, ry: a, paint: false });
+    b.box(0.12, 0.9, 1.4, { color: 0x9aa0ae, x, z, y: G, ry: a, paint: false });
     b.box(0.13, 0.05, 1.2, { color: 0xff7a2a, mat: Mat.Glow, x, z, y: G + 0.9, ry: a, paint: false, detail: true });
   }, Math.PI / 12);
   // base reactor drum
-  b.cyl(1.7, 1.9, 0.7, { color: 0x4a4f5e, seg: 16, y: G, paint: false });
+  b.cyl(1.7, 1.9, 0.7, { color: 0x7a808e, seg: 16, y: G, paint: false });
   b.cyl(1.72, 1.72, 0.12, { color: 0xff8a2a, mat: Mat.Glow, seg: 16, y: G + 0.42, capTop: false, paint: false });
   // the star
   const sy = 6.4;
@@ -192,14 +194,16 @@ export function stellarForge({ b, rng }: Ctx): void {
   b.torus(2.31, 0.04, { color: 0x9fe8ff, mat: Mat.Glow, y: sy, rx: 0.35, seg: 40, tube: 3, paint: false });
   // pylons holding the cage
   ringOf(4, 3.0, (x, z) => {
-    taper(b, [[x, G, z], [x * 0.95, 3.0, z * 0.95], [x * 0.72, sy - 0.6, z * 0.72]], 0.32, 0.14, { color: 0x5a606e, seg: 5, paint: false });
+    taper(b, [[x, G, z], [x * 0.95, 3.0, z * 0.95], [x * 0.72, sy - 0.6, z * 0.72]], 0.32, 0.14, { color: 0x8a909e, seg: 5, paint: false });
+    b.box(0.5, 0.5, 0.5, { color: 0x4a4f5c, x, z, y: G, paint: false });
     b.sphere(0.24, { color: 0x9fe8ff, mat: Mat.Glow, x: x * 0.7, y: sy - 0.5, z: z * 0.7, wSeg: 8, hSeg: 4, paint: false });
     strut(b, [x * 0.7, sy - 0.5, z * 0.7], [x * 0.35, sy - 0.25, z * 0.35], 0.04, 0.02, { color: 0xbfefff, mat: Mat.Glow, seg: 4, paint: false });
   }, Math.PI / 4);
   // plasma conduits down to transformers
   ringOf(3, 2.0, (x, z) => {
     b.tube([[x * 0.3, sy - 1.3, z * 0.3], [x * 0.6, 3.0, z * 0.6], [x, 1.2, z], [x * 1.1, G + 0.6, z * 1.1]], 0.1, { color: 0xff8a2a, mat: Mat.Glow, seg: 5, paint: false });
-    b.cyl(0.4, 0.45, 0.6, { color: 0x4a4f5e, seg: 8, x: x * 1.1, z: z * 1.1, y: G, paint: false });
+    b.cyl(0.4, 0.45, 0.6, { color: 0x7a808e, seg: 8, x: x * 1.1, z: z * 1.1, y: G, paint: false });
+    b.cyl(0.42, 0.42, 0.08, { color: 0xff8a2a, mat: Mat.Glow, seg: 8, x: x * 1.1, z: z * 1.1, y: G + 0.4, capTop: false, paint: false });
   });
   lampRing(b, 12, 4.4, 0.24, 0xffc890, 0.2);
 }
