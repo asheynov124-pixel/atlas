@@ -11,9 +11,10 @@
  *
  * URL params (handled here): &panel=<id> opens a panel once the game is on screen · &photo=1 enters photo mode ·
  * &tutorial=1 (&tutorialStep=n) forces the tutorial (Tutorial.tsx).
- * Test hook: window.__cosmoPanels = { open(id), close(), ui }.
+ * Test hook: window.__cosmoPanels = { open(id), close(), ui, setSettings }.
  */
 import { effect } from '@preact/signals';
+import { setSettings } from '../../core/settings';
 import { registerHudButton, registerOverlay, registerPanel } from '../registry';
 import { ui } from '../store';
 import { openPanel, uiSound } from '../core/env';
@@ -141,6 +142,7 @@ declare global {
       open: (id: string) => boolean;
       close: () => void;
       ui: typeof ui;
+      setSettings: typeof setSettings;
     };
   }
 }
@@ -152,5 +154,6 @@ if (typeof window !== 'undefined') {
     },
     close: () => (ui.panel.value = null),
     ui,
+    setSettings,
   };
 }

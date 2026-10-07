@@ -8,7 +8,7 @@
  *   Planet    world facts (archetype, gravity, temperature, air, oceans, moons, rings, day length, season)
  *             and the city's default architectural style
  */
-import { useState } from 'preact/hooks';
+import { useMemo, useState } from 'preact/hooks';
 import { PLANET_TYPES } from '../../content/planetTypes';
 import { STYLES } from '../../content/styles';
 import { bus } from '../../core/events';
@@ -125,8 +125,8 @@ function toneOf(v: number): string {
 function Citizen() {
   const s = sim();
   const [seed, setSeed] = useState(0);
-  const c = s ? safe(() => s.citizenSpotlight(), null) : null;
-  void seed;
+  // one citizen per tap of the dice (the panel re-renders several times a second)
+  const c = useMemo(() => (s ? safe(() => s.citizenSpotlight(), null) : null), [seed, ui.planetId.value]);
   if (!c) return null;
   return (
     <section class="up-card up-citizen">

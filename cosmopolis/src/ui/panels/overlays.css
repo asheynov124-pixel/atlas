@@ -4,6 +4,10 @@
  */
 
 /* ───────────────────────────── photo mode */
+/* keep the frame clean: notifications wait until photo mode ends */
+.app:has(.ph-root) .cz-toasts {
+  display: none;
+}
 .ph-root {
   position: absolute;
   inset: 0;

@@ -5,7 +5,7 @@
  * range, plus zone distribution (zoned lots and grown buildings per R · C · I · O), jobs vs workers by sector and
  * utility supply vs demand.
  */
-import { useState } from 'preact/hooks';
+import { useMemo, useState } from 'preact/hooks';
 import { Zone } from '../../core/types';
 import { game } from '../../game/instance';
 import { EmptyState, Icon, IconOrEmoji, SectionHeader, Segmented } from '../core';
@@ -78,7 +78,7 @@ function countZones(): { R: number; C: number; I: number; O: number } {
 }
 
 export function StatsPanel() {
-  useLive(2000);
+  const tick = useLive(2000);
   const [range, setRange] = useState<Range>(memo.range);
   const s = sim();
   const st = ui.stats.value;
@@ -108,7 +108,7 @@ export function StatsPanel() {
       { id: 'tourism', title: 'Tourists / month', icon: 'tourism', color: '#9be564', values: cs('tourism'), days: cd, format: num, upGood: true },
     );
   }
-  const zones = countZones();
+  const zones = useMemo(countZones, [tick, ui.planetId.value]);
   const go = (r: Range) => {
     memo.range = r;
     setRange(r);

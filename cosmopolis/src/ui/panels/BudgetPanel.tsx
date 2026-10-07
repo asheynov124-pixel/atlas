@@ -328,18 +328,18 @@ export function BudgetPanel() {
       )}
       <Segmented
         block
-        value={tab}
+        value={sandbox && tab === 'loans' ? 'overview' : tab}
         onChange={change}
         sound="tap"
         options={[
           { value: 'overview', label: 'Overview' },
           { value: 'taxes', label: 'Taxes' },
           { value: 'services', label: 'Services' },
-          { value: 'loans', label: s?.loans.length ? `Loans · ${s.loans.length}` : 'Loans' },
+          ...(sandbox ? [] : [{ value: 'loans' as Tab, label: s?.loans.length ? `Loans · ${s.loans.length}` : 'Loans' }]),
         ]}
         ariaLabel="Budget sections"
       />
-      {!s ? <EmptyState icon="budget" title="No city loaded" /> : tab === 'overview' ? <Overview /> : tab === 'taxes' ? <Taxes /> : tab === 'services' ? <Services /> : <Loans />}
+      {!s ? <EmptyState icon="budget" title="No city loaded" /> : tab === 'taxes' ? <Taxes /> : tab === 'services' ? <Services /> : tab === 'loans' && !sandbox ? <Loans /> : <Overview />}
     </div>
   );
 }

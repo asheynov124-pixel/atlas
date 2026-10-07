@@ -10,32 +10,39 @@ export interface DistrictInfo {
   centre: number;
 }
 
-/** One pass over the planet: tile counts and centroid tiles per district. */
+/** Two linear passes over the planet: tile counts and centroid tiles for every district (O(tiles)). */
 export function districtGeometry(p: Planet): Map<number, DistrictInfo> {
-  const sums = new Map<number, { n: number; x: number; y: number; z: number }>();
+  const n = p.districts.length;
+  const sx = new Float64Array(n), sy = new Float64Array(n), sz = new Float64Array(n);
+  const cnt = new Int32Array(n);
   const c = p.grid.center;
+  const dist = p.district;
   for (let t = 0; t < p.count; t++) {
-    const d = p.district[t];
-    if (!d) continue;
-    let s = sums.get(d);
-    if (!s) sums.set(d, (s = { n: 0, x: 0, y: 0, z: 0 }));
-    s.n++;
-    s.x += c[t * 3];
-    s.y += c[t * 3 + 1];
-    s.z += c[t * 3 + 2];
+    const d = dist[t];
+    if (!d || d >= n) continue;
+    cnt[d]++;
+    sx[d] += c[t * 3];
+    sy[d] += c[t * 3 + 1];
+    sz[d] += c[t * 3 + 2];
+  }
+  for (let d = 1; d < n; d++) {
+    const l = Math.hypot(sx[d], sy[d], sz[d]) || 1;
+    sx[d] /= l;
+    sy[d] /= l;
+    sz[d] /= l;
+  }
+  const best = new Int32Array(n).fill(-1);
+  const bestDot = new Float64Array(n).fill(-2);
+  for (let t = 0; t < p.count; t++) {
+    const d = dist[t];
+    if (!d || d >= n) continue;
+    const dot = c[t * 3] * sx[d] + c[t * 3 + 1] * sy[d] + c[t * 3 + 2] * sz[d];
+    if (dot > bestDot[d]) {
+      bestDot[d] = dot;
+      best[d] = t;
+    }
   }
   const out = new Map<number, DistrictInfo>();
-  for (const [d, s] of sums) {
-    const l = Math.hypot(s.x, s.y, s.z) || 1;
-    const x = s.x / l, y = s.y / l, z = s.z / l;
-    let best = -1, bd = -2;
-    for (let t = 0; t < p.count; t++) {
-      if (p.district[t] !== d) continue;
-      const dot = c[t * 3] * x + c[t * 3 + 1] * y + c[t * 3 + 2] * z;
-      if (dot > bd) (bd = dot), (best = t);
-    }
-    out.set(d, { tiles: s.n, centre: best });
-  }
+  for (let d = 1; d < n; d++) if (cnt[d] > 0) out.set(d, { tiles: cnt[d], centre: best[d] });
   return out;
 }
-
