@@ -895,7 +895,8 @@
   border: 1px solid var(--hairline-strong);
   background: rgba(0, 0, 0, 0.3);
   color: var(--text);
-  font: 12px/1.4 var(--font-mono);
+  /* ≥ 16 px: iOS zooms into smaller focused fields */
+  font: 16px/1.35 var(--font-mono);
   word-break: break-all;
 }
 
@@ -1052,7 +1053,7 @@
   border: 1px solid var(--hairline-strong);
   background: rgba(255, 255, 255, 0.05);
   color: var(--text);
-  font: 14px/1.4 var(--font);
+  font: 16px/1.4 var(--font);
   outline: none;
 }
 .st-desc:focus {

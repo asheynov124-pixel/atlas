@@ -125,7 +125,7 @@ export const TEMPLATES: Template[] = [
     parts: [
       P('plinth', { w: 1.6, d: 1.6, h: 0.1, seg: 6, c: 0xe8eef8, c2: 0x8fe9ff }),
       F('crystal', 0.1, { w: 1.5, h: 1.1, n: 8, tilt: 24, c: 0x8fe9ff, c2: 0xd6b8ff, m: 'glass' }),
-      P('tapered', { w: 0.82, d: 0.82, h: 7, taper: 0.78, twist: 120, seg: 6, c: 0xb9d8ff, m: 'glass' }),
+      P('tapered', { w: 0.82, d: 0.82, h: 7, taper: 0.78, twist: 120, seg: 6, c: 0x7aa7e0, m: 'glass' }),
       P('crystal', { w: 0.35, h: 1.0, n: 3, tilt: 10, c: 0xd6b8ff, c2: 0x8fe9ff, m: 'holo' }),
       F('halo', 2.4, { w: 1.6, d: 0.04, tilt: 8, c: 0xd6b8ff, m: 'glow' }),
       F('halo', 4.3, { w: 1.2, d: 0.035, tilt: -10, c: 0x8fe9ff, m: 'glow' }),
@@ -182,8 +182,8 @@ export const TEMPLATES: Template[] = [
     footprint: 7,
     fn: 'housing',
     parts: [
-      P('plinth', { w: 4.9, d: 4.9, h: 0.1, seg: 6, c: 0xeaf4ff, c2: 0x9fe8ff }),
-      P('dome', { w: 2.0, d: 2.0, h: 1.1, seg: 16, c: 0xf4fbff, c2: 0xd6ecff, m: 'smallWindows' }),
+      P('plinth', { w: 4.9, d: 4.9, h: 0.1, seg: 6, c: 0xcfe2f3, c2: 0x9fe8ff }),
+      P('dome', { w: 2.0, d: 2.0, h: 1.1, seg: 16, c: 0xe8f4ff, c2: 0x9fd8ff, m: 'smallWindows' }),
       F('vault', 0.1, { z: 1.1, ry: 90, w: 0.8, d: 0.48, seg: 10, c: 0xf4fbff, m: 'plain' }),
       F('dome', 0.1, { x: 1.7, z: 0.6, w: 1.1, d: 1.1, h: 0.6, seg: 14, c: 0xf4fbff, c2: 0xd6ecff, m: 'smallWindows' }),
       F('dome', 0.1, { x: -1.5, z: 1.1, w: 1.0, d: 1.0, h: 0.55, seg: 14, c: 0xf4fbff, c2: 0xd6ecff, m: 'smallWindows' }),
@@ -223,9 +223,11 @@ export const TEMPLATES: Template[] = [
       P('setback', { w: 4.2, d: 4.2, h: 2.4, n: 5, taper: 0.7, seg: 4, c: 0xd2b07a, c2: 0xf4e1b5, m: 'plain' }),
       P('block', { w: 0.95, d: 0.95, h: 0.5, c: 0xc4573a, m: 'smallWindows' }),
       P('pyramid', { w: 1.05, d: 1.05, h: 0.55, seg: 4, c: GOLD, c2: 0xffffff, m: 'metal' }),
-      F('wedge', 0.1, { z: 1.75, w: 0.7, d: 1.3, h: 1.0, c: 0xc9a46a }),
-      F('pool', 0.58, { x: 1.35, z: 1.35, w: 0.35, d: 0.35, h: 0.1, seg: 8, c: 0xff7a2a, c2: 0x8a909c, m: 'lava' }),
-      F('pool', 0.58, { x: -1.35, z: 1.35, w: 0.35, d: 0.35, h: 0.1, seg: 8, c: 0xff7a2a, c2: 0x8a909c, m: 'lava' }),
+      F('wedge', 0.1, { z: 1.8, w: 0.95, d: 1.2, h: 1.05, c: 0xc9a46a }),
+      F('pool', 0.58, { x: 1.88, z: 1.88, w: 0.32, d: 0.32, h: 0.12, seg: 8, c: 0xff7a2a, c2: 0x5a4a3a, m: 'lava' }),
+      F('pool', 0.58, { x: -1.88, z: 1.88, w: 0.32, d: 0.32, h: 0.12, seg: 8, c: 0xff7a2a, c2: 0x5a4a3a, m: 'lava' }),
+      F('pool', 0.58, { x: 1.88, z: -1.88, w: 0.32, d: 0.32, h: 0.12, seg: 8, c: 0xff7a2a, c2: 0x5a4a3a, m: 'lava' }),
+      F('pool', 0.58, { x: -1.88, z: -1.88, w: 0.32, d: 0.32, h: 0.12, seg: 8, c: 0xff7a2a, c2: 0x5a4a3a, m: 'lava' }),
     ],
   },
   {
@@ -237,7 +239,7 @@ export const TEMPLATES: Template[] = [
     fn: 'housing',
     parts: [
       P('plinth', { w: 1.6, d: 1.6, h: 0.1, seg: 12, c: 0xe8e4dc, c2: 0xbfefff }),
-      P('twisted', { w: 1.15, d: 0.75, h: 9, n: 28, twist: 180, taper: 0.15, seg: 4, c: 0xe9eef5, c2: 0x1f3f7a, m: 'glass' }),
+      P('twisted', { w: 1.15, d: 0.75, h: 9, n: 28, twist: 180, taper: 0.15, seg: 4, c: 0xb8cde6, c2: 0x1f3f7a, m: 'glass' }),
       P('crown', { w: 0.6, h: 0.4, n: 10, c: STEEL, c2: 0x5ef0ff, m: 'metal' }),
       P('antenna', { h: 1.0, w: 0.025, n: 3, c: STEEL, c2: 0xff3b30 }),
     ],

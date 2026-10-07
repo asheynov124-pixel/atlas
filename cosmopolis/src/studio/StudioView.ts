@@ -456,6 +456,11 @@ export class StudioView implements View {
     this.idle = 0;
   }
 
+  /** Re-frame immediately on the next frame (a whole new design was loaded). */
+  refit(): void {
+    this.snapFit = true;
+  }
+
   /** Swoop in from afar (on open). */
   intro(): void {
     this.computeFit();

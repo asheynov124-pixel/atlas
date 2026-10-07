@@ -127,10 +127,16 @@ export class Studio implements System {
   // ═══════════════════════════════════════════ open / close
 
   /** Open the studio: edit a saved design (`editId` = design id or "custom_<id>") or start from a template. */
-  open(editId?: string, o: { template?: string; design?: DesignSpec; tab?: StudioTab } = {}): void {
+  open(editId?: string, o: { template?: string; design?: DesignSpec; tab?: StudioTab; force?: boolean } = {}): void {
     const g = this.game;
     if (!g.planet || !g.planetView) {
       notify({ title: 'Architect Studio', body: 'Start or load a city first.', kind: 'info', icon: 'custom' });
+      return;
+    }
+    if (this.isOpen && studioUi.dirty.value && !o.force) {
+      void confirmDialog({ title: 'Discard changes?', body: 'The design you are editing has unsaved changes.', okLabel: 'Discard', cancelLabel: 'Keep editing', danger: true }).then((ok) => {
+        if (ok) this.open(editId, { ...o, force: true });
+      });
       return;
     }
     let draft: DesignSpec | null = null;
@@ -320,6 +326,76 @@ export class Studio implements System {
     this.sfx('place');
   }
 
+  /** Mirror copy across the X (left/right) or Z (front/back) axis — for symmetric designs. */
+  mirrorPart(i: number, axis: 'x' | 'z' = 'x'): void {
+    const d = studioUi.draft.value;
+    if (!d || i < 0 || i >= d.parts.length || d.parts.length >= LIMITS.parts) return;
+    const p = d.parts[i];
+    const base = this.view?.partLayout(i)?.base ?? p.y;
+    const copy: PartSpec = { ...p, stack: false, y: p.stack ? +base.toFixed(3) : p.y };
+    if (axis === 'x') {
+      copy.x = -p.x;
+      copy.ry = -p.ry;
+    } else {
+      copy.z = -p.z;
+      copy.ry = 180 - p.ry;
+    }
+    this.mutate((x) => x.parts.splice(i + 1, 0, normalizePart(copy)));
+    this.select(i + 1);
+    this.sfx('place');
+  }
+
+  /** Radial array: n copies of a part spun evenly around the centre (turrets, pods, fins…). */
+  arrayPart(i: number, n = 4): void {
+    const d = studioUi.draft.value;
+    if (!d || i < 0 || i >= d.parts.length) return;
+    const count = Math.max(2, Math.min(n, LIMITS.parts - d.parts.length + 1));
+    if (count < 2) return;
+    const p = d.parts[i];
+    const base = this.view?.partLayout(i)?.base ?? p.y;
+    const copies: PartSpec[] = [];
+    for (let k = 1; k < count; k++) {
+      const th = (k / count) * Math.PI * 2;
+      const c = Math.cos(th), sn = Math.sin(th);
+      copies.push(normalizePart({ ...p, stack: false, y: p.stack ? +base.toFixed(3) : p.y, x: p.x * c + p.z * sn, z: -p.x * sn + p.z * c, ry: p.ry + (th * 180) / Math.PI }));
+    }
+    this.mutate((x) => x.parts.splice(i + 1, 0, ...copies));
+    this.select(i);
+    this.sfx('magic');
+  }
+
+  /** Render the preview and hand it to the share sheet (or download it). */
+  async snapshot(): Promise<void> {
+    const v = this.view;
+    const d = studioUi.draft.value;
+    if (!v || !d) return;
+    try {
+      const blob = await this.game.engine.capture(v, 2);
+      if (!blob) throw new Error('capture failed');
+      const name = (d.name || 'design').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').toLowerCase() || 'design';
+      const file = new File([blob], `${name}.png`, { type: 'image/png' });
+      const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean };
+      if (nav.canShare?.({ files: [file] }) && typeof nav.share === 'function') {
+        await nav.share({ files: [file], title: d.name, text: `${d.icon} ${d.name} — designed in the Cosmopolis Architect Studio` });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        notify({ title: 'Snapshot saved', body: file.name, kind: 'good', icon: 'camera' });
+      }
+      this.sfx('camera');
+    } catch (e) {
+      if ((e as Error)?.name === 'AbortError') return;
+      console.warn('[studio] snapshot failed', e);
+      notify({ title: 'Snapshot unavailable', body: 'Your browser blocked the image export.', kind: 'warn', icon: 'camera' });
+    }
+  }
+
   movePart(i: number, dir: -1 | 1): void {
     this.reorder(i, i + dir);
   }
@@ -420,6 +496,7 @@ export class Studio implements System {
       if (cur && editing) x.created = cur.created;
     });
     this.select(-1);
+    this.view?.refit();
   }
 
   private setDraft(d: DesignSpec, dirty: boolean): void {

@@ -78,7 +78,9 @@ export function layoutDesign(spec: DesignSpec, upTo = spec.parts.length): Layout
     } else top = base + ext;
     height = Math.max(height, base + ext);
     const ps = planSize(p);
-    const reach = Math.hypot(p.x, p.z) + Math.hypot(ps.w, ps.d) / 2;
+    // rectangles reach their corners; polygons and round shapes reach about their half-width
+    const rect = p.seg === 4 || p.t === 'block' || p.t === 'wedge' || p.t === 'gable' || p.t === 'skybridge' || p.t === 'solar' || p.t === 'garden';
+    const reach = Math.hypot(p.x, p.z) + (rect ? Math.hypot(ps.w, ps.d) / 2 : Math.max(ps.w, ps.d) / 2);
     radius = Math.max(radius, reach);
     if (p.stack && (def.family === 'structure' || !host)) {
       const tw = topWidth(p);

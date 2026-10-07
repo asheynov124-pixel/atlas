@@ -8,7 +8,10 @@ import { game } from '../../game/instance';
 import { footprintRadius, type DesignSpec, type PartSpec } from '../model';
 import { PART_DEFS } from '../parts';
 import { studioUi } from '../state';
-import { ColorPicker, fmtMetres, MaterialPicker, ParamControl, PartBadge, SwatchRow } from './common';
+import { ColorPicker, fmtMetres, Glyph, MaterialPicker, ParamControl, PartBadge, SwatchRow } from './common';
+
+const MIRROR_GLYPH = '<path d="M12 3v18" stroke-dasharray="2 2.5"/><path d="M9 6 3 18h6zM15 6l6 12h-6z"/>';
+const ARRAY_GLYPH = '<circle cx="12" cy="12" r="7" stroke-dasharray="2 2.5"/><rect x="10" y="2.5" width="4" height="4" rx="1"/><rect x="10" y="17.5" width="4" height="4" rx="1"/><rect x="2.5" y="10" width="4" height="4" rx="1"/><rect x="17.5" y="10" width="4" height="4" rx="1"/>';
 
 export function EditTab({ draft }: { draft: DesignSpec }) {
   const st = game.studio;
@@ -52,6 +55,12 @@ export function EditTab({ draft }: { draft: DesignSpec }) {
         <IconButton icon="arrowUp" label="Move up (later in the stack)" size="sm" disabled={i >= draft.parts.length - 1} onClick={() => st.movePart(i, 1)} />
         <IconButton icon="arrowDown" label="Move down (earlier in the stack)" size="sm" disabled={i <= 0} onClick={() => st.movePart(i, -1)} />
         <IconButton icon="copy" label="Duplicate part" size="sm" onClick={() => st.duplicatePart(i)} />
+        <IconButton icon="copy" label="Mirror copy (left ↔ right)" size="sm" onClick={() => st.mirrorPart(i, Math.abs(p.x) >= Math.abs(p.z) ? 'x' : 'z')}>
+          <Glyph svg={MIRROR_GLYPH} size={19} />
+        </IconButton>
+        <IconButton icon="copy" label="Radial array ×4 around the centre" size="sm" onClick={() => st.arrayPart(i, 4)}>
+          <Glyph svg={ARRAY_GLYPH} size={19} />
+        </IconButton>
         <IconButton icon="trash" label="Delete part" size="sm" variant="danger" onClick={() => st.removePart(i)} />
         <span class="grow" />
         <Button size="sm" variant="ghost" icon="layers" onClick={() => (studioUi.tab.value = 'parts')}>

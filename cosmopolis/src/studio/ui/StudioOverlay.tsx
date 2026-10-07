@@ -198,6 +198,7 @@ function Stage() {
       <div class="st-stage-tools">
         <IconButton icon={night ? 'sun' : 'moon'} label={night ? 'Daylight preview' : 'Night preview'} active={night} onClick={() => game.studio.setNight(!night)} kbd="N" />
         <IconButton icon="locate" label="Reset view" onClick={() => game.studio.view?.resetView()} kbd="R" />
+        <IconButton icon="camera" label="Snapshot of this design" onClick={() => void game.studio.snapshot()} />
       </div>
       {hint !== false && (
         <div class="st-hint" key={hint} aria-hidden="true">
