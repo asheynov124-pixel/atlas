@@ -18,7 +18,7 @@ import { setSettings, settings, type DayNightMode } from '../../core/settings';
 import { game } from '../../game/instance';
 import { DEFAULT_POST, GRADE_PRESETS, type PostParams } from '../../render/post/PostFX';
 import { Icon, Slider } from '../core';
-import { uiSound, viewport } from '../core/env';
+import { setSelection, uiSound, viewport } from '../core/env';
 import { notify, ui } from '../store';
 import { safe } from './common';
 import { photoLabels } from './state';
@@ -59,7 +59,7 @@ function enter(): void {
   touringInPhoto = false;
   ui.panel.value = null;
   ui.category.value = null;
-  ui.selection.value = null;
+  if (ui.selection.value) setSelection(null);
   ui.chromeHidden.value = true;
   if (p && lastLook) Object.assign(p, lastLook);
   if (c && Math.abs(lastFov - c.fov) > 0.1 && game.activeView === game.planetView) {

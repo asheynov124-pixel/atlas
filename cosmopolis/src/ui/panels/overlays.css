@@ -631,7 +631,8 @@
   padding: 5px 12px 5px 9px;
   border-radius: var(--r-pill);
   background: rgba(6, 9, 20, 0.5);
-  border: 1px solid color-mix(in srgb, var(--lc) 55%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-color: color-mix(in srgb, var(--lc) 55%, transparent);
   color: #fff;
   font-size: calc(12.5px * var(--ls, 1));
   font-weight: 750;
@@ -678,4 +679,9 @@
   pointer-events: none;
   background: radial-gradient(120% 80% at 50% 40%, rgba(2, 3, 10, 0.15), rgba(2, 3, 10, 0.55));
   animation: cz-fade-in var(--dur-3) var(--ease-out) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tu-ring {
+    animation: none;
+  }
 }

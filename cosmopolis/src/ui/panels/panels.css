@@ -1185,6 +1185,7 @@
   border-left: 4px solid var(--dc);
 }
 .up-dist.is-open {
+  border-color: rgba(255, 255, 255, 0.2);
   border-color: color-mix(in srgb, var(--dc) 55%, transparent);
   border-left-color: var(--dc);
 }
@@ -1207,6 +1208,7 @@
   flex: none;
   border-radius: 9px;
   background: var(--dc);
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.12), inset 0 -3px 0 rgba(0, 0, 0, 0.2);
   box-shadow: 0 0 16px color-mix(in srgb, var(--dc) 45%, transparent), inset 0 -3px 0 rgba(0, 0, 0, 0.2);
 }
 .up-dist-title {
@@ -2432,5 +2434,17 @@
 @container up (min-width: 520px) {
   .up-save-actions {
     flex-direction: row;
+  }
+}
+.up-post.has-tile {
+  cursor: pointer;
+}
+.up-post.has-tile:active {
+  background: rgba(255, 255, 255, 0.03);
+}
+@media (prefers-reduced-motion: reduce) {
+  .up-live-dot,
+  .up-like.is-pop svg {
+    animation: none;
   }
 }

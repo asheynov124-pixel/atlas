@@ -52,7 +52,7 @@ function Post({ n }: { n: NewsItem }) {
   };
   const where = n.tile !== undefined && n.tile >= 0;
   return (
-    <article class={'up-post' + (where ? ' has-tile' : '')}>
+    <article class={'up-post' + (where ? ' has-tile' : '')} onClick={where ? () => flyToTile(n.tile, { select: true }) : undefined}>
       <Avatar emoji={n.icon} seed={n.handle || n.author} size={42} />
       <div class="up-post-body">
         <div class="up-post-head">
@@ -69,7 +69,14 @@ function Post({ n }: { n: NewsItem }) {
             <span class="num">{likes > 0 ? fmtCompact(likes) : ''}</span>
           </button>
           {where && (
-            <button type="button" class="up-post-where" onClick={() => flyToTile(n.tile, { select: true })}>
+            <button
+              type="button"
+              class="up-post-where"
+              onClick={(e) => {
+                e.stopPropagation();
+                flyToTile(n.tile, { select: true });
+              }}
+            >
               <Icon name="locate" size={15} /> See where
             </button>
           )}
