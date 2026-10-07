@@ -394,6 +394,19 @@ export function megadomeHall(ctx: Ctx): void {
   b.sphere(0.08, { color: accent, mat: Mat.Glow, y: dy + 1.7, wSeg: 6, hSeg: 4, paint: false });
   b.cyl(0.008, 0.01, 0.4, { color: P.chrome, seg: 3, y: dy + 1.62, paint: false, detail: true });
   b.box(0.2, 0.12, 0.004, { color: accent, x: 0.1, y: dy + 1.86, paint: false, detail: true });
+  // style flourishes: neon cornices for neon-loving styles, roof gardens for green ones
+  if (style.neon > 0.5) {
+    for (const [w, d, x, z] of [[3.24, 0.035, 0, 1.0], [3.24, 0.035, 0, -1.0], [0.035, 2.04, 1.6, 0], [0.035, 2.04, -1.6, 0]] as [number, number, number, number][])
+      b.box(w, 0.035, d, { color: accent, mat: Mat.Glow, x, z, y: y0 + 1.03, paint: false });
+    b.torus(0.88, 0.03, { color: style.accents[1 % style.accents.length], mat: Mat.Glow, y: dy + 0.02, seg: 20, tube: 3, paint: false });
+    b.box(2.04, 0.03, 0.03, { color: accent, mat: Mat.Glow, y: y0 + 0.95, z: 1.3, paint: false });
+  }
+  if (style.green > 0.5) {
+    for (const [px, pz] of [[-1.15, 0.55], [1.15, 0.55], [-1.15, -0.55], [1.15, -0.55]] as [number, number][]) {
+      b.box(0.7, 0.06, 0.6, { color: 0x5a9a3f, mat: Mat.Foliage, x: px, z: pz, y: y0 + 1.04, paint: false });
+      tree(b, px, pz, 1.0, 'round', rng, y0 + 1.1, true);
+    }
+  }
   // forecourt
   pool(b, 0.32, { x: -1.2, z: 1.8, seg: 12 });
   pool(b, 0.32, { x: 1.2, z: 1.8, seg: 12 });
