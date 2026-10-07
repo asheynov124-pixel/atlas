@@ -390,8 +390,8 @@ export function amusementPark(ctx: MeshContext): void {
   b.group({ x: 0.45, y: G, z: 1.1 }, () => {
     b.cyl(0.42, 0.44, 0.04, { color: 0xffb8d8, seg: 12 });
     b.cyl(0.06, 0.06, 0.14, { color: 0xffd04a, seg: 6, y: 0.04 });
-    for (let i = 0; i < 5; i++) {
-      const a = (i / 5) * TAU;
+    for (let i = 0; i < 4; i++) {
+      const a = (i / 4) * TAU + 0.4;
       b.cyl(0.09, 0.06, 0.08, { color: FUN[(i * 2) % FUN.length], top: 0xf4f0e8, seg: 8, x: Math.sin(a) * 0.27, y: 0.04, z: Math.cos(a) * 0.27 });
     }
   });
@@ -399,8 +399,8 @@ export function amusementPark(ctx: MeshContext): void {
   b.group({ x: 1.2, y: G, z: 2.8 }, () => {
     b.cyl(0.05, 0.07, 0.95, { color: 0xf4f4f6, seg: 6 });
     b.cone(0.42, 0.18, { color: 0x9a5ae0, seg: 8, flat: true, y: 0.95 });
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * TAU;
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * TAU;
       b.box(0.006, 0.3, 0.006, { color: 0xdddddd, x: Math.sin(a) * 0.4, y: 0.66, z: Math.cos(a) * 0.4, rz: Math.sin(a) * 0.35, rx: -Math.cos(a) * 0.35, detail: true, paint: false });
       b.box(0.05, 0.03, 0.05, { color: FUN[i], x: Math.sin(a) * 0.5, y: 0.64, z: Math.cos(a) * 0.5, detail: true, paint: false });
     }
@@ -433,7 +433,7 @@ export function amusementPark(ctx: MeshContext): void {
   // roller coaster (right): ellipse circuit with hills and a loop
   const cx = 1.55, cz = -0.65;
   const pts: [number, number, number][] = [];
-  const N = b.lod ? 12 : 20;
+  const N = b.lod ? 12 : 18;
   for (let i = 0; i <= N; i++) {
     const t = (i / N) * TAU;
     const h = 0.35 + 0.65 * Math.max(0, Math.sin(t * 2 + 0.6)) + (i === 0 || i === N ? 0 : 0.08 * Math.sin(t * 5));
@@ -488,9 +488,10 @@ export function amusementPark(ctx: MeshContext): void {
     b.box(0.26, 0.14, 0.18, { color: 0xf4f0e8, x, y: G, z });
     b.wedge(0.3, 0.05, 0.12, { color: col, x, y: G + 0.14, z: z + 0.08, ry: Math.PI });
   }
-  crowd(b, rng, 0, 2.2, 1.2, 10);
+  crowd(b, rng, 0, 2.2, 1.2, 8);
   crowd(b, rng, -0.7, 0.3, 0.6, 4);
-  lampRing(b, 2.3, 8, 0.3, C.lamp, 0.3);
+  lampRing(b, 2.3, 6, 0.3, C.lamp, 0.3);
+  for (const [x, z] of [[2.45, -2.85], [-3.15, 0.35], [2.45, 2.95]] as const) grove(b, rng, x, z, 0, 0.45, 2, ['round', 'blossom', 'palm'], 1.1);
   edging(b, rng, 19, 8, ['round', 'blossom', 'palm'], { frac: 0.93, skip: [[5.9, 6.3], [0, 0.4], [3.3, 4.6], [0.6, 2.3]] });
 }
 

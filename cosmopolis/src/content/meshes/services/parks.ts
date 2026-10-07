@@ -31,6 +31,8 @@ export function smallPark(ctx: MeshContext): void {
     lamp(b, -0.12, -0.3);
     hedge(b, -0.5, 0, 0.04, 0.3);
     hedge(b, 0.5, 0, 0.04, 0.3);
+    for (const [x, z, c] of [[-0.2, -0.58, 0xffcf3a], [0.2, 0.58, 0xff7ab8], [0.58, -0.15, 0xffffff], [-0.58, 0.15, 0xc89aff]] as const) flowers(b, x, z, 0.07, c);
+    for (const [x, z] of [[-0.62, -0.32], [0.62, 0.32], [0.18, -0.62], [-0.18, 0.62]] as const) bush(b, x, z, 0.06, 0x4f9a3a);
   } else if (variant % 3 === 1) {
     const pond: V2[] = ellipse(0.62, 0.42, 12, 0.12, -0.12);
     pool(b, ellipse(0.7, 0.5, 12, 0.12, -0.12), pond, 0.02, 0xb8b0a0);
@@ -44,6 +46,10 @@ export function smallPark(ctx: MeshContext): void {
     bench(b, -0.32, 0.42, Math.PI * 1.02);
     lamp(b, 0.0, 0.42);
     person(b, -0.1, 0.45, 0xe0453a);
+    for (let i = 0; i < 5; i++) b.cyl(0.006, 0.006, 0.09, { color: 0x6a9a3a, seg: 3, x: -0.2 + i * 0.03, y: G, z: -0.36 - (i % 2) * 0.02, detail: true, paint: false });
+    flowers(b, -0.62, -0.05, 0.07, 0xffcf3a);
+    flowers(b, 0.6, 0.2, 0.06, 0xff7ab8);
+    bush(b, -0.6, 0.35, 0.07, 0x4a8a3a);
   } else {
     tree(b, -0.18, -0.15, 1.8, 'round', rng);
     // gazebo
@@ -380,11 +386,11 @@ export function skatePark(ctx: MeshContext): void {
   lot(b, 1, 0xccc8c0, { border: 0x9a968e });
   // half-pipe (two facing ramps + decks)
   b.group({ x: -0.1, y: G, z: -0.28 }, () => {
-    b.wedge(0.6, 0.16, 0.18, { color: 0xb8b4ac, z: -0.12 });
+    b.wedge(0.6, 0.16, 0.18, { color: 0xd4d0c8, z: -0.12 });
     b.box(0.6, 0.16, 0.06, { color: 0xa8a49c, z: -0.24 });
-    b.wedge(0.6, 0.16, 0.18, { color: 0xb8b4ac, z: 0.12, ry: Math.PI });
+    b.wedge(0.6, 0.16, 0.18, { color: 0xd4d0c8, z: 0.12, ry: Math.PI });
     b.box(0.6, 0.16, 0.06, { color: 0xa8a49c, z: 0.24 });
-    for (const z of [-0.21, 0.21]) b.box(0.6, 0.012, 0.012, { color: 0x6a6e78, y: 0.165, z, paint: false });
+    for (const z of [-0.21, 0.21]) b.box(0.6, 0.014, 0.014, { color: 0xffcf3a, y: 0.165, z, paint: false });
   });
   // funbox + rail
   b.group({ x: 0.3, y: G, z: 0.28, ry: 0.4 }, () => {
