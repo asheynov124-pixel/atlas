@@ -24,7 +24,8 @@
  * URL hooks: &studio=1 (open) · &studioTpl=<templateId|surprise|blank> · &studioTab=parts|edit|templates|save ·
  *   &studioNight=1 · &studioSel=<part index> · &studioDemo=1 (saves three templates and places them near the camera
  *   with game.ops.placeBuilding — screenshot tests) · &studioFp=1|7|19.
- * Test hook: game.studio.selfTest() → { templates, parts, maxTriangles, errors } (builds every template & part).
+ * Test hook: game.studio.selfTest() → { templates, parts, maxTriangles, errors } (builds every template & part);
+ *   &showroom=custom (dev/debug) lays every template out in the city via their hidden preview defs.
  *
  * CONTRACT: open(editId?), close(), isOpen, loadFromEmpire(), customDefs()
  */
@@ -91,6 +92,12 @@ export class Studio implements System {
       for (const d of this.readLibrary()) this.register(d, true);
     } catch (e) {
       console.warn('[studio] library unavailable', e);
+    }
+    // hidden template defs: 3D portraits in the Templates tab (and `&showroom=custom` lays them all out)
+    try {
+      this.ensureTemplateDefs();
+    } catch (e) {
+      console.warn('[studio] template previews unavailable', e);
     }
   }
 

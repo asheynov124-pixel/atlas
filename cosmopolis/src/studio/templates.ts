@@ -574,7 +574,7 @@ export function surpriseDesign(seed: number): DesignSpec {
   const now = Date.now();
   let spec: DesignSpec = { v: 1, id: newDesignId(), name: '', description: '', icon: '🎲', footprint: fp, fn, parts, created: now, updated: now, base: 'surprise' };
   if (analyze(spec).triangles > TRI_BUDGET) spec = simplify(spec);
-  spec.name = generateName(spec, Math.floor(r.next() * 1e6));
+  spec.name = generateName(spec, Math.floor(r.next() * 1e6), arch === 'tower' ? undefined : arch);
   spec.description = `A one-of-a-kind ${arch === 'eco' ? 'eco-terrace' : arch} conjured by the Studio’s dice.`;
   spec.icon = arch === 'tower' ? '🏙️' : arch === 'habitat' ? '🫧' : arch === 'temple' ? '⛩️' : arch === 'eco' ? '🌿' : '🗿';
   return spec;

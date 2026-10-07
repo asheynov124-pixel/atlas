@@ -342,11 +342,18 @@ const NAME_A = ['Aurora', 'Nova', 'Helix', 'Zenith', 'Solstice', 'Vega', 'Orion'
 const NAME_B_TALL = ['Spire', 'Tower', 'Needle', 'Pinnacle', 'Heights', 'Obelisk', 'Beacon', 'Monolith'];
 const NAME_B_WIDE = ['Pavilion', 'Habitat', 'Commons', 'Arcology', 'Rotunda', 'Hall', 'Terrace', 'Gardens', 'Dome', 'Exchange'];
 
-/** A pleasant generated name (deterministic for a seed). */
-export function generateName(spec: DesignSpec, seed: number): string {
+const NAME_B_KIND: Record<string, string[]> = {
+  temple: ['Temple', 'Sanctum', 'Shrine', 'Basilica', 'Pavilion', 'Pagoda'],
+  habitat: ['Habitat', 'Biodome', 'Colony', 'Outpost', 'Arcology'],
+  eco: ['Gardens', 'Terraces', 'Canopy', 'Commons', 'Greenhouse'],
+  monument: ['Monument', 'Memorial', 'Monolith', 'Gate', 'Sculpture'],
+};
+
+/** A pleasant generated name (deterministic for a seed); `kind` picks a fitting noun family. */
+export function generateName(spec: DesignSpec, seed: number, kind?: string): string {
   const tall = analyze(spec).height > footprintWidth(spec) * 1.6;
   const a = NAME_A[Math.abs(seed) % NAME_A.length];
-  const list = tall ? NAME_B_TALL : NAME_B_WIDE;
+  const list = (kind && NAME_B_KIND[kind]) || (tall ? NAME_B_TALL : NAME_B_WIDE);
   const b = list[Math.abs(Math.floor(seed / 7)) % list.length];
   return `${a} ${b}`;
 }
