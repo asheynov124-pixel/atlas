@@ -8,9 +8,9 @@
  */
 import type { MeshContext } from '../../catalog';
 import {
-  C, G, FL, TAU, Mat, mix, shade, civic, lot, block, door, canopy, sign, badge, patrolCar, fireTruck, ambulance, car, helipad, drone,
-  antenna, dish, acUnit, flag, lamp, lampRing, tree, grove, bush, bench, person, crowd, roofGarden, neonStrip, wall, fence, ngon, path,
-  steps, columns, solar, lShape, softHex, plate, rect, disc, carRow, hedge, flowers, stringLights, edging,
+  C, G, FL, TAU, Mat, mix, shade, civic, lot, block, door, canopy, sign, badge, patrolCar, fireTruck, ambulance, helipad, drone,
+  antenna, dish, acUnit, flag, lampRing, tree, bush, bench, person, crowd, roofGarden, neonStrip, wall, fence, ngon, path, steps,
+  columns, solar, lShape, softHex, edging,
 } from './parts';
 
 // ─────────────────────────────────────────────────────────── police

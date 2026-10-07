@@ -7,9 +7,9 @@
  */
 import type { MeshContext } from '../../catalog';
 import {
-  C, G, FL, TAU, Mat, mix, shade, civic, lot, block, door, canopy, sign, cross, ambulance, car, helipad, antenna, acUnit, flag, lamp,
-  lampRing, tree, bush, bench, person, crowd, roofGarden, neonStrip, path, ringPath, pool, rect, steps, columns, solar, flowers, hedge,
-  roundRect, carRow, disc, ngon, edging,
+  C, G, FL, TAU, Mat, mix, shade, civic, lot, block, door, canopy, sign, cross, ambulance, helipad, antenna, acUnit, lamp,
+  lampRing, tree, bench, crowd, roofGarden, neonStrip, path, ringPath, pool, rect, columns, solar, flowers, roundRect, carRow,
+  disc, edging,
 } from './parts';
 
 const WHITE = 0xf6f8fa;

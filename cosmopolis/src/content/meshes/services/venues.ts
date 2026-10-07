@@ -8,9 +8,8 @@
  */
 import type { MeshContext } from '../../catalog';
 import {
-  C, G, TAU, FUN, Mat, shade, lot, block, door, canopy, sign, car, carRow, antenna, flag, lamp, lampRing, tree, grove, bush, bench,
-  person, crowd, path, ringPath, pool, rect, steps, columns, flowers, hedge, roundRect, ellipse, disc, fence, wall, stringLights,
-  umbrella, halfDisc, edging, softHex, plate, type V2,
+  C, G, TAU, FUN, Mat, lot, block, door, canopy, sign, car, carRow, flag, lamp, lampRing, tree, bench, person, crowd, path,
+  ringPath, pool, rect, steps, flowers, roundRect, ellipse, disc, fence, stringLights, umbrella, halfDisc, edging, type V2,
 } from './parts';
 
 // ─────────────────────────────────────────────────────────── sports venues

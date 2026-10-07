@@ -6,9 +6,10 @@
  */
 import type { MeshContext } from '../../catalog';
 import {
-  C, G, FL, TAU, FUN, Mat, mix, shade, civic, lot, block, door, canopy, sign, schoolBus, car, helipad, antenna, dish, acUnit, flag,
-  lamp, lampRing, tree, grove, bush, bench, person, crowd, roofGarden, neonStrip, path, ringPath, pool, rect, steps, columns, solar,
-  flowers, hedge, roundRect, lShape, ellipse, disc, ngon, fence, plate, softHex,
+  C, G, FL, TAU, FUN, Mat, mix, shade, civic, lot, block, door, canopy, sign, schoolBus, car, antenna, dish, acUnit, flag, lamp,
+  lampRing, tree, grove, bush, bench, person, crowd, roofGarden, neonStrip, path, ringPath, pool, rect, steps, columns, solar,
+  roundRect, lShape, ellipse, disc, fence,
+  edging,
 } from './parts';
 
 const BRICK = 0xc0583a;
@@ -129,6 +130,7 @@ export function university(ctx: MeshContext): void {
   const { b, rng } = ctx;
   const stone = SANDSTONE, roof = 0x6a5a5a, brick = 0xb8664a;
   lot(b, 19, 0xd6d0c2);
+  b.push({ s: 1.32 });
   // quad
   b.plane(2.5, 2.7, { color: C.lawn, x: 0, y: G + 0.003, z: 0.15, paint: false });
   path(b, 0, 2.6, 0, -1.2, 0.2, C.path);
@@ -186,6 +188,7 @@ export function university(ctx: MeshContext): void {
   schoolBus(b, -0.9, 2.55, Math.PI / 2);
   bench(b, -0.35, 0.55, Math.PI);
   bench(b, 0.35, 0.55, Math.PI);
+  b.pop();
 }
 
 /** Robotics academy: glass-fronted workshop, giant orange robot-arm sculpture and a rover test loop. */
@@ -264,6 +267,7 @@ export function spaceAcademy(ctx: MeshContext): void {
   for (let i = 0; i < 4; i++) flag(b, 0.25 + i * 0.22, 1.25, 0.45, [0x3a8ae0, 0xe0703a, 0x9a5ae0, 0x4ac06a][i]);
   for (let i = 0; i < 3; i++) tree(b, -1.65 + i * 0.25, 0.9 + (i % 2) * 0.2, 1, 'pine', rng);
   antenna(b, 0.5, G + 0.42, 0.3, 0.4, 0xff3030);
+  edging(b, rng, 7, 6, ['pine', 'round'], { skip: [[2.0, 2.7], [3.6, 4.5], [5.5, 6.3], [0, 0.9]] });
 }
 
 /** Neural uplink academy: a sleek white needle under a holographic brain, fed by six glowing uplink pods. */
@@ -329,7 +333,8 @@ export function museumOldEarth(ctx: MeshContext): void {
   lot(b, 7, C.paving);
   const stone = 0xece4d4;
   b.box(2.2, 0.5, 0.95, { color: stone, mat: Mat.WindowSmall, top: 0xb8b0a0, x: 0, y: G, z: -0.75 });
-  b.box(2.22, 0.05, 0.97, { color: 0xc9a84a, x: 0, y: G + 0.5, z: -0.75 });
+  b.box(2.22, 0.05, 0.97, { color: 0xd8d0c0, top: 0x7a7e88, x: 0, y: G + 0.5, z: -0.75 });
+  b.box(2.23, 0.03, 0.98, { color: 0xc9a84a, x: 0, y: G + 0.42, z: -0.75, paint: false });
   [0xd84a3a, 0x3a6ae0, 0x4ac06a, 0xffc83a].forEach((col, i) => b.panel(0.14, 0.3, { color: col, x: -0.75 + i * 0.5, y: G + 0.12, z: -0.27, both: true, detail: true, paint: false }));
   // glass pyramids
   b.pyramid(0.9, 0.6, 0.9, { color: 0x8ab8d8, mat: Mat.Glass, x: 0, y: G, z: 0.3 });
@@ -552,5 +557,6 @@ export function xenobiologyInstitute(ctx: MeshContext): void {
     for (let k = 0; k < 3; k++) b.cone(0.05, 0.22 - k * 0.04, { color: [0x9a7aff, 0xff6ad8, 0x6affd0][k], mat: Mat.Glow, seg: 5, x: x + (k - 1) * 0.07, y: G, z, rz: (k - 1) * 0.3, paint: false });
   b.sphere(0.12, { color: 0x7aff6a, mat: Mat.Glow, x: 0.6, y: G + 0.05, z: 0.95, sy: 0.6, wSeg: 7, hSeg: 4, paint: false });
   for (let i = 0; i < 4; i++) person(b, rng.range(-0.5, 0.6), rng.range(0.6, 1.2), 0xffd23a);
+  edging(b, rng, 7, 6, ['alien', 'round', 'birch'], { skip: [[5.6, 6.3], [0, 0.7], [0.9, 1.6]] });
 }
 

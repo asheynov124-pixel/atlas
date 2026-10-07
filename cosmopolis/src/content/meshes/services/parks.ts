@@ -7,9 +7,8 @@
  */
 import type { MeshContext } from '../../catalog';
 import {
-  C, G, TAU, FUN, Mat, shade, lot, block, door, sign, car, antenna, flag, lamp, lampRing, tree, grove, bush, bench, person, crowd,
-  path, ringPath, pool, rect, steps, flowers, hedge, roundRect, ellipse, disc, fence, wall, stringLights, umbrella, halfDisc, edging,
-  softHex, ngon, type V2,
+  C, G, TAU, FUN, Mat, lot, block, door, flag, lamp, tree, bush, bench, person, crowd, path, ringPath, pool, steps, flowers, hedge,
+  ellipse, disc, fence, edging, softHex, type V2,
 } from './parts';
 
 // ─────────────────────────────────────────────────────────── neighbourhood parks
