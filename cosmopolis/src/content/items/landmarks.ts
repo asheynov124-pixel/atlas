@@ -130,7 +130,7 @@ const landmarks: ItemDef[] = [
   },
   {
     ...lm, id: 'lm_grotto', name: 'Bio-Luminescent Grotto', group: LM, icon: '🍄', tier: 3, footprint: 7,
-    cost: 70_000, upkeep: 1_000, height: 1.1, mesh: L.grotto,
+    cost: 70_000, upkeep: 1_000, height: 2.2, mesh: L.grotto,
     description: 'A mossy cave hill glowing from within, ringed by luminous mushrooms, crystal outcrops and a still pool. Nature’s own light show — best after dark.',
     flavor: 'The mushrooms glow brighter when you compliment them. Science is still processing this.',
     effects: { tourism: 750, landValue: 18, happiness: 12, pollution: -6, radius: 9 },

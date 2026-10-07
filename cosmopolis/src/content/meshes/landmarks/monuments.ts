@@ -336,7 +336,7 @@ export function neonPagoda({ b, rng }: Ctx): void {
     for (let k = 0; k < 4; k++) {
       const a = (k / 4) * TAU;
       const ox = Math.sin(a) * hw, oz = Math.cos(a) * hw;
-      b.box(ew * 1.04, 0.035, 0.035, { color: neon[i], mat: Mat.Glow, x: ox, z: oz, y: y + 0.005, ry: a + Math.PI / 2, paint: false });
+      b.box(ew * 1.06, 0.035, 0.035, { color: neon[i], mat: Mat.Glow, x: ox * 1.01, z: oz * 1.01, y: y + 0.005, ry: a, paint: false });
       const cx = Math.sin(a + Math.PI / 4) * hw * Math.SQRT2, cz = Math.cos(a + Math.PI / 4) * hw * Math.SQRT2;
       b.cone(0.05, 0.16, { color: P.gold, seg: 4, x: cx, z: cz, y: y + 0.02, rx: Math.cos(a + Math.PI / 4) * 0.6, rz: -Math.sin(a + Math.PI / 4) * 0.6, paint: false, detail: true });
       b.box(0.07, 0.12, 0.07, { color: 0xff5a3a, mat: Mat.Glow, x: cx * 0.98, z: cz * 0.98, y: y - 0.14, paint: false, detail: true });
@@ -435,10 +435,12 @@ export function spiralLibrary({ b, rng }: Ctx): void {
 export function grotto({ b, rng }: Ctx): void {
   plaza(b, 7, 0x4a5a4a, { field: 0x3f6a4a, fieldR: 0.92, round: true });
   // the mound
-  const rocks: [number, number, number, number][] = [[0, -0.3, 1.25, 0.8], [-0.9, -0.1, 0.8, 0.6], [0.95, -0.2, 0.85, 0.65], [-0.3, -1.0, 0.85, 0.7], [0.5, -0.95, 0.75, 0.6], [0, 0.35, 0.7, 0.55]];
-  for (const [x, z, r, sy] of rocks) b.sphere(r, { color: rng.pick([0x5a6a62, 0x4f5f5a, 0x667468]), flat: true, wSeg: 7, hSeg: 5, x, z, y: G - r * 0.2, sy, paint: false });
+  const rocks: [number, number, number, number][] = [[0, -0.35, 1.35, 0.95], [-0.95, -0.15, 0.85, 0.75], [1.0, -0.25, 0.9, 0.7], [-0.35, -1.05, 0.9, 0.8], [0.55, -1.0, 0.8, 0.7], [0, 0.3, 0.72, 0.62]];
+  for (const [x, z, r, sy] of rocks) b.sphere(r, { color: rng.pick([0x5a6a62, 0x4f5f5a, 0x667468]), flat: true, wSeg: 7, hSeg: 5, x, z, y: G - r * 0.15, sy, paint: false });
+  // a leaning rock spire on top
+  shard(b, 0.28, 0.9, 0x5a6a62, { x: -0.25, z: -0.55, y: 0.9, rz: 0.18, rx: -0.1, tip: 0.5, sides: 5 });
   // moss caps
-  b.sphere(0.95, { color: 0x4f8a4a, mat: Mat.Foliage, flat: true, wSeg: 7, hSeg: 3, y: G + 0.62, z: -0.35, sy: 0.35, thetaLength: Math.PI / 2, paint: false });
+  b.sphere(1.0, { color: 0x4f8a4a, mat: Mat.Foliage, flat: true, wSeg: 7, hSeg: 3, y: G + 0.78, z: -0.35, sy: 0.38, thetaLength: Math.PI / 2, paint: false });
   // cave mouth: dark arch with a glowing interior
   b.push({ z: 0.88, y: G });
   arch(b, 0.42, 0.1, { color: 0x3a4440, seg: 10, tube: 4, paint: false });
@@ -455,6 +457,12 @@ export function grotto({ b, rng }: Ctx): void {
     const det = i >= 10;
     b.cyl(0.02 * s, 0.03 * s, 0.16 * s, { color: 0xe8e0d0, seg: 4, x, z, y: G, paint: false, detail: det });
     b.sphere(0.08 * s, { color: rng.pick(mush), mat: Mat.Glow, wSeg: 6, hSeg: 2, thetaLength: Math.PI / 2, x, z, y: G + 0.16 * s, sy: 0.6, paint: false, detail: det });
+  }
+  // three giant glowing mushrooms
+  for (const [x, z, h, r, col] of [[1.55, 0.55, 1.2, 0.42, 0x3fe8ff], [-1.5, 0.75, 0.95, 0.36, 0xff5ad0], [1.35, -1.35, 0.8, 0.32, 0x9a5aff]] as [number, number, number, number, number][]) {
+    b.cyl(0.05, 0.08, h, { color: 0xf0e8d8, seg: 6, x, z, y: G, paint: false });
+    b.sphere(r, { color: col, mat: Mat.Glow, wSeg: 10, hSeg: 3, thetaLength: Math.PI / 2, x, z, y: G + h - 0.04, sy: 0.55, paint: false });
+    b.cyl(r * 0.95, r * 0.6, 0.06, { color: shade(col, 0.6), seg: 10, x, z, y: G + h - 0.1, paint: false });
   }
   // glowing vines & crystals on the hill
   for (let i = 0; i < 6; i++) {
@@ -746,7 +754,8 @@ export function terraformObelisk({ b, rng }: Ctx): void {
   // atmosphere vents with misty plumes
   ringOf(4, 1.35, (x, z) => {
     b.cyl(0.14, 0.18, 0.22, { color: P.basalt, seg: 6, x, z, y: G, paint: false });
-    b.cyl(0.32, 0.1, 1.1, { color: 0xd8fff0, mat: Mat.Holo, x, z, y: G + 0.22, seg: 6, capTop: false, paint: false, detail: true });
+    b.cyl(0.16, 0.07, 0.8, { color: 0x7affc8, mat: Mat.Holo, x, z, y: G + 0.22, seg: 6, capTop: false, paint: false, detail: true });
+    b.box(0.1, 0.03, 0.1, { color: 0x9aff5a, mat: Mat.Glow, x, z, y: G + 0.22, paint: false });
   });
   // orbiting rings
   b.torus(1.0, 0.035, { color: 0x9aff5a, mat: Mat.Glow, y: 3.6, rx: 0.2, seg: 24, tube: 3, paint: false });
@@ -770,7 +779,7 @@ export function cosmicClock({ b, rng }: Ctx): void {
   b.cyl(0.14, 0.22, 2.4, { color: P.brass, seg: 8, y: G + 0.3, paint: false });
   // the sun
   const sy = 3.05;
-  b.sphere(0.5, { color: 0xffb040, mat: Mat.Lava, y: sy, wSeg: 14, hSeg: 10, paint: false });
+  b.sphere(0.5, { color: 0xffb040, mat: Mat.Lava, y: sy, wSeg: 12, hSeg: 8, paint: false });
   b.torus(0.62, 0.02, { color: 0xfff0a0, mat: Mat.Glow, y: sy, rx: 0.4, seg: 20, tube: 3, paint: false, detail: true });
   // orbits & planets
   const orbits: [number, number, number, number, number][] = [
@@ -790,18 +799,11 @@ export function cosmicClock({ b, rng }: Ctx): void {
     if (i === 4) b.torus(pr * 1.7, 0.02, { color: 0xe8d8b0, x: px, y: sy + y1, z: pz, rx: 0.5, seg: 16, tube: 2, paint: false });
     if (i === 2) b.sphere(0.04, { color: 0xe8e8e8, x: px + 0.22, y: sy + y1 + 0.05, z: pz, wSeg: 5, hSeg: 3, paint: false, detail: true });
   });
-  // support arcs
-  for (const s of [-1, 1]) {
-    const pts: V3[] = [];
-    for (let j = 0; j <= 8; j++) {
-      const t = (j / 8) * Math.PI * 0.62 - 0.3;
-      pts.push([s * Math.cos(t) * 2.2, sy + Math.sin(t) * 2.2, 0]);
-    }
-    pts.unshift([s * 2.15, G, 0]);
-    b.tube(pts, 0.04, { color: P.brass, seg: 4, paint: false });
-  }
+  // armillary meridians cradling the whole mechanism
+  vring(b, 2.25, 0.035, { color: P.brass, y: sy, seg: 24, tube: 3, paint: false });
+  vring(b, 2.25, 0.03, { color: P.brass, y: sy, ry: Math.PI / 2, seg: 24, tube: 3, paint: false, detail: true });
   lampRing(b, 8, 2.25, 0.2, P.lamp, 0.2);
-  crowd(b, rng, 9, 1.0, 1.6);
+  crowd(b, rng, 6, 1.0, 1.6);
 }
 
 /** A giant standing halo framing a glowing bridge deck: the gateway every parade must pass through. */

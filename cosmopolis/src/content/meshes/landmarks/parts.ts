@@ -146,8 +146,9 @@ export function plaza(b: MeshBuilder, fp: 1 | 7 | 19, color: number, o: PlazaOpt
   if (o.field !== undefined) {
     const fr = r * (o.fieldR ?? 0.9);
     const poly = o.round ? ngon(fp === 19 ? 28 : 20, fr * 0.96) : softHex(fr, rot, 0.14);
-    if (o.kerb !== undefined) b.extrude(o.round ? ngon(fp === 19 ? 28 : 20, fr * 0.96 + 0.05) : softHex(fr + 0.05, rot, 0.14), 0.02, { color: o.kerb, y: G - 0.006, paint: false });
-    b.extrude(poly, 0.012, { color: o.field, y: G - 0.004, paint: false, topMat: o.fieldMat ?? Mat.Plain });
+    // kerb: a slightly larger plate just under the field, so only its rim shows
+    if (o.kerb !== undefined) b.extrude(o.round ? ngon(fp === 19 ? 28 : 20, fr * 0.96 + (fp === 19 ? 0.1 : 0.06)) : softHex(fr + (fp === 19 ? 0.1 : 0.06), rot, 0.14), 0.012, { color: o.kerb, y: G - 0.006, paint: false });
+    b.extrude(poly, 0.014, { color: o.field, y: G - 0.004, paint: false, topMat: o.fieldMat ?? Mat.Plain });
   }
   return G;
 }
