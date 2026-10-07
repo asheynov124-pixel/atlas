@@ -85,7 +85,8 @@ class Car {
   jLinks = 0;
   jPresent = 0;
   kIn = 0;
-  lights = false;
+  /** drawn last frame (unseen cars refresh their position only every 4th frame) */
+  seen = true;
   next = -1;
 }
 
@@ -110,6 +111,7 @@ export class RoadTraffic {
   private filled = false;
   private dispatchCool = 0;
   private fields = new Map<number, Map<number, number>>();
+  private frame = 0;
   /** current number of active cars */
   active = 0;
   target = 0;
@@ -518,6 +520,7 @@ export class RoadTraffic {
       head[c.slot] = i;
     }
     const t = ctx.time;
+    this.frame++;
     for (let i = 0; i < cars.length; i++) {
       const c = cars[i];
       if (!c.active) continue;
@@ -651,7 +654,7 @@ export class RoadTraffic {
       }
       this.enterHop(c);
     }
-    route.sample(p, c.hi, c.u, c.pos, c.dir);
+    if (c.seen || ((this.frame + c.index) & 3) === 0) route.sample(p, c.hi, c.u, c.pos, c.dir);
   }
 
   render(ctx: LifeCtx): void {
@@ -659,7 +662,10 @@ export class RoadTraffic {
     const night = cull.night;
     const close = cull.altitude < 60;
     this.visible = 0;
-    if (!close) return;
+    if (!close) {
+      for (const c of this.cars) c.seen = false;
+      return;
+    }
     const sprites = ctx.sprites;
     const beams = ctx.beams;
     const rt = ctx.realTime;
@@ -667,7 +673,9 @@ export class RoadTraffic {
       const c = this.cars[i];
       if (!c.active) continue;
       const P = c.pos;
-      if (!cull.visible(P.x, P.y, P.z, 0.35, 70)) continue;
+      c.seen = false;
+      if (!cull.visible(P.x, P.y, P.z, 0.6, 72)) continue;
+      c.seen = true;
       if (ctx.budget <= 0) return;
       ctx.budget--;
       this.visible++;

@@ -105,6 +105,9 @@ export class LifeRenderer {
   private time = 0;
   private enabled = true;
   private dense = 1;
+  /** per-subsystem smoothed CPU ms (set profile = true; read timings) */
+  profile = false;
+  readonly timings: Record<string, number> = {};
 
   constructor(private view: PlanetView) {
     this.group.name = 'life';
@@ -253,13 +256,22 @@ export class LifeRenderer {
     ctx.density = (tier <= 0 ? 0.45 : tier === 1 ? 0.7 : 1) * this.dense;
     ctx.budget = VISIBLE_BUDGET;
     this.cull.update(view.camera, view.planet.radius, view.sunDir);
-    for (const s of this.subs) this.safe(s.name, () => s.sub.update(ctx, mdt));
+    const prof = this.profile;
+    for (const s of this.subs) {
+      const t0 = prof ? performance.now() : 0;
+      this.safe(s.name, () => s.sub.update(ctx, mdt));
+      if (prof) this.timings[s.name] = (this.timings[s.name] ?? 0) * 0.9 + (performance.now() - t0) * 0.1;
+    }
     for (const b of this.batches.values()) b.begin();
     ctx.sprites.begin();
     ctx.beams.begin();
     ctx.wakes.begin();
     ctx.rings.begin();
-    for (const s of this.subs) this.safe(s.name + ':render', () => s.sub.render(ctx));
+    for (const s of this.subs) {
+      const t0 = prof ? performance.now() : 0;
+      this.safe(s.name + ':render', () => s.sub.render(ctx));
+      if (prof) this.timings[s.name + ':r'] = (this.timings[s.name + ':r'] ?? 0) * 0.9 + (performance.now() - t0) * 0.1;
+    }
     for (const b of this.batches.values()) b.end();
     ctx.sprites.end();
     ctx.beams.end();
