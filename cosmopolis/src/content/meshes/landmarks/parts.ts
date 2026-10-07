@@ -404,16 +404,16 @@ export function shard(b: MeshBuilder, r: number, h: number, color: number, o: { 
 
 /**
  * Frustum strut from point a (radius ra) to point c (radius rc). Cheaper than tube() for single segments and can
- * taper. Uses an XYZ Euler that maps +Y onto the a→c direction.
+ * taper. Uses an XYZ Euler that maps +Y onto the a→c direction; `spin` turns the cross-section about its own axis.
  */
-export function strut(b: MeshBuilder, a: V3, c: V3, ra: number, rc: number, o: PartOpts & { seg?: number; caps?: boolean }): void {
+export function strut(b: MeshBuilder, a: V3, c: V3, ra: number, rc: number, o: PartOpts & { seg?: number; caps?: boolean; spin?: number }): void {
   if (o.detail && b.lod === 1) return;
   const dx = c[0] - a[0], dy = c[1] - a[1], dz = c[2] - a[2];
   const len = Math.hypot(dx, dy, dz);
   if (len < 1e-5) return;
   const nx = dx / len, ny = dy / len, nz = dz / len;
   b.push({ x: a[0], y: a[1], z: a[2], rx: Math.atan2(nz, ny), rz: -Math.asin(Math.max(-1, Math.min(1, nx))) });
-  b.cyl(rc, ra, len, { ...o, x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, seg: o.seg ?? 6, capTop: o.caps ?? false, capBottom: false });
+  b.cyl(rc, ra, len, { ...o, x: 0, y: 0, z: 0, rx: 0, ry: o.spin ?? 0, rz: 0, seg: o.seg ?? 6, capTop: o.caps ?? false, capBottom: false });
   b.pop();
 }
 

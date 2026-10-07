@@ -188,9 +188,13 @@ export function grandArch({ b, rng }: Ctx): void {
   // legs taper from thick feet to a slender crown
   for (let i = 0; i < n; i++) {
     const tA = Math.abs(-1 + (2 * i) / n), tB = Math.abs(-1 + (2 * (i + 1)) / n);
-    strut(b, pts[i], pts[i + 1], 0.12 + 0.2 * tA, 0.12 + 0.2 * tB, { color: 0xe4eaf2, seg: 3, flat: true, paint: false, caps: false });
-    strut(b, [pts[i][0] * 0.93, pts[i][1] - 0.06 - 0.12 * tA, 0.0], [pts[i + 1][0] * 0.93, pts[i + 1][1] - 0.06 - 0.12 * tB, 0], 0.03, 0.03, { color: P.cyan, mat: Mat.Glow, seg: 4, paint: false });
+    const rA = 0.12 + 0.2 * tA, rB = 0.12 + 0.2 * tB;
+    strut(b, pts[i], pts[i + 1], rA, rB, { color: 0xe4eaf2, seg: 4, spin: Math.PI / 4, flat: true, paint: false, caps: false });
+    // neon spine on both faces of the arch, so it reads from every side after dark
+    for (const s of [-1, 1]) strut(b, [pts[i][0], pts[i][1], s * (rA * 0.707 + 0.012)], [pts[i + 1][0], pts[i + 1][1], s * (rB * 0.707 + 0.012)], 0.026, 0.026, { color: P.cyan, mat: Mat.Glow, seg: 4, paint: false });
   }
+  // uplights at the feet
+  for (const s of [-1, 1]) for (const z of [-0.5, 0.5]) b.box(0.14, 0.08, 0.1, { color: 0xeaf6ff, mat: Mat.Light, x: s * 1.75, z, y: G, rx: z * 0.8, paint: false, detail: true });
   ringOf(2, 2.05, (x, z) => b.box(0.7, 0.08, 0.7, { color: P.granite, x, z, y: G, paint: false }), Math.PI / 2);
   b.box(0.06, 0.24, 0.06, { color: P.white, mat: Mat.Light, y: G + H - 0.25, paint: false, detail: true });
   lampRing(b, 10, 1.85, 0.22, P.lamp, 0.31);
