@@ -102,6 +102,51 @@ export function offshore(p: Planet, tile: number, depthSteps = 3, maxSteps = 18)
   return cur;
 }
 
+/** Nearest tile of OPEN sea (≥ 85 % water within 3 rings — not a lake) to `tile`, or -1. */
+export function openSea(p: Planet, tile: number, maxSteps = 30): number {
+  if (!p.spec.hasOcean) return -1;
+  const g = p.grid;
+  const open = (t: number) => {
+    if (!p.isWater(t)) return false;
+    const d = g.disk(t, 3);
+    let w = 0;
+    for (const x of d) if (p.isWater(x)) w++;
+    return w >= d.length * 0.85;
+  };
+  if (open(tile)) return tile;
+  for (let r = 1; r <= maxSteps; r++) for (const t of g.ring(tile, r)) if (open(t)) return t;
+  return -1;
+}
+
+/** Land tiles within `maxSteps` of the sea → steps from the nearest water (multi-source BFS over `tiles`). */
+export function inlandDistance(p: Planet, tiles: ArrayLike<number>, maxSteps = 8): Map<number, number> {
+  const g = p.grid;
+  const inSet = new Set<number>();
+  for (let i = 0; i < tiles.length; i++) inSet.add(tiles[i]);
+  const dist = new Map<number, number>();
+  let frontier: number[] = [];
+  for (const t of inSet) {
+    if (p.isWater(t)) continue;
+    for (const n of g.neighbors(t))
+      if (p.isWater(n)) {
+        dist.set(t, 1);
+        frontier.push(t);
+        break;
+      }
+  }
+  for (let d = 2; d <= maxSteps && frontier.length; d++) {
+    const next: number[] = [];
+    for (const t of frontier)
+      for (const n of g.neighbors(t)) {
+        if (!inSet.has(n) || p.isWater(n) || dist.has(n)) continue;
+        dist.set(n, d);
+        next.push(n);
+      }
+    frontier = next;
+  }
+  return dist;
+}
+
 /** Centre of mass of the city (tile), or `fallback`. */
 export function cityCenter(p: Planet, fallback = 0): number {
   _a.set(0, 0, 0);

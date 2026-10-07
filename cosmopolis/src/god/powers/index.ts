@@ -6,5 +6,6 @@ import type { PowerSpec } from '../effect';
 import { WEATHER } from './weather';
 import { EARTH } from './earth';
 import { SKY } from './sky';
+import { CREATURE } from './creature';
 
-export const POWERS: PowerSpec[] = [...WEATHER, ...EARTH, ...SKY];
+export const POWERS: PowerSpec[] = [...WEATHER, ...EARTH, ...SKY, ...CREATURE];

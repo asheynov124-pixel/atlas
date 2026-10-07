@@ -16,7 +16,7 @@ import { InstState } from '../../render/materials';
 import { Effect, type PowerCtx, type PowerSpec } from '../effect';
 import { buildingHeight } from '../damage';
 import { notify } from '../../ui/store';
-import { clamp01, envelope, offshore, sinkBehaviour, skyPoint, smooth, sortedByAngle, tangents, tilesToAngle } from './common';
+import { clamp01, envelope, inlandDistance, offshore, openSea, sinkBehaviour, skyPoint, smooth, sortedByAngle, tangents, tilesToAngle } from './common';
 
 const _a = new Vector3();
 const _b = new Vector3();
@@ -375,13 +375,15 @@ class TsunamiEffect extends Effect {
   private start = 2.2;
   private loopW = this.loop('rumble', 0);
   private hits = 0;
+  private inland: Map<number, number>;
   constructor(ctx: PowerCtx) {
     super(ctx);
     this.epi = ctx.target.tile;
     this.nrm(this.epi, this.center);
     this.order = sortedByAngle(this.planet, this.epi, this.maxA);
+    this.inland = inlandDistance(this.planet, this.order.tiles, 8);
     this.wave = this.own(this.fx.shell(ShellMode.Wave, 40, 320));
-    this.wave.setCenter(this.center).colors(0x5fc2d8, 0x0d4566);
+    this.wave.setCenter(this.center).colors(0x5fc2d8, 0x0d4566).mask(this.fx.waterMask());
     this.wave.u.uR.value = this.R + this.planet.waterHeight;
     this.wave.u.uWidth.value = 0.05;
     this.wave.u.uHeight.value = 0;
@@ -396,7 +398,7 @@ class TsunamiEffect extends Effect {
     this.sfx('alarm', 0.5);
     // frame from the sea, looking at the coast the wave will hit
     const coast = this.order.tiles.find((t) => !this.planet.isWater(t));
-    if (coast !== undefined) this.god.frame(this.nrm(coast, new Vector3()).lerp(this.center, 0.35), 95, 0.62, 2.2);
+    if (coast !== undefined) this.god.frame(coast, 62, 1.12, 2.2, this.epi);
     this.fx.particles.emit(PRESETS.splash, this.pos(this.epi, _a), this.center, 30, 2.4, 2);
   }
   resolveDraw(): void {
@@ -446,8 +448,15 @@ class TsunamiEffect extends Effect {
     const p = this.planet;
     const dmg = this.god.damage();
     if (!dmg) return;
-    const reachLv = p.seaOffset + Math.round(H / 0.32) + 1;
-    const land = tiles.filter((t) => !p.isWater(t) && p.elevation[t] <= reachLv);
+    // run-up: how far inland (tiles) and how high (levels) the surge reaches, fading with distance
+    const decay = Math.exp(-a * 0.9);
+    const reachTiles = (1.5 + 2.2 * this.k) * decay + 0.5;
+    const reachLv = p.seaOffset + Math.max(1, Math.round((1.5 + 1.5 * this.k) * decay + H * 0.15));
+    const land = tiles.filter((t) => {
+      if (p.isWater(t) || p.elevation[t] > reachLv) return false;
+      const d = this.inland.get(t);
+      return d !== undefined && d <= reachTiles;
+    });
     if (!land.length) return;
     // low buildings are swept away, towers mostly stand (but flood)
     const lost = dmg.wreck(land, { chance: 0.75 * Math.min(1.4, this.k), maxHeight: 2.8 + this.k * 1.5, roads: 0.25, trees: true, report: this.report, rand: () => this.rng.next() });
@@ -692,9 +701,10 @@ export const EARTH: PowerSpec[] = [
         notify({ title: 'No ocean to stir', body: 'This world has no sea for a tsunami.', kind: 'info', icon: 'tsunami' });
         return false;
       }
-      const off = offshore(p, c.target.tile, 4, 30);
+      const sea = openSea(p, c.target.tile, 36);
+      const off = sea >= 0 ? offshore(p, sea, 3, 8) : -1;
       if (off < 0) {
-        notify({ title: 'Too far from the sea', body: 'Aim at the ocean or a coastline.', kind: 'info', icon: 'tsunami' });
+        notify({ title: 'Too far from the open sea', body: 'Aim at the ocean or a coastline.', kind: 'info', icon: 'tsunami' });
         return false;
       }
       c.target.tile = off;

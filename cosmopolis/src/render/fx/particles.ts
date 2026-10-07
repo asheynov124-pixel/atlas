@@ -26,7 +26,7 @@ import {
   type Object3D,
 } from 'three';
 import { shared } from '../materials';
-import { FX_NIGHT, FX_NOISE } from './glsl';
+import { FX_NIGHT, FX_NOISE, FX_TEXNOISE, fxNoiseUniform } from './glsl';
 
 export const PK = {
   Glow: 0,
@@ -185,6 +185,7 @@ varying float vSeed;
 varying float vAge;
 varying vec3 vWPos;
 ${FX_NOISE}
+${FX_TEXNOISE}
 ${FX_NIGHT}
 void main() {
   if (vCol.a <= 0.002) discard;
@@ -204,7 +205,7 @@ void main() {
     if (kind == 1) col += vec3(0.6) * exp(-r * r * 18.0);
   } else if (kind == 2 || kind == 7) {
     vec2 q = fxRot(vSeed * 6.28 + vAge * (vSeed - 0.5) * 0.8) * c;
-    float n = fxFbm2(q * 2.1 + vSeed * 19.0 + vAge * 0.35);
+    float n = fxTFbm2(q * 2.1 + vSeed * 19.0 + vAge * 0.35);
     a = smoothstep(1.0, 0.25, r + (n - 0.5) * 0.75);
     if (kind == 7) {
       float core = smoothstep(0.7, 0.0, r + (n - 0.5) * 0.4);
@@ -306,7 +307,7 @@ export class ParticleBuffer {
     this.material = new ShaderMaterial({
       vertexShader: VERT,
       fragmentShader: FRAG,
-      uniforms: { ...uniforms, uSunDir: shared.uSunDir, uAdditive: { value: additive ? 1 : 0 } },
+      uniforms: { ...uniforms, uSunDir: shared.uSunDir, uAdditive: { value: additive ? 1 : 0 }, uFxNoise: fxNoiseUniform },
       transparent: true,
       depthWrite: false,
       blending: additive ? AdditiveBlending : CustomBlending,

@@ -501,12 +501,21 @@ export class GodPowers implements System {
     pushNews({ author, handle, icon, text, tile });
   }
 
-  /** Fly the camera to frame an event (tile or direction). */
-  frame(where: number | Vector3, distance: number, tilt?: number, duration?: number): void {
+  /**
+   * Fly the camera to frame an event (tile or direction). `toward` (tile or direction) turns the view so the
+   * camera looks across the target toward it (e.g. from the coast out to sea, where the tsunami comes from).
+   */
+  frame(where: number | Vector3, distance: number, tilt?: number, duration?: number, toward?: number | Vector3): void {
     try {
       const cam = this.game.camera;
-      const dir = typeof where === 'number' ? (this.game.planet ? tileNormal(this.game.planet, where, _v) : _v.set(0, 0, 1)) : _v.copy(where).normalize();
-      void cam.flyTo(dir.clone(), { distance, tilt, duration });
+      const p = this.game.planet;
+      const dir = typeof where === 'number' ? (p ? tileNormal(p, where, new Vector3()) : new Vector3(0, 0, 1)) : where.clone().normalize();
+      let heading: number | undefined;
+      if (toward !== undefined) {
+        const to = typeof toward === 'number' ? (p ? tileNormal(p, toward, new Vector3()) : dir.clone()) : toward.clone().normalize();
+        heading = headingToward(dir, to);
+      }
+      void cam.flyTo(dir, { distance, tilt, duration, heading });
     } catch {
       /* camera optional */
     }
@@ -539,6 +548,18 @@ export class GodPowers implements System {
     const ok = this.trigger(id, target, { intensity });
     console.info(`[god] url trigger ${id} → ${ok}`);
   }
+}
+
+/** CameraRig heading (radians from local north) that looks from `at` toward `to` (both unit directions). */
+export function headingToward(at: Vector3, to: Vector3): number {
+  const up = _v.copy(at).normalize();
+  const n0 = new Vector3(0, 1, 0).addScaledVector(up, -up.y);
+  if (n0.lengthSq() < 1e-8) n0.set(0, 0, up.y > 0 ? -1 : 1);
+  n0.normalize();
+  const r0 = new Vector3().crossVectors(n0, up).normalize();
+  const d = to.clone().addScaledVector(up, -to.dot(up));
+  if (d.lengthSq() < 1e-10) return 0;
+  return Math.atan2(d.dot(r0), d.dot(n0));
 }
 
 function getTags(defId: string): string[] {

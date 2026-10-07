@@ -17,7 +17,7 @@
  * composed on a paused game). Particle counts / pools scale with the engine quality tier (Low → Ultra).
  * Everything is disposed with the view; `clearAll()` wipes running visuals (rewind).
  */
-import { Group, Vector2, Vector3, type Camera, type PerspectiveCamera } from 'three';
+import { DataTexture, Group, LinearFilter, RedFormat, UnsignedByteType, Vector2, Vector3, type Camera, type PerspectiveCamera } from 'three';
 import { game } from '../../game/instance';
 import { tileNormal } from '../../world/geo';
 import type { Planet } from '../../world/planet';
@@ -67,6 +67,8 @@ export class FxLayer {
   private maxPoint = 256;
   private disposed = false;
   private _cracks: Cracks | null = null;
+  private mask: DataTexture | null = null;
+  private maskVersion = -1;
   /** objects that survive clearAll() (moons / rings a god created — they live until the view is rebuilt) */
   private keep = new Set<FxObject>();
 
@@ -110,6 +112,35 @@ export class FxLayer {
   get cracks(): Cracks {
     if (!this._cracks) this._cracks = new Cracks(this.planetGroup, [400, 700, 1000, 1400][this.tier]);
     return this._cracks;
+  }
+
+  /**
+   * Equirectangular land/water mask of the planet (R: 255 = water), rebuilt when the terrain or sea level changes.
+   * u = atan(z, x) / 2π + 0.5, v = acos(y) / π. Shells use it to keep tsunami walls on the sea.
+   */
+  waterMask(): DataTexture {
+    const p = this.planet;
+    if (this.mask && this.maskVersion === p.terrainVersion) return this.mask;
+    const W = 384, H = 192;
+    const data = this.mask ? (this.mask.image.data as Uint8Array) : new Uint8Array(W * H);
+    let hint = 0;
+    for (let j = 0; j < H; j++) {
+      const th = ((j + 0.5) / H) * Math.PI;
+      const st = Math.sin(th), ct = Math.cos(th);
+      for (let i = 0; i < W; i++) {
+        const lon = ((i + 0.5) / W) * Math.PI * 2 - Math.PI;
+        hint = p.grid.tileAt(st * Math.cos(lon), ct, st * Math.sin(lon), hint);
+        data[j * W + i] = p.isWater(hint) ? 255 : 0;
+      }
+    }
+    if (!this.mask) {
+      this.mask = new DataTexture(data, W, H, RedFormat, UnsignedByteType);
+      this.mask.magFilter = this.mask.minFilter = LinearFilter;
+      this.mask.name = 'fx-water-mask';
+    }
+    this.mask.needsUpdate = true;
+    this.maskVersion = p.terrainVersion;
+    return this.mask;
   }
 
   /** Quality-scaled count helper. */
@@ -202,7 +233,7 @@ export class FxLayer {
       if (r) {
         r.getDrawingBufferSize(_size);
         this.pointScale.value = _size.y * 0.5 * cam.projectionMatrix.elements[5];
-        this.particles.uniforms.uMaxSize.value = Math.min(this.maxPoint, _size.y * 0.45);
+        this.particles.uniforms.uMaxSize.value = Math.min(this.maxPoint, _size.y * 0.3);
         this.particles.uniforms.uAspect.value = cam.projectionMatrix.elements[5] / Math.max(1e-6, cam.projectionMatrix.elements[0]);
       }
     } catch {
@@ -251,6 +282,8 @@ export class FxLayer {
     this.bolts.dispose();
     this._cracks?.dispose();
     this._cracks = null;
+    this.mask?.dispose();
+    this.mask = null;
     this.planetGroup.removeFromParent();
     this.worldGroup.removeFromParent();
   }

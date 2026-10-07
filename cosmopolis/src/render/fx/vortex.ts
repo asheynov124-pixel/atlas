@@ -24,7 +24,7 @@ import {
   type Object3D,
 } from 'three';
 import { shared } from '../materials';
-import { FX_NIGHT, FX_NOISE } from './glsl';
+import { FX_NIGHT, FX_NOISE, FX_TEXNOISE, fxNoiseUniform } from './glsl';
 import { fxRand } from './particles';
 
 const FUNNEL_VERT = /* glsl */ `
@@ -68,11 +68,12 @@ varying vec3 vW;
 varying vec3 vN;
 varying float vY;
 ${FX_NOISE}
+${FX_TEXNOISE}
 ${FX_NIGHT}
 void main() {
   float u = vUv.x * 6.2831;
   vec2 q = vec2(u * 2.0 + vY * 7.0 - uTime * uSpin, vY * 9.0 - uTime * 1.5);
-  float n = fxFbm2(vec2(cos(q.x), sin(q.x)) * 1.6 + vec2(q.y * 0.5, q.y));
+  float n = fxTFbm2(vec2(cos(q.x), sin(q.x)) * 1.6 + vec2(q.y * 0.5, q.y));
   float bands = 0.55 + 0.45 * sin(u * 3.0 + vY * 26.0 - uTime * uSpin * 1.3 + n * 4.0);
   float a = smoothstep(0.25, 0.75, n * 0.8 + bands * 0.5);
   a *= smoothstep(0.0, 0.06, vY) * (1.0 - smoothstep(0.82, 1.0, vY));
@@ -181,7 +182,7 @@ export class Tornado {
       const mat = new ShaderMaterial({
         vertexShader: FUNNEL_VERT,
         fragmentShader: FUNNEL_FRAG,
-        uniforms: { ...u, uSunDir: shared.uSunDir, uCameraPos: shared.uCameraPos },
+        uniforms: { ...u, uSunDir: shared.uSunDir, uCameraPos: shared.uCameraPos, uFxNoise: fxNoiseUniform },
         transparent: true,
         depthWrite: false,
         side: DoubleSide,

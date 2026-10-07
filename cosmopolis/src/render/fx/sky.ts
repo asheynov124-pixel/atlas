@@ -30,7 +30,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import { shared } from '../materials';
-import { FX_NOISE } from './glsl';
+import { FX_NOISE, FX_TEXNOISE, fxNoiseUniform } from './glsl';
 import type { FxObject } from './FxLayer';
 
 const UP = new Vector3(0, 1, 0);
@@ -63,11 +63,12 @@ varying vec3 vN;
 varying vec3 vW;
 varying vec3 vL;
 ${FX_NOISE}
+${FX_TEXNOISE}
 void main() {
   vec3 V = normalize(uCameraPos - vW);
   float f = abs(dot(normalize(vN), V));
   float core = pow(f, uPower);
-  float n = uNoise > 0.0 ? fxFbm3(normalize(vL) * 3.0 + vec3(0.0, uTime * 0.8, uTime * 0.5)) : 0.5;
+  float n = uNoise > 0.0 ? fxTFbm3(normalize(vL) * 3.0 + vec3(0.0, uTime * 0.8, uTime * 0.5)) : 0.5;
   float a = core * (1.0 - uNoise * 0.6 + uNoise * n * 1.2) * uIntensity;
   vec3 col = mix(uColor, uCore, pow(f, uPower * 2.0));
   gl_FragColor = vec4(col * a, 0.0);
@@ -86,6 +87,7 @@ export function glowMaterial(color: number, core = 0xffffff, power = 2.2, noise 
       uTime: { value: 0 },
       uNoise: { value: noise },
       uCameraPos: shared.uCameraPos,
+      uFxNoise: fxNoiseUniform,
     },
     transparent: true,
     depthWrite: false,

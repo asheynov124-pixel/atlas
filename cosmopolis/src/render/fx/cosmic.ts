@@ -37,7 +37,7 @@ import {
   type Object3D,
 } from 'three';
 import { shared } from '../materials';
-import { FX_NOISE } from './glsl';
+import { FX_NOISE, FX_TEXNOISE, fxNoiseUniform } from './glsl';
 import type { FxObject } from './FxLayer';
 
 const _v = new Vector3();
@@ -89,6 +89,7 @@ uniform vec3 uCameraPos;
 uniform float uTime;
 varying vec3 vW;
 ${FX_NOISE}
+${FX_TEXNOISE}
 vec3 starLayer(vec3 d) {
   vec3 p = d * 140.0;
   vec3 i = floor(p);
@@ -103,7 +104,7 @@ vec3 background(vec3 d) {
     vec3 s = textureCube(uSky, uSkyRot * d).rgb;
     c += pow(s, vec3(2.2)) * 0.6 * uSkyGain;
   } else {
-    float n = fxFbm3(d * 3.0);
+    float n = fxTFbm3(d * 3.0);
     c += vec3(0.25, 0.12, 0.4) * pow(n, 3.0) * 0.6;
   }
   return c;
@@ -132,7 +133,7 @@ void main() {
     vec3 n = normalize(hp);
     float lit = max(0.0, dot(n, uSunDir));
     float rim = pow(1.0 - max(0.0, dot(n, -d2)), 2.0);
-    float land = smoothstep(0.45, 0.6, fxFbm3(n * 4.0));
+    float land = smoothstep(0.45, 0.6, fxTFbm3(n * 4.0));
     col = mix(uAtmo * 0.35, uLand, land) * (0.06 + lit) + uAtmo * rim * (0.2 + lit);
   }
   // event horizon & photon ring
@@ -168,13 +169,14 @@ uniform vec3 uC;
 varying vec2 vP;
 varying vec3 vW;
 ${FX_NOISE}
+${FX_TEXNOISE}
 void main() {
   float r = length(vP);
   float x = clamp((r - uInner) / (uOuter - uInner), 0.0, 1.0);
   float ang = atan(vP.y, vP.x);
   // keplerian shear: inner orbits faster
   float w = uTime * (2.4 / (0.25 + x * 1.6));
-  float bands = fxFbm2(vec2(ang * 3.0 + w, x * 14.0)) ;
+  float bands = fxTFbm2(vec2(ang * 3.0 + w, x * 14.0)) ;
   float streaks = fxNoise2(vec2(ang * 18.0 + w * 2.0, x * 60.0));
   float dens = smoothstep(0.0, 0.06, x) * (1.0 - smoothstep(0.55, 1.0, x)) * (0.45 + 0.8 * bands + 0.25 * streaks);
   // relativistic beaming: the side moving toward the camera is brighter & bluer
@@ -223,6 +225,7 @@ export class BlackHole implements FxObject {
       vertexShader: LENS_VERT,
       fragmentShader: LENS_FRAG,
       uniforms: {
+        uFxNoise: fxNoiseUniform,
         uC: { value: this.center },
         uRs: { value: 1 },
         uL: { value: 6 },
@@ -248,6 +251,7 @@ export class BlackHole implements FxObject {
       vertexShader: DISK_VERT,
       fragmentShader: DISK_FRAG,
       uniforms: {
+        uFxNoise: fxNoiseUniform,
         uTime: { value: 0 },
         uInner: { value: 1.25 },
         uOuter: { value: 4.6 },
@@ -268,6 +272,7 @@ export class BlackHole implements FxObject {
       fragmentShader: /* glsl */ `
         uniform float uTime; uniform float uIntensity; varying vec2 vP;
         ${FX_NOISE}
+${FX_TEXNOISE}
         void main() {
           float r = length(vP);
           float ang = atan(vP.y, vP.x);
@@ -277,7 +282,8 @@ export class BlackHole implements FxObject {
           float a = band * top * uIntensity;
           gl_FragColor = vec4(col * a * 1.8, 0.0);
         }`,
-      uniforms: { uTime: { value: 0 }, uIntensity: { value: 0 } },
+      uniforms: {
+        uFxNoise: fxNoiseUniform, uTime: { value: 0 }, uIntensity: { value: 0 } },
       ...additive,
       side: DoubleSide,
     });
@@ -357,11 +363,12 @@ varying vec3 vN;
 varying vec3 vW;
 varying vec3 vL;
 ${FX_NOISE}
+${FX_TEXNOISE}
 void main() {
   vec3 V = normalize(uCameraPos - vW);
   float f = abs(dot(normalize(vN), V));
   float rim = pow(1.0 - f, 2.2);
-  float n = fxFbm3(normalize(vL) * 5.0 + vec3(uTime * 0.25, -uTime * 0.15, uTime * 0.2));
+  float n = fxTFbm3(normalize(vL) * 5.0 + vec3(uTime * 0.25, -uTime * 0.15, uTime * 0.2));
   float fil = smoothstep(0.42, 0.85, n);
   vec3 col = mix(uColB, uColA, fil) * (0.35 + rim * 2.4) * (0.5 + fil * 1.2);
   float a = (rim * 0.9 + fil * 0.45) * uIntensity;
@@ -377,7 +384,8 @@ export class NovaShell implements FxObject {
     this.mat = new ShaderMaterial({
       vertexShader: NOVA_VERT,
       fragmentShader: NOVA_FRAG,
-      uniforms: { uTime: { value: 0 }, uIntensity: { value: 1 }, uColA: { value: new Color(colA) }, uColB: { value: new Color(colB) }, uCameraPos: shared.uCameraPos },
+      uniforms: {
+        uFxNoise: fxNoiseUniform, uTime: { value: 0 }, uIntensity: { value: 1 }, uColA: { value: new Color(colA) }, uColB: { value: new Color(colB) }, uCameraPos: shared.uCameraPos },
       ...additive,
       side: DoubleSide,
     });
@@ -408,10 +416,11 @@ varying vec3 vN;
 varying vec3 vW;
 varying vec3 vL;
 ${FX_NOISE}
+${FX_TEXNOISE}
 void main() {
   vec3 p = normalize(vL);
-  float n = fxFbm3(p * 4.0 + vec3(0.0, uTime * 0.12, 0.0));
-  float cells = fxFbm3(p * 11.0 - vec3(uTime * 0.05));
+  float n = fxTFbm3(p * 4.0 + vec3(0.0, uTime * 0.12, 0.0));
+  float cells = fxTFbm3(p * 11.0 - vec3(uTime * 0.05));
   float crust = smoothstep(0.5, 0.62, n + cells * 0.3);
   vec3 hot = fxBlackbody(0.75 + 0.25 * cells);
   vec3 col = mix(hot * 2.2, vec3(0.12, 0.05, 0.03), crust * 0.8);
@@ -426,7 +435,8 @@ export function lavaMaterial(): ShaderMaterial {
   return new ShaderMaterial({
     vertexShader: NOVA_VERT,
     fragmentShader: LAVA_FRAG,
-    uniforms: { uTime: { value: 0 }, uIntensity: { value: 1 }, uCameraPos: shared.uCameraPos },
+    uniforms: {
+        uFxNoise: fxNoiseUniform, uTime: { value: 0 }, uIntensity: { value: 1 }, uCameraPos: shared.uCameraPos },
   });
 }
 
@@ -467,10 +477,11 @@ uniform float uR;
 uniform float uHeat;
 varying vec2 vP;
 ${FX_NOISE}
+${FX_TEXNOISE}
 void main() {
   float r = length(vP) / uR;
   float ang = atan(vP.y, vP.x);
-  float n = fxFbm2(vP * 0.35 + vec2(uTime * 0.05, 0.0));
+  float n = fxTFbm2(vP * 0.35 + vec2(uTime * 0.05, 0.0));
   // crust (dark rock), mantle (orange convection), outer core (yellow), inner core (white)
   float crust = smoothstep(0.9, 0.95, r);
   vec3 mantle = fxBlackbody(0.35 + 0.35 * n + 0.25 * (1.0 - r));
@@ -545,7 +556,8 @@ export class PlanetSplit implements FxObject {
       const mat = new ShaderMaterial({
         vertexShader: CAP_VERT,
         fragmentShader: CAP_FRAG,
-        uniforms: { uTime: { value: 0 }, uR: { value: R * 0.99 }, uHeat: { value: 1 } },
+        uniforms: {
+        uFxNoise: fxNoiseUniform, uTime: { value: 0 }, uR: { value: R * 0.99 }, uHeat: { value: 1 } },
         side: DoubleSide,
       });
       this.capMats.push(mat);
@@ -595,6 +607,7 @@ varying vec3 vN;
 varying vec3 vW;
 varying vec3 vL;
 ${FX_NOISE}
+${FX_TEXNOISE}
 vec3 spectrum(float x) {
   return clamp(vec3(abs(x * 6.0 - 3.0) - 1.0, 2.0 - abs(x * 6.0 - 2.0), 2.0 - abs(x * 6.0 - 4.0)), 0.0, 1.0);
 }
@@ -604,7 +617,7 @@ void main() {
   float rim = pow(1.0 - f, 3.0);
   vec3 p = normalize(vL);
   // thin-film interference: hue shifts with view angle and swirling thickness
-  float thick = fxFbm3(p * 3.0 + vec3(uTime * 0.2, 0.0, -uTime * 0.15));
+  float thick = fxTFbm3(p * 3.0 + vec3(uTime * 0.2, 0.0, -uTime * 0.15));
   vec3 film = spectrum(fract(f * 1.6 + thick * 1.3 + uTime * 0.05));
   // hexagonal lattice of "new physics" etched on the wall
   vec2 q = vec2(atan(p.z, p.x) * 12.0, acos(clamp(p.y, -1.0, 1.0)) * 12.0);
@@ -624,7 +637,8 @@ export class Bubble implements FxObject {
     this.mat = new ShaderMaterial({
       vertexShader: NOVA_VERT,
       fragmentShader: BUBBLE_FRAG,
-      uniforms: { uTime: { value: 0 }, uIntensity: { value: 1 }, uCameraPos: shared.uCameraPos },
+      uniforms: {
+        uFxNoise: fxNoiseUniform, uTime: { value: 0 }, uIntensity: { value: 1 }, uCameraPos: shared.uCameraPos },
       ...additive,
       side: DoubleSide,
     });
@@ -655,17 +669,18 @@ uniform float uHasSky;
 uniform vec3 uTint;
 varying vec2 vP;
 ${FX_NOISE}
+${FX_TEXNOISE}
 void main() {
   float r = length(vP);
   if (r > 1.0) discard;
   float ang = atan(vP.y, vP.x);
   float swirl = ang + 3.5 / (r + 0.15) - uTime * 1.6;
   float arms = 0.5 + 0.5 * sin(swirl * 3.0 + fxNoise2(vec2(swirl, r * 6.0)) * 2.0);
-  float n = fxFbm2(vec2(swirl * 1.2, r * 5.0 - uTime * 0.8));
+  float n = fxTFbm2(vec2(swirl * 1.2, r * 5.0 - uTime * 0.8));
   // the far universe at the throat
   vec3 dir = normalize(vec3(vP * 1.4 * (1.0 + 0.6 * sin(uTime * 0.3)), 1.0));
   dir.xy = fxRot(uTime * 0.2 + (1.0 - r) * 3.0) * dir.xy;
-  vec3 far = uHasSky > 0.5 ? pow(textureCube(uSky, dir).rgb, vec3(2.2)) * 2.5 : vec3(0.3, 0.2, 0.6) * fxFbm2(dir.xy * 4.0);
+  vec3 far = uHasSky > 0.5 ? pow(textureCube(uSky, dir).rgb, vec3(2.2)) * 2.5 : vec3(0.3, 0.2, 0.6) * fxTFbm2(dir.xy * 4.0);
   float throat = smoothstep(0.42, 0.0, r);
   vec3 col = mix(uTint * (0.6 + 1.6 * arms * n), far + vec3(0.4, 0.6, 1.0) * 0.2, throat);
   float edge = smoothstep(1.0, 0.82, r);
@@ -686,7 +701,8 @@ export class Portal implements FxObject {
     this.mat = new ShaderMaterial({
       vertexShader: DISK_VERT,
       fragmentShader: PORTAL_FRAG,
-      uniforms: { uTime: { value: 0 }, uIntensity: { value: 0 }, uSky: { value: sky.tex }, uHasSky: { value: sky.tex ? 1 : 0 }, uTint: { value: new Color(tint) } },
+      uniforms: {
+        uFxNoise: fxNoiseUniform, uTime: { value: 0 }, uIntensity: { value: 0 }, uSky: { value: sky.tex }, uHasSky: { value: sky.tex ? 1 : 0 }, uTint: { value: new Color(tint) } },
       ...premul,
       side: DoubleSide,
     });

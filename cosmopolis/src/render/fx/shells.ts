@@ -13,9 +13,9 @@
  *   FRONT   alpha band with a bright edge (freeze fronts, terraform / goo waves)
  *   VEIL    alpha cap of soft cloud (dust winter, ash, spore clouds) lit by the sun
  */
-import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, CustomBlending, Mesh, OneFactor, OneMinusSrcAlphaFactor, ShaderMaterial, Vector3, type Object3D } from 'three';
+import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, CustomBlending, Mesh, OneFactor, OneMinusSrcAlphaFactor, ShaderMaterial, Vector3, type Object3D, type Texture } from 'three';
 import { shared } from '../materials';
-import { FX_NOISE } from './glsl';
+import { FX_NOISE, FX_TEXNOISE, fxNoiseUniform } from './glsl';
 
 export const ShellMode = { Ring: 0, Wave: 1, Spiral: 2, Glow: 3, Fire: 4, Front: 5, Veil: 6 } as const;
 export type ShellModeId = (typeof ShellMode)[keyof typeof ShellMode];
@@ -64,11 +64,14 @@ uniform float uAngle;
 uniform float uWidth;
 uniform float uHeight;
 uniform float uTime;
+uniform sampler2D uMask;
+uniform float uUseMask;
 varying vec3 vN;
 varying vec3 vW;
 varying float vAng;
 varying float vAz;
 varying float vH;
+varying float vWet;
 ${FX_NOISE}
 float waveProfile(float x) {
   // x > 0 behind the front (toward the epicentre), x < 0 ahead of it
@@ -81,13 +84,15 @@ void main() {
   vec3 dir = cos(ang) * uCenter + sin(ang) * side;
   float h = 0.0;
   vec3 n = dir;
+  vWet = 1.0;
+  if (uUseMask > 0.5) vWet = texture2D(uMask, vec2(atan(dir.z, dir.x) * 0.15915494 + 0.5, acos(clamp(dir.y, -1.0, 1.0)) * 0.31830989)).r;
   if (uMode > 0.5 && uMode < 1.5) {
-    float wob = 0.75 + 0.25 * fxNoise2(vec2(az * 9.0, uTime * 0.4)) + 0.12 * sin(az * 31.0 + uTime);
+    float wob = 0.82 + 0.18 * fxNoise2(vec2(az * 7.0, uTime * 0.3)) + 0.04 * sin(az * 23.0 + uTime);
     float x = (uAngle - ang) / max(uWidth, 1e-4);
     float e = 0.02;
     float h0 = waveProfile(x);
     float h1 = waveProfile(x + e);
-    h = uHeight * wob * h0;
+    h = uHeight * wob * h0 * mix(0.08, 1.0, smoothstep(0.15, 0.85, vWet));
     // slope along the arc (toward the epicentre is +x)
     float dhds = uHeight * wob * (h1 - h0) / e / max(uWidth * uR, 1e-3);
     vec3 toward = normalize(uCenter - dir * dot(uCenter, dir) + vec3(1e-6));
@@ -122,7 +127,9 @@ varying vec3 vW;
 varying float vAng;
 varying float vAz;
 varying float vH;
+varying float vWet;
 ${FX_NOISE}
+${FX_TEXNOISE}
 void main() {
   int mode = int(uMode + 0.5);
   vec3 col = uColor;
@@ -141,28 +148,34 @@ void main() {
     return;
   } else if (mode == 1) {
     float x = (uAngle - vAng) / max(uWidth, 1e-4);
-    float crest = smoothstep(0.08, 0.6, vH / max(uHeight, 1e-3));
+    float hf = vH / max(uHeight, 1e-3);
+    float face = smoothstep(0.35, -0.4, x);
     vec3 N = normalize(vN);
-    float diff = max(0.0, dot(N, uSunDir)) * 0.8 + 0.25;
+    float diff = max(0.0, dot(N, uSunDir)) * 0.75 + 0.3;
     vec3 H = normalize(uSunDir + V);
-    float spec = pow(max(0.0, dot(N, H)), 80.0) * 1.6 * day;
+    float spec = pow(max(0.0, dot(N, H)), 90.0) * 1.4 * day;
     float fres = pow(1.0 - max(0.0, dot(N, V)), 3.0);
-    vec3 deep = uColor2;
-    vec3 body = mix(deep, uColor, smoothstep(0.0, 1.0, vH / max(uHeight, 1e-3)));
-    float foamN = fxFbm2(vec2(vAz * 70.0, vAng * 260.0 - uTime * 2.2));
-    float foam = smoothstep(0.55, 0.95, crest + foamN * 0.5) * smoothstep(1.5, -0.3, x);
-    foam = max(foam, smoothstep(0.25, 0.0, abs(x + 0.15)) * smoothstep(0.35, 0.7, foamN) * crest);
-    col = body * diff * mix(0.35, 1.0, day) + vec3(spec) + fres * vec3(0.25, 0.4, 0.5) * day;
-    col = mix(col, vec3(0.92, 0.97, 1.0) * mix(0.25, 1.0, day), foam);
-    a = smoothstep(0.02, 0.25, crest) * uIntensity;
+    vec3 body = mix(uColor2, uColor, smoothstep(0.05, 0.95, hf));
+    // light through the thin top of the wall (subsurface glow when the sun is behind it)
+    float sss = pow(max(0.0, dot(V, -uSunDir)) * 0.5 + 0.5, 4.0) * smoothstep(0.45, 0.95, hf);
+    col = body * diff * mix(0.35, 1.0, day) + vec3(0.2, 0.72, 0.62) * sss * 0.55 * day + vec3(spec) + fres * vec3(0.2, 0.35, 0.45) * day;
+    float foamN = fxTFbm2(vec2(vAz * 70.0, vAng * 260.0 - uTime * 2.2));
+    float lip = smoothstep(0.84, 0.97, hf + (foamN - 0.5) * 0.3);
+    float streak = smoothstep(0.6, 0.82, fxTFbm2b(vec2(vAz * 150.0, hf * 2.5 - uTime * 0.7))) * face * smoothstep(0.25, 0.75, hf);
+    float churn = smoothstep(0.3, 0.0, hf) * smoothstep(0.42, 0.72, foamN) * smoothstep(-1.6, 0.4, x);
+    float foam = clamp(lip + streak * 0.75 + churn, 0.0, 1.0);
+    col = mix(col, vec3(0.9, 0.96, 1.0) * mix(0.25, 1.0, day), foam);
+    a = smoothstep(0.02, 0.2, hf) * uIntensity;
     a = max(a, foam * uIntensity);
+    // over land the wall collapses into a thin sheet of surging foam
+    a *= mix(0.35 * foam, 1.0, smoothstep(0.2, 0.7, vWet));
   } else if (mode == 2) {
     // spiral storm in local polar coords (rho = angular distance, az)
     float rho = vAng / max(uA1, 1e-4);
     float arms = 3.0;
     float sp = vAz * arms + log(max(rho, 0.02)) * 4.2 - uTime * uSpin;
     vec2 q = vec2(cos(sp), sin(sp)) * (0.6 + rho * 2.0) + vec2(vAz * 0.0, rho * 6.0);
-    float n = fxFbm2(q * 2.4 + vec2(uTime * 0.05, 0.0));
+    float n = fxTFbm2(q * 2.4 + vec2(uTime * 0.05, 0.0));
     float bands = 0.5 + 0.5 * sin(sp * 1.0);
     float cloud = smoothstep(0.35, 0.8, n * 0.7 + bands * 0.55);
     float eye = smoothstep(0.035, 0.11, rho);
@@ -176,7 +189,7 @@ void main() {
   } else if (mode == 3) {
     float rho = vAng / max(uAngle, 1e-4);
     float edge = 1.0 - smoothstep(0.7, 1.0, rho);
-    float n = fxFbm2(vec2(vAz * 8.0 + uTime * 0.2, vAng * 40.0 - uTime * 0.6));
+    float n = fxTFbm2(vec2(vAz * 8.0 + uTime * 0.2, vAng * 40.0 - uTime * 0.6));
     a = edge * (0.55 + 0.45 * n) * uIntensity;
     col = mix(uColor2, uColor, n);
     gl_FragColor = vec4(col * a, 0.0);
@@ -185,7 +198,7 @@ void main() {
     float rho = vAng / max(uAngle, 1e-4);
     float edge = 1.0 - smoothstep(0.75, 1.0, rho);
     vec2 q = vec2(vAz * 30.0, vAng * 160.0);
-    float n = fxFbm2(q + vec2(0.0, -uTime * 1.8));
+    float n = fxTFbm2(q + vec2(0.0, -uTime * 1.8));
     float f = smoothstep(0.42, 0.85, n);
     a = edge * f * uIntensity;
     col = mix(uColor2, uColor, f) * (1.0 + f);
@@ -201,7 +214,7 @@ void main() {
   } else {
     float rho = vAng / max(uAngle, 1e-4);
     float edge = 1.0 - smoothstep(0.55, 1.0, rho);
-    float n = fxFbm2(vec2(vAz * 6.0, vAng * 22.0) + vec2(uTime * 0.04, -uTime * 0.02));
+    float n = fxTFbm2b(vec2(vAz * 6.0, vAng * 22.0) + vec2(uTime * 0.04, -uTime * 0.02));
     a = edge * smoothstep(0.25, 0.75, n) * uIntensity;
     float lit = max(0.0, dot(normalize(vN), uSunDir));
     col = mix(uColor2, uColor, n) * (0.2 + 0.9 * lit) * mix(0.25, 1.0, day);
@@ -232,6 +245,8 @@ export class Shell {
     uColor: { value: Color };
     uColor2: { value: Color };
     uIntensity: { value: number };
+    uMask: { value: Texture | null };
+    uUseMask: { value: number };
   };
 
   constructor(parent: Object3D, mode: ShellModeId, radial = 48, around = 192) {
@@ -252,11 +267,13 @@ export class Shell {
       uColor: { value: new Color(0xffffff) },
       uColor2: { value: new Color(0xffffff) },
       uIntensity: { value: 1 },
+      uMask: { value: null },
+      uUseMask: { value: 0 },
     };
     this.material = new ShaderMaterial({
       vertexShader: VERT,
       fragmentShader: FRAG,
-      uniforms: { ...this.u, uSunDir: shared.uSunDir, uCameraPos: shared.uCameraPos },
+      uniforms: { ...this.u, uSunDir: shared.uSunDir, uCameraPos: shared.uCameraPos, uFxNoise: fxNoiseUniform },
       transparent: true,
       depthWrite: false,
       blending: additive ? AdditiveBlending : CustomBlending,
@@ -285,6 +302,13 @@ export class Shell {
   range(a0: number, a1: number): this {
     this.u.uA0.value = Math.max(0, Math.min(Math.PI, a0));
     this.u.uA1.value = Math.max(this.u.uA0.value + 1e-4, Math.min(Math.PI, a1));
+    return this;
+  }
+
+  /** Restrict to the sea using a planet water mask (FxLayer.waterMask()). */
+  mask(tex: Texture | null): this {
+    this.u.uMask.value = tex;
+    this.u.uUseMask.value = tex ? 1 : 0;
     return this;
   }
 
