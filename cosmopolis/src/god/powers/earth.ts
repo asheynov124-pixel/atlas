@@ -175,7 +175,7 @@ class VolcanoEffect extends Effect {
     this.ash.setCenter(this.nrm(this.crater, new Vector3())).colors(0x6a605a, 0x2a2624);
     this.ash.u.uR.value = this.R + this.height * 0.32 + 9;
     this.god.banner('ERUPTION', 'A new volcano is being born', ctx.def.icon, 0xff7a2a, 3.6);
-    this.god.frame(this.crater, 70, 0.75, 2);
+    this.god.frame(this.crater, 82, 1.18, 2);
     this.sfx('quake', 0.8);
     // anything standing where the mountain rises is thrown down
     const dmg = this.god.damage();
@@ -232,7 +232,7 @@ class VolcanoEffect extends Effect {
         this.fx.debris.spawn(this.top.x, this.top.y, this.top.z, _b.x, _b.y, _b.z, { size: 0.5 + fxRand() * 0.6, state: InstState.Burning, color: 0x3a2a22, life: 5 });
       }
       // a bomb sets fire where it lands (approximation: random nearby tile)
-      if (this.rng.next() < 0.5) this.god.damage()?.ignite([this.randomTileNear(this.crater, tilesToAngle(p, this.radius + 3))], 0.7, this.report);
+      if (this.rng.next() < 0.2) this.god.damage()?.ignite([this.randomTileNear(this.crater, tilesToAngle(p, this.radius + 3))], 0.6, this.report);
     }
     // dirty thunderstorm in the ash column
     if (this.every('bolt', 1.1, dt) && env > 0.4) {
@@ -285,7 +285,7 @@ class VolcanoEffect extends Effect {
       dmg?.wreck(land, { chance: 1, fx: 'blast', roads: 1, trees: true, report: this.report, unstoppable: true, rand: () => this.rng.next() });
       this.ops.setBiome(land, Biome.Lava);
       this.ops.setFeature(land, Feature.None);
-      dmg?.ignite(land.flatMap((t) => g.neighbors(t)).filter((t) => !this.lava.has(t)), 0.35, this.report, () => this.rng.next());
+      dmg?.ignite(land.flatMap((t) => g.neighbors(t)).filter((t) => !this.lava.has(t) && p.building[t] >= 0), 0.25, this.report, () => this.rng.next());
     }
     // lava meets the sea: steam explosions and brand-new land
     if (sea.length) {
@@ -490,9 +490,10 @@ class FloodEffect extends Effect {
   constructor(ctx: PowerCtx) {
     super(ctx);
     this.deck = this.own(this.fx.shell(ShellMode.Veil, 32, 140));
-    this.deck.setCenter(this.center).range(0, 1.2).colors(0x6a7380, 0x2a2f38);
-    this.deck.u.uR.value = this.R + 14;
+    this.deck.setCenter(this.center).range(0, 1.2).colors(0x5a6270, 0x262a32);
+    this.deck.u.uR.value = this.R + 16;
     this.deck.u.uAngle.value = 1.2;
+    this.god.frame(ctx.target.tile, 120, 0.95, 2.4);
     this.loop('rain', 0.8);
     this.loop('storm', 0.4);
     this.god.banner('THE DELUGE', 'Sea levels surging worldwide', ctx.def.icon, 0x4aa8ff, 4);
@@ -502,8 +503,8 @@ class FloodEffect extends Effect {
     const u = this.t / this.dur;
     this.progress = clamp01(u);
     const env = envelope(u, 0.08, 0.15);
-    this.deck.u.uIntensity.value = env;
-    this.god.want(this.key, { storm: 0.8 * env, clouds: 0.9 * env, sun: 1 - 0.35 * env });
+    this.deck.u.uIntensity.value = 0.5 * env;
+    this.god.want(this.key, { storm: 0.8 * env, clouds: 0.6 * env, sun: 1 - 0.3 * env });
     const drops = Math.round(this.fx.q(12) * env);
     for (let i = 0; i < drops; i++) {
       const t = this.randomTileNear(this.ctx.target.tile, 0.9);

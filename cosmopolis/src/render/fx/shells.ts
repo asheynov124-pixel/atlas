@@ -189,7 +189,8 @@ void main() {
   } else if (mode == 3) {
     float rho = vAng / max(uAngle, 1e-4);
     float edge = 1.0 - smoothstep(0.7, 1.0, rho);
-    float n = fxTFbm2(vec2(vAz * 8.0 + uTime * 0.2, vAng * 40.0 - uTime * 0.6));
+    vec2 pl = vec2(cos(vAz), sin(vAz)) * vAng * 40.0;
+    float n = fxTFbm2(pl + vec2(uTime * 0.2, -uTime * 0.5));
     a = edge * (0.55 + 0.45 * n) * uIntensity;
     col = mix(uColor2, uColor, n);
     gl_FragColor = vec4(col * a, 0.0);
@@ -197,8 +198,8 @@ void main() {
   } else if (mode == 4) {
     float rho = vAng / max(uAngle, 1e-4);
     float edge = 1.0 - smoothstep(0.75, 1.0, rho);
-    vec2 q = vec2(vAz * 30.0, vAng * 160.0);
-    float n = fxTFbm2(q + vec2(0.0, -uTime * 1.8));
+    vec2 q = vec2(cos(vAz), sin(vAz)) * vAng * 120.0;
+    float n = fxTFbm2(q + vec2(uTime * 0.6, -uTime * 1.6));
     float f = smoothstep(0.42, 0.85, n);
     a = edge * f * uIntensity;
     col = mix(uColor2, uColor, f) * (1.0 + f);
@@ -214,7 +215,8 @@ void main() {
   } else {
     float rho = vAng / max(uAngle, 1e-4);
     float edge = 1.0 - smoothstep(0.55, 1.0, rho);
-    float n = fxTFbm2b(vec2(vAz * 6.0, vAng * 22.0) + vec2(uTime * 0.04, -uTime * 0.02));
+    vec2 pl = vec2(cos(vAz), sin(vAz)) * vAng * 26.0;
+    float n = fxTFbm2b(pl + vec2(uTime * 0.04, -uTime * 0.02));
     a = edge * smoothstep(0.25, 0.75, n) * uIntensity;
     float lit = max(0.0, dot(normalize(vN), uSunDir));
     col = mix(uColor2, uColor, n) * (0.2 + 0.9 * lit) * mix(0.25, 1.0, day);

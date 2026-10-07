@@ -42,7 +42,7 @@ void main() {
   float y = position.y; // 0..1
   vUv = uv;
   vY = y;
-  float r = mix(uR0, uR1, pow(y, 1.7)) * (0.35 + 0.65 * uStrength);
+  float r = mix(uR0, uR1, pow(y, 1.45)) * (0.35 + 0.65 * uStrength);
   r *= 1.0 + 0.08 * sin(uv.x * 6.2831 * 3.0 + uTime * 5.0 + y * 9.0);
   float h = y * uHeight * (0.55 + 0.45 * uStrength);
   // snaking axis (rope tornado)
@@ -75,13 +75,16 @@ void main() {
   vec2 q = vec2(u * 2.0 + vY * 7.0 - uTime * uSpin, vY * 9.0 - uTime * 1.5);
   float n = fxTFbm2(vec2(cos(q.x), sin(q.x)) * 1.6 + vec2(q.y * 0.5, q.y));
   float bands = 0.55 + 0.45 * sin(u * 3.0 + vY * 26.0 - uTime * uSpin * 1.3 + n * 4.0);
-  float a = smoothstep(0.25, 0.75, n * 0.8 + bands * 0.5);
-  a *= smoothstep(0.0, 0.06, vY) * (1.0 - smoothstep(0.82, 1.0, vY));
+  float a = smoothstep(0.18, 0.62, n * 0.9 + bands * 0.55);
+  a *= smoothstep(0.0, 0.05, vY) * (1.0 - smoothstep(0.86, 1.0, vY));
   vec3 V = normalize(uCameraPos - vW);
   float rim = 1.0 - abs(dot(normalize(vN), V));
-  a *= mix(0.55, 1.0, rim) * uOpacity;
-  float lit = 0.35 + 0.65 * max(0.0, dot(normalize(vN), uSunDir));
-  vec3 col = mix(uColor2, uColor, n) * lit * mix(1.0, 0.25, fxNight(vW));
+  // denser toward the silhouette edge and the ground, where debris thickens the funnel
+  a *= mix(0.7, 1.0, rim) * (1.0 + 0.35 * (1.0 - vY)) * uOpacity;
+  a = clamp(a, 0.0, 1.0);
+  float lit = 0.3 + 0.7 * max(0.0, dot(normalize(vN), uSunDir));
+  vec3 col = mix(uColor2, uColor, smoothstep(0.3, 0.7, n) * 0.8 + bands * 0.2) * lit * mix(1.0, 0.25, fxNight(vW));
+  col *= 0.85 + 0.3 * vY;
   if (a < 0.01) discard;
   gl_FragColor = vec4(col * a, a);
 }
@@ -128,8 +131,8 @@ void main() {
   } else {
     float r = length(c);
     float n = fxNoise2(c * 2.0 + vSeed * 30.0 + uTime * 0.3);
-    a = smoothstep(1.0, 0.3, r + (n - 0.5) * 0.6) * 0.45;
-    col = vec3(0.55, 0.5, 0.45);
+    a = smoothstep(1.0, 0.3, r + (n - 0.5) * 0.6) * 0.3;
+    col = vec3(0.45, 0.41, 0.37);
   }
   a *= uOpacity;
   if (a < 0.02) discard;
@@ -163,7 +166,7 @@ export class Tornado {
   private spd: Float32Array;
   private time = 0;
 
-  constructor(parent: Object3D, private scaleUniform: { value: number }, color = 0x8a8178, color2 = 0x4a443e) {
+  constructor(parent: Object3D, private scaleUniform: { value: number }, color = 0x6f665c, color2 = 0x2e2a26) {
     const geo = new CylinderGeometry(1, 1, 1, 40, 24, true);
     geo.translate(0, 0.5, 0);
     const mk = (r0: number, r1: number, opacity: number, spin: number, bend: number) => {
@@ -195,8 +198,8 @@ export class Tornado {
       m.renderOrder = 9;
       return { m, u };
     };
-    const a = mk(0.45, 5.2, 0.95, 6, 2.2);
-    const b = mk(1.1, 8.5, 0.42, 3.5, 2.6);
+    const a = mk(1.5, 6.8, 1.0, 6, 2.0);
+    const b = mk(2.4, 10.5, 0.6, 3.5, 2.4);
     this.core = a.m;
     this.coreU = a.u;
     this.shroud = b.m;
@@ -214,7 +217,7 @@ export class Tornado {
     for (let i = 0; i < N_PTS; i++) {
       const k = fxRand();
       kind[i] = k < 0.55 ? 0 : k < 0.75 ? 1 : 2;
-      size[i] = kind[i] === 2 ? 2.2 + fxRand() * 2.4 : 0.18 + fxRand() * 0.3;
+      size[i] = kind[i] === 2 ? 0.9 + fxRand() * 1.1 : kind[i] === 1 ? 0.1 + fxRand() * 0.12 : 0.14 + fxRand() * 0.22;
       this.reset(i, true);
     }
     const pa = new BufferAttribute(this.pos, 3);
@@ -251,7 +254,7 @@ export class Tornado {
   /** Funnel radius at height h (local units), for flyers that orbit it. */
   radiusAt(h: number): number {
     const y = Math.max(0, Math.min(1, h / this.height));
-    return (0.45 + (5.2 - 0.45) * Math.pow(y, 1.7)) * (0.35 + 0.65 * this.strength);
+    return (1.5 + (6.8 - 1.5) * Math.pow(y, 1.45)) * (0.35 + 0.65 * this.strength);
   }
 
   update(dt: number): void {
@@ -267,8 +270,8 @@ export class Tornado {
       u.uStrength.value = s;
       u.uHeight.value = this.height;
     }
-    this.coreU.uOpacity.value = 0.95 * this.opacity * Math.min(1, s * 1.5);
-    this.shroudU.uOpacity.value = 0.42 * this.opacity * Math.min(1, s * 1.5);
+    this.coreU.uOpacity.value = 1.0 * this.opacity * Math.min(1, s * 1.5);
+    this.shroudU.uOpacity.value = 0.55 * this.opacity * Math.min(1, s * 1.5);
     this.ptsU.uTime.value = t;
     this.ptsU.uOpacity.value = this.opacity * Math.min(1, s * 2);
     // vortex points spiral up the funnel

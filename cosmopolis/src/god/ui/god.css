@@ -32,7 +32,63 @@
   grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
   gap: 10px;
 }
+.gd-cell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  container-type: inline-size;
+}
+.gd-cell.is-wide {
+  grid-column: 1 / -1;
+  gap: 0;
+}
+.gd-cell.is-wide .gd-card {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.gd-choices {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px 10px;
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+  border: 1px solid color-mix(in srgb, var(--gd-c) 30%, rgba(200, 220, 255, 0.08));
+  border-top: none;
+  background: rgba(255, 255, 255, 0.025);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.gd-choices::-webkit-scrollbar {
+  display: none;
+}
+.gd-choice {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--hairline);
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out), border-color var(--dur-1) var(--ease-out);
+}
+.gd-choice.is-on {
+  color: #fff;
+  background: color-mix(in srgb, var(--gd-c) 34%, rgba(255, 255, 255, 0.04));
+  border-color: color-mix(in srgb, var(--gd-c) 70%, transparent);
+}
+.gd-choice:focus-visible {
+  outline: 2px solid var(--gd-c);
+  outline-offset: 1px;
+}
 .gd-card {
+  flex: 1;
+  width: 100%;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -112,11 +168,23 @@
   font-weight: 680;
   line-height: 1.15;
   letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 .gd-meta {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
+}
+/* narrow cards: the pips speak for themselves (the label stays in the aria-label) */
+@container (max-width: 210px) {
+  .gd-danger > span {
+    display: none;
+  }
+  .gd-danger.is-kind > span {
+    display: inline;
+  }
 }
 .gd-danger {
   display: inline-flex;
@@ -168,7 +236,7 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 3px 7px;
+  padding: 2px 7px;
   border-radius: var(--r-pill);
   font-size: 11px;
   font-weight: 600;

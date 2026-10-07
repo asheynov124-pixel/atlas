@@ -127,8 +127,14 @@ class TornadoEffect extends Effect {
   private axX = new Vector3();
   private axZ = new Vector3();
   private wind = this.loop('wind', 0);
+  private wall: Shell & FxObject;
   constructor(ctx: PowerCtx) {
     super(ctx);
+    // the rotating wall cloud the funnel hangs from
+    this.wall = this.own(this.fx.shell(ShellMode.Spiral, 24, 128));
+    this.wall.colors(0x6a6e78, 0x2a2c32).range(0, 0.16);
+    this.wall.u.uSpin.value = 2.2;
+    this.wall.u.uIntensity.value = 0;
     const path = ctx.target.path && ctx.target.path.length >= 2 ? ctx.target.path : [ctx.target.tile];
     for (const t of path) this.pts.push(this.pos(t, new Vector3()));
     if (this.pts.length === 1) this.pts.push(this.pts[0].clone());
@@ -175,6 +181,9 @@ class TornadoEffect extends Effect {
     this.progress = this.len > 0 ? clamp01(this.s / this.len) : clamp01(this.t / 8);
     this.place(Math.min(this.s, this.len));
     this.tor.strength = this.str;
+    this.wall.setCenter(this.tor.up);
+    this.wall.u.uR.value = this.R + this.planet.heightOf(this.tileAt(this.tor.base)) + this.tor.height * 0.92;
+    this.wall.u.uIntensity.value = 0.95 * Math.min(1, this.str * 1.4);
     this.wind.setVolume(0.75 * this.str);
     this.god.want(this.key, { storm: 0.55 * this.str, clouds: 0.6 * this.str, sun: 1 - 0.15 * this.str });
     // frame of the funnel for orbiting flyers
@@ -182,14 +191,14 @@ class TornadoEffect extends Effect {
     this.axZ.set(0, 0, 1).applyQuaternion(this.tor.group.quaternion);
     const base = this.tor.base, up = this.tor.up;
     // ground skirt & thrown rubble
-    this.fx.particles.emit(PRESETS.dust, base, up, 1.6 * this.str, 1.4, 1.3);
-    if (this.every('skirt', 0.06, dt)) {
+    this.fx.particles.emit(PRESETS.dust, base, up, 0.9 * this.str, 1.4, 1.1);
+    if (this.every('skirt', 0.1, dt)) {
       for (let i = 0; i < 2; i++) {
         const a = fxRand() * Math.PI * 2;
         _c.copy(this.axX).multiplyScalar(Math.cos(a)).addScaledVector(this.axZ, Math.sin(a));
         _b.copy(base).addScaledVector(_c, 1.2).addScaledVector(up, 0.3);
         const tan = _a.crossVectors(up, _c);
-        this.fx.particles.emitAt(PRESETS.bigDust, _b.x, _b.y, _b.z, tan.x * 6 + up.x * 2 + _c.x * 2, tan.y * 6 + up.y * 2 + _c.y * 2, tan.z * 6 + up.z * 2 + _c.z * 2, 0.55 * this.str, 0.7);
+        this.fx.particles.emitAt(PRESETS.bigDust, _b.x, _b.y, _b.z, tan.x * 6 + up.x * 2 + _c.x * 2, tan.y * 6 + up.y * 2 + _c.y * 2, tan.z * 6 + up.z * 2 + _c.z * 2, 0.4 * this.str, 0.6);
       }
     }
     if (this.every('chunks', 0.18, dt) && this.str > 0.5) {
@@ -285,7 +294,7 @@ class HypercaneEffect extends Effect {
     this.spiral.u.uSpin.value = 1.4;
     this.loop('storm', 0.8);
     this.loop('wind', 0.6);
-    this.god.frame(ctx.target.tile, this.R * 1.55, 0.25, 2.6);
+    this.god.frame(ctx.target.tile, this.R * 2.7, 0.12, 2.6);
     this.god.banner('HYPERCANE', 'Category ∞ — winds beyond measure', ctx.def.icon, 0x7cc4ff);
     this.sfx('wind', 1);
   }

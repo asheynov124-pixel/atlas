@@ -41,12 +41,12 @@ function magnitudeLabel(v: number): string {
 }
 
 /** Danger pips: 5 bars filled to the power's rating (or a sparkle for blessings). */
-function Danger({ n }: { n: number }) {
+function Danger({ n, kind }: { n: number; kind?: boolean }) {
   if (n <= 0)
     return (
-      <span class="gd-danger is-kind" title="Benevolent">
-        <Icon name="sparkles" size={12} />
-        <span>Blessing</span>
+      <span class="gd-danger is-kind" title={kind ? 'Benevolent' : 'Harmless'}>
+        <Icon name={kind ? 'sparkles' : 'check'} size={12} />
+        <span>{kind ? 'Blessing' : 'Harmless'}</span>
       </span>
     );
   return (
@@ -95,6 +95,31 @@ async function cast(p: GodPowerDef): Promise<void> {
   else armFallback(p);
 }
 
+function Choices({ p }: { p: GodPowerDef }) {
+  const list = p.choices ?? [];
+  const cur = godUi.choice.value[p.id] ?? list[0]?.id;
+  return (
+    <div class="gd-choices scroll-x" role="radiogroup" aria-label={`${p.name} variant`}>
+      {list.map((c) => (
+        <button
+          key={c.id}
+          type="button"
+          role="radio"
+          aria-checked={cur === c.id}
+          class={'gd-choice' + (cur === c.id ? ' is-on' : '')}
+          onClick={() => {
+            uiSound('tap');
+            godUi.choice.value = { ...godUi.choice.value, [p.id]: c.id };
+          }}
+        >
+          {c.icon && <Icon name={c.icon} size={14} />}
+          <span>{c.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function PowerCard({ p, now }: { p: GodPowerDef; now: number }) {
   const god = game.god;
   void ui.tier.value;
@@ -105,44 +130,47 @@ function PowerCard({ p, now }: { p: GodPowerDef; now: number }) {
   const color = hex(p.color ?? CATEGORY_COLOR[p.category]);
   const t = TARGET[p.targeting];
   const recent = godUi.recent.value[0] === p.id;
+  const wide = !!p.choices?.length;
   return (
-    <button
-      type="button"
-      class={'gd-card' + (lock ? ' is-locked' : '') + (cd > 0 ? ' is-cooling' : '') + (p.planetEnding ? ' is-end' : '') + (recent ? ' is-recent' : '')}
-      style={{ '--gd-c': color } as never}
-      onClick={() => void cast(p)}
-      aria-label={`${p.name}. ${p.description}${lock ? ' Locked: ' + lock : ''}`}
-    >
-      <span class="gd-card-top">
-        <span class="gd-icon">
-          <IconOrEmoji value={p.icon} size={24} />
-        </span>
-        <span class="gd-head">
-          <span class="gd-name">{p.name}</span>
-          <span class="gd-meta">
-            <Danger n={p.planetEnding ? 5 : p.danger ?? 0} />
+    <div class={'gd-cell' + (wide ? ' is-wide' : '')} style={{ '--gd-c': color } as never}>
+      <button
+        type="button"
+        class={'gd-card' + (lock ? ' is-locked' : '') + (cd > 0 ? ' is-cooling' : '') + (p.planetEnding ? ' is-end' : '') + (recent ? ' is-recent' : '')}
+        onClick={() => void cast(p)}
+        aria-label={`${p.name}. ${t.label} to cast. ${p.description}${lock ? ' Locked: ' + lock : ''}`}
+      >
+        <span class="gd-card-top">
+          <span class="gd-icon">
+            <IconOrEmoji value={p.icon} size={24} />
+          </span>
+          <span class="gd-head">
+            <span class="gd-name">{p.name}</span>
+            <span class="gd-meta">
+              <Danger n={p.planetEnding ? 5 : p.danger ?? 0} kind={p.category === 'creation'} />
+              <span class="gd-target" title={t.label}>
+                <Icon name={t.icon} size={12} />
+                {t.label}
+              </span>
+            </span>
           </span>
         </span>
-        <span class="gd-target" title={t.label}>
-          <Icon name={t.icon} size={13} />
-          {t.label}
-        </span>
-      </span>
-      <span class="gd-desc">{p.description}</span>
-      {p.flavor && <span class="gd-flavor">{p.flavor}</span>}
-      {lock && (
-        <span class="gd-veil">
-          <Icon name="lock" size={18} />
-          <span>{lock}</span>
-        </span>
-      )}
-      {!lock && cd > 0 && (
-        <span class="gd-veil is-cd">
-          <Icon name="hourglass" size={18} />
-          <span class="num">{fmtDuration(Math.ceil(cd))}</span>
-        </span>
-      )}
-    </button>
+        <span class="gd-desc">{p.description}</span>
+        {p.flavor && <span class="gd-flavor">{p.flavor}</span>}
+        {lock && (
+          <span class="gd-veil">
+            <Icon name="lock" size={18} />
+            <span>{lock}</span>
+          </span>
+        )}
+        {!lock && cd > 0 && (
+          <span class="gd-veil is-cd">
+            <Icon name="hourglass" size={18} />
+            <span class="num">{fmtDuration(Math.ceil(cd))}</span>
+          </span>
+        )}
+      </button>
+      {wide && !lock && <Choices p={p} />}
+    </div>
   );
 }
 
