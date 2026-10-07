@@ -26,6 +26,7 @@ import {
   Matrix3,
   Mesh,
   MeshBasicMaterial,
+  Points,
   OneFactor,
   OneMinusSrcAlphaFactor,
   RingGeometry,
@@ -95,8 +96,8 @@ vec3 starLayer(vec3 d) {
   vec3 i = floor(p);
   float h = fxHash31(i);
   vec3 f = fract(p) - 0.5 - (vec3(fxHash31(i + 1.3), fxHash31(i + 7.1), fxHash31(i + 3.7)) - 0.5) * 0.6;
-  float s = smoothstep(0.08, 0.0, length(f)) * step(0.93, h);
-  return vec3(0.8, 0.88, 1.0) * s * (0.6 + 3.0 * fract(h * 17.0));
+  float s = smoothstep(0.09, 0.0, length(f)) * step(0.86, h);
+  return mix(vec3(1.0, 0.85, 0.7), vec3(0.75, 0.85, 1.0), fract(h * 7.0)) * s * (0.8 + 3.5 * fract(h * 17.0));
 }
 vec3 background(vec3 d) {
   vec3 c = starLayer(d);
@@ -108,6 +109,12 @@ vec3 background(vec3 d) {
     c += vec3(0.25, 0.12, 0.4) * pow(n, 3.0) * 0.6;
   }
   return c;
+}
+float hitsPlanet(vec3 o, vec3 d) {
+  float B = dot(o, d);
+  float C = dot(o, o) - uPlanetR * uPlanetR * 1.03;
+  float disc = B * B - C;
+  return disc > 0.0 && -B - sqrt(disc) > 0.0 ? 1.0 : 0.0;
 }
 void main() {
   vec3 ro = uCameraPos;
@@ -122,28 +129,17 @@ void main() {
   // deflection grows as 1/b; capped so rays near the horizon wrap around (Einstein ring)
   float alpha = uStrength * 2.2 * uRs / max(b, 1e-3);
   vec3 d2 = normalize(rd + ax * tan(min(alpha, 1.45)));
-  vec3 col = background(d2);
-  // the planet seen through the lens (analytic sphere at the origin)
-  vec3 o2 = cp;
-  float B = dot(o2, d2);
-  float Cc = dot(o2, o2) - uPlanetR * uPlanetR;
-  float disc = B * B - Cc;
-  if (disc > 0.0 && -B - sqrt(disc) > 0.0) {
-    vec3 hp = o2 + d2 * (-B - sqrt(disc));
-    vec3 n = normalize(hp);
-    float lit = max(0.0, dot(n, uSunDir));
-    float rim = pow(1.0 - max(0.0, dot(n, -d2)), 2.0);
-    float land = smoothstep(0.45, 0.6, fxTFbm3(n * 4.0));
-    col = mix(uAtmo * 0.35, uLand, land) * (0.06 + lit) + uAtmo * rim * (0.2 + lit);
-  }
-  // event horizon & photon ring
+  // only the sky is re-drawn bent: where the real planet is visible (or the bent ray ends on it) we stay clear
+  float onPlanet = max(hitsPlanet(ro, rd), hitsPlanet(cp, d2));
+  vec3 sky = background(d2);
   float horizon = smoothstep(uRs * 1.03, uRs * 0.97, b);
   float ring = exp(-pow((b - uRs * 1.55) / (uRs * 0.09), 2.0));
   float glow = exp(-pow((b - uRs * 1.55) / (uRs * 0.6), 2.0)) * 0.35;
-  col = col * (1.0 - horizon) + (ring * 2.2 + glow) * vec3(1.0, 0.82, 0.55) * uStrength * (1.0 - horizon);
-  float edge = 1.0 - smoothstep(uL * 0.45, uL, b);
-  float a = clamp(max(edge * uStrength, horizon), 0.0, 1.0);
-  gl_FragColor = vec4(col * a, a);
+  vec3 ringCol = (ring * 2.2 + glow) * vec3(1.0, 0.82, 0.55) * uStrength;
+  float edge = 1.0 - smoothstep(uL * 0.35, uL, b);
+  float bg = edge * uStrength * (1.0 - onPlanet) * (1.0 - horizon);
+  float a = clamp(max(bg, horizon * uStrength), 0.0, 1.0);
+  gl_FragColor = vec4(sky * bg + ringCol * (1.0 - horizon), a);
 }
 `;
 
@@ -184,19 +180,49 @@ void main() {
   vec3 toCam = normalize(uCameraPos - vW);
   float dop = dot(tangent, toCam);
   float beam = pow(1.0 + 0.85 * dop, 2.2);
-  vec3 hot = vec3(1.0, 0.97, 0.9);
-  vec3 warm = vec3(1.0, 0.55, 0.18);
-  vec3 cool = vec3(0.75, 0.25, 0.08);
+  vec3 hot = vec3(1.0, 0.9, 0.72);
+  vec3 warm = vec3(1.0, 0.5, 0.16);
+  vec3 cool = vec3(0.7, 0.2, 0.06);
   vec3 col = mix(hot, warm, smoothstep(0.0, 0.35, x));
   col = mix(col, cool, smoothstep(0.35, 0.9, x));
   col = mix(col, col * vec3(0.75, 0.9, 1.25), max(0.0, dop) * 0.6);
   float a = dens * beam * uIntensity;
-  gl_FragColor = vec4(col * a * 2.2, 0.0);
+  // crisp inner edge (ISCO) glow
+  float isco = exp(-pow(x / 0.05, 2.0)) * 0.8;
+  gl_FragColor = vec4(col * (a * 1.15 + isco * uIntensity), 0.0);
 }
 `;
 
+const SPIRAL_VERT = /* glsl */ `
+attribute float aHeat;
+uniform float uScale;
+uniform float uStrength;
+varying float vHeat;
+void main() {
+  vHeat = aHeat;
+  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  gl_Position = projectionMatrix * mv;
+  gl_PointSize = clamp((0.08 + 0.1 * aHeat) * uScale / max(0.1, -mv.z), 1.0, 24.0) * uStrength;
+}
+`;
+const SPIRAL_FRAG = /* glsl */ `
+varying float vHeat;
+void main() {
+  vec2 c = gl_PointCoord * 2.0 - 1.0;
+  float a = exp(-dot(c, c) * 3.0);
+  vec3 col = mix(vec3(1.0, 0.35, 0.08), vec3(1.0, 0.95, 0.8), vHeat);
+  gl_FragColor = vec4(col * a * (0.5 + vHeat), 0.0);
+}
+`;
+const N_SPIRAL = 420;
+
 export class BlackHole implements FxObject {
   readonly group = new Group();
+  private spiral: Points;
+  private sp = { r: new Float32Array(N_SPIRAL), a: new Float32Array(N_SPIRAL), y: new Float32Array(N_SPIRAL) };
+  private spPos = new Float32Array(N_SPIRAL * 3);
+  private spHeat = new Float32Array(N_SPIRAL);
+  private spU = { uScale: { value: 900 }, uStrength: { value: 0 } };
   readonly center = new Vector3();
   /** horizon radius (world units) */
   radius = 1;
@@ -254,7 +280,7 @@ export class BlackHole implements FxObject {
         uFxNoise: fxNoiseUniform,
         uTime: { value: 0 },
         uInner: { value: 1.25 },
-        uOuter: { value: 4.6 },
+        uOuter: { value: 3.6 },
         uIntensity: { value: 0 },
         uCameraPos: shared.uCameraPos,
         uAxisX: { value: new Vector3(1, 0, 0) },
@@ -264,7 +290,7 @@ export class BlackHole implements FxObject {
       ...additive,
       side: DoubleSide,
     });
-    this.disk = new Mesh(new RingGeometry(1.25, 4.6, 160, 8), this.diskMat);
+    this.disk = new Mesh(new RingGeometry(1.25, 3.6, 160, 8), this.diskMat);
     this.disk.renderOrder = 18;
     // the lensed far side of the disk: a camera-facing halo hugging the photon sphere
     this.haloMat = new ShaderMaterial({
@@ -280,7 +306,7 @@ ${FX_TEXNOISE}
           float top = 0.55 + 0.45 * smoothstep(-0.2, 1.0, sin(ang));
           vec3 col = mix(vec3(1.0, 0.5, 0.15), vec3(1.0, 0.95, 0.85), band);
           float a = band * top * uIntensity;
-          gl_FragColor = vec4(col * a * 1.8, 0.0);
+          gl_FragColor = vec4(col * a * 1.3, 0.0);
         }`,
       uniforms: {
         uFxNoise: fxNoiseUniform, uTime: { value: 0 }, uIntensity: { value: 0 } },
@@ -289,10 +315,41 @@ ${FX_TEXNOISE}
     });
     this.halo = new Mesh(new RingGeometry(1.1, 2.3, 96, 2), this.haloMat);
     this.halo.renderOrder = 18;
-    for (const m of [this.horizon, this.lens, this.disk, this.halo]) m.frustumCulled = false;
+    // matter spiralling in, in the disk plane (CPU points, local to the disk)
+    for (let i = 0; i < N_SPIRAL; i++) {
+      this.sp.r[i] = 1.3 + Math.random() * 3.4;
+      this.sp.a[i] = Math.random() * Math.PI * 2;
+      this.sp.y[i] = (Math.random() - 0.5) * 0.12;
+    }
+    const sg = new BufferGeometry();
+    sg.setAttribute('position', new BufferAttribute(this.spPos, 3).setUsage(35048));
+    sg.setAttribute('aHeat', new BufferAttribute(this.spHeat, 1).setUsage(35048));
+    this.spiral = new Points(sg, new ShaderMaterial({ vertexShader: SPIRAL_VERT, fragmentShader: SPIRAL_FRAG, uniforms: this.spU, ...additive }));
+    this.spiral.renderOrder = 18;
+    this.disk.add(this.spiral);
+    for (const m of [this.horizon, this.lens, this.disk, this.halo, this.spiral]) m.frustumCulled = false;
     this.group.add(this.lens, this.horizon, this.halo, this.disk);
     this.group.name = 'fx-blackhole';
     parent.add(this.group);
+  }
+
+  private stepSpiral(dt: number): void {
+    const { r, a, y } = this.sp;
+    for (let i = 0; i < N_SPIRAL; i++) {
+      const w = 1.6 / Math.pow(r[i], 1.5);
+      a[i] += w * dt * 2.2;
+      r[i] -= dt * (0.08 + 0.5 / (r[i] * r[i]));
+      if (r[i] < 1.15) {
+        r[i] = 3.6 + Math.random() * 1.4;
+        a[i] = Math.random() * Math.PI * 2;
+      }
+      this.spPos[i * 3] = Math.cos(a[i]) * r[i];
+      this.spPos[i * 3 + 1] = Math.sin(a[i]) * r[i];
+      this.spPos[i * 3 + 2] = y[i] * r[i];
+      this.spHeat[i] = Math.max(0, Math.min(1, (4.2 - r[i]) / 3));
+    }
+    (this.spiral.geometry.attributes.position as BufferAttribute).needsUpdate = true;
+    (this.spiral.geometry.attributes.aHeat as BufferAttribute).needsUpdate = true;
   }
 
   update(_dt: number, time: number): void {
@@ -300,13 +357,13 @@ ${FX_TEXNOISE}
     const r = Math.max(1e-3, this.radius * Math.min(1, s * 1.4));
     this.group.position.copy(this.center);
     this.horizon.scale.setScalar(r);
-    this.lens.scale.setScalar(r * 7.5);
+    this.lens.scale.setScalar(r * 6);
     const lu = this.lensMat.uniforms;
     lu.uRs.value = r;
-    lu.uL.value = r * 7.5;
+    lu.uL.value = r * 6;
     lu.uStrength.value = Math.min(1, s);
     lu.uTime.value = time;
-    if (this.skyGain) lu.uSkyGain.value = Math.max(0.25, this.skyGain.value);
+    if (this.skyGain) lu.uSkyGain.value = 1.4 * Math.max(0.6, this.skyGain.value);
     if (this.skyGroup) {
       this.skyGroup.updateMatrixWorld();
       this.skyRot.setFromMatrix4(this.skyGroup.matrixWorld).invert();
@@ -318,7 +375,7 @@ ${FX_TEXNOISE}
     this.disk.scale.setScalar(r);
     const du = this.diskMat.uniforms;
     du.uTime.value = time;
-    du.uIntensity.value = Math.min(1.2, s);
+    du.uIntensity.value = Math.min(0.55, s * 0.55);
     (du.uAxisX.value as Vector3).set(1, 0, 0).applyQuaternion(this.disk.quaternion);
     (du.uAxisY.value as Vector3).set(0, 1, 0).applyQuaternion(this.disk.quaternion);
     // halo faces the camera
@@ -327,12 +384,15 @@ ${FX_TEXNOISE}
     this.halo.scale.setScalar(r);
     this.haloMat.uniforms.uTime.value = time;
     this.haloMat.uniforms.uIntensity.value = Math.min(1, s) * 0.9;
+    this.spU.uStrength.value = Math.min(1, s);
+    this.spU.uScale.value = 900 * r;
+    if (s > 0.002) this.stepSpiral(_dt);
     this.group.visible = s > 0.002;
   }
 
   dispose(): void {
     this.group.removeFromParent();
-    for (const m of [this.horizon, this.lens, this.disk, this.halo]) {
+    for (const m of [this.horizon, this.lens, this.disk, this.halo, this.spiral]) {
       m.geometry.dispose();
       (m.material as Material).dispose();
     }
@@ -422,8 +482,8 @@ void main() {
   float n = fxTFbm3(p * 4.0 + vec3(0.0, uTime * 0.12, 0.0));
   float cells = fxTFbm3(p * 11.0 - vec3(uTime * 0.05));
   float crust = smoothstep(0.5, 0.62, n + cells * 0.3);
-  vec3 hot = fxBlackbody(0.75 + 0.25 * cells);
-  vec3 col = mix(hot * 2.2, vec3(0.12, 0.05, 0.03), crust * 0.8);
+  vec3 hot = fxBlackbody(0.55 + 0.35 * cells);
+  vec3 col = mix(hot * 1.25, vec3(0.12, 0.05, 0.03), crust * 0.75);
   vec3 V = normalize(uCameraPos - vW);
   float rim = pow(1.0 - abs(dot(normalize(vN), V)), 2.5);
   col += vec3(1.0, 0.45, 0.1) * rim * 1.5;
@@ -484,9 +544,9 @@ void main() {
   float n = fxTFbm2(vP * 0.35 + vec2(uTime * 0.05, 0.0));
   // crust (dark rock), mantle (orange convection), outer core (yellow), inner core (white)
   float crust = smoothstep(0.9, 0.95, r);
-  vec3 mantle = fxBlackbody(0.35 + 0.35 * n + 0.25 * (1.0 - r));
-  vec3 core = fxBlackbody(0.9) * 1.6;
-  vec3 col = mix(core, mantle * 1.4, smoothstep(0.28, 0.42, r + n * 0.08));
+  vec3 mantle = fxBlackbody(0.3 + 0.3 * n + 0.25 * (1.0 - r));
+  vec3 core = fxBlackbody(0.85) * 1.15;
+  vec3 col = mix(core, mantle * 0.95, smoothstep(0.28, 0.42, r + n * 0.08));
   // convection cells + cracks
   float cells = fxNoise2(vec2(ang * 6.0, r * 14.0 - uTime * 0.3));
   col *= 0.75 + 0.5 * cells;
@@ -529,17 +589,19 @@ export class PlanetSplit implements FxObject {
   readonly halves: Group[] = [new Group(), new Group()];
   readonly normal = new Vector3();
   readonly core: MoltenOrb;
-  /** separation of each half from the centre along ±normal (world units) */
+  /** separation of each half from the centre along ±normal (world units). Keep small: the terrain shader reads
+   *  altitude from |world position|, so big translations would repaint the halves (snow everywhere). */
   separation = 0;
-  /** rotation of each half away from the cut (radians) */
+  /** the halves swing open like a split fruit around `axis` (through the centre, in the cut plane), radians */
   hinge = 0;
+  /** hinge axis (unit, in the cut plane); the wedge opens on the side of cross(axis, normal) */
+  readonly axis = new Vector3();
   heat = 1;
   private src: BufferGeometry;
   private geos: BufferGeometry[];
   private capMats: ShaderMaterial[] = [];
   private caps: Mesh[] = [];
   private group = new Group();
-  private axis = new Vector3();
 
   constructor(parent: Object3D, merged: BufferGeometry, terrainMat: Material, normal: Vector3, R: number) {
     this.src = merged;
@@ -548,6 +610,7 @@ export class PlanetSplit implements FxObject {
     this.axis.set(0, 1, 0);
     if (Math.abs(this.normal.y) > 0.9) this.axis.set(1, 0, 0);
     this.axis.cross(this.normal).normalize();
+    this.axis.copy(this.axis);
     for (let i = 0; i < 2; i++) {
       const half = this.halves[i];
       const m = new Mesh(this.geos[i], terrainMat);
@@ -579,7 +642,7 @@ export class PlanetSplit implements FxObject {
       const sgn = i === 0 ? 1 : -1;
       const h = this.halves[i];
       h.position.copy(this.normal).multiplyScalar(this.separation * sgn);
-      h.quaternion.setFromAxisAngle(this.axis, this.hinge * sgn);
+      h.quaternion.setFromAxisAngle(this.axis, -this.hinge * sgn);
       this.capMats[i].uniforms.uTime.value = time;
       this.capMats[i].uniforms.uHeat.value = this.heat;
     }

@@ -113,7 +113,7 @@ class BlackHoleEffect extends Effect {
   constructor(ctx: PowerCtx) {
     super(ctx);
     // pull back to orbit first; the hole appears once the planet is framed
-    this.god.frame(this.nrm(ctx.target.tile, new Vector3()), this.R * 3.4, 0.02, 2.2);
+    this.god.frame(this.nrm(ctx.target.tile, new Vector3()), this.R * 3.7, 0.02, 2.2);
     this.god.banner('SINGULARITY', 'Gravitational anomaly detected beside the planet', 'blackhole', 0xa77bff, 4.5);
     this.god.news('Observatory', '@skywatch', '🕳️', 'Update on the anomaly: it is a black hole. It is very close. We are going to go and look at it from further away.');
     this.sfx('blackhole', 1);
@@ -123,9 +123,10 @@ class BlackHoleEffect extends Effect {
     const R = this.R;
     cameraBasis(view, _e1, _e2, _a);
     const portrait = this.ctx.game.engine.height > this.ctx.game.engine.width;
-    // beside (landscape) or above (portrait) the planet, slightly toward the camera
-    this.dir.copy(portrait ? _e2 : _e1).addScaledVector(portrait ? _e1 : _e2, 0.25).addScaledVector(_a, -0.25).normalize();
-    this.bhPos.copy(this.dir).multiplyScalar(R * (portrait ? 2.25 : 2.45));
+    // above (portrait) or beside (landscape) the planet and well in front of it, overlapping its limb — so the
+    // lens visibly bends the planet behind it
+    this.dir.copy(portrait ? _e2 : _e1).multiplyScalar(0.6).addScaledVector(portrait ? _e1 : _e2, 0.1).addScaledVector(_a, -0.8).normalize();
+    this.bhPos.copy(this.dir).multiplyScalar(R * 1.75);
     this.bh = this.own(
       new BlackHole(this.fx.worldGroup, {
         skyGroup: view.env.skyGroup,
@@ -135,8 +136,10 @@ class BlackHoleEffect extends Effect {
       }) as BlackHole & FxObject,
     );
     this.bh.center.copy(this.bhPos);
-    this.bh.radius = R * 0.3;
-    this.bh.diskNormal.copy(this.dir).cross(_c.set(0.3, 1, 0.2)).normalize().lerp(_e2, 0.55).normalize();
+    this.bh.radius = R * 0.28;
+    // a nearly edge-on disk (Gargantua-style): we see a thin bright band across the hole and its lensed far side
+    // arching over the top
+    this.bh.diskNormal.copy(portrait ? _e2 : _e2).addScaledVector(_a, 0.32).addScaledVector(_e1, 0.12).normalize();
     this.sub = this.planet.grid.tileAt(this.dir.x, this.dir.y, this.dir.z);
     this.order = sortedByAngle(this.planet, this.sub, 1.5);
   }
@@ -414,6 +417,10 @@ class SupernovaEffect extends Effect {
   }
   private hit(): void {
     this.hitT = this.t;
+    // swing round to watch the dayside burn
+    cameraBasis(this.ctx.view, _e1, _e2, _a);
+    const view = _b.copy(this.novaDir).lerp(_c.copy(_a).negate(), 0.55).normalize();
+    this.god.frame(view, this.R * 2.9, 0.2, 3.2);
     this.god.flash(0xffe0b0, 6, 2, 0.8);
     this.god.shake(2.4, 4);
     this.sfx('bigExplosion', 1, 0.6);
@@ -516,7 +523,7 @@ class CrackerEffect extends Effect {
     const portrait = this.ctx.game.engine.height > this.ctx.game.engine.width;
     // the station hangs beside the planet; the beam hits the limb facing it
     this.hitDir.copy(portrait ? _e2 : _e1).addScaledVector(_a, -0.35).normalize();
-    this.stPos.copy(this.hitDir).multiplyScalar(this.R * (portrait ? 2.1 : 2.3));
+    this.stPos.copy(this.hitDir).multiplyScalar(this.R * (portrait ? 1.75 : 2.1)).addScaledVector(_a, -this.R * 0.5);
     // the cut plane contains the beam; tilted ~25° toward us so one molten face shows
     const n0 = _b.crossVectors(this.hitDir, _a).normalize();
     const w = _c.copy(this.hitDir).multiplyScalar(this.hitDir.dot(_a)).sub(_a).normalize();
@@ -598,8 +605,8 @@ class CrackerEffect extends Effect {
     if (this.split) {
       const apart = easeOut(smooth(T.split, T.apart, t));
       const back = easeIn(smooth(T.drift, T.crash, t));
-      this.split.separation = this.R * 0.62 * apart * (1 - back);
-      this.split.hinge = 0.32 * apart * (1 - back);
+      this.split.separation = this.R * 0.06 * apart * (1 - back);
+      this.split.hinge = 0.5 * apart * (1 - back);
       this.split.heat = 1 - 0.3 * smooth(T.apart, T.drift, t) + 0.3 * back;
       this.god.want(this.key, { dread: 0.6 * (1 - back * 0.5), apocalypse: 0.3 });
       if (t < T.crash && this.every('spray', 0.04, dt)) {
@@ -634,6 +641,10 @@ class CrackerEffect extends Effect {
     if (!merged) return;
     this.unhide = hideWorld(view);
     this.split = this.own(new PlanetSplit(this.fx.planetGroup, merged, view.surface.terrainMaterial, this.normal, this.R) as PlanetSplit & FxObject);
+    // swing open toward the camera: hinge axis ⊥ (camera direction projected into the cut plane)
+    cameraBasis(view, _e1, _e2, _a);
+    const toCam = _b.copy(_a).negate().addScaledVector(this.normal, _a.dot(this.normal)).normalize();
+    this.split.axis.crossVectors(this.normal, toCam).normalize();
   }
   private crash(): void {
     this.god.flash(0xffd0a0, 6, 2, 0.9);
