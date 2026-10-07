@@ -10,6 +10,7 @@
  *   bolts      Bolts         — forked lightning ribbons
  *   shell()    Shell         — planet-conforming shockwaves, tsunami walls, cyclones, glows, fronts, veils
  *   tornado()  Tornado       — the funnel + CPU vortex debris
+ *   cracks     Cracks        — fissures hugging the terrain (lazy; one draw call shared by every effect)
  *   add(obj)                 — any custom FxObject (creatures, black hole, planet halves…) updated & disposed here
  *
  * Time: `time` is the FX clock (seconds) — it advances by dt × `timeScale` (GodPowers freezes it while a photo is
@@ -25,6 +26,7 @@ import type { PlanetView } from '../PlanetView';
 import { BeamPool, Bolts } from './beams';
 import { Debris } from './debris';
 import { Flyers } from './flyers';
+import { Cracks } from './ground';
 import { GpuParticles, PRESETS, fxRand } from './particles';
 import { Shell, type ShellModeId } from './shells';
 import { Tornado } from './vortex';
@@ -64,6 +66,9 @@ export class FxLayer {
   private objects = new Set<FxObject>();
   private maxPoint = 256;
   private disposed = false;
+  private _cracks: Cracks | null = null;
+  /** objects that survive clearAll() (moons / rings a god created — they live until the view is rebuilt) */
+  private keep = new Set<FxObject>();
 
   constructor(readonly view: PlanetView) {
     this.planet = view.planet;
@@ -101,6 +106,12 @@ export class FxLayer {
     }
   }
 
+  /** Shared fissure ribbons (created on first use). */
+  get cracks(): Cracks {
+    if (!this._cracks) this._cracks = new Cracks(this.planetGroup, [400, 700, 1000, 1400][this.tier]);
+    return this._cracks;
+  }
+
   /** Quality-scaled count helper. */
   q(n: number): number {
     return Math.max(1, Math.round(n * DENSITY[this.tier]));
@@ -113,9 +124,16 @@ export class FxLayer {
     return o;
   }
 
+  /** Add an object that outlives running effects (cleared only when the view is disposed). */
+  addPersistent<T extends FxObject>(o: T): T {
+    this.keep.add(o);
+    return this.add(o);
+  }
+
   remove(o: FxObject | null | undefined): void {
     if (!o || !this.objects.has(o)) return;
     this.objects.delete(o);
+    this.keep.delete(o);
     try {
       o.dispose();
     } catch (e) {
@@ -196,6 +214,7 @@ export class FxLayer {
       this.flyers.update(fdt);
       this.bolts.update(fdt);
       this.beams.update(t);
+      this._cracks?.update(fdt, t);
     } catch (e) {
       console.error('[fx] toolkit update failed', e);
     }
@@ -212,12 +231,13 @@ export class FxLayer {
 
   /** Remove every running visual (rewind / planet change). */
   clearAll(): void {
-    for (const o of [...this.objects]) this.remove(o);
+    for (const o of [...this.objects]) if (!this.keep.has(o)) this.remove(o);
     this.particles.clear();
     this.debris.clear();
     this.flyers.clear();
     this.bolts.clear();
     this.beams.releaseAll();
+    this._cracks?.clear();
   }
 
   dispose(): void {
@@ -229,6 +249,8 @@ export class FxLayer {
     this.flyers.dispose();
     this.beams.dispose();
     this.bolts.dispose();
+    this._cracks?.dispose();
+    this._cracks = null;
     this.planetGroup.removeFromParent();
     this.worldGroup.removeFromParent();
   }
