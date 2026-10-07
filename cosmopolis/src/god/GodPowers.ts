@@ -15,7 +15,7 @@
  *   frame(dir|tile, distance, tilt?) — cinematic camera for big events · sfx / loop / shake / flash / news helpers
  *   scheduler: random natural disasters in career when settings.randomDisasters (telegraphed with a warning)
  *
- * URL hooks: &god=<powerId>[&godTile=<n>][&godIntensity=0.5..2][&godPath=a,b,c] trigger once the game is ready
+ * URL hooks: &god=<powerId>[&godTile=<n>][&godIntensity=0.5..2][&godPath=a,b,c][&godChoice=<id>] trigger once ready
  * (default tile: the camera target; drag powers get an automatic path through the city).
  *
  * Persistence: planet.ext.god = { star?, events } (a supernova leaves a neutron star behind…).
@@ -24,7 +24,7 @@ import { Vector3 } from 'three';
 import type { Game } from '../game/Game';
 import { getItem } from '../content/catalog';
 import type { System } from '../game/System';
-import type { LoopName, SfxName, StarKind } from '../core/types';
+import { TileFlag, type LoopName, type SfxName, type StarKind } from '../core/types';
 import { bus } from '../core/events';
 import { settings } from '../core/settings';
 import { Rng } from '../core/rng';
@@ -34,7 +34,8 @@ import type { Planet } from '../world/planet';
 import { tileNormal } from '../world/geo';
 import { notify, pushNews, ui } from '../ui/store';
 import { Chrono } from './chrono';
-import { Damage } from './damage';
+import { Damage, buildingHeight } from './damage';
+import { PRESETS, fxRand } from '../render/fx/particles';
 import { Effect, type PowerCtx, type PowerSpec } from './effect';
 import { godUi, screenFlash, showBanner } from './state';
 import { Scheduler } from './scheduler';
@@ -73,6 +74,10 @@ export interface GodPowerDef {
   tip?: string;
   /** confirm before casting even though it is not planet-ending */
   confirm?: boolean;
+  /** take a Chrono snapshot even though it's benevolent (world-changing miracles can be undone) */
+  rewindable?: boolean;
+  /** variants the player picks in the God panel (e.g. terraform target); the pick arrives as ctx.choice */
+  choices?: { id: string; label: string; icon?: string }[];
 }
 
 /** Planet-level persistent god state (planet.ext.god). */
@@ -112,6 +117,8 @@ export const CATEGORY_COLOR: Record<GodCategory, number> = {
 };
 
 const _v = new Vector3();
+const _n2 = new Vector3();
+const _p2 = new Vector3();
 
 export class GodPowers implements System {
   powers: GodPowerDef[] = POWERS;
@@ -128,6 +135,11 @@ export class GodPowers implements System {
   private damageCache: { planet: Planet; dmg: Damage } | null = null;
   private seed = (Date.now() & 0xffffff) ^ 0x5bd1e995;
   private offs: (() => void)[] = [];
+  /** tiles currently on fire (flames & smoke drawn over them — the sim spreads and fights the fires) */
+  private fires = new Set<number>();
+  private fireList: number[] = [];
+  private fireDirty = false;
+  private fireTimer = 0;
 
   constructor(private game: Game) {
     this.chrono = new Chrono(game);
@@ -137,11 +149,23 @@ export class GodPowers implements System {
   init(): void {
     this.offs.push(
       bus.on('game:loaded', () => this.chrono.clear()),
+      bus.on('tiles:flags', ({ tiles }) => {
+        const p = this.game.planet;
+        if (!p) return;
+        for (const t of tiles) {
+          if (p.flags[t] & TileFlag.Burning) this.fires.add(t);
+          else this.fires.delete(t);
+        }
+        this.fireDirty = true;
+      }),
     );
   }
 
   onPlanetLoaded(planet: Planet): void {
     this.damageCache = null;
+    this.fires.clear();
+    for (let t = 0; t < planet.count; t++) if (planet.flags[t] & TileFlag.Burning) this.fires.add(t);
+    this.fireDirty = true;
     const st = this.state(planet);
     // a world that lost its sun keeps the remnant
     if (st.star) {
@@ -226,7 +250,7 @@ export class GodPowers implements System {
 
   // ─────────────────────────────────────────────── trigger
 
-  trigger(id: string, target: GodTarget = {}, o: { natural?: boolean; intensity?: number } = {}): boolean {
+  trigger(id: string, target: GodTarget = {}, o: { natural?: boolean; intensity?: number; choice?: string } = {}): boolean {
     const g = this.game;
     const def = this.byId.get(id);
     const planet = g.planet, ops = g.ops, view = g.planetView;
@@ -255,11 +279,12 @@ export class GodPowers implements System {
       intensity: Math.max(0.35, Math.min(2.5, o.intensity ?? godUi.intensity.value ?? 1)),
       rng: new Rng((this.seed = (this.seed * 1103515245 + 12345) >>> 0)),
       natural: !!o.natural,
+      choice: o.choice ?? godUi.choice.value[id] ?? def.choices?.[0]?.id,
     };
     if (def.targeting === 'drag' && (!ctx.target.path || ctx.target.path.length < 2)) ctx.target.path = autoPath(planet, tile, ctx.rng);
     if (def.resolve && !def.resolve(ctx)) return false;
     const destructive = (def.danger ?? 0) >= 1 || !!def.planetEnding;
-    if (destructive) this.chrono.snapshot(def.name, this.effects.length);
+    if (destructive || def.rewindable) this.chrono.snapshot(def.name, this.effects.length);
     let eff: Effect | null = null;
     try {
       eff = def.run(ctx);
@@ -340,6 +365,7 @@ export class GodPowers implements System {
       this.active = this.effects.length;
     }
     this.applyMods(dt, false);
+    if (view && fdt > 0 && this.fires.size) this.drawFires(fdt);
     try {
       this.scheduler.update(dt);
     } catch (err) {
@@ -348,6 +374,33 @@ export class GodPowers implements System {
     if ((this.uiTimer -= dt) <= 0) {
       this.uiTimer = 0.25;
       this.publish();
+    }
+  }
+
+  /** Flames, embers and smoke columns over burning tiles (amortised: a few tiles per tick). */
+  private drawFires(dt: number): void {
+    if ((this.fireTimer -= dt) > 0) return;
+    this.fireTimer = 0.06;
+    const g = this.game;
+    const p = g.planet, view = g.planetView;
+    if (!p || !view) return;
+    if (this.fireDirty) {
+      this.fireList = [...this.fires];
+      this.fireDirty = false;
+    }
+    const fx = view.fx;
+    const n = Math.min(this.fireList.length, fx.q(8));
+    for (let i = 0; i < n; i++) {
+      const t = this.fireList[Math.floor(fxRand() * this.fireList.length)];
+      if (!(p.flags[t] & TileFlag.Burning)) continue;
+      const id = p.building[t];
+      const b = id >= 0 ? p.buildings.get(id) : undefined;
+      const h = b ? Math.min(5, buildingHeight(b) * 0.75) : 0.1;
+      tileNormal(p, t, _n2);
+      fx.surface(t, _p2, h);
+      fx.particles.emit(PRESETS.fire, _p2, _n2, b ? 5 : 3, 1.2, b ? 1.6 : 1.1);
+      if (fxRand() < 0.6) fx.particles.emit(PRESETS.darkSmoke, _p2.addScaledVector(_n2, 1), _n2, 1, 0.8, b ? 0.75 : 0.5, 1.2);
+      if (fxRand() < 0.3) fx.particles.emit(PRESETS.ember, _p2, _n2, 2, 1.2);
     }
   }
 
@@ -502,6 +555,28 @@ export class GodPowers implements System {
   }
 
   /**
+   * Start a sim city event (real gameplay mods: happiness, tourism, health…) re-using one of the sim's event ids
+   * (cityEvents.ts) under a custom name — e.g. an aurora show runs as a 'festival'. Duck-typed: no-op if the sim
+   * doesn't expose events.
+   */
+  cityEvent(id: string, name: string, icon: string, description: string, days: number, tile?: number): void {
+    try {
+      const sim = this.game.sim as unknown as { events?: { id: string; name: string; icon: string; description: string; daysLeft: number; tile?: number }[]; recomputeMods?: () => void };
+      if (!Array.isArray(sim.events)) return;
+      const ex = sim.events.find((e) => e.id === id);
+      if (ex) {
+        ex.daysLeft = Math.max(ex.daysLeft, days);
+        ex.name = name;
+        ex.icon = icon;
+        ex.description = description;
+      } else sim.events.push({ id, name, icon, description, daysLeft: days, tile });
+      if (typeof sim.recomputeMods === 'function') sim.recomputeMods();
+    } catch (e) {
+      console.warn('[god] city event failed', e);
+    }
+  }
+
+  /**
    * Fly the camera to frame an event (tile or direction). `toward` (tile or direction) turns the view so the
    * camera looks across the target toward it (e.g. from the coast out to sea, where the tsunami comes from).
    */
@@ -545,7 +620,8 @@ export class GodPowers implements System {
     if (params.has('godTile')) target.tile = Number(params.get('godTile'));
     if (params.has('godPath')) target.path = params.get('godPath')!.split(',').map(Number).filter((n) => Number.isFinite(n));
     const intensity = params.has('godIntensity') ? Number(params.get('godIntensity')) : undefined;
-    const ok = this.trigger(id, target, { intensity });
+    const choice = params.get('godChoice') ?? undefined;
+    const ok = this.trigger(id, target, { intensity, choice });
     console.info(`[god] url trigger ${id} → ${ok}`);
   }
 }

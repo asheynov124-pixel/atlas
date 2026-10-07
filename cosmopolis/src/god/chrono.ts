@@ -148,6 +148,25 @@ export class Chrono {
     }
   }
 
+  /**
+   * Rebuild the active planet's view from its current state (after a power changed its spec: terraform, new
+   * moons, rings, a dead star…), keeping the camera pose.
+   */
+  refresh(): void {
+    const g = this.game;
+    const p = g.planet;
+    if (!p) return;
+    const cam = g.camera;
+    const pose = { target: cam.target.clone() as Vector3, distance: cam.distance, heading: cam.heading, tilt: cam.tilt };
+    g.enterPlanet(p.spec);
+    try {
+      void cam.flyTo(pose.target, { distance: pose.distance, heading: pose.heading, tilt: pose.tilt, duration: 0.01 });
+      cam.snap();
+    } catch {
+      /* camera optional */
+    }
+  }
+
   /** Forget everything (planet changed / new game). */
   clear(): void {
     this.snap = null;

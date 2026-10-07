@@ -36,6 +36,8 @@ export interface PowerCtx {
   rng: Rng;
   /** true when the scheduler started it (natural disaster) */
   natural: boolean;
+  /** the variant picked in the God panel (powers with `choices`) */
+  choice?: string;
 }
 
 export interface PowerSpec extends GodPowerDef {

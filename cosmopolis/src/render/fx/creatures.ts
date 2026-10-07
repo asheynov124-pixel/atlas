@@ -193,52 +193,70 @@ export class Saucer extends KitCreature {
 
 // ───────────────────────────────────────────────────────────── kaiju
 
-const SKIN = 0x2e4038;
-const SKIN2 = 0x3c5446;
-const BELLY = 0x8a8a66;
+const SKIN = 0x3b5546;
+const SKIN2 = 0x4d6a56;
+const BELLY = 0x9a9870;
 const PLATE = 0x7ff3ff;
 
 function kaijuTorso(): BufferGeometry {
   const b = new MeshBuilder(0);
-  // barrel chest leaning forward, hips at the origin
-  b.sphere(2.3, { color: SKIN, sy: 1.3, sz: 1.05, y: 2.2, z: 0.3, wSeg: 14, hSeg: 10 });
-  b.sphere(1.9, { color: SKIN2, sy: 0.9, y: 0.2, wSeg: 12, hSeg: 8 });
-  b.sphere(1.75, { color: BELLY, sy: 1.25, sz: 0.55, y: 1.9, z: 1.15, wSeg: 12, hSeg: 8 });
-  // belly scutes
-  for (let i = 0; i < 5; i++) b.box(1.5 - i * 0.12, 0.08, 0.5, { color: 0x6f6e52, y: 0.9 + i * 0.6, z: 1.72 - Math.abs(i - 2) * 0.12, rx: -0.2 });
-  // dorsal plates down the spine (glowing edges)
-  for (let i = 0; i < 6; i++) {
-    const y = 0.6 + i * 0.75;
-    const h = 0.9 + Math.sin((i / 5) * Math.PI) * 0.9;
-    b.prism(3, 0.42, h, { color: 0x24302a, y: y, z: -1.9 + i * 0.12, rx: -0.5, sz: 0.35 });
-    b.prism(3, 0.24, h * 0.92, { color: PLATE, mat: Mat.Glow, y: y + 0.08, z: -2.05 + i * 0.12, rx: -0.5, sz: 0.25 });
+  // pear-shaped, upright: heavy hips, deep chest, hunched shoulders (hips at the origin, facing +Z)
+  b.sphere(2.05, { color: SKIN2, sy: 1.05, sx: 1.1, y: 0.4, wSeg: 14, hSeg: 10 });
+  b.sphere(2.1, { color: SKIN, sy: 1.45, sz: 1.05, y: 3.0, z: 0.35, wSeg: 16, hSeg: 12 });
+  b.sphere(1.25, { color: SKIN, sx: 1.6, sy: 0.9, y: 4.7, z: 0.1, wSeg: 12, hSeg: 8 });
+  // belly plate with scutes
+  b.sphere(1.6, { color: BELLY, sy: 1.6, sz: 0.5, y: 2.3, z: 1.35, wSeg: 12, hSeg: 10 });
+  for (let i = 0; i < 6; i++) b.box(1.45 - Math.abs(i - 2.5) * 0.18, 0.07, 0.4, { color: 0x77755a, y: 0.75 + i * 0.58, z: 1.86 - Math.abs(i - 2.5) * 0.1, rx: -0.15 });
+  // rough scale bumps on the flanks
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2;
+    b.sphere(0.35, { color: SKIN2, x: Math.sin(a) * 1.95, y: 1.6 + (i % 3) * 0.9, z: Math.cos(a) * 1.5 - 0.3, wSeg: 6, hSeg: 4, flat: true });
+  }
+  return b.build();
+}
+
+/** The glowing dorsal plates — separate so they can charge up (Highlight state) for the breath. */
+function kaijuPlates(): BufferGeometry {
+  const b = new MeshBuilder(0);
+  for (let i = 0; i < 7; i++) {
+    const y = 0.4 + i * 0.78;
+    const h = 1.0 + Math.sin(((i + 0.5) / 7) * Math.PI) * 1.5;
+    const z = -1.75 - Math.sin((i / 6) * Math.PI) * 0.35 + i * 0.1;
+    b.prism(3, 0.5, h, { color: 0x2c3d33, y, z, rx: -0.55, sz: 0.32, flat: true });
+    b.prism(3, 0.3, h * 0.94, { color: PLATE, mat: Mat.Glow, y: y + 0.12, z: z - 0.14, rx: -0.55, sz: 0.22, flat: true });
   }
   return b.build();
 }
 
 function kaijuHead(): BufferGeometry {
   const b = new MeshBuilder(0);
-  // neck stub
-  b.cyl(0.95, 1.25, 1.4, { color: SKIN, y: -0.8, seg: 12 });
-  // skull + brow + snout
-  b.sphere(1.05, { color: SKIN, sx: 0.95, sy: 0.85, sz: 1.2, y: 0.5, wSeg: 12, hSeg: 8 });
-  b.box(1.5, 0.65, 1.7, { color: SKIN2, y: 0.05, z: 1.05, rx: 0.08 });
-  b.box(1.65, 0.28, 0.6, { color: 0x24302a, y: 0.78, z: 0.75, rx: -0.25 });
-  // teeth (upper)
-  for (let i = 0; i < 6; i++) b.cone(0.09, 0.28, { color: 0xf4efd8, x: -0.55 + i * 0.22, y: -0.18, z: 1.75, rx: Math.PI, seg: 5 });
-  // eyes
-  b.sphere(0.16, { color: 0xffc23a, mat: Mat.Glow, x: -0.62, y: 0.52, z: 1.08, wSeg: 8, hSeg: 6 });
-  b.sphere(0.16, { color: 0xffc23a, mat: Mat.Glow, x: 0.62, y: 0.52, z: 1.08, wSeg: 8, hSeg: 6 });
-  // crest spikes
-  for (let i = 0; i < 3; i++) b.cone(0.22, 0.8 - i * 0.15, { color: PLATE, mat: Mat.Glow, y: 1.05 - i * 0.12, z: -0.2 - i * 0.45, rx: -0.6, seg: 5 });
+  // thick neck rising out of the shoulders
+  b.cyl(1.0, 1.35, 1.8, { color: SKIN, y: -1.4, z: -0.3, rx: 0.35, seg: 12 });
+  // skull, long snout, heavy brow
+  b.sphere(1.05, { color: SKIN, sx: 1.0, sy: 0.9, sz: 1.15, y: 0.45, wSeg: 12, hSeg: 8 });
+  b.box(1.35, 0.75, 2.1, { color: SKIN2, y: 0.05, z: 1.15, rx: 0.06 });
+  b.box(1.1, 0.4, 0.7, { color: SKIN2, y: 0.25, z: 2.2, rx: 0.12 });
+  b.box(1.7, 0.32, 0.75, { color: 0x2c3d33, y: 0.8, z: 0.8, rx: -0.3 });
+  // nostrils & upper teeth
+  b.sphere(0.08, { color: 0x111111, x: -0.3, y: 0.42, z: 2.52, wSeg: 5, hSeg: 4 });
+  b.sphere(0.08, { color: 0x111111, x: 0.3, y: 0.42, z: 2.52, wSeg: 5, hSeg: 4 });
+  for (let i = 0; i < 7; i++) b.cone(0.09, 0.32, { color: 0xf4efd8, x: -0.6 + i * 0.2, y: -0.25, z: 1.95 + (i === 0 || i === 6 ? -0.3 : 0), rx: Math.PI, seg: 5 });
+  // glowing eyes under the brow
+  b.sphere(0.2, { color: 0xffc23a, mat: Mat.Glow, x: -0.6, y: 0.55, z: 1.15, wSeg: 8, hSeg: 6 });
+  b.sphere(0.2, { color: 0xffc23a, mat: Mat.Glow, x: 0.6, y: 0.55, z: 1.15, wSeg: 8, hSeg: 6 });
+  b.sphere(0.08, { color: 0x1a0a00, x: -0.62, y: 0.55, z: 1.33, wSeg: 6, hSeg: 4 });
+  b.sphere(0.08, { color: 0x1a0a00, x: 0.62, y: 0.55, z: 1.33, wSeg: 6, hSeg: 4 });
+  // crest spikes down the back of the head
+  for (let i = 0; i < 4; i++) b.cone(0.24, 0.9 - i * 0.12, { color: PLATE, mat: Mat.Glow, y: 1.0 - i * 0.18, z: -0.1 - i * 0.42, rx: -0.75, seg: 4, flat: true });
   return b.build();
 }
 
 function kaijuJaw(): BufferGeometry {
   const b = new MeshBuilder(0);
-  b.box(1.3, 0.4, 1.6, { color: SKIN2, y: -0.4, z: 0.75 });
-  for (let i = 0; i < 5; i++) b.cone(0.08, 0.24, { color: 0xf4efd8, x: -0.45 + i * 0.22, y: -0.05, z: 1.4, seg: 5 });
-  b.box(1.0, 0.1, 1.2, { color: 0x8a2a2a, y: -0.06, z: 0.7 });
+  b.box(1.2, 0.42, 2.0, { color: SKIN2, y: -0.42, z: 0.95 });
+  b.box(1.0, 0.3, 0.6, { color: BELLY, y: -0.52, z: 1.55 });
+  for (let i = 0; i < 6; i++) b.cone(0.08, 0.26, { color: 0xf4efd8, x: -0.5 + i * 0.2, y: -0.1, z: 1.7, seg: 5 });
+  b.box(0.95, 0.08, 1.5, { color: 0x9a2f3a, y: -0.16, z: 0.9 });
   return b.build();
 }
 
@@ -260,10 +278,11 @@ function kaijuShin(): BufferGeometry {
 
 function kaijuArm(): BufferGeometry {
   const b = new MeshBuilder(0);
-  b.sphere(0.55, { color: SKIN, y: -0.2, wSeg: 8, hSeg: 6 });
-  b.cyl(0.38, 0.5, 1.6, { color: SKIN, y: -1.7, seg: 8, rx: 0.3 });
-  b.cyl(0.3, 0.38, 1.3, { color: SKIN2, y: -2.8, z: 0.55, seg: 8, rx: -0.6 });
-  for (let i = -1; i <= 1; i++) b.cone(0.1, 0.45, { color: 0xe8e2c8, x: i * 0.22, y: -3.1, z: 1.3, rx: 1.9, seg: 4 });
+  b.sphere(0.7, { color: SKIN, y: -0.2, wSeg: 8, hSeg: 6 });
+  b.cyl(0.45, 0.6, 1.8, { color: SKIN, y: -1.9, seg: 8, rx: 0.25 });
+  b.cyl(0.36, 0.45, 1.5, { color: SKIN2, y: -3.0, z: 0.7, seg: 8, rx: -0.75 });
+  b.sphere(0.45, { color: SKIN2, y: -3.35, z: 1.45, wSeg: 6, hSeg: 4 });
+  for (let i = -1; i <= 1; i++) b.cone(0.11, 0.55, { color: 0xe8e2c8, x: i * 0.25, y: -3.5, z: 1.8, rx: 2.1, seg: 4 });
   return b.build();
 }
 
@@ -290,7 +309,7 @@ export class Kaiju extends KitCreature {
   private legs: { hip: Group; knee: Group }[] = [];
   private arms: Group[] = [];
   private tail: Group[] = [];
-  private torsoMesh: InstancedMesh;
+  private plates: InstancedMesh;
   roar = 0;
   breath = 0;
   /** forward lean (radians) */
@@ -302,9 +321,10 @@ export class Kaiju extends KitCreature {
     this.root.add(this.hips);
     this.hips.position.y = this.hipHeight;
     this.hips.add(this.torso);
-    this.torsoMesh = this.part(kaijuTorso(), this.torso);
+    this.part(kaijuTorso(), this.torso);
+    this.plates = this.part(kaijuPlates(), this.torso);
     this.torso.add(this.neck);
-    this.neck.position.set(0, 4.6, 1.2);
+    this.neck.position.set(0, 5.6, 1.3);
     this.part(kaijuHead(), this.neck);
     this.neck.add(this.jaw);
     this.jaw.position.set(0, -0.15, 0.25);
@@ -322,7 +342,7 @@ export class Kaiju extends KitCreature {
       this.part(side < 0 ? shin : shin.clone(), knee);
       this.legs.push({ hip, knee });
       const arm = new Group();
-      arm.position.set(side * 2.0, 3.3, 1.2);
+      arm.position.set(side * 2.15, 4.2, 1.0);
       this.torso.add(arm);
       this.part(kaijuArm(), arm);
       this.arms.push(arm);
@@ -356,19 +376,19 @@ export class Kaiju extends KitCreature {
     this.hips.rotation.y = s * 0.05;
     this.torso.rotation.x = this.lean - this.roar * 0.45 - this.breath * 0.15;
     this.torso.rotation.y = -s * 0.07;
-    this.neck.rotation.x = -this.roar * 0.55 + this.breath * 0.35 + Math.sin(phase * 2) * 0.03;
+    this.neck.rotation.x = 0.12 - this.roar * 0.6 + this.breath * 0.3 + Math.sin(phase * 2) * 0.03;
     this.neck.rotation.y = Math.sin(time * 0.7) * 0.18 * (1 - this.roar);
     this.jaw.rotation.x = 0.08 + this.roar * 0.75 + this.breath * 0.6;
     for (let i = 0; i < this.tail.length; i++) {
       const k = (i + 1) / this.tail.length;
       this.tail[i].rotation.y = Math.sin(phase * 0.5 - i * 0.45) * 0.14 * (0.5 + k);
-      this.tail[i].rotation.x = i === 0 ? 0.35 : -0.04 + Math.sin(time * 0.9 - i * 0.5) * 0.02;
+      this.tail[i].rotation.x = i === 0 ? -0.62 : 0.085 + Math.sin(time * 0.9 - i * 0.5) * 0.02;
     }
   }
 
-  /** Glowing plates: Irradiated while charging breath. */
+  /** Dorsal plates pulse while the breath charges. */
   charge(on: boolean): void {
-    setState(this.torsoMesh, on ? InstState.Irradiated : InstState.Normal);
+    setState(this.plates, on ? InstState.Highlight : InstState.Normal);
   }
 
   /** Root-local foot position → planet space. */
@@ -382,7 +402,7 @@ export class Kaiju extends KitCreature {
   mouth(out: Vector3, dir: Vector3): void {
     this.root.updateMatrixWorld(true);
     const inv = _m.copy(this.root.parent!.matrixWorld).invert();
-    out.set(0, -0.1, 1.9);
+    out.set(0, -0.1, 2.5);
     this.neck.localToWorld(out).applyMatrix4(inv);
     dir.set(0, -0.15, 1);
     _q.setFromRotationMatrix(this.neck.matrixWorld);

@@ -73,6 +73,8 @@ export const godUi = {
   recent: signal<string[]>([]),
   /** the panel's selected category tab */
   tab: signal<string>('weather'),
+  /** picked variant per power id (powers with `choices`) */
+  choice: signal<Record<string, string>>({}),
 };
 
 let key = 1;
