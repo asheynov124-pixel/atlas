@@ -554,4 +554,3 @@ export function xenobiologyInstitute(ctx: MeshContext): void {
   for (let i = 0; i < 4; i++) person(b, rng.range(-0.5, 0.6), rng.range(0.6, 1.2), 0xffd23a);
 }
 
-export const _schoolsUnused = [helipad, acUnit, hedge, flowers, ngon, plate, softHex, canopy, lampRing];

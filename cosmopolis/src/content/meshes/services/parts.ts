@@ -263,7 +263,7 @@ export function pool(b: MeshBuilder, poly: V2[], inset: V2[], h: number, rim: nu
 
 // ─────────────────────────────────────────────────────────── greenery
 
-export type TreeKind = 'round' | 'pine' | 'palm' | 'blossom' | 'cypress' | 'topiary' | 'autumn' | 'alien' | 'birch' | 'bonsai';
+export type TreeKind = 'round' | 'pine' | 'snowpine' | 'palm' | 'blossom' | 'cypress' | 'topiary' | 'autumn' | 'alien' | 'birch' | 'bonsai';
 
 const TREE_GREENS = [0x4f9a3a, 0x5aa844, 0x3f8a34, 0x66b04a];
 const PINE_GREENS = [0x2f6b3c, 0x2a5f36, 0x37744a];
@@ -305,6 +305,12 @@ export function tree(b: MeshBuilder, x: number, z: number, s: number, kind: Tree
       trunk(0.08 * s, 0.022 * s);
       b.cone(0.13 * s, 0.22 * s, { color: col, mat: F, seg: 6, flat: true, x, y: y + 0.06 * s, z, paint: false });
       b.cone(0.095 * s, 0.18 * s, { color: shade(col, 1.12), mat: F, seg: 6, flat: true, x, y: y + 0.19 * s, z, paint: false });
+      break;
+    }
+    case 'snowpine': {
+      trunk(0.08 * s, 0.022 * s);
+      b.cone(0.13 * s, 0.22 * s, { color: 0x2f5f44, mat: F, seg: 6, flat: true, x, y: y + 0.06 * s, z, paint: false });
+      b.cone(0.09 * s, 0.17 * s, { color: 0xf2f6fc, mat: F, seg: 6, flat: true, x, y: y + 0.2 * s, z, paint: false });
       break;
     }
     case 'cypress': {
@@ -443,6 +449,17 @@ export function dish(b: MeshBuilder, x: number, y: number, z: number, r: number,
 /** Solar panel slab tilted toward +Z (sun-facing look). */
 export function solar(b: MeshBuilder, x: number, y: number, z: number, w: number, d: number, ry = 0): void {
   b.box(w, 0.012, d, { color: 0x203a6a, mat: Mat.Solar, topMat: Mat.Solar, x, y, z, rx: -0.35, ry, detail: true, paint: false });
+}
+
+/** Flat half-ellipse in the XY plane facing +Z (closes the open side of half-lathed shells). */
+export function halfDisc(b: MeshBuilder, rx: number, ry: number, n: number, o: PartOpts & { mat?: MatId }): void {
+  if (o.detail && b.lod === 1) return;
+  const mat = o.mat ?? Mat.Plain;
+  n = b.lod ? Math.max(3, n >> 1) : n;
+  for (let i = 0; i < n; i++) {
+    const a0 = (i / n) * Math.PI, a1 = ((i + 1) / n) * Math.PI;
+    b.tri([0, 0, 0], [Math.cos(a0) * rx, Math.sin(a0) * ry, 0], [Math.cos(a1) * rx, Math.sin(a1) * ry, 0], o, o.color, mat);
+  }
 }
 
 /** Glow sign panel (double sided) — used for emblems and lettering bars. */
