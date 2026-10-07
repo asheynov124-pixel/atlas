@@ -53,6 +53,7 @@ export class SampleBank {
   private cache = new Map<string, Entry>();
   private queue: [InstName, number][] = [];
   private queued = new Set<string>();
+  private inflight = new Set<string>();
   generated = 0;
 
   constructor(private ctx: Ctx) {}
@@ -72,15 +73,28 @@ export class SampleBank {
     return this.cache.has(inst + ':' + SampleBank.base(midi));
   }
 
-  /** enqueue notes to be rendered during idle frames */
-  warm(inst: InstName, midis: readonly number[]): void {
+  /** enqueue notes to be rendered during idle frames (`urgent` puts them at the front of the queue) */
+  warm(inst: InstName, midis: readonly number[], urgent = false): void {
     for (const m of midis) {
       const base = SampleBank.base(m);
       const k = inst + ':' + base;
-      if (this.cache.has(k) || this.queued.has(k)) continue;
+      if (this.cache.has(k)) continue;
+      if (this.queued.has(k)) {
+        if (!urgent) continue;
+        const i = this.queue.findIndex(([a, b]) => a === inst && b === base);
+        if (i > 0) this.queue.unshift(...this.queue.splice(i, 1));
+        continue;
+      }
       this.queued.add(k);
-      this.queue.push([inst, base]);
+      if (urgent) this.queue.unshift([inst, base]);
+      else this.queue.push([inst, base]);
     }
+  }
+
+  /** true when every note of the list is rendered */
+  ready(list: readonly [InstName, readonly number[]][]): boolean {
+    for (const [inst, notes] of list) for (const m of notes) if (!this.cache.has(inst + ':' + SampleBank.base(m))) return false;
+    return true;
   }
 
   /** render queued buffers until `budgetMs` is spent (always at least one) */
@@ -103,10 +117,50 @@ export class SampleBank {
     const k = inst + ':' + base;
     let e = this.cache.get(k);
     if (e) return e;
-    e = render(this.ctx, inst, base);
+    e = this.toEntry(renderData(inst, base));
     this.cache.set(k, e);
     this.generated++;
     return e;
+  }
+
+  private toEntry(s: SampleData): Entry {
+    const buf = this.ctx.createBuffer(1, s.data.length, s.sr);
+    buf.copyToChannel(s.data, 0);
+    return { buf, f0: s.f0 };
+  }
+
+  /**
+   * Hand queued notes to an asynchronous renderer (the synth worker): up to `max` requests in flight.
+   * `send(inst, base)` must eventually call `adopt()` (or `failed()`).
+   */
+  dispatch(send: (inst: InstName, base: number) => void, max = 3): void {
+    while (this.inflight.size < max && this.queue.length) {
+      const [inst, base] = this.queue.shift()!;
+      const k = inst + ':' + base;
+      this.queued.delete(k);
+      if (this.cache.has(k)) continue;
+      this.inflight.add(k);
+      send(inst, base);
+    }
+  }
+
+  /** a worker-rendered note arrived */
+  adopt(inst: InstName, base: number, s: SampleData): void {
+    const k = inst + ':' + base;
+    this.inflight.delete(k);
+    if (this.cache.has(k)) return;
+    this.cache.set(k, this.toEntry(s));
+    this.generated++;
+  }
+
+  /** the worker could not render a note: fall back to the main-thread queue */
+  failed(inst: InstName, base: number): void {
+    this.inflight.delete(inst + ':' + base);
+    this.warm(inst, [base]);
+  }
+
+  get busy(): number {
+    return this.inflight.size;
   }
 }
 
@@ -149,13 +203,19 @@ function finish(d: Float32Array, sr: number, attackMs: number, peakTarget = 0.8)
   }
 }
 
-function render(ctx: Ctx, inst: InstName, midi: number): Entry {
+export interface SampleData {
+  data: Float32Array<ArrayBuffer>;
+  sr: number;
+  f0: number;
+}
+
+/** Render one instrument note into raw mono data (pure, worker-safe). */
+export function renderData(inst: InstName, midi: number): SampleData {
   const spec = SPECS[inst];
   const sr = spec.rate;
   // low notes ring longer
   const len = Math.floor(sr * spec.seconds * (midi < 48 ? 1.25 : midi > 84 ? 0.75 : 1));
-  const buf = ctx.createBuffer(1, len, sr);
-  const d = buf.getChannelData(0);
+  const d = new Float32Array(new ArrayBuffer(len * 4));
   const f = mtof(midi);
   const r = new Prng(0x9e37 + midi * 131 + inst.length * 7919);
   let f0 = f;
@@ -323,5 +383,5 @@ function render(ctx: Ctx, inst: InstName, midi: number): Entry {
       break;
     }
   }
-  return { buf, f0 };
+  return { data: d, sr, f0 };
 }

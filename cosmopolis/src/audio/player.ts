@@ -50,6 +50,8 @@ export abstract class MoodPlayer implements Ins {
   delayFeedback = 0.33;
   /** energy section 0..3 */
   section = 1;
+  /** loudness trim so every mood sits at a similar perceived level */
+  level = 1;
   readonly v: Voice;
   readonly r: Prng;
   readonly bank: SampleBank;
@@ -110,8 +112,9 @@ export abstract class MoodPlayer implements Ins {
     return this.sd * 16;
   }
 
+  /** humanise: 0..12 ms late (never early, so nothing lands before `now`) */
   jitter(): number {
-    return (this.r.next() - 0.5) * 0.012;
+    return this.r.next() * 0.012;
   }
 
   /** scale degree → MIDI (degrees wrap into octaves) */
@@ -169,7 +172,7 @@ export abstract class MoodPlayer implements Ins {
     for (const f of this.faders) {
       f.gain.cancelScheduledValues(t);
       f.gain.setValueAtTime(0, t);
-      f.gain.linearRampToValueAtTime(1, t + Math.max(0.05, fade));
+      f.gain.linearRampToValueAtTime(this.level, t + Math.max(0.05, fade));
     }
     this.onStart(t);
   }

@@ -158,27 +158,78 @@ function rig(Ctor: OAC, seconds: number, sr: number): Rig {
 
 const pick = <T extends string>(v: T[] | boolean | undefined, all: readonly T[]): T[] => (v === false ? [] : Array.isArray(v) ? v : [...all]);
 
-export async function diagnose(opts: DiagnoseOptions = {}, shared?: SampleBank): Promise<DiagnoseReport> {
-  const Ctor = (globalThis as { OfflineAudioContext?: OAC; webkitOfflineAudioContext?: OAC }).OfflineAudioContext ?? (globalThis as { webkitOfflineAudioContext?: OAC }).webkitOfflineAudioContext;
-  if (!Ctor) throw new Error('OfflineAudioContext unavailable');
-  const sr = opts.sampleRate ?? 44100;
-  const t0 = performance.now();
-  const items: SoundStats[] = [];
-  let bank = shared;
+function offlineCtor(): OAC {
+  const g = globalThis as { OfflineAudioContext?: OAC; webkitOfflineAudioContext?: OAC };
+  const C = g.OfflineAudioContext ?? g.webkitOfflineAudioContext;
+  if (!C) throw new Error('OfflineAudioContext unavailable');
+  return C;
+}
 
-  for (const name of pick(opts.sfx, Object.keys(SFX) as SfxName[])) {
-    const def = SFX[name];
-    const a = performance.now();
-    const R = rig(Ctor, 8, sr);
-    bank ??= new SampleBank(R.ctx);
+let sharedBank: SampleBank | undefined;
+
+/**
+ * Render one sound offline and return the buffer (diagnostics, spectrogram tooling).
+ * kind 'sfx' renders `seconds` (default 8) · 'loop' (default 6) · 'mood' (default 16).
+ */
+export async function render(kind: 'sfx' | 'loop' | 'mood', name: string, seconds?: number, sampleRate = 44100, bank?: SampleBank): Promise<{ buf: AudioBuffer; end: number }> {
+  const Ctor = offlineCtor();
+  const secs = seconds ?? (kind === 'sfx' ? 8 : kind === 'loop' ? 6 : 16);
+  const R = rig(Ctor, secs, sampleRate);
+  const b = (bank ?? (sharedBank ??= new SampleBank(R.ctx)));
+  let end = secs;
+  if (kind === 'sfx') {
+    const def = SFX[name as SfxName];
+    if (!def) throw new Error('unknown sfx ' + name);
     const v = new Voice(R.ctx, R.noise, R.out, R.rev, 0.02, 1, 0);
     R.out.gain.value = def.gain;
     const send = R.ctx.createGain();
     send.gain.value = def.wet;
     R.out.connect(send);
     send.connect(R.rev);
-    def.play(v, { bank });
-    const buf = await R.ctx.startRendering();
+    def.play(v, { bank: b });
+    end = v.end;
+  } else if (kind === 'loop') {
+    const def = LOOPS[name as LoopName];
+    if (!def) throw new Error('unknown loop ' + name);
+    const kit = new LoopKit(R.ctx, R.noise, R.out, null, 0);
+    const lv = def.build(kit);
+    R.out.gain.value = def.gain * 0.6;
+    lv.out.connect(R.out);
+    for (let t = 0; t < secs; t += 0.1) lv.tick?.(t, 0.6);
+  } else {
+    if (!MOODS.includes(name as MusicMood)) throw new Error('unknown mood ' + name);
+    const env: MusicEnv = {
+      ctx: R.ctx,
+      noise: R.noise,
+      bank: b,
+      input: R.out,
+      rev: R.rev,
+      dly: R.dly,
+      setDelay: (s, f) => {
+        R.delay.delayTime.value = s;
+        R.fb.gain.value = f;
+      },
+    };
+    const p = createMood(name as MusicMood, env, 4242);
+    env.setDelay((p.delayBeats * 60) / p.bpm, p.delayFeedback, 0);
+    p.start(0, 1);
+    for (let h = 0.5; h <= secs - 0.5; h += 0.5) p.pump(h, Math.max(0, h - 0.5));
+  }
+  const buf = await R.ctx.startRendering();
+  return { buf, end };
+}
+
+export async function diagnose(opts: DiagnoseOptions = {}, shared?: SampleBank): Promise<DiagnoseReport> {
+  offlineCtor();
+  const sr = opts.sampleRate ?? 44100;
+  const t0 = performance.now();
+  const items: SoundStats[] = [];
+  const bank = shared;
+
+  for (const name of pick(opts.sfx, Object.keys(SFX) as SfxName[])) {
+    const def = SFX[name];
+    const a = performance.now();
+    const { buf, end } = await render('sfx', name, 8, sr, bank);
     const st = analyse(buf, name, 'sfx');
     st.ms = Math.round(performance.now() - a);
     const minPeak = def.ui ? 0.02 : 0.06;
@@ -186,21 +237,14 @@ export async function diagnose(opts: DiagnoseOptions = {}, shared?: SampleBank):
     else if (st.peak < minPeak) st.issues.push('quiet');
     if (st.peak > 1.4) st.issues.push('hot');
     if (st.duration > 9) st.issues.push('long');
-    if (v.end - 0.02 > 7.5) st.issues.push('voice longer than render');
+    if (end - 0.02 > 7.5) st.issues.push('voice longer than render');
     st.ok = st.issues.length === 0;
     items.push(st);
   }
 
   for (const name of pick(opts.loops, Object.keys(LOOPS) as LoopName[])) {
-    const def = LOOPS[name];
     const a = performance.now();
-    const R = rig(Ctor, 6, sr);
-    const kit = new LoopKit(R.ctx, R.noise, R.out, null, 0);
-    const lv = def.build(kit);
-    R.out.gain.value = def.gain * 0.6;
-    lv.out.connect(R.out);
-    for (let t = 0; t < 6; t += 0.1) lv.tick?.(t, 0.6);
-    const buf = await R.ctx.startRendering();
+    const { buf } = await render('loop', name, 6, sr, bank);
     const st = analyse(buf, name, 'loop');
     st.ms = Math.round(performance.now() - a);
     const w = windowRms(buf, 4, 2);
@@ -215,25 +259,7 @@ export async function diagnose(opts: DiagnoseOptions = {}, shared?: SampleBank):
   const secs = opts.moodSeconds ?? 16;
   for (const mood of pick(opts.moods, MOODS)) {
     const a = performance.now();
-    const R = rig(Ctor, secs, sr);
-    bank ??= new SampleBank(R.ctx);
-    const env: MusicEnv = {
-      ctx: R.ctx,
-      noise: R.noise,
-      bank,
-      input: R.out,
-      rev: R.rev,
-      dly: R.dly,
-      setDelay: (s, f) => {
-        R.delay.delayTime.value = s;
-        R.fb.gain.value = f;
-      },
-    };
-    const p = createMood(mood, env, 4242);
-    env.setDelay((p.delayBeats * 60) / p.bpm, p.delayFeedback, 0);
-    p.start(0, 1);
-    p.pump(secs - 0.5, 0);
-    const buf = await R.ctx.startRendering();
+    const { buf } = await render('mood', mood, secs, sr, bank);
     const st = analyse(buf, mood, 'mood');
     st.ms = Math.round(performance.now() - a);
     st.windows = windowRms(buf, 0, 2);

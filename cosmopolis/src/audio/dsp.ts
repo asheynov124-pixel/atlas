@@ -70,6 +70,7 @@ function newBuffer(ctx: Ctx, channels: number, length: number, sampleRate: numbe
 }
 
 /** Lazily generated noise & texture buffers (shared by every context of the page). */
+/** Lazily generated noise & texture buffers. `adopt()` accepts data rendered by the synth worker. */
 export class NoiseBank {
   private bufs = new Map<NoiseKind, AudioBuffer>();
   constructor(private ctx: Ctx) {}
@@ -77,10 +78,19 @@ export class NoiseBank {
   get(kind: NoiseKind): AudioBuffer {
     let b = this.bufs.get(kind);
     if (!b) {
-      b = this.make(kind);
+      b = toBuffer(this.ctx, [noiseData(kind, this.ctx.sampleRate)], this.ctx.sampleRate);
       this.bufs.set(kind, b);
     }
     return b;
+  }
+
+  has(kind: NoiseKind): boolean {
+    return this.bufs.has(kind);
+  }
+
+  /** take data generated elsewhere (worker) */
+  adopt(kind: NoiseKind, data: Float32Array<ArrayBuffer>): void {
+    if (!this.bufs.has(kind)) this.bufs.set(kind, toBuffer(this.ctx, [data], this.ctx.sampleRate));
   }
 
   /** generate everything up-front */
@@ -98,140 +108,160 @@ export class NoiseBank {
     }
     return false;
   }
-
-  private make(kind: NoiseKind): AudioBuffer {
-    const sr = this.ctx.sampleRate;
-    const r = new Prng(0x1234 + kind.length * 977);
-    const secs = kind === 'white' || kind === 'pink' || kind === 'brown' ? 2.5 : kind === 'vinyl' ? 4 : 3;
-    const len = Math.floor(sr * secs);
-    const buf = newBuffer(this.ctx, 1, len, sr);
-    const d = buf.getChannelData(0);
-    switch (kind) {
-      case 'white':
-        for (let i = 0; i < len; i++) d[i] = r.next() * 2 - 1;
-        break;
-      case 'pink': {
-        // Paul Kellet's economy pink filter
-        let b0 = 0,
-          b1 = 0,
-          b2 = 0;
-        for (let i = 0; i < len; i++) {
-          const w = r.next() * 2 - 1;
-          b0 = 0.99765 * b0 + w * 0.099046;
-          b1 = 0.963 * b1 + w * 0.2965164;
-          b2 = 0.57 * b2 + w * 1.0526913;
-          d[i] = (b0 + b1 + b2 + w * 0.1848) * 0.2;
-        }
-        break;
-      }
-      case 'brown': {
-        let last = 0;
-        for (let i = 0; i < len; i++) {
-          const w = r.next() * 2 - 1;
-          last = (last + 0.02 * w) / 1.02;
-          d[i] = last * 3.5;
-        }
-        break;
-      }
-      case 'crackle': {
-        // fire: low roar bed + random pops with exponential tails
-        let last = 0;
-        for (let i = 0; i < len; i++) {
-          const w = r.next() * 2 - 1;
-          last = (last + 0.04 * w) / 1.04;
-          d[i] = last * 1.6;
-        }
-        const pops = Math.floor(secs * 38);
-        for (let p = 0; p < pops; p++) {
-          const at = Math.floor(r.next() * len);
-          const amp = Math.pow(r.next(), 2.2) * 0.9 + 0.05;
-          const tau = sr * (0.0008 + r.next() * 0.004);
-          const n = Math.min(len - at, Math.floor(tau * 6));
-          for (let j = 0; j < n; j++) d[at + j] += (r.next() * 2 - 1) * amp * Math.exp(-j / tau);
-        }
-        break;
-      }
-      case 'rain': {
-        // dense hiss + thousands of tiny droplets (short resonant blips)
-        let lp = 0;
-        for (let i = 0; i < len; i++) {
-          const w = r.next() * 2 - 1;
-          lp += 0.35 * (w - lp);
-          d[i] = (w - lp) * 0.22;
-        }
-        const drops = Math.floor(secs * 260);
-        for (let p = 0; p < drops; p++) {
-          const at = Math.floor(r.next() * len);
-          const f = 1800 + r.next() * 5200;
-          const amp = Math.pow(r.next(), 3) * 0.6 + 0.02;
-          const tau = sr * (0.0006 + r.next() * 0.0025);
-          const n = Math.min(len - at, Math.floor(tau * 5));
-          const w = (2 * Math.PI * f) / sr;
-          for (let j = 0; j < n; j++) d[at + j] += Math.sin(w * j) * amp * Math.exp(-j / tau);
-        }
-        break;
-      }
-      case 'vinyl': {
-        // lo-fi record crackle: faint hiss + sparse clicks + rare pops
-        for (let i = 0; i < len; i++) d[i] = (r.next() * 2 - 1) * 0.012;
-        const clicks = Math.floor(secs * 14);
-        for (let p = 0; p < clicks; p++) {
-          const at = Math.floor(r.next() * (len - 64));
-          const amp = (r.next() < 0.12 ? 0.55 : 0.18) * (0.4 + r.next());
-          const sgn = r.next() < 0.5 ? -1 : 1;
-          for (let j = 0; j < 24; j++) d[at + j] += sgn * amp * Math.exp(-j / 3) * (j % 2 ? -0.6 : 1);
-        }
-        break;
-      }
-      case 'grit': {
-        // granular grit: bursts of sparse impulses (black holes, debris, ice)
-        for (let i = 0; i < len; i++) d[i] = 0;
-        const grains = Math.floor(secs * 900);
-        for (let p = 0; p < grains; p++) {
-          const at = Math.floor(r.next() * (len - 40));
-          const amp = Math.pow(r.next(), 4) * 0.9;
-          for (let j = 0; j < 30; j++) d[at + j] += (r.next() * 2 - 1) * amp * Math.exp(-j / 6);
-        }
-        break;
-      }
-    }
-    // normalise peak to 0.9 and remove DC
-    let peak = 0,
-      mean = 0;
-    for (let i = 0; i < len; i++) mean += d[i];
-    mean /= len;
-    for (let i = 0; i < len; i++) {
-      d[i] -= mean;
-      const a = Math.abs(d[i]);
-      if (a > peak) peak = a;
-    }
-    if (peak > 0) {
-      const k = 0.9 / peak;
-      for (let i = 0; i < len; i++) d[i] *= k;
-    }
-    // short crossfade so loops are seamless
-    const xf = Math.min(Math.floor(sr * 0.03), len >> 2);
-    for (let i = 0; i < xf; i++) {
-      const t = i / xf;
-      d[i] = d[i] * t + d[len - xf + i] * (1 - t);
-    }
-    return buf;
-  }
 }
+
+/** wrap channel data into an AudioBuffer of `ctx` */
+export function toBuffer(ctx: Ctx, chans: Float32Array<ArrayBuffer>[], sr: number): AudioBuffer {
+  const buf = newBuffer(ctx, chans.length, chans[0].length, sr);
+  for (let c = 0; c < chans.length; c++) buf.copyToChannel(chans[c], c);
+  return buf;
+}
+
+/** Noise / texture samples (pure, worker-safe): mono, `sr` Hz, seamless loop. */
+export function noiseData(kind: NoiseKind, sr: number): Float32Array<ArrayBuffer> {
+  let seed = 0x1234;
+  for (let i = 0; i < kind.length; i++) seed = (seed * 31 + kind.charCodeAt(i)) >>> 0;
+  const r = new Prng(seed);
+  const secs = kind === 'white' || kind === 'pink' || kind === 'brown' ? 2.5 : kind === 'vinyl' ? 4 : 3;
+  const len = Math.floor(sr * secs);
+  const d = new Float32Array(new ArrayBuffer(len * 4));
+  switch (kind) {
+    case 'white':
+      for (let i = 0; i < len; i++) d[i] = r.next() * 2 - 1;
+      break;
+    case 'pink': {
+      // Paul Kellet's economy pink filter
+      let b0 = 0,
+        b1 = 0,
+        b2 = 0;
+      for (let i = 0; i < len; i++) {
+        const w = r.next() * 2 - 1;
+        b0 = 0.99765 * b0 + w * 0.099046;
+        b1 = 0.963 * b1 + w * 0.2965164;
+        b2 = 0.57 * b2 + w * 1.0526913;
+        d[i] = (b0 + b1 + b2 + w * 0.1848) * 0.2;
+      }
+      break;
+    }
+    case 'brown': {
+      let last = 0;
+      for (let i = 0; i < len; i++) {
+        const w = r.next() * 2 - 1;
+        last = (last + 0.02 * w) / 1.02;
+        d[i] = last * 3.5;
+      }
+      break;
+    }
+    case 'crackle': {
+      // fire: low roar bed + random pops with exponential tails
+      let last = 0;
+      for (let i = 0; i < len; i++) {
+        const w = r.next() * 2 - 1;
+        last = (last + 0.04 * w) / 1.04;
+        d[i] = last * 1.6;
+      }
+      const pops = Math.floor(secs * 38);
+      for (let p = 0; p < pops; p++) {
+        const at = Math.floor(r.next() * len);
+        const amp = Math.pow(r.next(), 2.2) * 0.9 + 0.05;
+        const tau = sr * (0.0008 + r.next() * 0.004);
+        const n = Math.min(len - at, Math.floor(tau * 6));
+        for (let j = 0; j < n; j++) d[at + j] += (r.next() * 2 - 1) * amp * Math.exp(-j / tau);
+      }
+      break;
+    }
+    case 'rain': {
+      // dense hiss + thousands of tiny droplets (short resonant blips)
+      let lp = 0;
+      for (let i = 0; i < len; i++) {
+        const w = r.next() * 2 - 1;
+        lp += 0.35 * (w - lp);
+        d[i] = (w - lp) * 0.22;
+      }
+      const drops = Math.floor(secs * 260);
+      for (let p = 0; p < drops; p++) {
+        const at = Math.floor(r.next() * len);
+        const f = 1800 + r.next() * 5200;
+        const amp = Math.pow(r.next(), 3) * 0.6 + 0.02;
+        const tau = sr * (0.0006 + r.next() * 0.0025);
+        const n = Math.min(len - at, Math.floor(tau * 5));
+        const w = (2 * Math.PI * f) / sr;
+        for (let j = 0; j < n; j++) d[at + j] += Math.sin(w * j) * amp * Math.exp(-j / tau);
+      }
+      break;
+    }
+    case 'vinyl': {
+      // lo-fi record crackle: faint hiss + sparse clicks + rare pops
+      for (let i = 0; i < len; i++) d[i] = (r.next() * 2 - 1) * 0.012;
+      const clicks = Math.floor(secs * 14);
+      for (let p = 0; p < clicks; p++) {
+        const at = Math.floor(r.next() * (len - 64));
+        const amp = (r.next() < 0.12 ? 0.55 : 0.18) * (0.4 + r.next());
+        const sgn = r.next() < 0.5 ? -1 : 1;
+        for (let j = 0; j < 24; j++) d[at + j] += sgn * amp * Math.exp(-j / 3) * (j % 2 ? -0.6 : 1);
+      }
+      break;
+    }
+    case 'grit': {
+      // granular grit: bursts of sparse impulses (black holes, debris, ice)
+      for (let i = 0; i < len; i++) d[i] = 0;
+      const grains = Math.floor(secs * 900);
+      for (let p = 0; p < grains; p++) {
+        const at = Math.floor(r.next() * (len - 40));
+        const amp = Math.pow(r.next(), 4) * 0.9;
+        for (let j = 0; j < 30; j++) d[at + j] += (r.next() * 2 - 1) * amp * Math.exp(-j / 6);
+      }
+      break;
+    }
+  }
+  // normalise peak to 0.9 and remove DC
+  let peak = 0,
+    mean = 0;
+  for (let i = 0; i < len; i++) mean += d[i];
+  mean /= len;
+  for (let i = 0; i < len; i++) {
+    d[i] -= mean;
+    const a = Math.abs(d[i]);
+    if (a > peak) peak = a;
+  }
+  if (peak > 0) {
+    const k = 0.9 / peak;
+    for (let i = 0; i < len; i++) d[i] *= k;
+  }
+  // short crossfade so loops are seamless
+  const xf = Math.min(Math.floor(sr * 0.03), len >> 2);
+  for (let i = 0; i < xf; i++) {
+    const t = i / xf;
+    d[i] = d[i] * t + d[len - xf + i] * (1 - t);
+  }
+  return d;
+}
+
 
 /**
  * Algorithmic reverb impulse response: a few discrete early reflections, then decorrelated stereo noise with an
  * exponential decay whose spectrum darkens over time (one-pole lowpass whose cutoff falls with t).
  */
-export function makeImpulse(ctx: Ctx, seconds: number, opts: { predelay?: number; bright?: number; early?: number; seed?: number } = {}): AudioBuffer {
-  const sr = ctx.sampleRate;
+export interface ImpulseOpts {
+  predelay?: number;
+  bright?: number;
+  early?: number;
+  seed?: number;
+}
+
+export function makeImpulse(ctx: Ctx, seconds: number, opts: ImpulseOpts = {}): AudioBuffer {
+  return toBuffer(ctx, impulseData(seconds, ctx.sampleRate, opts), ctx.sampleRate);
+}
+
+/** impulse response channel data (pure, worker-safe) */
+export function impulseData(seconds: number, sr: number, opts: ImpulseOpts = {}): Float32Array<ArrayBuffer>[] {
   const len = Math.floor(sr * seconds);
-  const buf = newBuffer(ctx, 2, len, sr);
+  const chans = [new Float32Array(new ArrayBuffer(len * 4)), new Float32Array(new ArrayBuffer(len * 4))];
   const r = new Prng(opts.seed ?? 0xbeef);
   const pre = Math.floor(sr * (opts.predelay ?? 0.018));
   const bright = opts.bright ?? 0.6;
   for (let ch = 0; ch < 2; ch++) {
-    const d = buf.getChannelData(ch);
+    const d = chans[ch];
     let lp = 0;
     for (let i = pre; i < len; i++) {
       const t = (i - pre) / (len - pre);
@@ -254,16 +284,10 @@ export function makeImpulse(ctx: Ctx, seconds: number, opts: { predelay?: number
   }
   // normalise energy so different lengths sound similar in level
   let e = 0;
-  for (let ch = 0; ch < 2; ch++) {
-    const d = buf.getChannelData(ch);
-    for (let i = 0; i < len; i++) e += d[i] * d[i];
-  }
-  const k = 1 / Math.sqrt(Math.max(1e-9, e / 2)) * 0.9;
-  for (let ch = 0; ch < 2; ch++) {
-    const d = buf.getChannelData(ch);
-    for (let i = 0; i < len; i++) d[i] *= k;
-  }
-  return buf;
+  for (const d of chans) for (let i = 0; i < len; i++) e += d[i] * d[i];
+  const k = (1 / Math.sqrt(Math.max(1e-9, e / 2))) * 0.9;
+  for (const d of chans) for (let i = 0; i < len; i++) d[i] *= k;
+  return chans;
 }
 
 const curveCache = new Map<number, Float32Array<ArrayBuffer>>();
@@ -340,6 +364,8 @@ export class Voice {
   }
 
   osc(kind: OscKind, freq: number, t0 = this.t, t1 = t0 + 1, detune = 0): OscillatorNode {
+    t0 = Math.max(0, t0);
+    t1 = Math.max(t0 + 0.001, t1);
     const o = this.ctx.createOscillator();
     if (kind === 'warm' || kind === 'hollow' || kind === 'organ' || kind === 'reed') o.setPeriodicWave(periodicWave(this.ctx, kind));
     else o.type = kind;
@@ -352,6 +378,8 @@ export class Voice {
   }
 
   noiseSrc(kind: NoiseKind, t0 = this.t, t1 = t0 + 1, rate = 1): AudioBufferSourceNode {
+    t0 = Math.max(0, t0);
+    t1 = Math.max(t0 + 0.001, t1);
     const s = this.ctx.createBufferSource();
     const b = this.noise.get(kind);
     s.buffer = b;
@@ -365,6 +393,8 @@ export class Voice {
   }
 
   buffer(buf: AudioBuffer, t0 = this.t, rate = 1, t1 = t0 + buf.duration / Math.max(0.05, rate)): AudioBufferSourceNode {
+    t0 = Math.max(0, t0);
+    t1 = Math.max(t0 + 0.001, t1);
     const s = this.ctx.createBufferSource();
     s.buffer = buf;
     s.playbackRate.setValueAtTime(rate, t0);

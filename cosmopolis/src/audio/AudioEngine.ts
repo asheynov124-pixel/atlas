@@ -35,13 +35,21 @@ import type { Planet } from '../world/planet';
 import { shared } from '../render/materials';
 import { ui } from '../ui/store';
 import { EMPTY_AMB, Soundscape, type AmbState } from './ambience';
-import { clamp, makeImpulse, NoiseBank, rnd, smooth, Voice, volCurve } from './dsp';
+import { clamp, makeImpulse, NOISE_KINDS, NoiseBank, rnd, smooth, toBuffer, Voice, volCurve } from './dsp';
 import { LOOPS, LoopKit, type LoopVoice } from './loops';
 import { MusicEngine } from './music';
 import { MOODS, WARM } from './moods';
 import { SampleBank } from './samples';
+import { SynthClient } from './synth';
 import { SFX, type SfxDef } from './sfx';
 import { diagnose, type DiagnoseOptions, type DiagnoseReport } from './diagnose';
+
+/** profiling helper: record the worst section time, return a fresh timestamp */
+function lap(p: Record<string, number>, k: string, t: number): number {
+  const n = performance.now();
+  if (n - t > p[k]) p[k] = Math.round((n - t) * 100) / 100;
+  return n;
+}
 
 export interface SfxOpts {
   volume?: number;
@@ -193,13 +201,14 @@ export class AudioEngine implements System {
   private dly: DelayNode | null = null;
   private dlyIn: GainNode | null = null;
   private dlyFb: GainNode | null = null;
+  private conv: ConvolverNode | null = null;
+  private synth: SynthClient | null = null;
   // state
   private voices: ActiveVoice[] = [];
   private lastPlay = new Map<SfxName, number>();
   private loops: LoopInst[] = [];
   private pending: { name: SfxName; opts?: SfxOpts; at: number }[] = [];
   private resuming = false;
-  private silentPlayed = false;
   private lastSfxAt = 0;
   private lastClickAt = 0;
   private lastPlaceAt = 0;
@@ -216,6 +225,12 @@ export class AudioEngine implements System {
   private offs: (() => void)[] = [];
   private listening = false;
   private diagRequested = false;
+  private frames = 0;
+  private decisions = 0;
+  /** worst-case milliseconds per update section (debug) */
+  private prof: Record<string, number> = { mood: 0, music: 0, warm: 0, voices: 0, amb: 0 };
+  /** a mood is waiting for its samples to be rendered before it starts */
+  private waitingMood = false;
 
   constructor(private game: Game) {}
 
@@ -298,6 +313,7 @@ export class AudioEngine implements System {
     this.stopLoops(0.05);
     this.music?.dispose();
     this.scape?.dispose();
+    this.synth?.dispose();
     try {
       void this.ctx?.close();
     } catch {
@@ -310,35 +326,40 @@ export class AudioEngine implements System {
   private onGesture = (): void => {
     if (!this.enabled) return;
     const ctx = this.ctx;
-    if (ctx && ctx.state === 'running' && this.silentPlayed) return;
+    if (ctx && ctx.state === 'running') return;
+    // muted on purpose (settings) → stay suspended once unlocked
+    if (this.unlocked && (settings.value.muted || settings.value.masterVolume <= 0.001)) return;
     this.unlock();
   };
 
+  /**
+   * Create / resume the AudioContext. Must run inside a user gesture on iOS (touchend / click): a silent buffer is
+   * started and resume() is called on every gesture until the context actually runs (a resume() issued from a
+   * non-activating event such as pointerdown may stay pending, so it is never treated as "in flight").
+   */
   unlock(): void {
     if (!this.enabled) return;
     try {
       if (!this.ctx) this.create();
       const ctx = this.ctx;
       if (!ctx) return;
-      if (!this.silentPlayed) {
-        // iOS: a buffer started inside the gesture fully unlocks output
-        const b = ctx.createBuffer(1, 1, ctx.sampleRate);
-        const s = ctx.createBufferSource();
-        s.buffer = b;
-        s.connect(ctx.destination);
-        s.start(0);
-        this.silentPlayed = true;
+      if (ctx.state === 'running') {
+        this.onRunning();
+        return;
       }
-      if (ctx.state !== 'running' && !this.resuming && !document.hidden) {
-        this.resuming = true;
-        ctx
-          .resume()
-          .then(() => this.onRunning())
-          .catch(() => {
-            /* not allowed yet — retried on the next gesture */
-          })
-          .finally(() => (this.resuming = false));
-      } else if (ctx.state === 'running') this.onRunning();
+      if (document.hidden) return;
+      const s = ctx.createBufferSource();
+      s.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+      s.connect(ctx.destination);
+      s.start(0);
+      this.resuming = true;
+      ctx
+        .resume()
+        .then(() => this.onRunning())
+        .catch(() => {
+          /* not allowed yet — retried on the next gesture */
+        })
+        .finally(() => (this.resuming = false));
     } catch (e) {
       console.warn('[audio] unlock failed', e);
     }
@@ -365,7 +386,13 @@ export class AudioEngine implements System {
     this.ctx = ctx;
     this.noise = new NoiseBank(ctx);
     this.bank = new SampleBank(ctx);
+    try {
+      this.synth = new SynthClient();
+    } catch {
+      this.synth = null;
+    }
     this.buildGraph(ctx);
+    this.requestAssets(ctx);
     this.music = new MusicEngine({
       ctx,
       noise: this.noise,
@@ -412,7 +439,7 @@ export class AudioEngine implements System {
     rhp.type = 'highpass';
     rhp.frequency.value = 140;
     const conv = ctx.createConvolver();
-    conv.buffer = makeImpulse(ctx, 3.4, { predelay: 0.02, bright: 0.55 });
+    this.conv = conv;
     const revOut = g(0.6);
     rev.connect(rhp);
     rhp.connect(conv);
@@ -467,6 +494,29 @@ export class AudioEngine implements System {
     this.dlyFb = dlyFb;
   }
 
+  /** reverb IR + noise textures from the synth worker (main-thread fallback if it is unavailable) */
+  private requestAssets(ctx: AudioContext): void {
+    const IR = { seconds: 3.4, opts: { predelay: 0.02, bright: 0.55 } };
+    const syncIR = () => {
+      if (this.conv && !this.conv.buffer) this.conv.buffer = makeImpulse(ctx, IR.seconds, IR.opts);
+    };
+    const synth = this.synth;
+    if (!synth || !synth.ok) {
+      syncIR();
+      return;
+    }
+    synth.request({ kind: 'impulse', seconds: IR.seconds, sr: ctx.sampleRate, opts: IR.opts }, (r) => {
+      if (r.error || !r.chans.length || !this.conv) syncIR();
+      else if (!this.conv.buffer) this.conv.buffer = toBuffer(ctx, r.chans, r.sr);
+    });
+    setTimeout(syncIR, 4000);
+    for (const kind of NOISE_KINDS) {
+      synth.request({ kind: 'noise', name: kind, sr: ctx.sampleRate }, (r) => {
+        if (!r.error && r.chans.length) this.noise?.adopt(kind, r.chans[0]);
+      });
+    }
+  }
+
   private setDelay(sec: number, fb: number, at: number): void {
     if (!this.dly || !this.dlyFb) return;
     const s = clamp(sec, 0.05, 2.9);
@@ -513,12 +563,14 @@ export class AudioEngine implements System {
     try {
       if (hidden || muted) {
         if (ctx.state === 'running') void ctx.suspend().catch(() => {});
-      } else if (ctx.state !== 'running' && !this.resuming) {
+      } else if (ctx.state !== 'running') {
         this.resuming = true;
         ctx
           .resume()
           .then(() => this.onRunning())
-          .catch(() => {})
+          .catch(() => {
+            /* iOS may refuse outside a gesture — onGesture retries */
+          })
           .finally(() => (this.resuming = false));
       }
     } catch {
@@ -796,6 +848,7 @@ export class AudioEngine implements System {
   }
 
   private decideMood(): void {
+    this.decisions++;
     const nowS = performance.now() / 1000;
     const want = this.moodOverride ?? this.computeMood(nowS);
     if (want !== this.mood) {
@@ -829,6 +882,15 @@ export class AudioEngine implements System {
     if (cur && cur.mood === this.mood) return;
     const from = cur?.mood ?? null;
     const to = this.mood;
+    // let the mood's instrument samples render first (amortised over a few frames) so starting never hitches
+    const bank = this.bank;
+    if (bank && !bank.ready(WARM[to]) && performance.now() / 1000 - this.moodChangedAt < 2.5) {
+      for (const [inst, notes] of WARM[to]) bank.warm(inst, notes, true);
+      this.waitingMood = true;
+      this.moodTimer = Math.min(this.moodTimer, 0.1);
+      return;
+    }
+    this.waitingMood = false;
     let fin = 3;
     let fout = 3.5;
     if (!from) {
@@ -1056,8 +1118,11 @@ export class AudioEngine implements System {
 
   // ─────────────────────────────────────────────── frame update
   update(dt: number): void {
+    this.frames++;
     const ctx = this.ctx;
     if (!ctx) return;
+    const P = this.prof;
+    let t = performance.now();
     if ((this.moodTimer -= dt) <= 0) {
       this.moodTimer = 0.4;
       try {
@@ -1065,6 +1130,7 @@ export class AudioEngine implements System {
       } catch (e) {
         console.error('[audio] mood failed', e);
       }
+      t = lap(P, 'mood', t);
     }
     if (ctx.state !== 'running') return;
     const now = ctx.currentTime;
@@ -1073,11 +1139,18 @@ export class AudioEngine implements System {
     } catch (e) {
       console.error('[audio] music failed', e);
     }
-    if (this.noise && this.noise.warmOne()) {
-      /* one noise texture per frame */
-    } else if (this.bank && this.bank.pending) this.bank.tick(1.2);
+    t = lap(P, 'music', t);
+    // amortised warm-up: one noise texture or ~1 ms of instrument samples per frame (more while a mood waits)
+    const synth = this.synth;
+    if (synth && synth.ok) {
+      if (this.bank && this.bank.pending) this.bank.dispatch(this.sendSample, this.waitingMood ? 6 : 3);
+    } else if (this.noise && this.noise.warmOne()) {
+      /* one texture this frame */
+    } else if (this.bank && this.bank.pending) this.bank.tick(this.waitingMood ? 6 : 1.2);
+    t = lap(P, 'warm', t);
     this.reapVoices(now);
     this.updateLoops(now);
+    t = lap(P, 'voices', t);
     if ((this.ambTimer -= dt) <= 0) {
       this.ambTimer = 0.25;
       try {
@@ -1085,8 +1158,19 @@ export class AudioEngine implements System {
       } catch (e) {
         console.error('[audio] ambience failed', e);
       }
+      lap(P, 'amb', t);
     }
   }
+
+  /** worker request for one instrument note */
+  private sendSample = (inst: Parameters<SampleBank['adopt']>[0], base: number): void => {
+    const bank = this.bank;
+    if (!bank || !this.synth) return;
+    this.synth.request({ kind: 'sample', inst, midi: base }, (r) => {
+      if (r.error || !r.chans.length) bank.failed(inst, base);
+      else bank.adopt(inst, base, { data: r.chans[0], sr: r.sr, f0: r.f0 ?? 440 });
+    });
+  };
 
   // ─────────────────────────────────────────────── debug / tests
   /** machine-readable snapshot (tests, debug overlay) */
@@ -1103,11 +1187,23 @@ export class AudioEngine implements System {
       voices: this.voices.length,
       loops: this.loops.filter((l) => !l.stopped).map((l) => l.name),
       samples: this.bank?.generated ?? 0,
-      samplesPending: this.bank?.pending ?? 0,
+      samplesPending: (this.bank?.pending ?? 0) + (this.bank?.busy ?? 0),
+      worker: this.synth ? { ok: this.synth.ok, served: this.synth.served, pending: this.synth.pending } : null,
+      reverb: !!this.conv?.buffer,
       ambience: this.scape ? { ...this.scape.levels, events: this.scape.events } : null,
       amb: { ...this.amb },
       disasters: [...this.disasters.keys()],
       listening: this.listening,
+      screen: ui.screen.value,
+      view: ui.view.value,
+      override: this.moodOverride,
+      hint: this.hint ? { mood: this.hint.mood, ago: Math.round((performance.now() / 1000 - this.hint.at) * 10) / 10 } : null,
+      changedAgo: Math.round((performance.now() / 1000 - this.moodChangedAt) * 10) / 10,
+      daylight: Math.round(this.daylight() * 100) / 100,
+      frames: this.frames,
+      decisions: this.decisions,
+      moodTimer: Math.round(this.moodTimer * 100) / 100,
+      prof: { ...this.prof },
     };
   }
 

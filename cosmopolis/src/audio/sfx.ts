@@ -169,7 +169,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   close: {
-    gain: 0.45,
+    gain: 0.55,
     wet: 0.08,
     ui: true,
     gap: 0.06,
@@ -186,7 +186,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   toggle: {
-    gain: 0.5,
+    gain: 0.6,
     wet: 0.03,
     ui: true,
     gap: 0.04,
@@ -251,7 +251,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   placeBig: {
-    gain: 0.85,
+    gain: 0.72,
     wet: 0.16,
     gap: 0.06,
     max: 3,
@@ -270,7 +270,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   road: {
-    gain: 0.6,
+    gain: 0.85,
     wet: 0.06,
     gap: 0.05,
     max: 3,
@@ -289,7 +289,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   zone: {
-    gain: 0.5,
+    gain: 0.95,
     wet: 0.06,
     gap: 0.05,
     max: 3,
@@ -329,7 +329,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   demolish: {
-    gain: 0.8,
+    gain: 0.66,
     wet: 0.18,
     gap: 0.12,
     max: 3,
@@ -372,7 +372,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   paint: {
-    gain: 0.5,
+    gain: 0.8,
     wet: 0.08,
     gap: 0.04,
     max: 3,
@@ -405,7 +405,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   chime: {
-    gain: 0.55,
+    gain: 0.8,
     wet: 0.35,
     gap: 0.12,
     max: 3,
@@ -514,7 +514,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   whoosh: {
-    gain: 0.6,
+    gain: 1.4,
     wet: 0.12,
     gap: 0.08,
     max: 3,
@@ -541,7 +541,7 @@ export const SFX: Record<SfxName, SfxDef> = {
 
   // ── destruction
   explosion: {
-    gain: 0.85,
+    gain: 0.55,
     wet: 0.25,
     gap: 0.05,
     max: 6,
@@ -566,7 +566,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   bigExplosion: {
-    gain: 0.95,
+    gain: 0.55,
     wet: 0.32,
     gap: 0.15,
     max: 3,
@@ -624,7 +624,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   quake: {
-    gain: 0.9,
+    gain: 0.62,
     wet: 0.18,
     gap: 0.3,
     max: 2,
@@ -712,7 +712,7 @@ export const SFX: Record<SfxName, SfxDef> = {
 
   // ── elements
   wind: {
-    gain: 0.7,
+    gain: 1.0,
     wet: 0.15,
     gap: 0.4,
     max: 3,
@@ -769,7 +769,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   water: {
-    gain: 0.6,
+    gain: 0.9,
     wet: 0.15,
     gap: 0.15,
     max: 3,
@@ -871,7 +871,7 @@ export const SFX: Record<SfxName, SfxDef> = {
 
   // ── weapons, creatures & cosmic
   laser: {
-    gain: 0.6,
+    gain: 0.8,
     wet: 0.12,
     gap: 0.04,
     max: 5,
@@ -1002,7 +1002,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   blackhole: {
-    gain: 0.9,
+    gain: 0.7,
     wet: 0.35,
     gap: 1,
     max: 2,
@@ -1039,7 +1039,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   supernova: {
-    gain: 0.95,
+    gain: 0.58,
     wet: 0.45,
     gap: 1.5,
     max: 2,
@@ -1087,7 +1087,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   alarm: {
-    gain: 0.55,
+    gain: 0.7,
     wet: 0.15,
     gap: 0.8,
     max: 2,
@@ -1111,7 +1111,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   launch: {
-    gain: 0.85,
+    gain: 0.7,
     wet: 0.25,
     gap: 0.6,
     max: 2,
@@ -1152,7 +1152,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   engine: {
-    gain: 0.65,
+    gain: 0.95,
     wet: 0.12,
     gap: 0.2,
     max: 3,
@@ -1206,7 +1206,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   rewind: {
-    gain: 0.7,
+    gain: 1.0,
     wet: 0.18,
     gap: 0.3,
     max: 2,

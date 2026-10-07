@@ -41,6 +41,7 @@ class MenuMood extends MoodPlayer {
   readonly mood = 'menu';
   constructor(env: MusicEnv, seed: number) {
     super(env, seed);
+    this.level = 0.62;
     this.bpm = 54;
     this.root = 50;
     this.scale = MAJOR;
@@ -58,13 +59,13 @@ class MenuMood extends MoodPlayer {
       if (ci > 0 && ci % this.prog.length === 0) this.prog = this.r.pick([[0, 5, 3, 4], [0, 4, 5, 3], [0, 3, 5, 4], [0, 5, 1, 4]]);
       const dur = this.barDur * this.bpc;
       pad(this, voicing([...this.chord(cd, 4), this.deg(cd + 8)], 57, 81), t, dur + 0.3, 0.16, this.wet, { attack: 2.6, release: 3.4, cutoff: 1500, fm: 0.32, spread: 8 });
-      bass(this, this.deg(cd, -1), t, dur, 0.24, this.dry, 'soft');
+      bass(this, this.deg(cd, -1), t, dur, 0.11, this.dry, 'soft');
       if (ci % 2 === 0) taiko(this, t, 0.16, this.wet, 52);
       if (ci % 4 === 2 && this.section >= 1) swell(this, [this.deg(cd, 0), this.deg(cd + 4, 0)], t + this.barDur * 0.25, dur * 0.85, 0.08, this.wet);
     }
     const prob = [0.2, 0.3, 0.42, 0.5][this.section];
-    if (i % 4 === 0 && this.r.chance(prob)) note(this, 'harp', this.melody(cd, 2, i % 8 === 0), t + this.jitter(), this.r.range(0.2, 0.3), this.far);
-    else if (i % 4 === 2 && this.section >= 2 && this.r.chance(0.12)) note(this, 'harp', this.melody(cd, 2, false), t + this.jitter(), this.r.range(0.14, 0.2), this.far);
+    if (i % 4 === 0 && this.r.chance(prob)) note(this, 'harp', this.melody(cd, 2, i % 8 === 0), t + this.jitter(), this.r.range(0.28, 0.38), this.far);
+    else if (i % 4 === 2 && this.section >= 2 && this.r.chance(0.12)) note(this, 'harp', this.melody(cd, 2, false), t + this.jitter(), this.r.range(0.18, 0.26), this.far);
     if (i === 8 && bar % 2 === 1 && this.r.chance(0.35)) note(this, 'glock', this.deg(this.r.pick([0, 2, 4]), 3), t, 0.07, this.far);
   }
 }
@@ -83,6 +84,7 @@ class DayMood extends MoodPlayer {
   private tones: number[] = [];
   constructor(env: MusicEnv, seed: number) {
     super(env, seed);
+    this.level = 0.85;
     this.bpm = 92;
     this.root = 53;
     this.scale = LYDIAN;
@@ -105,10 +107,10 @@ class DayMood extends MoodPlayer {
     }
     if (!this.tones.length) this.tones = voicing([...this.chord(cd, 4), ...this.chord(cd, 4, 1)], 65, 92);
     // bass (round, syncopated)
-    if (i === 0) bass(this, this.deg(cd, -1), t, this.sd * 5, 0.3, this.dry, 'soft');
-    else if (i === 6 && this.r.chance(0.6)) bass(this, this.deg(cd + 4, -1), t, this.sd * 2, 0.2, this.dry, 'soft');
-    else if (i === 8) bass(this, this.deg(cd, -1), t, this.sd * 4, 0.24, this.dry, 'soft');
-    else if (i === 14 && this.r.chance(0.4)) bass(this, this.deg(cd + this.r.pick([1, -1, 2]), -1), t, this.sd * 2, 0.16, this.dry, 'soft');
+    if (i === 0) bass(this, this.deg(cd, -1), t, this.sd * 5, 0.15, this.dry, 'soft');
+    else if (i === 6 && this.r.chance(0.6)) bass(this, this.deg(cd + 4, -1), t, this.sd * 2, 0.1, this.dry, 'soft');
+    else if (i === 8) bass(this, this.deg(cd, -1), t, this.sd * 4, 0.12, this.dry, 'soft');
+    else if (i === 14 && this.r.chance(0.4)) bass(this, this.deg(cd + this.r.pick([1, -1, 2]), -1), t, this.sd * 2, 0.08, this.dry, 'soft');
     // harp arpeggio
     const sec = this.section;
     let play = false;
@@ -135,6 +137,7 @@ class NightMood extends MoodPlayer {
   readonly mood = 'night';
   constructor(env: MusicEnv, seed: number) {
     super(env, seed);
+    this.level = 0.8;
     this.bpm = 64;
     this.root = 57;
     this.scale = AEOLIAN;
@@ -153,17 +156,17 @@ class NightMood extends MoodPlayer {
       if (ci > 0 && ci % this.prog.length === 0) this.prog = this.r.pick([[5, 0, 3, 6], [0, 5, 3, 4], [3, 0, 5, 6], [5, 3, 0, 4]]);
       const dur = this.barDur * this.bpc;
       pad(this, voicing([...this.chord(cd, 4), this.deg(cd + 8)], 52, 72), t, dur + 0.2, 0.13, this.wet, { attack: 2.6, release: 3.2, cutoff: 900, fm: 0.12, spread: 6 });
-      bass(this, this.deg(cd, -1), t, dur * 0.95, 0.2, this.dry, 'soft');
+      bass(this, this.deg(cd, -1), t, dur * 0.95, 0.09, this.dry, 'soft');
       if (this.r.chance(0.55)) {
         const roll = voicing(this.chord(cd, 4, 1), 64, 82).slice(0, 3);
-        roll.forEach((m, k) => note(this, 'piano', m, t + 0.02 + k * 0.075, 0.16 - k * 0.02, this.wet));
+        roll.forEach((m, k) => note(this, 'piano', m, t + 0.02 + k * 0.075, 0.22 - k * 0.03, this.wet));
       }
     }
     if (i % 2 === 0) {
       const prob = [0.12, 0.2, 0.28, 0.34][this.section];
       if (this.r.chance(prob)) {
         const m = this.melody(cd, 1, i % 4 === 0, 0, 11);
-        const vel = this.r.range(0.14, 0.24);
+        const vel = this.r.range(0.2, 0.32);
         note(this, 'piano', m, t + this.jitter(), vel, this.r.chance(0.2) ? this.far : this.wet);
         if (this.r.chance(0.25)) note(this, 'piano', m - this.r.pick([3, 4, 5, 8, 9]), t + this.jitter(), vel * 0.65, this.wet);
       }
@@ -178,6 +181,7 @@ class SpaceMood extends MoodPlayer {
   protected dr: DroneHandle | null = null;
   constructor(env: MusicEnv, seed: number) {
     super(env, seed);
+    this.level = 1.25;
     this.bpm = 60;
     this.root = 48;
     this.scale = LYDIAN;
@@ -187,7 +191,7 @@ class SpaceMood extends MoodPlayer {
     this.delayFeedback = 0.46;
   }
   override onStart(t: number): void {
-    this.dr = drone(this, [36, 43, 48], t, this.wet, { cutoff: 420, lfoRate: 0.045, vel: 0.12 });
+    this.dr = drone(this, [36, 43, 48], t, this.wet, { cutoff: 420, lfoRate: 0.045, vel: 0.075 });
   }
   override onStop(now: number, fade: number): void {
     this.dr?.stop(now, fade);
@@ -201,12 +205,12 @@ class SpaceMood extends MoodPlayer {
       pad(this, voicing([...this.chord(cd, 4), this.deg(cd + 8)], 64, 88), t, dur, 0.08, this.far, { attack: 3.5, release: 4.5, cutoff: 2600, fm: 0.9, spread: 9 });
     }
     if (i % 2 === 0) {
-      const prob = [0.06, 0.1, 0.14, 0.18][this.section];
-      if (this.r.chance(prob)) note(this, 'bell', this.deg(this.r.pick([0, 1, 2, 4, 5, 7, 8, 9]), 2), t + this.jitter(), this.r.range(0.08, 0.16), this.far);
+      const prob = [0.08, 0.12, 0.16, 0.2][this.section];
+      if (this.r.chance(prob)) note(this, 'bell', this.deg(this.r.pick([0, 1, 2, 4, 5, 7, 8, 9]), 2), t + this.jitter(), this.r.range(0.16, 0.28), this.far);
     }
     if (i === 0 && this.r.chance(0.07)) {
       const top = this.r.int(9, 12);
-      for (let k = 0; k < 4; k++) note(this, 'glock', this.deg(top - k, 2), t + k * 0.09, 0.05 - k * 0.006, this.far);
+      for (let k = 0; k < 4; k++) note(this, 'glock', this.deg(top - k, 2), t + k * 0.09, 0.09 - k * 0.012, this.far);
     }
     if (bar % 8 === 4 && i === 0 && this.section >= 2) riser(this, t, this.barDur * 1.5, 0.025, this.far);
   }
@@ -218,6 +222,7 @@ class GalaxyMood extends MoodPlayer {
   private dr: DroneHandle | null = null;
   constructor(env: MusicEnv, seed: number) {
     super(env, seed);
+    this.level = 1.25;
     this.bpm = 50;
     this.root = 40;
     this.scale = LYDIAN;
@@ -227,7 +232,7 @@ class GalaxyMood extends MoodPlayer {
     this.delayFeedback = 0.5;
   }
   override onStart(t: number): void {
-    this.dr = drone(this, [40, 47, 52], t, this.wet, { cutoff: 380, lfoRate: 0.03, vel: 0.12 });
+    this.dr = drone(this, [40, 47, 52], t, this.wet, { cutoff: 380, lfoRate: 0.03, vel: 0.075 });
   }
   override onStop(now: number, fade: number): void {
     this.dr?.stop(now, fade);
@@ -238,15 +243,15 @@ class GalaxyMood extends MoodPlayer {
     const cd = this.chordDeg(bar);
     if (this.chordStart(s)) {
       const dur = this.barDur * this.bpc;
-      choir(this, voicing(this.chord(cd, 3), 59, 77), t, dur, 0.1, this.far, 'o', 3, 4);
+      choir(this, voicing(this.chord(cd, 3), 59, 77), t, dur, 0.08, this.far, 'o', 3, 4);
       pad(this, voicing(this.chord(cd, 4, 2), 76, 92), t, dur, 0.035, this.far, { attack: 4, release: 4, cutoff: 3000, fm: 1.1, spread: 10 });
     }
     const prob = [0.1, 0.16, 0.22, 0.28][this.section];
     if (this.r.chance(prob)) {
       const tones = this.chord(cd, 4, 3);
-      note(this, 'glock', this.r.pick(tones) + (this.r.chance(0.3) ? 12 : 0), t + this.jitter(), this.r.range(0.03, 0.07), this.far);
+      note(this, 'glock', this.r.pick(tones) + (this.r.chance(0.3) ? 12 : 0), t + this.jitter(), this.r.range(0.07, 0.13), this.far);
     }
-    if (i === 0 && bar % 2 === 0 && this.r.chance(0.6)) note(this, 'bell', this.deg(cd, 2), t, 0.12, this.far);
+    if (i === 0 && bar % 2 === 0 && this.r.chance(0.6)) note(this, 'bell', this.deg(cd, 2), t, 0.2, this.far);
   }
 }
 
@@ -258,6 +263,7 @@ class TensionMood extends MoodPlayer {
   readonly mood = 'tension';
   constructor(env: MusicEnv, seed: number) {
     super(env, seed);
+    this.level = 1.2;
     this.bpm = 112;
     this.root = 38;
     this.scale = PHRYGIAN;
@@ -277,17 +283,17 @@ class TensionMood extends MoodPlayer {
     const sec = this.section;
     if (this.chordStart(s)) {
       const dur = this.barDur * this.bpc;
-      pad(this, voicing(this.chord(cd, 3), 50, 66), t, dur, 0.1, this.wet, { attack: 0.6, release: 1.2, cutoff: 650, wave: 'sawtooth', spread: 9 });
+      pad(this, voicing(this.chord(cd, 3), 50, 66), t, dur, 0.16, this.wet, { attack: 0.6, release: 1.2, cutoff: 650, wave: 'sawtooth', spread: 9 });
       if (bar % 4 === 0) stab(this, voicing(this.chord(cd, 3), 62, 76), t, 0.11, this.wet);
     }
     if (i % 2 === 0) {
       const up = (i >> 1) % 4 === 3;
-      bass(this, this.deg(cd, up ? 1 : 0) + 12, t, this.sd * 1.6, 0.28 * PULSE_ACC[(i >> 1) % 8], this.dry, 'pulse');
+      bass(this, this.deg(cd, up ? 1 : 0) + 12, t, this.sd * 1.6, 0.36 * PULSE_ACC[(i >> 1) % 8], this.dry, 'pulse');
     }
-    if (i === 0 || i === 6 || (sec >= 2 && i === 10)) kick(this, t, i === 0 ? 0.55 : 0.4, this.dry, 0.32);
+    if (i === 0 || i === 6 || (sec >= 2 && i === 10)) kick(this, t, i === 0 ? 0.45 : 0.32, this.dry, 0.32);
     if (sec >= 1) hat(this, t, i % 2 ? 0.025 : 0.05, this.dry);
     if (sec >= 3 && (i === 4 || i === 12)) snare(this, t, 0.22, this.dry);
-    if (sec >= 1 && i % 2 === 0) note(this, 'harp', this.deg(OSTINATO[(i >> 1) % 8] + cd, 2), t, i % 4 === 0 ? 0.14 : 0.1, this.wet, 0.6);
+    if (sec >= 1 && i % 2 === 0) note(this, 'harp', this.deg(OSTINATO[(i >> 1) % 8] + cd, 2), t, i % 4 === 0 ? 0.2 : 0.14, this.wet, 0.6);
     if (bar % 8 === 7 && i === 8) riser(this, t, this.sd * 8, 0.05, this.wet);
   }
 }
@@ -307,6 +313,7 @@ class ApocalypseMood extends MoodPlayer {
   private dr: DroneHandle | null = null;
   constructor(env: MusicEnv, seed: number) {
     super(env, seed);
+    this.level = 0.9;
     this.bpm = 66;
     this.root = 36;
     this.scale = PHRYGIAN;
@@ -332,15 +339,15 @@ class ApocalypseMood extends MoodPlayer {
     const sec = this.section;
     if (this.chordStart(s)) {
       const dur = this.barDur * this.bpc;
-      choir(this, voicing(this.chord(cd, 3), 55, 72), t, dur + 0.3, 0.16, this.wet, 'a', 1.2, 2);
-      boom(this, t, 0.75, this.wet);
+      choir(this, voicing(this.chord(cd, 3), 55, 72), t, dur + 0.3, 0.22, this.wet, 'a', 1.2, 2);
+      boom(this, t, 0.45, this.wet);
       if (sec >= 2) choir(this, voicing(this.chord(cd, 3), 72, 86), t, dur, 0.06, this.far, 'o', 2, 2.5);
     }
     if (i === 0) note(this, 'toll', this.deg(cd, 1), t, 0.26, this.far);
     for (const [step, v] of TAIKO) {
       if (step !== i) continue;
       const ok = sec === 0 ? step === 0 || step === 8 : sec === 1 ? step % 2 === 0 || step === 3 : true;
-      if (ok) taiko(this, t, v, this.wet, step === 0 || step === 8 ? 62 : 78);
+      if (ok) taiko(this, t, v * 0.8, this.wet, step === 0 || step === 8 ? 62 : 78);
     }
   }
 }
@@ -353,6 +360,7 @@ class StudioMood extends MoodPlayer {
   private vinylGain: GainNode | null = null;
   constructor(env: MusicEnv, seed: number) {
     super(env, seed);
+    this.level = 0.85;
     this.bpm = 80;
     this.swing = 0.28;
     this.root = 51;
@@ -408,12 +416,12 @@ class StudioMood extends MoodPlayer {
     else if (i === 10 && this.r.chance(0.35)) this.comp(cd, t, 0.08);
     else if (i === 14 && this.r.chance(0.3)) this.comp(next, t, 0.1);
     // walking bass
-    if (i === 0) bass(this, this.deg(cd, -1), t, this.sd * 3, 0.34, this.dry, 'soft');
-    else if (i === 8) bass(this, this.r.chance(0.5) ? this.deg(cd + 4, -1) : this.deg(cd, 0), t, this.sd * 3, 0.28, this.dry, 'soft');
-    else if (i === 14 && this.r.chance(0.35)) bass(this, this.deg(next, -1) + this.r.pick([-1, 1]), t, this.sd * 2, 0.2, this.dry, 'soft');
+    if (i === 0) bass(this, this.deg(cd, -1), t, this.sd * 3, 0.2, this.dry, 'soft');
+    else if (i === 8) bass(this, this.r.chance(0.5) ? this.deg(cd + 4, -1) : this.deg(cd, 0), t, this.sd * 3, 0.16, this.dry, 'soft');
+    else if (i === 14 && this.r.chance(0.35)) bass(this, this.deg(next, -1) + this.r.pick([-1, 1]), t, this.sd * 2, 0.12, this.dry, 'soft');
     // dusty drums
-    if (i === 0 || i === 10 || (i === 7 && this.r.chance(0.45))) kick(this, t, i === 0 ? 0.6 : 0.45, this.drums, 0.28);
-    if (i === 4 || i === 12) snare(this, t, 0.3, this.drums);
+    if (i === 0 || i === 10 || (i === 7 && this.r.chance(0.45))) kick(this, t, i === 0 ? 0.45 : 0.34, this.drums, 0.28);
+    if (i === 4 || i === 12) snare(this, t, 0.24, this.drums);
     if (i === 15 && this.r.chance(0.15)) snare(this, t, 0.08, this.drums);
     if (i % 2 === 0) hat(this, t, i % 4 === 0 ? 0.08 : 0.06, this.drums);
     else if (this.r.chance(0.22)) hat(this, t, 0.03, this.drums);
