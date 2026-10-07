@@ -79,6 +79,7 @@
 }
 .st-savebtn {
   flex: none;
+  margin-left: auto;
 }
 
 /* ───────────────────────────── stage */

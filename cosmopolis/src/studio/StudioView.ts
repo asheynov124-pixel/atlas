@@ -23,6 +23,7 @@ import {
   BufferGeometry,
   CanvasTexture,
   Color,
+  CubeCamera,
   DirectionalLight,
   Group,
   HemisphereLight,
@@ -35,8 +36,10 @@ import {
   Scene,
   ShaderMaterial,
   SphereGeometry,
+  HalfFloatType,
   Vector2,
   Vector3,
+  WebGLCubeRenderTarget,
   type Texture,
 } from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
@@ -70,6 +73,22 @@ void main() {
 }
 `;
 
+/** Cheap display shader: blends the baked day / night cube maps. */
+const SKYBOX_FRAG = /* glsl */ `
+uniform samplerCube uDay;
+uniform samplerCube uDark;
+uniform float uMix;
+varying vec3 vDir;
+void main() {
+  vec3 d = normalize( vDir );
+  vec3 col = mix( textureCube( uDay, d ).rgb, textureCube( uDark, d ).rgb, uMix );
+  gl_FragColor = vec4( col, 1.0 );
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}
+`;
+
+/** Procedural sky (space, nebula, stars, the player's planet) — baked into cube maps, or drawn live as a fallback. */
 const SKY_FRAG = /* glsl */ `
 uniform float uNight;
 uniform float uTime;
@@ -115,7 +134,7 @@ void main() {
   }
   // sun disc + glow (daytime)
   float sd = max( 0.0, dot( d, uSun ) );
-  col += vec3( 1.0, 0.86, 0.62 ) * ( pow( sd, 900.0 ) * 6.0 + pow( sd, 24.0 ) * 0.35 + pow( sd, 4.0 ) * 0.08 ) * ( 1.0 - n );
+  col += vec3( 1.0, 0.86, 0.62 ) * ( pow( sd, 24.0 ) * 0.3 + pow( sd, 4.0 ) * 0.07 ) * ( 1.0 - n );
 
   // the player's planet, hanging far below the platform (its horizon sits just under the pedestal)
   vec3 C = uPlanetDir * 9.0;
@@ -245,7 +264,13 @@ export class StudioView implements View {
   readonly camera = new PerspectiveCamera(36, 1, 0.05, 4000);
 
   private sky: Mesh<SphereGeometry, ShaderMaterial>;
+  /** procedural sky (bake source, or live fallback) */
   private skyMat: ShaderMaterial;
+  /** baked cube-map display */
+  private boxMat: ShaderMaterial;
+  private cubes: [WebGLCubeRenderTarget, WebGLCubeRenderTarget] | null = null;
+  private bakedKey = '';
+  private baked = false;
   private pedestal: Mesh;
   private lot = new Group();
   private lotMats: MeshBasicMaterial[] = [];
@@ -315,7 +340,14 @@ export class StudioView implements View {
         uHasOcean: { value: 1 },
       },
     });
-    this.sky = new Mesh(new SphereGeometry(1000, 48, 24), this.skyMat);
+    this.boxMat = new ShaderMaterial({
+      vertexShader: SKY_VERT,
+      fragmentShader: SKYBOX_FRAG,
+      side: BackSide,
+      depthWrite: false,
+      uniforms: { uDay: { value: null }, uDark: { value: null }, uMix: { value: 0 } },
+    });
+    this.sky = new Mesh(new SphereGeometry(1000, 32, 16), this.skyMat);
     this.sky.frustumCulled = false;
     this.sky.renderOrder = -10;
     this.scene.add(this.sky);
@@ -444,6 +476,7 @@ export class StudioView implements View {
     s.apoc = shared.uApocalypse.value;
     this.ensureEnv();
     this.syncPlanetColors();
+    this.bakeSky();
     this.hasShadows = !!game?.engine?.renderer.shadowMap.enabled;
     this.key.castShadow = this.hasShadows;
     if (this.hasShadows) {
@@ -509,7 +542,8 @@ export class StudioView implements View {
     this.camera.updateMatrixWorld();
     this.sky.position.copy(this.camera.position);
     // the planet hangs below, always ahead of the camera (a turntable backdrop)
-    (this.skyMat.uniforms.uPlanetDir.value as Vector3).set(-Math.sin(this.yaw) * 0.47, -0.883, -Math.cos(this.yaw) * 0.47);
+    if (this.baked) this.sky.rotation.y = this.yaw;
+    else (this.skyMat.uniforms.uPlanetDir.value as Vector3).set(-Math.sin(this.yaw) * 0.47, -0.883, -Math.cos(this.yaw) * 0.47);
     // shared uniforms for the building shader
     shared.uTime.value = game?.clock.time ?? this.time;
     shared.uCameraPos.value.copy(this.camera.position);
@@ -526,6 +560,9 @@ export class StudioView implements View {
     this.pedestal.geometry.dispose();
     this.sky.geometry.dispose();
     this.skyMat.dispose();
+    this.boxMat.dispose();
+    this.cubes?.forEach((c) => c.dispose());
+    this.cubes = null;
     this.blob.geometry.dispose();
     this.blob.material.map?.dispose();
     this.blob.material.dispose();
@@ -564,9 +601,47 @@ export class StudioView implements View {
     u.uHasOcean.value = spec.hasOcean ? 1 : 0;
   }
 
+  /**
+   * Render the procedural sky once into two cube maps (day / night) so each frame only samples textures —
+   * the full shader (fbm nebula, stars, planet) is far too heavy to run per pixel on a phone.
+   */
+  private bakeSky(): void {
+    const r = game?.engine?.renderer;
+    const u = this.skyMat.uniforms;
+    const key = [(u.uOcean.value as Color).getHex(), (u.uLand.value as Color).getHex(), (u.uAtmo.value as Color).getHex(), u.uHasOcean.value].join('|');
+    if (!r || (this.baked && key === this.bakedKey)) return;
+    try {
+      const size = (game?.engine?.tier ?? 1) >= 2 ? 512 : 384;
+      if (!this.cubes) this.cubes = [0, 1].map(() => new WebGLCubeRenderTarget(size, { type: HalfFloatType, generateMipmaps: false })) as [WebGLCubeRenderTarget, WebGLCubeRenderTarget];
+      const scene = new Scene();
+      const geo = new SphereGeometry(10, 32, 16);
+      const mesh = new Mesh(geo, this.skyMat);
+      mesh.frustumCulled = false;
+      scene.add(mesh);
+      (u.uPlanetDir.value as Vector3).set(0, -0.883, -0.47);
+      u.uTime.value = 0;
+      for (let i = 0; i < 2; i++) {
+        u.uNight.value = i;
+        const cam = new CubeCamera(0.1, 100, this.cubes[i]);
+        cam.update(r, scene);
+      }
+      geo.dispose();
+      this.boxMat.uniforms.uDay.value = this.cubes[0].texture;
+      this.boxMat.uniforms.uDark.value = this.cubes[1].texture;
+      this.sky.material = this.boxMat;
+      this.baked = true;
+      this.bakedKey = key;
+    } catch (e) {
+      console.warn('[studio] sky bake failed — drawing it live', e);
+      this.sky.material = this.skyMat;
+      this.baked = false;
+    }
+  }
+
   private applyLighting(): void {
     const n = this.nightT;
     this.skyMat.uniforms.uNight.value = n;
+    this.boxMat.uniforms.uMix.value = n;
     this.hemi.color.setRGB(0.74 - 0.55 * n, 0.84 - 0.6 * n, 1.0 - 0.5 * n);
     this.hemi.groundColor.setRGB(0.23 - 0.19 * n, 0.19 - 0.16 * n, 0.25 - 0.18 * n);
     this.hemi.intensity = 1.05 - 0.8 * n;

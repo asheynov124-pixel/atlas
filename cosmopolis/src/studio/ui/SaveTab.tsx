@@ -88,7 +88,7 @@ export function SaveTab({ draft, onSave }: { draft: DesignSpec; onSave: () => vo
       <div class="st-costs">
         <div class="st-cost">
           <span class="st-cost-k">Build cost</span>
-          <span class="st-cost-v num">{sandbox ? 'Free (sandbox)' : fmtMoney(stats.d.cost)}</span>
+          <span class="st-cost-v num">{sandbox ? 'Free' : fmtMoney(stats.d.cost)}</span>
         </div>
         <div class="st-cost">
           <span class="st-cost-k">Upkeep</span>
