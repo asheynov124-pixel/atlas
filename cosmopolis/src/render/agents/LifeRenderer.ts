@@ -28,6 +28,13 @@ import { shared } from '../materials';
 import { DecalBatch, KitBatch, Particles, SpriteBatch } from './batch';
 import { Cull, FastRng, MOTION_SPEED } from './common';
 import type { FleetKey, LifeCtx } from './ctx';
+import { Beacons } from './beacons';
+import { Fauna } from './fauna';
+import { Ports } from './ports';
+import { RailTraffic } from './rail';
+import { SeaTraffic } from './sea';
+import { Sites } from './sites';
+import { SkyTraffic } from './sky';
 import { RoadTraffic } from './traffic';
 import * as M from './vehicles';
 
@@ -83,6 +90,13 @@ export class LifeRenderer {
   private readonly batches = new Map<FleetKey, KitBatch>();
   private readonly cull = new Cull();
   readonly traffic: RoadTraffic;
+  readonly rail: RailTraffic;
+  readonly sky: SkyTraffic;
+  readonly ports: Ports;
+  readonly sea: SeaTraffic;
+  readonly fauna: Fauna;
+  readonly beacons: Beacons;
+  readonly sites: Sites;
   private subs: { name: string; sub: Sub }[] = [];
   private offs: (() => void)[] = [];
   private failed = new Set<string>();
@@ -115,14 +129,49 @@ export class LifeRenderer {
       density: 1,
       budget: VISIBLE_BUDGET,
     };
+    this.sites = new Sites(view);
     this.traffic = new RoadTraffic(planet);
-    this.subs.push({ name: 'traffic', sub: this.traffic });
+    this.rail = new RailTraffic(planet);
+    this.sky = new SkyTraffic(this.sites);
+    this.ports = new Ports(this.sites);
+    this.sea = new SeaTraffic(this.sites);
+    this.fauna = new Fauna(this.ctx);
+    this.beacons = new Beacons(this.sites);
+    this.subs.push(
+      { name: 'traffic', sub: this.traffic },
+      { name: 'rail', sub: this.rail },
+      { name: 'sky', sub: this.sky },
+      { name: 'ports', sub: this.ports },
+      { name: 'sea', sub: this.sea },
+      { name: 'fauna', sub: this.fauna },
+      { name: 'beacons', sub: this.beacons },
+    );
 
+    const roads = () => {
+      this.traffic.invalidate();
+      this.rail.invalidate();
+    };
+    const buildings = () => {
+      this.traffic.invalidate();
+      this.rail.invalidate();
+      this.sites.invalidate();
+    };
     this.offs.push(
-      bus.on('tiles:road', () => this.traffic.invalidate()),
-      bus.on('tiles:terrain', () => this.traffic.invalidate()),
-      bus.on('building:added', () => this.traffic.invalidate()),
-      bus.on('building:removed', () => this.traffic.invalidate()),
+      bus.on('tiles:road', roads),
+      bus.on('tiles:terrain', () => {
+        roads();
+        this.sites.invalidate();
+        this.sea.invalidate();
+      }),
+      bus.on('planet:sea', () => {
+        roads();
+        this.sea.invalidate();
+      }),
+      bus.on('building:added', buildings),
+      bus.on('building:removed', buildings),
+      bus.on('building:updated', ({ what }) => {
+        if (what === 'level' || what === 'variant' || what === 'style') this.sites.invalidate();
+      }),
       bus.on('tiles:zone', () => this.traffic.invalidate()),
       bus.on('tiles:flags', ({ tiles }) => this.safe('flags', () => this.traffic.onFlags(this.ctx, tiles))),
       bus.on('disaster:start', ({ tile }) => this.safe('disaster', () => this.traffic.onDisaster(this.ctx, tile))),
@@ -152,11 +201,26 @@ export class LifeRenderer {
 
   /** Total moving agents currently simulated. */
   get vehicleCount(): number {
-    return this.traffic.active;
+    return this.traffic.active + this.rail.active + this.sky.flyerCount + this.sky.hopperCount + this.sea.active;
   }
 
   stats(): Record<string, number> {
-    const out: Record<string, number> = { cars: this.traffic.active, carsTarget: this.traffic.target, carsVisible: this.traffic.visible, roadTiles: this.traffic.networkSize };
+    const out: Record<string, number> = {
+      cars: this.traffic.active,
+      carsTarget: this.traffic.target,
+      carsVisible: this.traffic.visible,
+      roadTiles: this.traffic.networkSize,
+      trains: this.rail.active,
+      trainsVisible: this.rail.visible,
+      flyers: this.sky.flyerCount,
+      hoppers: this.sky.hopperCount,
+      skyVisible: this.sky.visible,
+      ports: this.ports.active,
+      boats: this.sea.active,
+      boatsVisible: this.sea.visible,
+      birdsVisible: this.fauna.visible,
+      beacons: this.beacons.count,
+    };
     let drawn = 0;
     for (const b of this.batches.values()) drawn += b.count;
     out.drawn = drawn;

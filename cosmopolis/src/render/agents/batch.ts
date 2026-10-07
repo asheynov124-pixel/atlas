@@ -7,7 +7,8 @@
  *                 channels (Glow, Light, Window…) and paintable tints work on vehicles exactly like on buildings.
  *   SpriteBatch   additive camera-facing glow dots (head/tail lights, strobes, aviation lights, engine glow) with
  *                 per-instance size, colour, blink (rate, phase, duty) and a night-only factor — one draw call.
- *   DecalBatch    oriented soft quads (additive headlight pools on the asphalt, alpha boat wakes / splash rings).
+ *   DecalBatch    oriented soft quads (additive headlight pools on the asphalt, alpha foam wakes / splash rings —
+ *                 for alpha decals the instance colour's red channel is the opacity; foam is always white).
  *   Particles     GPU-animated puffs (smoke, steam, spray, exhaust): CPU writes a ring-buffer slot on emit, the
  *                 vertex shader moves / grows / fades them from their birth time — zero per-frame CPU per particle.
  */
@@ -329,7 +330,7 @@ void main() {
   ${additive ? 'a *= cNight(vWPos) * uNightLights;' : ''}
   a *= uGain;
   if (a < 0.003) discard;
-  ${additive ? 'gl_FragColor = vec4(vCol * a, 1.0);' : 'gl_FragColor = vec4(vCol, a);'}
+  ${additive ? 'gl_FragColor = vec4(vCol * a, 1.0);' : 'gl_FragColor = vec4(vec3(0.95, 0.97, 1.0) * mix(1.0, 0.28, cNight(vWPos)), a * vCol.r);'}
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }
@@ -345,9 +346,9 @@ export class DecalBatch {
 
   constructor(private parent: Object3D, capacity: number, name: string, shape: 0 | 1 | 2 | 3, additive: boolean) {
     this.cap = capacity;
-    // unit quad in the XZ plane (local +Y = normal), uv.y grows toward +Z
+    // unit quad in the XZ plane (double-sided), uv.y grows toward +Z
     this.geo = new PlaneGeometry(1, 1);
-    this.geo.rotateX(-Math.PI / 2);
+    this.geo.rotateX(Math.PI / 2);
     this.material = new ShaderMaterial({
       name: 'life-decal-' + name,
       uniforms: { ...shared, uGain: { value: 1 } },
