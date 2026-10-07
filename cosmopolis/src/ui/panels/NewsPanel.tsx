@@ -95,14 +95,12 @@ export function NewsPanel() {
   };
   return (
     <div class="up-root up-news">
-      <div class="up-hero up-news-hero">
-        <span class="up-news-logo">
-          <Icon name="wifi" size={22} />
+      <div class="up-news-live">
+        <span class="up-live-dot" aria-hidden="true" />
+        <span class="up-live-label">Live</span>
+        <span class="dim ellipsis">
+          from {ui.cityName.value || 'your city'} · {news.length} post{news.length === 1 ? '' : 's'}
         </span>
-        <div class="grow">
-          <div class="up-news-brand grad-text">Hypernet</div>
-          <div class="dim">What {ui.cityName.value || 'your city'} is saying · {news.length} posts</div>
-        </div>
       </div>
       {tags.length > 0 && (
         <div class="up-trending scroll-x">

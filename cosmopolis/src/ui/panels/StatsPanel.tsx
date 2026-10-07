@@ -49,7 +49,7 @@ function ChartCard({ c }: { c: ChartDef }) {
       {n > 1 && Math.abs(delta) > 1e-9 && (
         <div class={'up-chartcard-delta num ' + (good ? 'good' : 'bad')}>
           <Icon name={delta > 0 ? 'trendUp' : 'trendDown'} size={12} /> {delta > 0 ? '+' : '−'}
-          {c.format(Math.abs(delta)).replace(/^[−-]/, '')} over the period
+          {c.format(Math.abs(delta)).replace(/^[+−±-]/, '')} over the period
         </div>
       )}
       <LineChart series={[{ values: c.values, color: c.color, label: c.title }]} days={c.days} height={92} format={c.format} zero={c.zero} min={c.min} max={c.max} ariaLabel={`${c.title} history`} />

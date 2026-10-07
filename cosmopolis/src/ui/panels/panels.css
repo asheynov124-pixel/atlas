@@ -2161,3 +2161,287 @@
 .up-key-label {
   color: var(--text-2);
 }
+.up-news-live {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  min-width: 0;
+}
+.up-live-dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: #ff5f8a;
+  box-shadow: 0 0 0 0 rgba(255, 95, 138, 0.6);
+  animation: up-live 1.8s ease-out infinite;
+}
+:root[data-reduce-motion] .up-live-dot {
+  animation: none;
+}
+@keyframes up-live {
+  70% {
+    box-shadow: 0 0 0 8px rgba(255, 95, 138, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 95, 138, 0);
+  }
+}
+.up-live-label {
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #ff8fb0;
+}
+
+/* ───────────────────────────── settings */
+.up-settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+}
+.up-settings-group .cz-slider {
+  padding: 6px 2px;
+}
+.up-settings-note {
+  margin: 6px 2px 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-3);
+}
+.up-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 2px;
+}
+.up-settings-row.is-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.up-settings-row-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+.up-install {
+  border-color: rgba(94, 240, 255, 0.3);
+  background: linear-gradient(150deg, rgba(94, 240, 255, 0.1), rgba(167, 123, 255, 0.08) 60%, transparent), var(--glass-hi);
+}
+.up-install-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.up-install-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border-radius: 13px;
+  background: radial-gradient(circle at 35% 30%, #7ff6ff, #2a6cff 55%, #3b1f8a);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(42, 108, 255, 0.35);
+}
+.up-install-title {
+  font-weight: 750;
+  font-size: 14.5px;
+}
+.up-install-sub {
+  font-size: 12px;
+  line-height: 1.35;
+}
+.up-install-steps {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.up-install-steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+}
+.up-install-steps li > span:last-child {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.up-step-n {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 50%;
+  background: rgba(94, 240, 255, 0.16);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+}
+.up-share-glyph {
+  color: #4fa3ff;
+  vertical-align: -5px;
+}
+.up-storage {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.up-storage-title {
+  font-weight: 700;
+  font-size: 14px;
+}
+.up-storage-sub {
+  font-size: 12px;
+}
+.up-about {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.up-about-logo {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+}
+.up-about-body {
+  margin: 6px 0 4px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+.up-about-grid {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 4px 14px;
+  font-size: 12px;
+  color: var(--text-3);
+  text-align: left;
+}
+.up-about-grid b {
+  color: var(--text-2);
+  font-weight: 650;
+}
+
+/* ───────────────────────────── saves */
+.up-save-new {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.up-save-new-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.up-quicksave {
+  min-width: 120px;
+}
+.up-save-new-hint {
+  font-size: 12.5px;
+}
+.up-save-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.up-center {
+  display: grid;
+  place-items: center;
+  padding: 30px;
+}
+.up-save-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.up-save {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 6px 6px 6px;
+  border-radius: var(--r-md);
+  background: var(--glass-hi);
+  border: 1px solid var(--hairline);
+}
+.up-save.is-current {
+  border-color: rgba(94, 240, 255, 0.45);
+}
+.up-save-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+.up-save-main:active:not(:disabled) {
+  background: var(--glass-press);
+}
+.up-save-thumb {
+  display: grid;
+  place-items: center;
+  width: 78px;
+  height: 52px;
+  flex: none;
+  border-radius: 10px;
+  overflow: hidden;
+  background: linear-gradient(140deg, #16204a, #0b1022);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.up-save-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.up-save-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.up-save-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 14px;
+  min-width: 0;
+}
+.up-save-name .ellipsis {
+  min-width: 0;
+}
+.up-save-meta {
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+.up-save-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+@media (min-width: 520px) {
+  .up-save-actions {
+    flex-direction: row;
+  }
+}

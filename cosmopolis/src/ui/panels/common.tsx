@@ -187,7 +187,7 @@ export function LineChart(p: LineChartProps) {
     if (p.min === undefined) lo -= p.zero && lo >= 0 ? 0 : pad;
   }
   const span = hi - lo;
-  const top = 8, bot = 6;
+  const top = 17, bot = 15;
   const yOf = (v: number) => top + (1 - (v - lo) / span) * (h - top - bot);
   const xOf = (i: number) => (n <= 1 ? VW / 2 : (i / (n - 1)) * VW);
   const paths = p.series.map((s) => {
