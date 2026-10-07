@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import '../../items/utilities';
+import '../../items/industry';
 import { auditUtilities, utilityDefs } from './audit';
 
 describe('utilities content', () => {

@@ -626,6 +626,15 @@ export function solarRows(u: U, r: number, x: number, z: number, o: { rows?: num
   }
 }
 
+/** Half-ring arch standing on the ground (ruins, greenhouse ribs, gateways), spanning x ∈ [−R, R] before `ry`. */
+export function arch(u: U, R: number, r: number, x: number, y: number, z: number, o: { ry?: number; color?: number; seg?: number; tube?: number; mat?: MatId; flat?: boolean; detail?: boolean } = {}): void {
+  u.b.group({ x, y, z, ry: o.ry ?? 0 }, () => {
+    u.b.group({ rz: Math.PI / 2 }, () => {
+      u.b.torus(R, r, { color: o.color ?? C.white, rx: -Math.PI / 2, arc: Math.PI, seg: o.seg ?? 10, tube: o.tube ?? 4, mat: o.mat, flat: o.flat, detail: o.detail });
+    });
+  });
+}
+
 /** Hologram sign / emblem disc floating above a building. */
 export function holoDisc(u: U, r: number, x: number, y: number, z: number, color: number, o: { ry?: number } = {}): void {
   u.b.cyl(r, r, 0.012, { color, mat: Mat.Holo, x, y, z, rx: Math.PI / 2, ry: o.ry ?? 0, seg: 12, ...NP, detail: true });
