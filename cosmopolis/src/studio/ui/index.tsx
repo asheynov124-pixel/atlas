@@ -6,6 +6,7 @@
  * The Build sheet's "My Designs" category (ui-core) already shows a "New design" card and an empty state that call
  * game.studio.open(); saved designs appear there as regular items (category 'custom', group 'My Designs').
  * URL hooks are handled by Studio.ts (&studio=1, &studioTpl=…, &studioTab=…, &studioNight=1, &studioDemo=1).
+ * Test hook: window.__cosmoStudio = { ui: studioUi signals, studio: game.studio } for screenshot scripts.
  */
 import { game } from '../../game/instance';
 import { registerHudButton, registerOverlay } from '../../ui/registry';
@@ -32,3 +33,19 @@ registerHudButton({
   active: () => studioUi.open.value,
   visible: () => ui.view.value === 'planet' && ui.screen.value === 'game',
 });
+
+declare global {
+  interface Window {
+    __cosmoStudio?: { ui: typeof studioUi; readonly studio: typeof game.studio };
+  }
+}
+try {
+  window.__cosmoStudio = {
+    ui: studioUi,
+    get studio() {
+      return game.studio;
+    },
+  };
+} catch {
+  /* no window (tests) */
+}

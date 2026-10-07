@@ -93,8 +93,8 @@ void main() {
   vec3 d = normalize( vDir );
   float n = uNight;
   // space gradient: a luminous blue band low in the sky by day, deep indigo by night
-  vec3 top = mix( vec3( 0.035, 0.06, 0.16 ), vec3( 0.006, 0.008, 0.028 ), n );
-  vec3 hor = mix( vec3( 0.26, 0.36, 0.6 ), vec3( 0.04, 0.05, 0.12 ), n );
+  vec3 top = mix( vec3( 0.012, 0.02, 0.058 ), vec3( 0.002, 0.003, 0.012 ), n );
+  vec3 hor = mix( vec3( 0.07, 0.1, 0.22 ), vec3( 0.014, 0.018, 0.05 ), n );
   vec3 col = mix( hor, top, smoothstep( -0.25, 0.65, d.y ) );
   // nebula wisps
   float w1 = fbm( d * 2.2 + vec3( 0.0, 0.0, uTime * 0.004 ) );
@@ -117,36 +117,42 @@ void main() {
   float sd = max( 0.0, dot( d, uSun ) );
   col += vec3( 1.0, 0.86, 0.62 ) * ( pow( sd, 900.0 ) * 6.0 + pow( sd, 24.0 ) * 0.35 + pow( sd, 4.0 ) * 0.08 ) * ( 1.0 - n );
 
-  // the player's planet, hanging below the platform
+  // the player's planet, hanging far below the platform (its horizon sits just under the pedestal)
   vec3 C = uPlanetDir * 9.0;
-  float Rp = 6.2;
+  float Rp = 6.0;
   float b = dot( d, C );
   float disc = b * b - ( dot( C, C ) - Rp * Rp );
-  vec3 L = normalize( mix( uSun, vec3( -uSun.x, 0.15, -uSun.z ), n * 0.85 ) );
+  // by night the sun slips behind the planet: a thin lit crescent and a sea of city lights
+  vec3 L = normalize( mix( uSun, normalize( vec3( -uSun.x, 0.35, -uSun.z ) - uPlanetDir * 0.9 ), n ) );
   if ( disc > 0.0 && b > 0.0 ) {
     float t = b - sqrt( disc );
     vec3 P = d * t;
     vec3 N = normalize( P - C );
-    float h = fbm( N * 3.2 + 11.0 ) + 0.35 * fbm( N * 9.0 );
-    float sea = uHasOcean > 0.5 ? smoothstep( 0.66, 0.7, h ) : 1.0;
-    vec3 surf = mix( uOcean, uLand * ( 0.75 + 0.5 * fbm( N * 14.0 ) ), sea );
-    surf = mix( surf, vec3( 0.95 ), smoothstep( 0.82, 0.95, abs( N.y ) ) );
-    float cl = smoothstep( 0.55, 0.85, fbm( N * 5.0 + vec3( uTime * 0.01, 0.0, 0.0 ) ) );
-    surf = mix( surf, vec3( 0.96 ), cl * 0.7 );
-    float lit = max( 0.0, dot( N, L ) );
-    vec3 pc = surf * ( 0.04 + lit * 1.1 );
-    // city lights on the night side
-    float dark = smoothstep( 0.15, -0.05, dot( N, L ) );
-    float city = smoothstep( 0.72, 0.9, fbm( N * 26.0 ) ) * sea * ( 1.0 - cl );
-    pc += vec3( 1.0, 0.72, 0.38 ) * city * dark * 1.6;
+    float h = fbm( N * 2.6 + 11.0 ) + 0.4 * fbm( N * 8.0 + 3.0 );
+    float sea = uHasOcean > 0.5 ? smoothstep( 0.6, 0.64, h ) : 1.0;
+    vec3 ocean = uOcean * ( 0.45 + 0.25 * fbm( N * 6.0 ) );
+    vec3 land = uLand * ( 0.55 + 0.6 * fbm( N * 16.0 ) );
+    vec3 surf = mix( ocean, land, sea );
+    float cl = smoothstep( 0.56, 0.8, fbm( N * 4.5 + vec3( uTime * 0.006, 0.0, 0.0 ) ) );
+    surf = mix( surf, vec3( 0.78, 0.82, 0.88 ), cl * 0.6 );
+    float ndl = dot( N, L );
+    float lit = smoothstep( -0.08, 0.6, ndl );
+    vec3 pc = surf * ( 0.015 + lit * 0.8 );
+    // ocean glint
+    vec3 Hh = normalize( L - d );
+    pc += vec3( 1.0, 0.9, 0.75 ) * pow( max( 0.0, dot( N, Hh ) ), 60.0 ) * ( 1.0 - sea ) * ( 1.0 - cl ) * 0.6 * lit;
+    // city lights on the dark side
+    float dark = smoothstep( 0.12, -0.12, ndl );
+    float city = smoothstep( 0.66, 0.86, fbm( N * 30.0 ) ) * sea * ( 1.0 - cl * 0.8 );
+    pc += vec3( 1.0, 0.7, 0.36 ) * city * dark * 1.4;
     // atmosphere rim
-    float fr = pow( 1.0 - max( 0.0, dot( N, -d ) ), 3.0 );
-    pc += uAtmo * fr * ( 0.25 + 0.9 * max( 0.0, dot( N, L ) + 0.3 ) );
-    col = pc;
+    float fr = pow( 1.0 - max( 0.0, dot( N, -d ) ), 4.0 );
+    pc += uAtmo * fr * ( 0.08 + 1.2 * smoothstep( -0.25, 0.5, ndl ) );
+    col = mix( col, pc, smoothstep( 0.0, 0.004, disc ) );
   } else {
     float miss = sqrt( max( 0.0, dot( C, C ) - b * b ) ) - Rp;
-    float halo = exp( -max( 0.0, miss ) * 7.0 ) * step( 0.0, b );
-    col += uAtmo * halo * ( 0.35 + 0.65 * ( 1.0 - n ) ) * 0.8;
+    float halo = exp( -max( 0.0, miss ) * 9.0 ) * step( 0.0, b );
+    col += uAtmo * halo * mix( 0.9, 0.25, n );
   }
   gl_FragColor = vec4( col, 1.0 );
   #include <tonemapping_fragment>
@@ -268,6 +274,8 @@ export class StudioView implements View {
   private idle = 0;
   private stage: StageRect = { x: 0, y: 0, w: 1, h: 1 };
   private viewKey = '';
+  /** snap the framing on the next frame (first stage report) */
+  private snapFit = false;
 
   // design
   private pending: DesignSpec | null = null;
@@ -365,6 +373,7 @@ export class StudioView implements View {
   /** The visible stage rectangle (CSS px, viewport coordinates). */
   setStage(r: StageRect): void {
     if (r.w < 4 || r.h < 4) return;
+    if (this.stage.w <= 4) this.snapFit = true;
     this.stage = { ...r };
   }
 
@@ -479,7 +488,13 @@ export class StudioView implements View {
     this.pitch = smooth(this.pitch, this.gPitch, k);
     this.zoom = smooth(this.zoom, this.gZoom, 1 - Math.exp(-dt * 5));
     this.panY = smooth(this.panY, this.gPanY, k);
-    const fk = 1 - Math.exp(-dt * 3);
+    const fk = 1 - Math.exp(-dt * 4);
+    if (this.snapFit) {
+      this.computeFit();
+      this.fitS = this.fitDist;
+      this.targetY = this.fitY;
+      this.snapFit = false;
+    }
     this.fitS = smooth(this.fitS, this.fitDist, fk);
     this.dist = this.fitS * this.zoom;
     this.targetY = smooth(this.targetY, this.fitY, fk);
@@ -493,6 +508,8 @@ export class StudioView implements View {
     this.applyViewOffset();
     this.camera.updateMatrixWorld();
     this.sky.position.copy(this.camera.position);
+    // the planet hangs below, always ahead of the camera (a turntable backdrop)
+    (this.skyMat.uniforms.uPlanetDir.value as Vector3).set(-Math.sin(this.yaw) * 0.47, -0.883, -Math.cos(this.yaw) * 0.47);
     // shared uniforms for the building shader
     shared.uTime.value = game?.clock.time ?? this.time;
     shared.uCameraPos.value.copy(this.camera.position);
@@ -575,18 +592,45 @@ export class StudioView implements View {
 
   private computeFit(): void {
     const H = Math.max(0.3, this.height);
-    const R = Math.max(footprintRadius((this.footprint || 1) as Footprint) * 1.2, this.layout?.radius ?? 1);
+    const R = Math.max(footprintRadius((this.footprint || 1) as Footprint) * 1.15, this.layout?.radius ?? 1);
     const W = Math.max(1, game?.engine?.width ?? 800);
     const Hc = Math.max(1, game?.engine?.height ?? 600);
     const tanHalf = Math.tan((this.camera.fov * Math.PI) / 360);
-    const sw = Math.min(this.stage.w, W), sh = Math.min(this.stage.h, Hc);
-    // half-angle tangent available in the stage (vertical & horizontal)
-    const tv = (tanHalf * sh) / Hc;
-    const th = (tanHalf * sw) / Hc;
-    const radius = 0.5 * Math.hypot(H * 1.05, R * 2);
-    const t = Math.max(0.02, Math.min(tv, th));
-    this.fitDist = (radius / Math.sin(Math.atan(t))) * 1.06;
-    this.fitY = H * 0.46;
+    const ok = this.stage.w > 4 && this.stage.h > 4;
+    const sw = ok ? Math.min(this.stage.w, W) : W, sh = ok ? Math.min(this.stage.h, Hc) : Hc;
+    // half-angle tangents available inside the stage, with a margin
+    const tv = ((tanHalf * sh) / Hc) * 0.86;
+    const th = ((tanHalf * sw) / Hc) * 0.86;
+    const ty = H * 0.46;
+    const p = this.gPitch;
+    // project a bounding cylinder (yaw-independent) and grow / shrink the distance until it fits
+    let d = Math.max(3, this.fitDist);
+    const cp = Math.cos(p), spn = Math.sin(p);
+    for (let it = 0; it < 4; it++) {
+      const cy = ty + spn * d, cz = cp * d;
+      // camera basis (looking at (0, ty, 0) from (0, cy, cz))
+      const fy = (ty - cy) / d, fz = -cz / d;
+      const uy = cp, uz = -spn;
+      let need = 0;
+      for (let k = 0; k < 12; k++) {
+        const a = (k / 12) * Math.PI * 2;
+        const x = Math.cos(a) * R, z = Math.sin(a) * R;
+        for (const y of [0, H]) {
+          const vy = y - cy, vz = z - cz;
+          const depth = vy * fy + vz * fz;
+          if (depth <= 0.05) {
+            need = Math.max(need, 3);
+            continue;
+          }
+          const sx = Math.abs(x) / depth / th;
+          const sy = Math.abs(vy * uy + vz * uz) / depth / tv;
+          need = Math.max(need, sx, sy);
+        }
+      }
+      d = Math.max(2.5, d * need);
+    }
+    this.fitDist = d;
+    this.fitY = ty;
   }
 
   private applyViewOffset(): void {

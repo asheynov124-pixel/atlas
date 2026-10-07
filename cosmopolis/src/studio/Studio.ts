@@ -32,6 +32,7 @@ import { clearGeometryCache, getItem, registerItems, unregisterItem, type ItemDe
 import { bus } from '../core/events';
 import type { Game } from '../game/Game';
 import type { System } from '../game/System';
+import { prewarmThumbnails } from '../render/Thumbnails';
 import { confirmDialog, notify, ui } from '../ui/store';
 import type { Planet } from '../world/planet';
 import { addContext, analyze, buildDesign, simplify, TRI_BUDGET } from './builder';
@@ -145,6 +146,12 @@ export class Studio implements System {
     if (!draft && o.design) draft = cloneDesign(o.design);
     if (!draft) draft = this.fromTemplateId(o.template ?? 'neo-tower');
     if (!this.view) this.view = new StudioView();
+    try {
+      this.ensureTemplateDefs();
+      prewarmThumbnails(TEMPLATES.map((t) => this.templateDefId(t.id)));
+    } catch (e) {
+      console.warn('[studio] template previews unavailable', e);
+    }
     // tools / panels / selection out of the way
     try {
       g.tools.select(null);

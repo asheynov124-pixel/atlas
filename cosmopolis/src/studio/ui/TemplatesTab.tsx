@@ -4,7 +4,7 @@
  * (edit · place · duplicate · share · delete), the device library (designs from your other cities) and import of
  * share codes (paste / type).
  */
-import { useEffect, useState } from 'preact/hooks';
+import { useState } from 'preact/hooks';
 import { game } from '../../game/instance';
 import { thumbnailSignal } from '../../render/Thumbnails';
 import { Button, Chip, Icon, IconButton, Modal, SectionHeader, TextInput, fmtMoney, notify, uiSound } from '../../ui/core';
@@ -32,13 +32,11 @@ async function copyText(text: string): Promise<boolean> {
 
 export function TemplatesTab({ draft }: { draft: DesignSpec }) {
   const st = game.studio;
-  useEffect(() => {
-    try {
-      st.ensureTemplateDefs();
-    } catch (e) {
-      console.warn('[studio] template previews unavailable', e);
-    }
-  }, []);
+  try {
+    st.ensureTemplateDefs();
+  } catch (e) {
+    console.warn('[studio] template previews unavailable', e);
+  }
   const designs = studioUi.designs.value;
   const library = studioUi.library.value;
   const [menu, setMenu] = useState<DesignSpec | null>(null);

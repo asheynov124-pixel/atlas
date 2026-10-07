@@ -187,6 +187,10 @@ function Stage() {
           </span>
         </span>
       </div>
+      <div class="st-stage-tools is-left">
+        <IconButton icon="undo" label="Undo" disabled={!studioUi.canUndo.value} onClick={() => game.studio.undo()} kbd="⌘Z" />
+        <IconButton icon="redo" label="Redo" disabled={!studioUi.canRedo.value} onClick={() => game.studio.redo()} kbd="⇧⌘Z" />
+      </div>
       <div class="st-stage-tools">
         <IconButton icon={night ? 'sun' : 'moon'} label={night ? 'Daylight preview' : 'Night preview'} active={night} onClick={() => game.studio.setNight(!night)} kbd="N" />
         <IconButton icon="locate" label="Reset view" onClick={() => game.studio.view?.resetView()} kbd="R" />
@@ -229,8 +233,6 @@ function TopBar() {
         />
         {dirty && <span class="st-dirty" title="Unsaved changes" />}
       </label>
-      <IconButton icon="undo" label="Undo" size="sm" variant="ghost" disabled={!studioUi.canUndo.value} onClick={() => st.undo()} kbd="⌘Z" />
-      <IconButton icon="redo" label="Redo" size="sm" variant="ghost" disabled={!studioUi.canRedo.value} onClick={() => st.redo()} kbd="⇧⌘Z" />
       <Button variant="primary" icon="save" onClick={doSave} class="st-savebtn" sound={false}>
         Save
       </Button>
