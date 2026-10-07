@@ -407,9 +407,10 @@ export function pipeRack(u: U, a: [number, number], c: [number, number], h: numb
 }
 
 /** Square lattice mast (4 legs, zig-zag braced faces). */
-export function lattice(u: U, h: number, wBase: number, wTop: number, o: { x?: number; z?: number; y?: number; color?: number; levels?: number; r?: number } = {}): void {
+export function lattice(u: U, h: number, wBase: number, wTop: number, o: { x?: number; z?: number; y?: number; color?: number; color2?: number; levels?: number; r?: number } = {}): void {
   const x = o.x ?? 0, z = o.z ?? 0, y = o.y ?? PAD_TOP;
   const col = o.color ?? C.red;
+  const col2 = o.color2 ?? col;
   const lv = o.levels ?? 4;
   const r = o.r ?? 0.018;
   const at = (t: number, sx: number, sz: number): [number, number, number] => {
@@ -417,13 +418,13 @@ export function lattice(u: U, h: number, wBase: number, wTop: number, o: { x?: n
     return [x + sx * w, y + h * t, z + sz * w];
   };
   const corners: [number, number][] = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
-  for (const [sx, sz] of corners) u.b.tube([at(0, sx, sz), at(1, sx, sz)], r, { color: col, seg: 4, mat: Mat.Metal });
+  for (const [sx, sz] of corners) u.b.tube([at(0, sx, sz), at(1, sx, sz)], r, { color: col, seg: 4 });
   for (let l = 0; l < lv; l++) {
     const t0 = l / lv, t1 = (l + 1) / lv;
     for (let k = 0; k < 4; k++) {
       const [ax, az] = corners[k], [bx, bz] = corners[(k + 1) % 4];
       const flip = (l + k) % 2 === 0;
-      beam(u, flip ? at(t0, ax, az) : at(t0, bx, bz), flip ? at(t1, bx, bz) : at(t1, ax, az), r * 1.1, r * 1.1, { color: col, mat: Mat.Metal, detail: true });
+      beam(u, flip ? at(t0, ax, az) : at(t0, bx, bz), flip ? at(t1, bx, bz) : at(t1, ax, az), r * 1.1, r * 1.1, { color: l % 2 ? col2 : col, detail: true });
     }
   }
 }
@@ -628,4 +629,26 @@ export function solarRows(u: U, r: number, x: number, z: number, o: { rows?: num
 /** Hologram sign / emblem disc floating above a building. */
 export function holoDisc(u: U, r: number, x: number, y: number, z: number, color: number, o: { ry?: number } = {}): void {
   u.b.cyl(r, r, 0.012, { color, mat: Mat.Holo, x, y, z, rx: Math.PI / 2, ry: o.ry ?? 0, seg: 12, ...NP, detail: true });
+}
+
+// ═══════════════════════════════════════════════════════════════ water surfaces
+
+/** Animated water surface (pools, basins, channels). */
+export function pool(u: U, w: number, d: number, x: number, z: number, o: { ry?: number; color?: number; y?: number; rim?: number } = {}): void {
+  const { b } = u;
+  const y = o.y ?? PAD_TOP;
+  if (o.rim !== 0) b.box(w + 0.08, 0.07, d + 0.08, { color: o.rim ?? C.concrete, x, z, y, ry: o.ry ?? 0, ...NP });
+  b.box(w, 0.012, d, { color: o.color ?? C.water, mat: Mat.Water, x, z, y: y + 0.064, ry: o.ry ?? 0, ...NP });
+}
+
+/** Round basin (clarifier / settling tank) with a water surface. */
+export function basin(u: U, r: number, x: number, z: number, o: { color?: number; arm?: boolean; seg?: number } = {}): void {
+  const { b } = u;
+  const seg = o.seg ?? 14;
+  b.cyl(r + 0.05, r + 0.05, 0.14, { color: C.concrete, x, z, y: PAD_TOP, seg, top: shade(C.concrete, 0.92), ...NP });
+  b.cyl(r, r, 0.01, { color: o.color ?? C.water, mat: Mat.Water, x, z, y: PAD_TOP + 0.13, seg, ...NP });
+  if (o.arm ?? true) {
+    b.box(r * 2, 0.035, 0.07, { color: C.yellow, x, z, y: PAD_TOP + 0.16, ry: x * 2 + z });
+    b.cyl(0.08, 0.08, 0.1, { color: C.steelDark, x, z, y: PAD_TOP + 0.13, seg: 6 });
+  }
 }

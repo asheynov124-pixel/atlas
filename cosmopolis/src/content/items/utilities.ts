@@ -20,6 +20,7 @@
 import { registerItems, type ItemDef } from '../catalog';
 import { Feature, type PlanetTypeId } from '../../core/types';
 import * as P from '../meshes/utilities/power';
+import * as W from '../meshes/utilities/water';
 
 /** Every planet type except airless ones (wind and fog need an atmosphere). */
 const WITH_AIR: PlanetTypeId[] = ['terran', 'desert', 'arctic', 'volcanic', 'ocean', 'jungle', 'toxic', 'crystal', 'fungal', 'tundra', 'machine'];
@@ -138,3 +139,131 @@ const POWER: ItemDef[] = [
 ];
 
 registerItems(POWER);
+
+// ═══════════════════════════════════════════════════════════════ water, air, sanitation, data
+
+const garbage = (radius: number, capacity: number) => [{ service: 'garbage' as const, radius, strength: 0.8, capacity }];
+const data = (radius: number, strength: number) => [{ service: 'data' as const, radius, strength }];
+
+const WATER: ItemDef[] = [
+  // ── water
+  util({
+    id: 'water.pump', name: 'Water Pump Station', category: 'water', group: 'Water', icon: '🚰', footprint: 1, cost: 3_500, upkeep: 140, tier: 0,
+    description: 'Draws water from the sea or a lake through screened intakes and pushes it into the mains. Must be built on the shore.',
+    flavor: 'Filtered twice, chlorinated once, judged by the fish forever.',
+    requires: { coastal: true }, effects: { water: 90, power: -3, jobs: 4, noise: 6, radius: 2 }, mesh: W.pumpStation, height: 0.6, tags: ['water', 'pump', 'coastal'],
+  }),
+  util({
+    id: 'water.tower', name: 'Water Tower', category: 'water', group: 'Water', icon: '💧', footprint: 1, cost: 2_800, upkeep: 110, tier: 0,
+    description: 'Stores pumped groundwater up high so gravity does the work. Wears the city’s colours with pride.',
+    flavor: 'Technically the city’s largest drink. Please do not add a straw.',
+    effects: { water: 45, power: -1, jobs: 1, landValue: 1, radius: 2 }, mesh: W.waterTower, height: 1.9, tags: ['water', 'tower'],
+  }),
+  util({
+    id: 'water.desal', name: 'Desalination Plant', category: 'water', group: 'Water', icon: '🧂', footprint: 7, cost: 16_000, upkeep: 640, tier: 1,
+    description: 'Reverse-osmosis halls turn seawater into drinking water and the leftovers into very fancy salt. Coastal only.',
+    flavor: 'The salt is sold to restaurants as “artisanal ocean flakes”.',
+    requires: { coastal: true }, effects: { water: 320, power: -20, jobs: 30, noise: 10, radius: 3 }, mesh: W.desalination, height: 0.8, tags: ['water', 'coastal', 'desalination'],
+  }),
+  util({
+    id: 'water.treatment', name: 'Water Treatment Works', category: 'water', group: 'Water', icon: '🧪', footprint: 7, cost: 13_000, upkeep: 520, tier: 1,
+    description: 'Clarifiers, aeration lanes and filter beds recycle used water and scrub the surrounding ground clean.',
+    flavor: 'What goes down must come back up. Sparkling, ideally.',
+    effects: { water: 240, power: -10, jobs: 25, pollution: -12, radius: 6 }, mesh: W.treatmentPlant, height: 0.7, tags: ['water', 'treatment', 'clean'],
+  }),
+  util({
+    id: 'water.iceminer', name: 'Ice Miner', category: 'water', group: 'Water', icon: '🧊', footprint: 1, cost: 7_000, upkeep: 280, tier: 1,
+    description: 'Drills into a buried ice deposit and melts it into fresh water. Must be built on an ice deposit.',
+    flavor: 'Ten-thousand-year-old ice, served at room temperature.',
+    requires: { feature: [Feature.IceDeposit] }, effects: { water: 200, power: -6, jobs: 10, noise: 15, radius: 2 }, mesh: W.iceMiner, height: 1.25, tags: ['water', 'ice', 'mining'],
+  }),
+  util({
+    id: 'water.harvester', name: 'Atmospheric Water Harvester', category: 'water', group: 'Water', icon: '🌫️', footprint: 1, cost: 7_500, upkeep: 300, tier: 2,
+    description: 'Finned condenser towers and fog nets wring water straight out of the air. Works anywhere with an atmosphere.',
+    flavor: 'Literally squeezing blood from a stone, but it’s fog, and the stone is the sky.',
+    planetTypes: WITH_AIR, effects: { water: 70, power: -4, jobs: 2, radius: 1 }, mesh: W.atmoHarvester, height: 1.3, tags: ['water', 'air'],
+  }),
+  // ── air
+  util({
+    id: 'air.oxygen', name: 'Oxygen Generator', category: 'water', group: 'Air', icon: '🫧', footprint: 1, cost: 4_500, upkeep: 180, tier: 0,
+    description: 'Splits water into oxygen and hydrogen. Essential on worlds whose air would rather you didn’t breathe it.',
+    flavor: 'Smells faintly of “new planet”.',
+    effects: { oxygen: 60, power: -8, water: -5, jobs: 4, radius: 1 }, mesh: W.oxygenGenerator, height: 1.0, tags: ['oxygen', 'air'],
+  }),
+  util({
+    id: 'air.scrubber', name: 'Toxin Scrubber', category: 'water', group: 'Air', icon: '🍃', footprint: 1, cost: 6_500, upkeep: 260, tier: 1,
+    description: 'Toxic and volcanic worlds: inhales acid fog, exhales breathable air and cleans the neighbourhood around it.',
+    flavor: 'The filters are changed weekly. Nobody volunteers twice.',
+    planetTypes: ['toxic', 'volcanic'], effects: { oxygen: 70, pollution: -18, power: -6, jobs: 3, radius: 6 }, mesh: W.toxinScrubber, height: 2.4, tags: ['oxygen', 'air', 'clean'],
+  }),
+  util({
+    id: 'air.algae', name: 'Algae Bioreactor', category: 'water', group: 'Air', icon: '🦠', footprint: 7, cost: 13_000, upkeep: 520, tier: 1,
+    description: 'Racks of bright-green photobioreactor tubes turn light and CO₂ into oxygen, scrubbing the air nearby.',
+    flavor: 'The city’s greenest employees. Literally. They are algae.',
+    effects: { oxygen: 260, pollution: -8, power: -6, water: -20, jobs: 20, radius: 5 }, mesh: W.algaeBioreactor, height: 0.9, tags: ['oxygen', 'air', 'bio'],
+  }),
+  util({
+    id: 'air.hydroponic', name: 'Hydroponic O₂ Garden', category: 'water', group: 'Air', icon: '🌱', footprint: 7, cost: 17_000, upkeep: 600, tier: 2,
+    description: 'Glass biodomes and planted terraces that breathe for the city — and double as its favourite picnic spot.',
+    flavor: 'Officially an oxygen plant. Unofficially the best first-date venue in the colony.',
+    effects: { oxygen: 220, happiness: 5, landValue: 8, tourism: 20, water: -25, jobs: 15, radius: 5 }, mesh: W.hydroponicGarden, height: 1.1, tags: ['oxygen', 'air', 'park', 'garden'],
+  }),
+  util({
+    id: 'air.processor', name: 'Atmosphere Processor', category: 'water', group: 'Air', icon: '🌍', footprint: 7, cost: 85_000, upkeep: 3_000, tier: 4,
+    description: 'A buttressed terraforming spire that breathes an entire region of sky into shape. Makes thin air thick and foul air sweet.',
+    flavor: 'Step one: build a giant chimney. Step two: reverse it. Step three: planet.',
+    effects: { oxygen: 2_200, pollution: -30, power: -60, jobs: 60, noise: 20, radius: 16 }, mesh: W.atmosphereProcessor, height: 6.2, tags: ['oxygen', 'air', 'terraform', 'clean'],
+  }),
+  // ── sanitation
+  util({
+    id: 'waste.landfill', name: 'Landfill', category: 'water', group: 'Sanitation', icon: '🗑️', footprint: 7, cost: 5_000, upkeep: 200, tier: 0,
+    description: 'Terraced cells of compacted rubbish, capped with grass when full. Cheap, effective and fragrant.',
+    flavor: 'Future archaeologists will learn a lot about our snacks.',
+    effects: { garbage: 450, pollution: 35, landValue: -18, jobs: 15, radius: 5 }, coverage: garbage(14, 3_000), mesh: W.landfill, height: 1.0, tags: ['garbage', 'waste'],
+  }),
+  util({
+    id: 'waste.recycling', name: 'Recycling Centre', category: 'water', group: 'Sanitation', icon: '♻️', footprint: 7, cost: 14_000, upkeep: 520, tier: 1,
+    description: 'Sorts the city’s trash into tidy coloured bales and sells them back to industry. Far cleaner than a landfill.',
+    flavor: 'Every can gets a second chance. Some get a fifth.',
+    effects: { garbage: 700, pollution: 8, jobs: 35, income: 300, radius: 4 }, coverage: garbage(14, 5_000), mesh: W.recyclingCentre, height: 1.1, tags: ['garbage', 'waste', 'recycling'],
+  }),
+  util({
+    id: 'waste.incinerator', name: 'Waste-to-Energy Plant', category: 'water', group: 'Sanitation', icon: '🔥', footprint: 7, cost: 20_000, upkeep: 760, tier: 2,
+    description: 'Burns rubbish at scorching temperatures for power and heat — with a public ski slope on the roof.',
+    flavor: 'Burns your trash, powers your toaster, and the black run is excellent.',
+    effects: { garbage: 1_100, power: 25, pollution: 30, happiness: 2, tourism: 30, jobs: 40, radius: 5 }, coverage: garbage(16, 8_000), mesh: W.incinerator, height: 2.8, tags: ['garbage', 'waste', 'power', 'smoke'],
+  }),
+  util({
+    id: 'waste.matter', name: 'Matter Recycler', category: 'water', group: 'Sanitation', icon: '✨', footprint: 7, cost: 120_000, upkeep: 4_200, tier: 5,
+    description: 'Unmakes garbage atom by atom and returns it as neatly bottled elements. Leaves the air cleaner than it found it.',
+    flavor: 'Yesterday’s banana peel is tomorrow’s carbon fibre. Probably.',
+    effects: { garbage: 6_000, pollution: -10, power: -40, jobs: 40, radius: 5 }, coverage: garbage(30, 40_000), mesh: W.matterRecycler, height: 2.3, tags: ['garbage', 'waste', 'exotic', 'glow'],
+  }),
+  // ── data & comms
+  util({
+    id: 'data.comms', name: 'Comms Tower', category: 'water', group: 'Data & Comms', icon: '🗼', footprint: 1, cost: 3_000, upkeep: 120, tier: 0,
+    description: 'A red-and-white lattice mast carrying the city’s radio, phone and Hypernet links.',
+    flavor: 'Five bars everywhere. Four if you stand near the fridge.',
+    effects: { data: 60, power: -2, jobs: 2, landValue: -2, radius: 2 }, coverage: data(8, 0.6), mesh: W.commsTower, height: 3.4, tags: ['data', 'comms', 'tower'],
+  }),
+  util({
+    id: 'data.centre', name: 'Data Centre', category: 'water', group: 'Data & Comms', icon: '🖥️', footprint: 7, cost: 26_000, upkeep: 1_000, tier: 2,
+    description: 'Windowless server halls humming with the city’s memories, memes and medical records. Thirsty for power.',
+    flavor: 'Contains 40 % of all cat videos in the sector. The other 60 % are pending.',
+    effects: { data: 700, power: -25, water: -10, jobs: 45, noise: 8, radius: 3 }, coverage: data(12, 0.8), mesh: W.dataCentre, height: 0.8, tags: ['data', 'servers'],
+  }),
+  util({
+    id: 'data.uplink', name: 'Satellite Uplink', category: 'water', group: 'Data & Comms', icon: '📡', footprint: 7, cost: 32_000, upkeep: 1_200, tier: 3,
+    description: 'A farm of dishes linking the colony to its satellites, its sister worlds and anyone else who happens to be listening.',
+    flavor: 'Mostly used for streaming. Occasionally for first contact.',
+    effects: { data: 1_000, research: 10, power: -12, jobs: 25, radius: 3 }, coverage: data(18, 0.9), mesh: W.satelliteUplink, height: 1.6, tags: ['data', 'comms', 'dish'],
+  }),
+  util({
+    id: 'data.quantum', name: 'Quantum Relay', category: 'water', group: 'Data & Comms', icon: '🔮', footprint: 1, cost: 120_000, upkeep: 4_000, tier: 6,
+    description: 'Entangled particles carry data instantly across the planet — and across the stars. Covers enormous areas.',
+    flavor: 'Your message arrived before you finished typing it. Please stop being surprised.',
+    effects: { data: 5_000, research: 40, tourism: 15, power: -30, jobs: 6, radius: 2 }, coverage: data(40, 1), mesh: W.quantumRelay, height: 3.0, tags: ['data', 'quantum', 'glow'],
+  }),
+];
+
+registerItems(WATER);
