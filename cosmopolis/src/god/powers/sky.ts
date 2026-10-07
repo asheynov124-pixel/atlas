@@ -5,7 +5,8 @@
  * blackout, sparks).
  */
 import { Vector3 } from 'three';
-import { Biome, TileFlag } from '../../core/types';
+import { Biome, BuildingState, Feature, TileFlag } from '../../core/types';
+import { InstState } from '../../render/materials';
 import type { FxObject } from '../../render/fx/FxLayer';
 import { PRESETS, fxRand } from '../../render/fx/particles';
 import { ShellMode, type Shell } from '../../render/fx/shells';
@@ -501,6 +502,78 @@ class FlareEffect extends Effect {
   }
 }
 
+// ───────────────────────────────────────────────────────────── gamma-ray burst
+
+class GammaEffect extends Effect {
+  private dur = 18;
+  private dir = new Vector3();
+  private order: { tiles: Int32Array; angles: Float32Array };
+  private idx = 0;
+  private glow: Shell & FxObject;
+  private beamA = this.beam();
+  private sick: number[] = [];
+  constructor(ctx: PowerCtx) {
+    super(ctx);
+    // the burst arrives from deep space, centred near the city
+    const c = this.nrm(ctx.target.tile, new Vector3());
+    tangents(c, _e1, _e2);
+    this.dir.copy(c).addScaledVector(_e1, 0.35).normalize();
+    this.order = sortedByAngle(this.planet, this.tileAt(this.dir), Math.PI / 2 + 0.1);
+    this.glow = this.own(this.fx.shell(ShellMode.Glow, 32, 192));
+    this.glow.setCenter(this.dir).colors(0xd8a8ff, 0x6a5aff);
+    this.glow.u.uR.value = this.R + 2.5;
+    this.beamA.u.uCore.value.setHex(0xffffff);
+    this.god.flash(0xe8d8ff, 8, 1.6, 0.9);
+    this.god.shake(0.5, 1.5);
+    this.sfx('supernova', 0.8, 1.6);
+    this.sfx('alarm', 0.5);
+    this.god.banner('GAMMA-RAY BURST', 'A dying star 1,000 light-years away just aimed at us', 'radiation', 0xc8a8ff, 4);
+    this.god.news('Hypernet', '@hypernet', '☢️', 'my geiger counter just made a noise i can only describe as "operatic"');
+  }
+  step(dt: number): void {
+    const u = this.t / this.dur;
+    this.progress = clamp01(u);
+    const env = envelope(u, 0.03, 0.5);
+    // the beam: a narrow column from deep space, fading after the first seconds
+    const beamI = Math.exp(-this.t * 0.6);
+    const top = _a.copy(this.dir).multiplyScalar(this.R * 12);
+    const hit = _b.copy(this.dir).multiplyScalar(this.R + 1);
+    this.beamA.set(top, hit, this.R * 0.18 * (0.3 + beamI), 0xb88aff, 2.2 * beamI);
+    const front = (Math.PI / 2 + 0.1) * smooth(0, 3, this.t);
+    this.glow.range(0, front);
+    this.glow.u.uAngle.value = front;
+    this.glow.u.uIntensity.value = 0.55 * env;
+    this.god.want(this.key, { sun: 1 + 0.6 * env, aurora: 3 * env, apocalypse: 0.15 * env, lights: 1 - 0.6 * env });
+    const batch: number[] = [];
+    while (this.idx < this.order.tiles.length && this.order.angles[this.idx] <= front && batch.length < 200) batch.push(this.order.tiles[this.idx++]);
+    if (batch.length) {
+      const dmg = this.god.damage();
+      const land = batch.filter((t) => !this.planet.isWater(t));
+      dmg?.flag(land, TileFlag.Irradiated, true, this.report, 0.7, () => this.rng.next());
+      // the ozone is gone: crops and forests wither, exposed residents flee
+      const veg = land.filter((t) => (this.planet.feature[t] === Feature.Trees || this.planet.feature[t] === Feature.Flowers) && this.rng.next() < 0.35);
+      if (veg.length) this.ops.setFeature(veg, Feature.None);
+      for (const b of dmg?.buildingsOn(land) ?? []) {
+        if (this.rng.next() < 0.3 * this.k) {
+          this.ctx.view.buildings.forceState(b.id, InstState.Irradiated);
+          this.sick.push(b.id);
+          if (b.state === BuildingState.Active && this.rng.next() < 0.4) this.ops.updateBuilding(b.id, { state: BuildingState.Abandoned });
+          this.report.displaced += (b.occupants ?? 0) * 0.5;
+        }
+      }
+    }
+    if (this.every('ions', 0.06, dt) && env > 0.2) {
+      const t = this.randomTileNear(this.tileAt(this.dir), 1.2);
+      this.fx.particles.emit(PRESETS.void, this.pos(t, _a, 3 + fxRand() * 8), this.nrm(t, _n), 2, 0.6);
+    }
+    if (this.t >= this.dur) this.done = true;
+  }
+  protected override cleanup(): void {
+    for (const id of this.sick) this.ctx.view.buildings.forceState(id, null);
+    this.god.cityEvent('flu', 'Radiation Sickness', '☢️', 'The gamma burst left people unwell. Clinics are overwhelmed.', 14);
+  }
+}
+
 // ───────────────────────────────────────────────────────────── definitions
 
 export const SKY: PowerSpec[] = [
@@ -534,6 +607,12 @@ export const SKY: PowerSpec[] = [
     description: 'A magnificent comet sweeps across the sky with glowing ion and dust tails. Stargazers flock in — tourism boom.',
     flavor: 'Once in a lifetime. Twice, if you are a god.',
     run: (c) => new CometEffect(c),
+  },
+  {
+    id: 'gamma', name: 'Gamma-Ray Burst', icon: 'radiation', category: 'sky', targeting: 'tile', tier: 6, danger: 4, cooldown: 240, color: 0xc8a8ff, confirm: true,
+    description: 'A beam from a distant hypernova sweeps the planet: a whole hemisphere is irradiated, the ozone layer is stripped and auroras blaze in daylight.',
+    flavor: 'Sunscreen manufacturers would like to clarify that this is not covered.',
+    run: (c) => new GammaEffect(c),
   },
   {
     id: 'solar_flare', name: 'Solar Flare', icon: 'sun', category: 'sky', targeting: 'global', tier: 2, danger: 1, cooldown: 90, natural: true, color: 0xffd36b,
