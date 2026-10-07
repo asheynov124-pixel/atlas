@@ -14,7 +14,7 @@ import { STYLES } from '../../content/styles';
 import { bus } from '../../core/events';
 import type { StyleId } from '../../core/types';
 import { game } from '../../game/instance';
-import { BarMeter, Chip, EmptyState, Icon, IconButton, IconOrEmoji, SectionHeader, Stat, Tabs, TextInput } from '../core';
+import { BarMeter, Chip, EmptyState, Icon, IconButton, IconOrEmoji, SectionHeader, Segmented, Stat, TextInput } from '../core';
 import { fmtCompact, fmtInt, fmtMoney } from '../core/format';
 import { notify, ui } from '../store';
 import { FAMILIES } from './BudgetPanel';
@@ -47,7 +47,7 @@ function Identity() {
     setEditing(null);
   };
   const start = (what: 'city' | 'mayor') => {
-    setDraft(what === 'city' ? p.city.name : p.city.mayor);
+    setDraft(what === 'city' ? p.city.name : p.city.mayor === 'Mayor' ? '' : p.city.mayor);
     setEditing(what);
   };
   const sandbox = isSandbox();
@@ -74,7 +74,7 @@ function Identity() {
               <Icon name="pencil" size={14} class="dim" />
             </button>
             <button type="button" class="up-city-mayor" onClick={() => start('mayor')} aria-label="Rename mayor">
-              Mayor {p.city.mayor} <Icon name="pencil" size={12} class="dim" />
+              {!p.city.mayor || p.city.mayor === 'Mayor' ? 'Mayor — tap to sign your name' : `Mayor ${p.city.mayor}`} <Icon name="pencil" size={12} class="dim" />
             </button>
           </>
         )}
@@ -373,14 +373,16 @@ export function CityPanel() {
   if (!planet()) return <EmptyState icon="crown" title="No city yet" body="Start or load a game to visit the mayor's office." />;
   return (
     <div class="up-root up-city">
-      <Tabs
+      <Segmented
+        block
         value={tab}
         onChange={go}
+        sound="tap"
         ariaLabel="City sections"
-        tabs={[
-          { id: 'overview', label: 'Overview', icon: 'crown' },
-          { id: 'demand', label: 'Demand', icon: 'chart', dot: safe(() => game.sim.problemsSummary().some((p) => p.severe), false) },
-          { id: 'planet', label: 'Planet', icon: 'planet' },
+        options={[
+          { value: 'overview', label: 'Overview', icon: 'crown' },
+          { value: 'demand', label: 'Demand', icon: 'chart' },
+          { value: 'planet', label: 'Planet', icon: 'planet' },
         ]}
       />
       {tab === 'overview' ? <Overview /> : tab === 'demand' ? <Demand /> : <PlanetFacts />}

@@ -9,7 +9,7 @@
  */
 import { useState } from 'preact/hooks';
 import { game } from '../../game/instance';
-import { Button, Chip, EmptyState, IconOrEmoji, SectionHeader, Segmented, Slider, Tabs, BarMeter, Icon } from '../core';
+import { Button, Chip, EmptyState, IconOrEmoji, SectionHeader, Segmented, Slider, BarMeter, Icon } from '../core';
 import { fmtMoney, fmtCompact, fmtSigned } from '../core/format';
 import { confirmDialog, ui } from '../store';
 import { Sparkline, isSandbox, safe, sim, useLive } from './common';
@@ -311,7 +311,7 @@ export function BudgetPanel() {
       <div class="up-hero up-budget-hero">
         <div class="up-hero-main">
           <div class="up-kicker">Treasury</div>
-          <div class="up-hero-value num money">{sandbox ? '₡ ∞' : fmtMoney(ui.money.value)}</div>
+          <div class={'up-hero-value num ' + (!sandbox && ui.money.value < 0 ? 'bad' : 'money')}>{sandbox ? '₡ ∞' : fmtMoney(ui.money.value)}</div>
           <div class={'up-hero-sub num ' + (net >= 0 ? 'good' : 'bad')}>
             <Icon name={net >= 0 ? 'trendUp' : 'trendDown'} size={14} /> {fmtSigned(net, false)} this month
           </div>
@@ -326,14 +326,16 @@ export function BudgetPanel() {
           <Icon name="sparkles" size={16} /> Sandbox: money is infinite, but funding still changes how well services work.
         </div>
       )}
-      <Tabs
+      <Segmented
+        block
         value={tab}
         onChange={change}
-        tabs={[
-          { id: 'overview', label: 'Overview', icon: 'pie' },
-          { id: 'taxes', label: 'Taxes', icon: 'coin' },
-          { id: 'services', label: 'Services', icon: 'services' },
-          { id: 'loans', label: 'Loans', icon: 'wallet', badge: s?.loans.length || null },
+        sound="tap"
+        options={[
+          { value: 'overview', label: 'Overview' },
+          { value: 'taxes', label: 'Taxes' },
+          { value: 'services', label: 'Services' },
+          { value: 'loans', label: s?.loans.length ? `Loans · ${s.loans.length}` : 'Loans' },
         ]}
         ariaLabel="Budget sections"
       />

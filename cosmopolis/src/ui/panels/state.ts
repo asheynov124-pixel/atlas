@@ -13,3 +13,5 @@ export const focusDistrict = signal(-1);
 export const photoLabels = signal(false);
 /** the help panel's tab to open with */
 export const helpTab = signal<'basics' | 'gestures' | 'keys' | 'tips'>('basics');
+/** bump to (re)start the first-run tutorial (help panel "Replay tutorial") */
+export const tutorialRequest = signal(0);
