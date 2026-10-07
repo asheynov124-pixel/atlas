@@ -246,7 +246,7 @@ export class SeaTraffic {
   update(ctx: LifeCtx, dt: number): void {
     this.sites.refresh();
     if (this.dirty || this.version !== this.sites.version) this.rebuild(ctx);
-    const want = this.list.length > 12 ? Math.min(30, Math.round(clamp(this.list.length / 28 + this.harbours * 2.5, 2, 26) * ctx.density)) : 0;
+    const want = this.list.length > 12 ? Math.min(30, Math.round(clamp(this.list.length / 16 + this.harbours * 2.5, 3, 26) * ctx.density)) : 0;
     let n = 0, nf = 0;
     for (const b of this.boats) if (b.active) b.kind === K_FERRY ? nf++ : n++;
     if (n < want) this.spawn(ctx);
@@ -410,18 +410,18 @@ export class SeaTraffic {
       let s = smoothstep(0, 1, ctx.time - b.born);
       if (b.dying >= 0) s *= 1 - smoothstep(0, 1, ctx.time - b.dying);
       const d = Math.sqrt(cull.dist2(b.pos.x, b.pos.y, b.pos.z));
-      s *= d > 12 ? Math.min(1.35, 1 + (d - 12) * 0.01) : 1;
+      s *= (b.kind === K_SHIP || b.kind === K_FERRY ? 1 : 1.45) * (d > 12 ? Math.min(1.35, 1 + (d - 12) * 0.01) : 1);
       const c = b.kind === K_SPEED || b.kind === K_HOVER ? PAINT[b.color] : PAINT[0];
       const lift = b.kind === K_HOVER ? 0.02 : 0;
       ctx.fleet(KINDS[b.kind]).push(b.pos.x + _up.x * lift, b.pos.y + _up.y * lift, b.pos.z + _up.z * lift, fr.r.x, fr.r.y, fr.r.z, fr.u.x, fr.u.y, fr.u.z, fr.f.x, fr.f.y, fr.f.z, s, c[0], c[1], c[2]);
       // wake
       const moving = !(b.path && b.dwell > 0);
       if (moving && d < 60) {
-        const wl = L * (b.kind === K_SPEED || b.kind === K_HOVER ? 3.2 : 2.2) * s;
-        _p.copy(b.pos).addScaledVector(fr.f, -(L * 0.45 * s + wl * 0.5)).addScaledVector(_up, 0.004);
+        const wl = L * (b.kind === K_SPEED || b.kind === K_HOVER ? 3.6 : 2.4) * s;
+        _p.copy(b.pos).addScaledVector(fr.f, -(L * 0.4 * s + wl * 0.5)).addScaledVector(_up, 0.012);
         _a.copy(fr.f).addScaledVector(_up, -fr.f.dot(_up)).normalize();
         _b.crossVectors(_up, _a).normalize();
-        ctx.wakes.push(_p.x, _p.y, _p.z, _b.x, _b.y, _b.z, _up.x, _up.y, _up.z, _a.x, _a.y, _a.z, L * 0.9 * s, wl * 0.5, 0.75, 0, 0);
+        ctx.wakes.push(_p.x, _p.y, _p.z, _b.x, _b.y, _b.z, _up.x, _up.y, _up.z, _a.x, _a.y, _a.z, L * 1.1 * s, wl * 0.5, 1, 0, 0);
       }
       if (cull.night > 0.02) {
         _p.copy(b.pos).addScaledVector(_up, L * 0.25 + 0.04);

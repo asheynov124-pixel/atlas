@@ -324,7 +324,7 @@ void main() {
       : shape === 1
         ? 'float t = p.y * 0.5 + 0.5; float w = 1.0 - smoothstep(0.15 + t * 0.65, 0.35 + t * 0.75, abs(p.x)); a = w * smoothstep(0.0, 0.12, t) * pow(1.0 - t, 1.6);'
         : shape === 2
-          ? 'float t = 1.0 - (p.y * 0.5 + 0.5); float spread = 0.08 + t * 0.92; float arm = abs(abs(p.x) - spread * 0.85); a = (1.0 - smoothstep(0.0, 0.08 + t * 0.25, arm)) * (1.0 - t) * smoothstep(0.0, 0.06, t); a += (1.0 - smoothstep(0.0, 0.18, abs(p.x))) * (1.0 - t) * 0.5;'
+          ? 'float t = 1.0 - (p.y * 0.5 + 0.5); float spread = 0.1 + t * 0.9; float arm = abs(abs(p.x) - spread * 0.85); a = (1.0 - smoothstep(0.0, 0.1 + t * 0.25, arm)) * (1.0 - t) * smoothstep(0.0, 0.05, t); a += (1.0 - smoothstep(0.0, 0.22 + t * 0.2, abs(p.x))) * pow(1.0 - t, 1.5) * 0.75; a = min(a, 1.0) * 0.85;'
           : 'float d = length(p); a = smoothstep(0.55, 0.8, d) * (1.0 - smoothstep(0.85, 1.0, d));'
   }
   ${additive ? 'a *= cNight(vWPos) * uNightLights;' : ''}

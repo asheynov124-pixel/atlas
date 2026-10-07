@@ -30,6 +30,7 @@ import { Cull, FastRng, MOTION_SPEED } from './common';
 import type { FleetKey, LifeCtx } from './ctx';
 import { Beacons } from './beacons';
 import { Fauna } from './fauna';
+import { Pedestrians } from './people';
 import { Ports } from './ports';
 import { RailTraffic } from './rail';
 import { SeaTraffic } from './sea';
@@ -96,6 +97,7 @@ export class LifeRenderer {
   readonly sea: SeaTraffic;
   readonly fauna: Fauna;
   readonly beacons: Beacons;
+  readonly people: Pedestrians;
   readonly sites: Sites;
   private subs: { name: string; sub: Sub }[] = [];
   private offs: (() => void)[] = [];
@@ -137,6 +139,7 @@ export class LifeRenderer {
     this.sea = new SeaTraffic(this.sites);
     this.fauna = new Fauna(this.ctx);
     this.beacons = new Beacons(this.sites);
+    this.people = new Pedestrians(planet);
     this.subs.push(
       { name: 'traffic', sub: this.traffic },
       { name: 'rail', sub: this.rail },
@@ -145,11 +148,13 @@ export class LifeRenderer {
       { name: 'sea', sub: this.sea },
       { name: 'fauna', sub: this.fauna },
       { name: 'beacons', sub: this.beacons },
+      { name: 'people', sub: this.people },
     );
 
     const roads = () => {
       this.traffic.invalidate();
       this.rail.invalidate();
+      this.people.invalidate();
     };
     const buildings = () => {
       this.traffic.invalidate();
@@ -220,6 +225,8 @@ export class LifeRenderer {
       boatsVisible: this.sea.visible,
       birdsVisible: this.fauna.visible,
       beacons: this.beacons.count,
+      people: this.people.active,
+      peopleVisible: this.people.visible,
     };
     let drawn = 0;
     for (const b of this.batches.values()) drawn += b.count;

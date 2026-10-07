@@ -312,13 +312,13 @@ export class SkyTraffic {
       s *= 0.82 * (d > 14 ? Math.min(1.3, 1 + (d - 14) * 0.01) : 1);
       const c = CAR_PAINT[f.color];
       ctx.fleet('flyingCar').push(f.pos.x, f.pos.y, f.pos.z, _fr.r.x, _fr.r.y, _fr.r.z, _fr.u.x, _fr.u.y, _fr.u.z, _fr.f.x, _fr.f.y, _fr.f.z, s, c[0], c[1], c[2]);
-      _p.copy(f.pos).addScaledVector(_fr.f, -0.12 * s);
-      sp.push(_p.x, _p.y, _p.z, 0.05, 2.0, 0.15, 0.1, 0.65);
+      _p.copy(f.pos).addScaledVector(_fr.f, -0.115 * s);
+      sp.push(_p.x, _p.y, _p.z, 0.03, 1.8, 0.12, 0.08, 0.65);
       if (night > 0.02) {
-        _p.copy(f.pos).addScaledVector(_fr.f, 0.12 * s);
-        sp.push(_p.x, _p.y, _p.z, 0.06, 1.5, 1.4, 1.2, 1);
+        _p.copy(f.pos).addScaledVector(_fr.f, 0.115 * s);
+        sp.push(_p.x, _p.y, _p.z, 0.035, 1.5, 1.4, 1.2, 1);
         _p.copy(f.pos).addScaledVector(_fr.u, -0.03 * s);
-        sp.push(_p.x, _p.y, _p.z, 0.09, 0.2, 0.9, 1.4, 1);
+        sp.push(_p.x, _p.y, _p.z, 0.05, 0.15, 0.7, 1.1, 1);
       }
     }
     for (const h of this.hoppers) {
@@ -336,7 +336,7 @@ export class SkyTraffic {
         _fr.u.crossVectors(_fr.f, _fr.r).normalize();
       }
       const d = Math.sqrt(cull.dist2(h.pos.x, h.pos.y, h.pos.z));
-      let s = (h.kind === 'drone' ? 1.25 : 1.1) * (d > 8 ? Math.min(1.5, 1 + (d - 8) * 0.018) : 1);
+      let s = (h.kind === 'drone' ? 1.1 : 0.85) * (d > 10 ? Math.min(1.45, 1 + (d - 10) * 0.016) : 1);
       s *= smoothstep(0, 0.5, ctx.time - h.born);
       const bob = Math.sin(ctx.realTime * 3.1 + h.id) * 0.01;
       const px = h.pos.x + _up.x * bob, py = h.pos.y + _up.y * bob, pz = h.pos.z + _up.z * bob;
@@ -346,7 +346,7 @@ export class SkyTraffic {
         sp.push(px - _fr.r.x * 0.04, py - _fr.r.y * 0.04, pz - _fr.r.z * 0.04, 0.03, 1.8, 0.15, 0.1, 0.5, 1.4, (h.id * 0.31 + 0.5) % 1, 0.5);
       } else {
         sp.push(px + _up.x * 0.06, py + _up.y * 0.06, pz + _up.z * 0.06, 0.045, 1.5, 1.5, 1.7, 0.6, 1.1, (h.id * 0.17) % 1, 0.1);
-        if (night > 0.02) sp.push(px - _up.x * 0.08, py - _up.y * 0.08, pz - _up.z * 0.08, 0.12, 0.5, 1.6, 1.4, 1);
+        if (night > 0.02) sp.push(px - _up.x * 0.07, py - _up.y * 0.07, pz - _up.z * 0.07, 0.06, 0.4, 1.3, 1.2, 1);
       }
     }
   }

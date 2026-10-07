@@ -76,6 +76,8 @@ class Car {
   stall = 0;
   ghost = 0;
   braking = false;
+  /** seconds left pulling over for an emergency vehicle behind */
+  yieldT = 0;
   /** directed edge slots (current hop / next hop) */
   slot = -1;
   nslot = -1;
@@ -91,6 +93,7 @@ const _up = new Vector3();
 const _p = new Vector3();
 const _fr = newFrame();
 const _ks: number[] = [0, 0, 0, 0, 0, 0, 0, 0];
+const _ks2: number[] = [0, 0, 0, 0, 0, 0, 0, 0];
 
 export class RoadTraffic {
   private cars: Car[] = [];
@@ -106,6 +109,7 @@ export class RoadTraffic {
   private nextId = 1;
   private filled = false;
   private dispatchCool = 0;
+  private fields = new Map<number, Map<number, number>>();
   /** current number of active cars */
   active = 0;
   target = 0;
@@ -132,6 +136,7 @@ export class RoadTraffic {
 
   private rebuild(): void {
     this.dirty = false;
+    this.fields.clear();
     const p = this.planet;
     const g = p.grid;
     const list: number[] = [];
@@ -221,19 +226,44 @@ export class RoadTraffic {
     return 0;
   }
 
+  /** Shortest-path distance field (hops over the drivable network) toward a target road tile; cached. */
+  private field(target: number): Map<number, number> {
+    let f = this.fields.get(target);
+    if (f) return f;
+    f = new Map<number, number>([[target, 0]]);
+    const queue = [target];
+    const g = this.planet.grid;
+    for (let qi = 0; qi < queue.length; qi++) {
+      const t = queue[qi];
+      const d = f.get(t)!;
+      const n = this.driveLinks(t, _ks2);
+      for (let i = 0; i < n; i++) {
+        const nb = g.neighbor(t, _ks2[i]);
+        if (f.has(nb)) continue;
+        f.set(nb, d + 1);
+        queue.push(nb);
+      }
+    }
+    if (this.fields.size > 6) this.fields.delete(this.fields.keys().next().value!);
+    this.fields.set(target, f);
+    return f;
+  }
+
   /** Choose the tile after b when arriving from a (prefers straight on and bigger roads; seeks targets). */
   private chooseNext(ctx: LifeCtx, c: Car, a: number, b: number): number {
     const p = this.planet;
     const g = p.grid;
     const n = this.driveLinks(b, _ks);
     const tgt = c.targetRoad;
-    if (tgt >= 0 && ctx.rng.next() > 0.12) {
-      let best = -1, bd = -2;
+    if (tgt >= 0) {
+      // follow the shortest path (distance field), never a U-turn unless it is the only way
+      const f = this.field(tgt);
+      let best = -1, bd = Infinity;
       for (let i = 0; i < n; i++) {
         const t = g.neighbor(b, _ks[i]);
-        if (t === a) continue;
-        const d = g.dot(t, tgt);
-        if (d > bd) {
+        if (t === a && n > 1) continue;
+        const d = f.get(t) ?? Infinity;
+        if (d < bd) {
           bd = d;
           best = t;
         }
@@ -302,6 +332,7 @@ export class RoadTraffic {
     c.dwellU = -1;
     c.dwellT = 0;
     c.pull = 0;
+    c.yieldT = 0;
     c.stall = 0;
     c.ghost = 0;
     c.dying = -1;
@@ -370,7 +401,7 @@ export class RoadTraffic {
 
   /** Is the signal for the current approach green? */
   private green(c: Car, t: number): boolean {
-    if (c.jLinks < 3) return true;
+    if (c.jLinks < 4) return true;
     const h = this.planet;
     const b = c.route.hop(c.hi).b;
     const kind = h.road[b];
@@ -378,7 +409,7 @@ export class RoadTraffic {
     let groups = 0;
     for (let k = 0; k < 3; k++) if (c.jPresent & (1 << k)) groups++;
     if (groups < 2) return true;
-    const PH = 4.2;
+    const PH = 3.6;
     const off = hf(b, 11) * PH * groups;
     const tt = t + off;
     const slot = Math.floor(tt / PH) % groups;
@@ -402,12 +433,12 @@ export class RoadTraffic {
     const g = this.planet.grid;
     const R = this.planet.radius;
     for (const type of types) {
-      // start 4–11 tiles away on the network
+      // start 3–7 tiles away on the network
       let at = -1;
       for (let tries = 0; tries < 40; tries++) {
         const t = this.network[Math.floor(ctx.rng.next() * this.netCount)];
         const ang = g.angle(t, tile) * R / 2;
-        if (ang >= 4 && ang <= 11) {
+        if (ang >= 3 && ang <= 7) {
           at = t;
           break;
         }
@@ -452,7 +483,7 @@ export class RoadTraffic {
     const p = this.planet;
     // ── density target
     const pop = game?.sim?.getMetric?.('population') ?? 0;
-    const want = Math.min(this.capacity, Math.round((this.netCount * 0.95 + pop / 14) * ctx.density), Math.round(this.netCount * 2.4));
+    const want = Math.min(this.capacity, Math.round((this.netCount * 1.15 + pop / 12) * ctx.density), Math.round(this.netCount * 2.6));
     this.target = want;
     if (!this.filled && this.netCount) {
       this.filled = true;
@@ -500,7 +531,7 @@ export class RoadTraffic {
     let h = route.hop(c.hi);
     const kindHere = p.road[c.u < 0.5 ? h.a : h.b];
     let v = roadSpec(kindHere).speed * 0.5 * SPD[c.type] * c.vmul;
-    if (c.flashing && c.target >= 0) v *= 1.3;
+    if (c.flashing && c.target >= 0) v *= 1.8;
     // turns & junctions
     const nh = route.hop(c.hi + 1);
     void nh;
@@ -516,7 +547,7 @@ export class RoadTraffic {
     }
     let want = v * k;
     // signals
-    if (c.jLinks >= 3 && !(c.flashing && c.target >= 0)) {
+    if (c.jLinks >= 4 && !(c.flashing && c.target >= 0)) {
       const stopU = 1 - TURN_T - 0.03;
       if (c.u < stopU && !this.green(c, t)) {
         const room = Math.max(0, (stopU - c.u) * h.len - 0.02);
@@ -544,10 +575,22 @@ export class RoadTraffic {
       } else {
         c.dwellU = -1;
       }
-    } else if (c.pull > 0) c.pull = Math.max(0, c.pull - dt * 1.2);
-    // car following
+    } else if (c.pull > 0 && c.yieldT <= 0) c.pull = Math.max(0, c.pull - dt * 1.2);
+    // yield: pull over and crawl while an emergency vehicle passes
+    if (c.yieldT > 0) {
+      c.yieldT -= dt;
+      want = Math.min(want, v * 0.3);
+      c.pull = Math.min(1, c.pull + dt * 2);
+    }
+    const responding = c.flashing && c.target >= 0;
+    // car following (responders don't queue: everyone ahead pulls over instead)
     if (c.ghost > 0) c.ghost -= dt;
-    else {
+    else if (responding) {
+      for (let j = this.edgeHead[c.slot]; j >= 0; j = this.cars[j].next) {
+        const o = this.cars[j];
+        if (j !== i && o.u > c.u && (o.u - c.u) * h.len < 1.6) o.yieldT = 1.2;
+      }
+    } else {
       const L = LEN[c.type];
       let gap = Infinity;
       for (let j = this.edgeHead[c.slot]; j >= 0; j = this.cars[j].next) {
@@ -667,7 +710,7 @@ export class RoadTraffic {
         }
         if (d2 < 32 * 32 && c.speed > 0.01) {
           _p.set(px, py, pz).addScaledVector(fr.f, L * 0.5 + 0.2).addScaledVector(_up, 0.004);
-          beams.push(_p.x, _p.y, _p.z, fr.r.x, fr.r.y, fr.r.z, _up.x, _up.y, _up.z, fr.f.x, fr.f.y, fr.f.z, 0.1, 0.22, 0.55, 0.46, 0.32);
+          beams.push(_p.x, _p.y, _p.z, fr.r.x, fr.r.y, fr.r.z, _up.x, _up.y, _up.z, fr.f.x, fr.f.y, fr.f.z, 0.1, 0.22, 0.45, 0.38, 0.27);
         }
       }
       // light bars

@@ -439,7 +439,7 @@ export function trawler(): BufferGeometry {
 /** Space whale: a 3-unit leviathan, violet back, pale belly, rows of glowing spots, fluked tail. +Z = head. */
 export function whale(): BufferGeometry {
   const b = new MeshBuilder();
-  const back = 0x3a3a8a, belly = 0xb8c4e8;
+  const back = 0x4c4fb8, belly = 0xc8d4f4;
   b.sphere(0.42, { color: back, sz: 3.4, sy: 0.85, wSeg: 14, hSeg: 8, ...NP });
   b.sphere(0.4, { color: belly, sz: 3.2, sy: 0.7, y: -0.06, wSeg: 12, hSeg: 6, ...NP });
   b.sphere(0.34, { color: back, z: 1.15, y: 0.02, sz: 1.5, sy: 0.85, wSeg: 12, hSeg: 6, ...NP });

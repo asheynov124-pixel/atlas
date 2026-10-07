@@ -8,6 +8,7 @@
  *          P1 = lane-line intersection at node b, P2 on h+1 at u = T; U-turns loop around the node).
  *   sample(h, u)  position + heading anywhere on hop h (including the turn zones at both ends).
  *
+ * Pedestrians use the same machinery with `sidewalk` lateral offsets (pavements, or the middle of paths).
  * Cars keep a ring of 4 hops (previous, current, next); trains keep 16 so every carriage can be placed behind the
  * locomotive on the exact same curve. All frames are allocated once per Route; nothing allocates per frame.
  */
@@ -47,6 +48,13 @@ const _A = new Vector3();
 const _B = new Vector3();
 const _t1 = new Vector3();
 
+/** Lateral offset of the pavement (right of travel) for pedestrians on a road kind. */
+export function sidewalkOffset(kind: number): number {
+  const sp = roadSpec(kind);
+  if (kind === 1) return 0.035; // dirt / pedestrian path: walk near the middle
+  return Math.max(sp.carriage + 0.03, sp.outer - 0.04);
+}
+
 export class Route {
   readonly hops: Hop[];
   private mask: number;
@@ -76,7 +84,7 @@ export class Route {
    * Append hop a → b (adjacent tiles) with lane index `lane` (0 = innermost). Computes the turn joining the
    * previous hop to this one. Returns the hop, or null when a and b are not neighbours.
    */
-  push(planet: Planet, a: number, b: number, lane: number, liftLat = 0): Hop | null {
+  push(planet: Planet, a: number, b: number, lane: number, liftLat = 0, sidewalk = false): Hop | null {
     const g = planet.grid;
     const ka = g.neighborIndex(a, b);
     const kb = g.neighborIndex(b, a);
@@ -86,9 +94,14 @@ export class Route {
     h.b = b;
     halfSegment(planet, a, ka, h.segA);
     halfSegment(planet, b, kb, h.segB);
-    const la = roadSpec(planet.road[a]).lanes, lb = roadSpec(planet.road[b]).lanes;
-    h.latA = la[Math.min(la.length - 1, lane)] + liftLat;
-    h.latB = lb[Math.min(lb.length - 1, lane)] + liftLat;
+    if (sidewalk) {
+      h.latA = sidewalkOffset(planet.road[a]) + liftLat;
+      h.latB = sidewalkOffset(planet.road[b]) + liftLat;
+    } else {
+      const la = roadSpec(planet.road[a]).lanes, lb = roadSpec(planet.road[b]).lanes;
+      h.latA = la[Math.min(la.length - 1, lane)] + liftLat;
+      h.latB = lb[Math.min(lb.length - 1, lane)] + liftLat;
+    }
     h.len = Math.max(0.2, h.segA.length + h.segB.length);
     h.turn = false;
     h.ease = 1;
