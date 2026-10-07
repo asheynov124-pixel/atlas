@@ -241,6 +241,10 @@ export class AudioEngine implements System {
   private prof: Record<string, number> = { mood: 0, music: 0, warm: 0, voices: 0, amb: 0 };
   /** a mood is waiting for its samples to be rendered before it starts */
   private waitingMood = false;
+  /** music breathers: day / night music rests every few minutes so the soundscape can breathe */
+  private playingSince = 0;
+  private restUntil = 0;
+  private restAfter = 210 + Math.random() * 120;
 
   constructor(private game: Game) {}
 
@@ -917,8 +921,10 @@ export class AudioEngine implements System {
       if (!urgent && nowS - this.moodChangedAt < 9) return;
       this.mood = want;
       this.moodChangedAt = nowS;
+      this.restUntil = 0;
     }
     this.applyMood();
+    this.maybeRest();
   }
 
   private applyMood(): void {
@@ -940,6 +946,9 @@ export class AudioEngine implements System {
       return;
     }
     this.waitingMood = false;
+    // resting between pieces (only the calm planet moods rest; menus, cosmos and danger never wait)
+    const nowS = performance.now() / 1000;
+    if ((to === 'day' || to === 'night') && nowS < this.restUntil && this.moodOverride === null) return;
     let fin = 3;
     let fout = 3.5;
     if (!from) {
@@ -962,6 +971,19 @@ export class AudioEngine implements System {
       fout = 2.5;
     }
     music.play(to, ctx.currentTime, fin, fout);
+    this.playingSince = nowS;
+  }
+
+  /** after a few minutes of day / night music, fade out for 20–45 s; the next piece starts with fresh variations */
+  private maybeRest(): void {
+    const ctx = this.ctx;
+    const cur = this.music?.current;
+    if (!ctx || !cur || this.moodOverride !== null || (cur.mood !== 'day' && cur.mood !== 'night')) return;
+    const nowS = performance.now() / 1000;
+    if (nowS - this.playingSince < this.restAfter) return;
+    this.music!.stop(ctx.currentTime, 12);
+    this.restUntil = nowS + 12 + 20 + rnd.next() * 25;
+    this.restAfter = 200 + rnd.next() * 160;
   }
 
   private flourish(delay: number): void {
@@ -1278,6 +1300,8 @@ export class AudioEngine implements System {
       decisions: this.decisions,
       moodTimer: Math.round(this.moodTimer * 100) / 100,
       prof: { ...this.prof },
+      resting: Math.max(0, Math.round(this.restUntil - performance.now() / 1000)),
+      nextRestIn: Math.round(this.restAfter - (performance.now() / 1000 - this.playingSince)),
     };
   }
 

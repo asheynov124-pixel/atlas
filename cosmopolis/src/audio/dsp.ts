@@ -55,6 +55,17 @@ export class Prng {
   pick<T>(arr: readonly T[]): T {
     return arr[Math.floor(this.next() * arr.length) % arr.length];
   }
+  /** weighted pick: weights parallel to items */
+  weighted<T>(items: readonly T[], weights: readonly number[]): T {
+    let total = 0;
+    for (const w of weights) total += w;
+    let x = this.next() * total;
+    for (let i = 0; i < items.length; i++) {
+      x -= weights[i];
+      if (x <= 0) return items[i];
+    }
+    return items[items.length - 1];
+  }
   /** ±1 */
   sign(): number {
     return this.next() < 0.5 ? -1 : 1;

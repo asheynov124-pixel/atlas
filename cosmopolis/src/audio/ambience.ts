@@ -90,6 +90,12 @@ export class Soundscape {
   private gust = 0.8;
   private windF = 450;
   private construction = 0;
+  /** last night value (dawn / dusk detection) */
+  private prevNight = -1;
+  /** remaining birds of a dawn chorus */
+  private chorus = 0;
+  /** seconds of extra cricket song after dusk */
+  private dusk = 0;
   /** levels last applied (for debugging / tests) */
   readonly levels = { traffic: 0, murmur: 0, wind: 0, surf: 0, cicada: 0, space: 0 };
   events = 0;
@@ -168,10 +174,28 @@ export class Soundscape {
     const sw = ph < 0.3 ? Math.sin((ph / 0.3) * Math.PI * 0.5) : Math.pow(1 - (ph - 0.3) / 0.7, 1.6);
     g.surf.gain.setTargetAtTime(L.surf * (0.3 + 0.7 * sw), now, 0.3);
 
-    if (!s.active) return;
+    if (!s.active) {
+      this.prevNight = -1;
+      return;
+    }
+    // ── dawn chorus & dusk swell (the light changing at the camera focus)
+    if (this.prevNight >= 0) {
+      if (this.prevNight > 0.6 && night < 0.45 && s.birds > 0.15) this.chorus = 6 + Math.floor(this.r.next() * 6);
+      if (this.prevNight < 0.4 && night > 0.6) this.dusk = 14;
+    }
+    this.prevNight = night;
     // ── events (Poisson over this update interval)
     const ev = (rate: number) => rate > 0 && this.r.next() < rate * dt;
     const free = (1 - s.city * 0.75) * near * atmo;
+    if (this.chorus > 0 && free > 0.15 && ev(1.6)) {
+      this.chorus--;
+      this.bird(now);
+    }
+    if (this.dusk > 0) {
+      this.dusk -= dt;
+      if (ev(2.5 * Math.max(s.birds, s.insects) * free)) this.cricket(now);
+      if (this.dusk <= 0 && s.birds > 0.3 && free > 0.3 && this.r.chance(0.5)) this.owl(now);
+    }
     if (ev(0.75 * s.birds * (1 - night) * free)) this.bird(now);
     if (ev(2.4 * (s.birds * 0.6 + s.insects * 0.6) * night * free)) this.cricket(now);
     if (ev(0.035 * s.birds * night * free)) this.owl(now);

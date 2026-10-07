@@ -43,7 +43,7 @@ class MenuMood extends MoodPlayer {
     super(env, seed);
     this.level = 0.62;
     this.bpm = 54;
-    this.root = 50;
+    this.root = 50 + this.r.pick([0, 0, 2, -1]);
     this.scale = MAJOR;
     this.prog = [0, 5, 3, 4];
     this.bpc = 2;
@@ -82,11 +82,14 @@ class DayMood extends MoodPlayer {
   readonly mood = 'day';
   private arp = ARPS[0];
   private tones: number[] = [];
+  /** lead voice for this session: harp, marimba or kalimba */
+  private lead: InstName = 'harp';
   constructor(env: MusicEnv, seed: number) {
     super(env, seed);
     this.level = 0.85;
     this.bpm = 92;
-    this.root = 53;
+    this.root = 53 + this.r.pick([-2, 0, 0, 2]);
+    this.lead = this.r.weighted<InstName>(['harp', 'marimba', 'kalimba'], [0.6, 0.2, 0.2]);
     this.scale = LYDIAN;
     this.prog = [0, 1, 2, 4];
     this.bpc = 2;
@@ -121,25 +124,30 @@ class DayMood extends MoodPlayer {
       const idx = this.arp[(i >> (sec >= 2 ? 0 : 1)) % this.arp.length] + (bar % 2 === 1 && sec >= 2 ? 1 : 0);
       const m = this.tones[Math.min(this.tones.length - 1, idx)];
       const accent = i % 4 === 0;
-      note(this, 'harp', m, t + this.jitter(), (accent ? 0.27 : 0.17) * this.r.range(0.85, 1.05), accent && this.r.chance(0.4) ? this.far : this.wet);
+      const lv = this.lead === 'harp' ? 1 : this.lead === 'marimba' ? 1.15 : 0.9;
+      note(this, this.lead, m, t + this.jitter(), (accent ? 0.27 : 0.17) * lv * this.r.range(0.85, 1.05), accent && this.r.chance(0.4) ? this.far : this.wet);
     }
     // light percussion
     if (sec >= 1 && i % 2 === 0) shaker(this, t, i % 4 === 2 ? 0.09 : 0.05, this.dry);
     if (sec >= 2 && (i === 0 || i === 8)) kick(this, t, 0.38, this.dry, 0.3);
     if (sec >= 3 && i === 12) rim(this, t, 0.09, this.dry);
-    // kalimba melody
-    if (sec >= 1 && i % 4 === 0 && this.r.chance(0.22)) note(this, 'kalimba', this.melody(cd, 2, i % 8 === 0), t + this.jitter(), this.r.range(0.16, 0.22), this.far);
+    // melody over the arpeggio (kalimba, or glock when the kalimba leads)
+    if (sec >= 1 && i % 4 === 0 && this.r.chance(0.22))
+      note(this, this.lead === 'kalimba' ? 'glock' : 'kalimba', this.melody(cd, 2, i % 8 === 0), t + this.jitter(), this.lead === 'kalimba' ? this.r.range(0.08, 0.12) : this.r.range(0.16, 0.22), this.far);
   }
 }
 
 // ─────────────────────────────────────────────────────────────── night
 class NightMood extends MoodPlayer {
   readonly mood = 'night';
+  /** keys for this session: felt piano or a mellow FM e-piano */
+  private keys: InstName = 'piano';
   constructor(env: MusicEnv, seed: number) {
     super(env, seed);
     this.level = 0.8;
     this.bpm = 64;
-    this.root = 57;
+    this.root = 57 + this.r.pick([-2, 0, 0, 1]);
+    this.keys = this.r.chance(0.75) ? 'piano' : 'ep';
     this.scale = AEOLIAN;
     this.prog = [5, 0, 3, 6];
     this.bpc = 2;
@@ -159,7 +167,7 @@ class NightMood extends MoodPlayer {
       bass(this, this.deg(cd, -1), t, dur * 0.95, 0.09, this.dry, 'soft');
       if (this.r.chance(0.55)) {
         const roll = voicing(this.chord(cd, 4, 1), 64, 82).slice(0, 3);
-        roll.forEach((m, k) => note(this, 'piano', m, t + 0.02 + k * 0.075, 0.22 - k * 0.03, this.wet));
+        roll.forEach((m, k) => note(this, this.keys, m, t + 0.02 + k * 0.075, 0.22 - k * 0.03, this.wet));
       }
     }
     if (i % 2 === 0) {
@@ -167,8 +175,8 @@ class NightMood extends MoodPlayer {
       if (this.r.chance(prob)) {
         const m = this.melody(cd, 1, i % 4 === 0, 0, 11);
         const vel = this.r.range(0.2, 0.32);
-        note(this, 'piano', m, t + this.jitter(), vel, this.r.chance(0.2) ? this.far : this.wet);
-        if (this.r.chance(0.25)) note(this, 'piano', m - this.r.pick([3, 4, 5, 8, 9]), t + this.jitter(), vel * 0.65, this.wet);
+        note(this, this.keys, m, t + this.jitter(), vel, this.r.chance(0.2) ? this.far : this.wet);
+        if (this.r.chance(0.25)) note(this, this.keys, m - this.r.pick([3, 4, 5, 8, 9]), t + this.jitter(), vel * 0.65, this.wet);
       }
       if (this.r.chance(0.025)) note(this, 'glock', this.deg(this.r.pick([0, 2, 4, 6]), 3), t, 0.05, this.far);
     }
@@ -363,7 +371,7 @@ class StudioMood extends MoodPlayer {
     this.level = 0.85;
     this.bpm = 80;
     this.swing = 0.28;
-    this.root = 51;
+    this.root = 51 + this.r.pick([0, 0, -1, 2]);
     this.scale = MAJOR;
     this.prog = [1, 4, 0, 5];
     this.bpc = 1;
@@ -434,15 +442,18 @@ class StudioMood extends MoodPlayer {
 /** SampleBank notes each mood needs (pre-rendered in idle frames before they are played) */
 export const WARM: Record<MusicMood, [InstName, number[]][]> = {
   menu: [
-    ['harp', span(64, 96)],
+    ['harp', span(60, 100)],
     ['glock', span(84, 100)],
   ],
   day: [
-    ['harp', span(60, 92)],
-    ['kalimba', span(72, 96)],
+    ['harp', span(56, 96)],
+    ['kalimba', span(68, 100)],
+    ['marimba', span(60, 92)],
+    ['glock', span(80, 100)],
   ],
   night: [
-    ['piano', span(56, 92)],
+    ['piano', span(52, 96)],
+    ['ep', span(52, 92)],
     ['glock', span(80, 96)],
   ],
   space: [
@@ -456,9 +467,9 @@ export const WARM: Record<MusicMood, [InstName, number[]][]> = {
   tension: [['harp', span(48, 76)]],
   apocalypse: [['toll', [44, 48, 52, 56]]],
   studio: [
-    ['ep', span(56, 80)],
-    ['kalimba', span(72, 92)],
-    ['marimba', span(68, 88)],
+    ['ep', span(52, 84)],
+    ['kalimba', span(68, 96)],
+    ['marimba', span(64, 92)],
   ],
 };
 
