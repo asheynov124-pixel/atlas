@@ -42,10 +42,14 @@ function doSave(): void {
 
 function Stage() {
   const ref = useRef<HTMLDivElement>(null);
-  const [hint, setHint] = useState(true);
+  const [hint, setHint] = useState<number | false>(0);
   useEffect(() => {
-    const t = setTimeout(() => setHint(false), 5200);
-    return () => clearTimeout(t);
+    const a = setTimeout(() => setHint((h) => (h === false ? false : 1)), 5200);
+    const b = setTimeout(() => setHint(false), 10400);
+    return () => {
+      clearTimeout(a);
+      clearTimeout(b);
+    };
   }, []);
   useEffect(() => {
     const el = ref.current;
@@ -195,9 +199,17 @@ function Stage() {
         <IconButton icon={night ? 'sun' : 'moon'} label={night ? 'Daylight preview' : 'Night preview'} active={night} onClick={() => game.studio.setNight(!night)} kbd="N" />
         <IconButton icon="locate" label="Reset view" onClick={() => game.studio.view?.resetView()} kbd="R" />
       </div>
-      {hint && (
-        <div class="st-hint" aria-hidden="true">
-          <Icon name="rotate" size={16} /> Drag to orbit · pinch to zoom · tap a part
+      {hint !== false && (
+        <div class="st-hint" key={hint} aria-hidden="true">
+          {hint === 0 ? (
+            <>
+              <Icon name="rotate" size={16} /> Drag to orbit · pinch to zoom · tap a part
+            </>
+          ) : (
+            <>
+              <Icon name="navigate" size={16} /> The glowing chevron marks the front — it faces the road
+            </>
+          )}
         </div>
       )}
     </div>

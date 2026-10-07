@@ -24,6 +24,7 @@ import {
   CanvasTexture,
   Color,
   CubeCamera,
+  DoubleSide,
   DirectionalLight,
   Group,
   HemisphereLight,
@@ -235,6 +236,25 @@ function hexFillGeometry(centres: [number, number][], y: number): BufferGeometry
       pos.push(cx + Math.sin(a) * R, y, cz + Math.cos(a) * R);
     }
     for (let k = 0; k < 6; k++) idx.push(base, base + 1 + ((k + 1) % 6), base + 1 + k);
+  }
+  const g = new BufferGeometry();
+  g.setAttribute('position', new BufferAttribute(new Float32Array(pos), 3));
+  g.setIndex(idx);
+  return g;
+}
+
+/** Flat annulus (XZ) at height y. */
+function ringGeometry(r: number, width: number, y: number, seg = 96): BufferGeometry {
+  const pos: number[] = [];
+  const idx: number[] = [];
+  for (let i = 0; i <= seg; i++) {
+    const a = (i / seg) * Math.PI * 2;
+    const s = Math.sin(a), c = Math.cos(a);
+    pos.push(s * r, y, c * r, s * (r - width), y, c * (r - width));
+    if (i < seg) {
+      const k = i * 2;
+      idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3);
+    }
   }
   const g = new BufferGeometry();
   g.setAttribute('position', new BufferAttribute(new Float32Array(pos), 3));
@@ -662,6 +682,8 @@ export class StudioView implements View {
       this.lotMats[0].opacity = 0.7 + 0.25 * n;
       if (this.lotMats[1]) this.lotMats[1].opacity = 0.16 + 0.1 * n;
       if (this.lotMats[2]) this.lotMats[2].opacity = 0.05 + 0.05 * n;
+      if (this.lotMats[3]) this.lotMats[3].opacity = 0.18 + 0.2 * n;
+      if (this.lotMats[4]) this.lotMats[4].opacity = 0.25 + 0.3 * n;
     }
   }
 
@@ -806,8 +828,9 @@ export class StudioView implements View {
     b.cyl(R * 0.36, R * 0.36, 0.02, { y: -0.66, seg: 48, color: 0xa77bff, mat: Mat.Glow, capTop: false });
     // front chevron (road side)
     const zf = ext + 0.55;
-    b.group({ z: zf, y: 0.006 }, () => {
-      for (const s of [-1, 1]) b.box(0.5, 0.004, 0.07, { x: s * 0.17, z: 0, ry: s * 0.6, color: 0xffd36b, mat: Mat.Glow });
+    b.group({ z: zf, y: 0.004 }, () => {
+      // a ">"-style chevron pointing forward (+Z)
+      for (const s of [-1, 1]) b.box(0.4, 0.004, 0.07, { x: s * 0.13, z: -0.03, ry: -s * (Math.PI / 4), color: 0xffd36b, mat: Mat.Glow });
     });
     const g = b.build();
     g.setAttribute('aState', new BufferAttribute(new Float32Array(g.getAttribute('position').count), 1));
@@ -819,7 +842,7 @@ export class StudioView implements View {
     const inner = hexes(ring).map(([q, r]) => hexCenter(q, r));
     const around = hexes(ring + 1, true).map(([q, r]) => hexCenter(q, r));
     const mk = (geo: BufferGeometry, color: number, opacity: number) => {
-      const m = new MeshBasicMaterial({ color, transparent: true, opacity, blending: AdditiveBlending, depthWrite: false });
+      const m = new MeshBasicMaterial({ color, transparent: true, opacity, blending: AdditiveBlending, depthWrite: false, side: DoubleSide });
       this.lotMats.push(m);
       const mesh = new Mesh(geo, m);
       mesh.renderOrder = 2;
@@ -828,6 +851,9 @@ export class StudioView implements View {
     mk(hexOutlineGeometry(inner, 0.006, 0.045), 0x5ef0ff, 0.75);
     mk(hexOutlineGeometry(around, 0.005, 0.025), 0x7fa6ff, 0.18);
     mk(hexFillGeometry(inner, 0.004), 0x5ef0ff, 0.06);
+    // faint engraved rings on the dais
+    mk(ringGeometry(ext + 0.95, 0.02, 0.003), 0x7fa6ff, 0.22);
+    mk(ringGeometry(R * 0.985, 0.03, 0.003), 0x5ef0ff, 0.3);
   }
 
   private clearLot(): void {

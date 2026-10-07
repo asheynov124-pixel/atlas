@@ -209,8 +209,11 @@ export class Studio implements System {
     return studioUi.draft.value;
   }
 
-  /** Apply a change to the draft. Same `key` within 0.8 s coalesces into one undo step (slider drags). */
-  mutate(fn: (d: DesignSpec) => void, key = ''): void {
+  /**
+   * Apply a change to the draft. Edits with the same `key` coalesce into one undo step (a slider drag); `final`
+   * closes the step (the slider was released) so the next drag starts a new one. No-op edits are ignored.
+   */
+  mutate(fn: (d: DesignSpec) => void, key = '', final = false): void {
     const cur = studioUi.draft.value;
     if (!cur) return;
     const next = cloneDesign(cur);
@@ -220,14 +223,19 @@ export class Studio implements System {
       console.error('[studio] edit failed', e);
       return;
     }
+    const before = JSON.stringify(cur);
+    if (JSON.stringify({ ...next, updated: cur.updated }) === before) {
+      if (final) this.lastKey = '';
+      return;
+    }
     const now = performance.now();
-    const coalesce = key !== '' && key === this.lastKey && now - this.lastTime < 800;
+    const coalesce = key !== '' && key === this.lastKey && now - this.lastTime < 1500;
     if (!coalesce) {
-      this.undoStack.push(JSON.stringify(cur));
+      this.undoStack.push(before);
       if (this.undoStack.length > UNDO_MAX) this.undoStack.shift();
       this.redoStack = [];
     }
-    this.lastKey = key;
+    this.lastKey = final ? '' : key;
     this.lastTime = now;
     next.updated = Date.now();
     this.setDraft(next, true);
@@ -327,12 +335,17 @@ export class Studio implements System {
     this.sfx('tap');
   }
 
-  updatePart(i: number, patch: Partial<PartSpec>, key = ''): void {
+  /** Patch one part. `key` groups a drag into one undo step; `final` marks the release. */
+  updatePart(i: number, patch: Partial<PartSpec>, key = '', final = false): void {
     const d = studioUi.draft.value;
     if (!d || i < 0 || i >= d.parts.length) return;
-    this.mutate((x) => {
-      x.parts[i] = normalizePart({ ...x.parts[i], ...patch });
-    }, key ? `p${i}:${key}` : '');
+    this.mutate(
+      (x) => {
+        x.parts[i] = normalizePart({ ...x.parts[i], ...patch });
+      },
+      key ? `p${i}:${key}` : '',
+      final,
+    );
   }
 
   /** Change the lot size, scaling every part's plan (and offsets) to match. */
@@ -346,8 +359,6 @@ export class Studio implements System {
       x.parts = x.parts.map((p) => {
         const q: PartSpec = { ...p };
         for (const key of PLAN) (q[key] as number) = (p[key] as number) * k;
-        // tall things scale too, a little, so proportions survive
-        if (['plinth', 'garden', 'solar', 'helipad', 'pool', 'neon', 'balcony'].includes(p.t)) return normalizePart(q);
         return normalizePart(q);
       });
     });

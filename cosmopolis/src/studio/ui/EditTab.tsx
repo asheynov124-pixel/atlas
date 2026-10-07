@@ -34,7 +34,7 @@ export function EditTab({ draft }: { draft: DesignSpec }) {
   }
   const def = PART_DEFS[p.t];
   const fpR = footprintRadius(draft.footprint);
-  const set = (patch: Partial<PartSpec>, key: string) => st.updatePart(i, patch, key);
+  const set = (patch: Partial<PartSpec>, key: string, final = false) => st.updatePart(i, patch, key, final);
   const lay = st.view?.partLayout(i);
   const offMax = Math.max(1, fpR * 1.6);
   const yMax = Math.max(4, Math.ceil(((studioUi.height.value || 4) + 2) / 2) * 2);
@@ -62,7 +62,7 @@ export function EditTab({ draft }: { draft: DesignSpec }) {
       <SectionHeader title="Shape & size" icon="sliders" />
       <div class="st-params">
         {def.params.map((q) => (
-          <ParamControl key={q.key} def={q} part={p} fpR={fpR} onChange={(v, commit) => set({ [q.key]: v } as Partial<PartSpec>, commit ? '' : q.key)} />
+          <ParamControl key={q.key} def={q} part={p} fpR={fpR} onChange={(v, commit) => set({ [q.key]: v } as Partial<PartSpec>, q.key, commit)} />
         ))}
       </div>
 
@@ -94,14 +94,14 @@ export function EditTab({ draft }: { draft: DesignSpec }) {
             step={0.01}
             format={(v) => fmtMetres(v)}
             onChange={(v) => set({ y: v }, 'y')}
-            onCommit={(v) => set({ y: v }, '')}
+            onCommit={(v) => set({ y: v }, 'y', true)}
           />
         </div>
         <div class="st-param">
-          <Slider label="Left ↔ right" value={p.x} min={-offMax} max={offMax} step={0.01} format={(v) => fmtMetres(v)} onChange={(v) => set({ x: v }, 'x')} onCommit={(v) => set({ x: v }, '')} />
+          <Slider label="Left ↔ right" value={p.x} min={-offMax} max={offMax} step={0.01} format={(v) => fmtMetres(v)} onChange={(v) => set({ x: v }, 'x')} onCommit={(v) => set({ x: v }, 'x', true)} />
         </div>
         <div class="st-param">
-          <Slider label="Back ↔ front" value={p.z} min={-offMax} max={offMax} step={0.01} format={(v) => fmtMetres(v)} onChange={(v) => set({ z: v }, 'z')} onCommit={(v) => set({ z: v }, '')} />
+          <Slider label="Back ↔ front" value={p.z} min={-offMax} max={offMax} step={0.01} format={(v) => fmtMetres(v)} onChange={(v) => set({ z: v }, 'z')} onCommit={(v) => set({ z: v }, 'z', true)} />
         </div>
         <div class="st-param">
           <Slider
@@ -113,7 +113,7 @@ export function EditTab({ draft }: { draft: DesignSpec }) {
             ticks={[90, 180, 270]}
             format={(v) => `${Math.round(v)}°`}
             onChange={(v) => set({ ry: snapDeg(v) }, 'ry')}
-            onCommit={(v) => set({ ry: snapDeg(v) }, '')}
+            onCommit={(v) => set({ ry: snapDeg(v) }, 'ry', true)}
           />
         </div>
         {(p.x !== 0 || p.z !== 0 || p.ry !== 0 || (p.stack && p.y !== 0)) && (
@@ -124,7 +124,7 @@ export function EditTab({ draft }: { draft: DesignSpec }) {
       </div>
 
       <SectionHeader title="Colour" icon="palette" />
-      <ColorPicker label="Main colour" value={p.c} onChange={(c, commit) => set({ c }, commit ? '' : 'c')} />
+      <ColorPicker label="Main colour" value={p.c} onChange={(c, commit) => set({ c }, 'c', commit)} />
       {def.accent && <SwatchRow label={def.accent} value={p.c2} onChange={(c2) => set({ c2 }, '')} />}
 
       <SectionHeader title="Material" icon="layers" />
