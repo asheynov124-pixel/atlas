@@ -42,7 +42,7 @@ function rebiome(e: Effect, tiles: ArrayLike<number>): void {
 
 class BlessEffect extends Effect {
   private dur = 9;
-  private r = Math.round(2 + 2 * this.k);
+  private r = Math.round(1.5 + 1.2 * this.k);
   private tiles = this.planet.grid.disk(this.ctx.target.tile, this.r);
   private top = new Vector3();
   private bottom = new Vector3();
@@ -103,7 +103,7 @@ class MountainEffect extends Effect {
   private r = Math.round(3 + 1.5 * this.k);
   private tiles = this.planet.grid.disk(this.ctx.target.tile, this.r);
   private base = this.tiles.map((t) => this.planet.elevation[t]);
-  private height = Math.round(8 + 5 * this.k);
+  private height = Math.round(16 + 5 * this.k);
   private goal: number[];
   private stage = 0;
   private stages = 8;
@@ -174,7 +174,7 @@ class IslandEffect extends Effect {
     });
     this.sfx('splash', 0.9, 0.7);
     this.sfx('rumble', 0.6);
-    this.god.frame(ctx.target.tile, 60, 0.95, 2);
+    this.frame(ctx.target.tile, 60, 0.95, 2);
   }
   step(dt: number): void {
     this.progress = clamp01(this.t / 5);
@@ -339,7 +339,7 @@ class TerraformEffect extends Effect {
     } catch {
       /* optional */
     }
-    this.god.frame(ctx.target.tile, this.R * 2.6, 0.3, 2.5);
+    this.frame(ctx.target.tile, this.R * 2.6, 0.3, 2.5);
     this.god.banner('TERRAFORMING', `${PLANET_TYPES[this.target].name}: ${arch.tagline}`, TERRAFORM_ICONS[this.target] ?? 'globe', arch.palette.land, 4.2);
     this.sfx('terraform', 1);
     this.sfx('magic', 0.8, 0.7);

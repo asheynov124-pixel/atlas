@@ -38,6 +38,8 @@ export interface PowerCtx {
   natural: boolean;
   /** the variant picked in the God panel (powers with `choices`) */
   choice?: string;
+  /** false for a secondary event started by another power (e.g. a moon fall's tsunami): it leaves the camera alone */
+  camera?: boolean;
 }
 
 export interface PowerSpec extends GodPowerDef {
@@ -146,6 +148,10 @@ export abstract class Effect {
     const b = this.beam();
     this.timedBeams.push({ beam: b, until: this.t + seconds });
     return b;
+  }
+  /** Cinematic camera for this event (ignored when the power was started as a secondary event). */
+  frame(where: number | Vector3, distance: number, tilt?: number, duration?: number, toward?: number | Vector3): void {
+    if (this.ctx.camera !== false) this.god.frame(where, distance, tilt, duration, toward);
   }
   /** Called by GodPowers each frame after step(): expires timed beams. */
   tickBeams(): void {

@@ -294,7 +294,7 @@ class HypercaneEffect extends Effect {
     this.spiral.u.uSpin.value = 1.4;
     this.loop('storm', 0.8);
     this.loop('wind', 0.6);
-    this.god.frame(ctx.target.tile, this.R * 2.7, 0.12, 2.6);
+    this.frame(ctx.target.tile, this.R * 2.7, 0.12, 2.6);
     this.god.banner('HYPERCANE', 'Category ∞ — winds beyond measure', ctx.def.icon, 0x7cc4ff);
     this.sfx('wind', 1);
   }

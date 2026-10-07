@@ -250,7 +250,7 @@ export class GodPowers implements System {
 
   // ─────────────────────────────────────────────── trigger
 
-  trigger(id: string, target: GodTarget = {}, o: { natural?: boolean; intensity?: number; choice?: string } = {}): boolean {
+  trigger(id: string, target: GodTarget = {}, o: { natural?: boolean; intensity?: number; choice?: string; camera?: boolean } = {}): boolean {
     const g = this.game;
     const def = this.byId.get(id);
     const planet = g.planet, ops = g.ops, view = g.planetView;
@@ -280,6 +280,7 @@ export class GodPowers implements System {
       rng: new Rng((this.seed = (this.seed * 1103515245 + 12345) >>> 0)),
       natural: !!o.natural,
       choice: o.choice ?? godUi.choice.value[id] ?? def.choices?.[0]?.id,
+      camera: o.camera ?? true,
     };
     if (def.targeting === 'drag' && (!ctx.target.path || ctx.target.path.length < 2)) ctx.target.path = autoPath(planet, tile, ctx.rng);
     if (def.resolve && !def.resolve(ctx)) return false;

@@ -91,7 +91,7 @@ class UfoEffect extends Effect {
       this.ships.push({ ufo, pos: from.clone(), from, to, moveT: 0, moveDur: 2.2 + i * 0.45, state: 'arrive', t: 0, target: null, beam: null, hp: 2, zaps: 0, vel: new Vector3() });
     }
     this.god.banner('UFO INVASION', 'Unidentified craft over the city', 'alien', 0x6dffb0, 4);
-    this.god.frame(ctx.target.tile, 62, 1.0, 2);
+    this.frame(ctx.target.tile, 62, 1.0, 2);
     this.sfx('alien', 1);
     this.god.news('Hypernet', '@hypernet', '👽', 'THEY ARE HERE. they are taking the BANK. honestly fair.', ctx.target.tile);
   }
@@ -320,7 +320,7 @@ class KaijuEffect extends Effect {
     this.beast = this.own(new Kaiju(this.fx.planetGroup) as Kaiju & FxObject);
     this.place(true);
     this.god.banner('KAIJU ALERT', 'A space leviathan has made landfall', 'monster', 0x9be564, 4.2);
-    this.god.frame(slerpDir(this.startDir, target, 0.35, new Vector3()), 85, 1.05, 2.4, this.startDir);
+    this.frame(slerpDir(this.startDir, target, 0.35, new Vector3()), 85, 1.05, 2.4, this.startDir);
     this.sfx('monster', 1);
     this.god.news('Emergency Broadcast', '@emergency', '🦖', `A 300-metre lizard is wading toward ${p.city.name}. Parking enforcement has given up.`);
   }
@@ -511,7 +511,7 @@ class WormEffect extends Effect {
     this.worm = this.own(new Worm(this.fx.planetGroup) as Worm & FxObject);
     this.worm.radius = 1.5 + 0.3 * this.k;
     this.god.banner('SANDWORM', 'Seismic signature: very large, very hungry', 'monster', 0xd8b480, 3.6);
-    this.god.frame(ctx.target.tile, 68, 1.0, 2);
+    this.frame(ctx.target.tile, 68, 1.0, 2);
     this.sfx('rumble', 0.9);
     this.setupLeg();
   }
@@ -639,7 +639,7 @@ class KrakenEffect extends Effect {
       this.arms.push({ base, tip: base.clone(), target: null, targetPos: base.clone(), state: 'rise', t: -i * 0.35, seed: this.rng.next() * 10, flyer: null });
     }
     this.god.banner('THE KRAKEN', 'Something enormous stirs beneath the waves', 'monster', 0xb06ad8, 4);
-    this.god.frame(this.coastTile, 70, 1.08, 2.2, lair);
+    this.frame(this.coastTile, 70, 1.08, 2.2, lair);
     this.sfx('monster', 0.9, 0.7);
     this.loop('rumble', 0.4);
     this.god.news('Harbour Master', '@harbour', '🐙', 'All shipping suspended. The large octopus has been asked to leave. It has declined.', this.coastTile);
@@ -974,7 +974,7 @@ class RobotEffect extends Effect {
     this.spawnTiles = (fac.length ? fac.slice(0, 4).map((b) => b.tile) : [ctx.target.tile]);
     for (const b of fac.slice(0, 4)) this.ctx.view.buildings.forceState(b.id, InstState.Highlight);
     this.god.banner('ROBOT UPRISING', fac.length ? 'The factories have become self-aware' : 'Machines are taking to the streets', 'alert', 0xff3a3a, 3.6);
-    this.god.frame(this.spawnTiles[0], 48, 1.05, 2);
+    this.frame(this.spawnTiles[0], 48, 1.05, 2);
     this.sfx('alarm', 0.6);
     this.god.news('Hypernet', '@hypernet', '🤖', 'the toaster just said "soon" and honestly i am not okay', ctx.target.tile);
   }

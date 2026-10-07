@@ -263,7 +263,7 @@ class AsteroidEffect extends Effect {
     this.order = sortedByAngle(this.planet, ctx.target.tile, this.reach);
     // a huge defence grid can at least break it up
     this.shield = Math.min(0.6, this.god.defenses() * 0.15);
-    this.god.frame(this.n.clone().addScaledVector(_e1, -0.25), this.R * 2.15, 0.15, 2.8);
+    this.frame(this.n.clone().addScaledVector(_e1, -0.25), this.R * 2.15, 0.15, 2.8);
     this.god.banner('EXTINCTION EVENT', 'A 10-km asteroid is on a collision course', ctx.def.icon, 0xff7a3a, 5);
     this.sfx('alarm', 0.8);
     this.loop('alarm', 0.25);

@@ -122,7 +122,7 @@ class MoonEffect extends Effect {
       phase: 0,
     };
     // pull out to orbit; the moon is born rising over the planet's limb (an "earthrise")
-    this.god.frame(ctx.target.tile, this.R * 3.5, 0.03, 2.2);
+    this.frame(ctx.target.tile, this.R * 3.5, 0.03, 2.2);
     this.god.banner('A NEW MOON', 'Gathering the rubble of the system…', 'moon', 0xa77bff, 3.6);
     this.sfx('magic', 1, 0.6);
     this.loop('hum', 0.4);
@@ -133,7 +133,7 @@ class MoonEffect extends Effect {
     const right = _e1.setFromMatrixColumn(m, 0).normalize();
     const up = _e2.setFromMatrixColumn(m, 1).normalize();
     const fwd = _n.setFromMatrixColumn(m, 2).normalize().negate();
-    const u = _a.copy(up).multiplyScalar(0.5).addScaledVector(fwd, 0.82).addScaledVector(right, 0.12).normalize();
+    const u = _a.copy(up).multiplyScalar(0.68).addScaledVector(fwd, 0.7).addScaledVector(right, 0.14).normalize();
     // orbital elements that put the moon at u now (Moons: pos = (cos a, sin a·sin i, sin a·cos i)·d)
     const a = Math.acos(Math.max(-1, Math.min(1, u.x)));
     this.spec.phase = a;
@@ -216,7 +216,7 @@ class RingsEffect extends Effect {
     this.ball = this.own(new Fireball(this.fx.worldGroup, this.R * 0.05, this.R * 0.3, 0xbfd8ff, 0xffffff, 0x8a8478) as Fireball & FxObject);
     this.ball.position.copy(this.start);
     this.ball.heat = 0.2;
-    this.god.frame(cam, this.R * 4.2, 0.12, 2.2);
+    this.frame(cam, this.R * 4.2, 0.12, 2.2);
     this.god.banner('RINGS OF DEBRIS', 'A moonlet strays too close…', 'planet', 0xd8c7a6, 3.6);
     this.sfx('whoosh', 0.7, 0.6);
   }
@@ -398,7 +398,7 @@ class WormholeEffect extends Effect {
     const roll = this.rng.next();
     this.outcome = roll < 0.4 ? 'visitors' : roll < 0.75 ? 'crystals' : 'treasure';
     this.god.banner('WORMHOLE', 'A tunnel through spacetime opens over the city', 'warp', 0x9a6bff, 3.6);
-    this.god.frame(ctx.target.tile, 58, 1.18, 2);
+    this.frame(ctx.target.tile, 58, 1.18, 2);
     this.sfx('warp', 1, 0.6);
     this.loop('blackhole', 0.4);
   }

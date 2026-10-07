@@ -113,7 +113,7 @@ class BlackHoleEffect extends Effect {
   constructor(ctx: PowerCtx) {
     super(ctx);
     // pull back to orbit first; the hole appears once the planet is framed
-    this.god.frame(this.nrm(ctx.target.tile, new Vector3()), this.R * 3.7, 0.02, 2.2);
+    this.frame(this.nrm(ctx.target.tile, new Vector3()), this.R * 3.7, 0.02, 2.2);
     this.god.banner('SINGULARITY', 'Gravitational anomaly detected beside the planet', 'blackhole', 0xa77bff, 4.5);
     this.god.news('Observatory', '@skywatch', '🕳️', 'Update on the anomaly: it is a black hole. It is very close. We are going to go and look at it from further away.');
     this.sfx('blackhole', 1);
@@ -316,7 +316,7 @@ class SupernovaEffect extends Effect {
   constructor(ctx: PowerCtx) {
     super(ctx);
     // fly out to orbit, looking at the planet against the sky
-    this.god.frame(this.nrm(ctx.target.tile, new Vector3()), this.R * 3.3, 0.05, 2.4);
+    this.frame(this.nrm(ctx.target.tile, new Vector3()), this.R * 3.3, 0.05, 2.4);
     this.god.banner('THE STAR IS DYING', 'Core collapse imminent', 'sun', 0xffd36b, 3);
     this.sfx('alarm', 0.6);
     this.god.news('Observatory', '@skywatch', '☀️', 'The sun is doing something it has never done before. We would like everyone to stay calm and also maybe look away.');
@@ -420,7 +420,7 @@ class SupernovaEffect extends Effect {
     // swing round to watch the dayside burn
     cameraBasis(this.ctx.view, _e1, _e2, _a);
     const view = _b.copy(this.novaDir).lerp(_c.copy(_a).negate(), 0.55).normalize();
-    this.god.frame(view, this.R * 2.9, 0.2, 3.2);
+    this.frame(view, this.R * 2.9, 0.2, 3.2);
     this.god.flash(0xffe0b0, 6, 2, 0.8);
     this.god.shake(2.4, 4);
     this.sfx('bigExplosion', 1, 0.6);
@@ -512,7 +512,7 @@ class CrackerEffect extends Effect {
     this.stationGroup.add(this.station);
     this.stationGroup.visible = false;
     this.fx.worldGroup.add(this.stationGroup);
-    this.god.frame(this.nrm(ctx.target.tile, new Vector3()), this.R * 3.3, 0.02, 2.2);
+    this.frame(this.nrm(ctx.target.tile, new Vector3()), this.R * 3.3, 0.02, 2.2);
     this.god.banner('PLANET CRACKER', 'Orbital superweapon moving into position', 'target', 0x9aff7a, 3.6);
     this.sfx('alarm', 0.7);
     this.god.news('Ministry of Peace', '@peace', '🛰️', 'The new "planetary maintenance platform" is undergoing a routine test. Please hold on to something. Anything.');
@@ -754,68 +754,106 @@ class ImpactAftermath {
   }
 }
 
+/**
+ * An approach path that stays on screen: from high behind the planet, over the upper limb, down onto the upper
+ * visible face. Computed from the camera basis once the framing flight has finished.
+ */
+class Approach {
+  readonly start = new Vector3();
+  readonly ctrl = new Vector3();
+  readonly end = new Vector3();
+  readonly impactDir = new Vector3();
+  /** contactR: distance from the planet centre at impact, in world units */
+  aim(view: PlanetView, R: number, contactR: number, far: number, side: number): void {
+    cameraBasis(view, _e1, _e2, _a);
+    this.impactDir.copy(_a).multiplyScalar(-0.8).addScaledVector(_e2, 0.5).addScaledVector(_e1, 0.15 * side).normalize();
+    this.end.copy(this.impactDir).multiplyScalar(contactR);
+    this.start.copy(_e1).multiplyScalar(0.5 * side * R).addScaledVector(_e2, 1.7 * R).addScaledVector(_a, 2.4 * R).multiplyScalar(far);
+    this.ctrl.copy(_e1).multiplyScalar(0.48 * side * R).addScaledVector(_e2, 1.62 * R).addScaledVector(_a, 0.1 * R);
+  }
+  /** quadratic Bézier position at u ∈ [0,1] */
+  at(u: number, out: Vector3): Vector3 {
+    const a = (1 - u) * (1 - u), b = 2 * u * (1 - u), c = u * u;
+    return out.set(
+      a * this.start.x + b * this.ctrl.x + c * this.end.x,
+      a * this.start.y + b * this.ctrl.y + c * this.end.y,
+      a * this.start.z + b * this.ctrl.z + c * this.end.z,
+    );
+  }
+}
+
 class RogueEffect extends Effect {
-  private body: MoonFx;
+  private body: MoonFx | null = null;
   private spec: MoonSpec;
-  private impactDir = new Vector3();
-  private impactTile: number;
-  private from = new Vector3();
-  private T = { arrive: 11, end: 36 };
+  private path = new Approach();
+  private impactTile = -1;
+  private T = { aim: 2.4, arrive: 13, end: 38 };
   private after: ImpactAftermath | null = null;
   private newMoon: MoonFx | null = null;
   private newSpec: MoonSpec;
   private rumble = this.loop('rumble', 0.2);
   constructor(ctx: PowerCtx) {
     super(ctx);
-    const view = ctx.view;
-    cameraBasis(view, _e1, _e2, _a);
-    // hit the visible face, a little off-centre
-    this.impactDir.copy(_a).negate().addScaledVector(_e2, 0.45).addScaledVector(_e1, 0.25).normalize();
-    this.impactTile = this.planet.grid.tileAt(this.impactDir.x, this.impactDir.y, this.impactDir.z);
-    this.from.copy(this.impactDir).multiplyScalar(this.R * 2).addScaledVector(_e1, this.R * 9).addScaledVector(_e2, this.R * 3);
-    this.spec = { name: 'Nemesis', radius: 0.5, distance: 9, color: 0x7a5a48, type: 'volcanic', speed: 0, inclination: 0, phase: 0 };
-    this.body = this.own(new MoonFx(view, this.spec));
-    this.body.override = this.from.clone();
-    this.newSpec = { name: 'Theia', radius: 0.16 + 0.04 * this.k, distance: 3.6 + this.rng.next(), color: 0x9a8a7a, type: 'barren', speed: 0.02, inclination: 0.2, phase: Math.atan2(this.impactDir.z, this.impactDir.x) };
-    this.god.frame(this.impactDir, this.R * 3.4, 0.05, 2.4);
+    // pull back to a wide orbit over the target; the intruder appears once the planet is framed
+    this.frame(this.nrm(ctx.target.tile, _n), this.R * 4.2, 0.03, 2.3);
+    this.spec = { name: 'Nemesis', radius: 0.42, distance: 9, color: 0x7a5a48, type: 'volcanic', speed: 0, inclination: 0, phase: 0 };
+    this.newSpec = { name: 'Theia', radius: 0.16 + 0.04 * this.k, distance: 3.6 + this.rng.next(), color: 0x9a8a7a, type: 'barren', speed: 0.02, inclination: 0.2, phase: 0 };
     this.god.banner('ROGUE PLANET', 'A wandering world is on a collision course', 'planet', 0xff7a3a, 4.2);
     this.sfx('alarm', 0.8);
     this.god.news('Global Emergency Service', '@emergency', '🪐', 'A planet is coming. Not to visit. Please secure loose objects, such as the entire planet.');
   }
+  private aim(): void {
+    const side = this.ctx.game.engine.height > this.ctx.game.engine.width ? 1 : 1.8;
+    this.path.aim(this.ctx.view, this.R, this.R * (1 + this.spec.radius * 0.75), 1, side);
+    const d = this.path.impactDir;
+    this.impactTile = this.planet.grid.tileAt(d.x, d.y, d.z);
+    this.newSpec.phase = Math.atan2(d.z, d.x);
+    this.body = this.own(new MoonFx(this.ctx.view, this.spec));
+    this.body.override = this.path.start.clone();
+    this.body.grow = 0.001;
+  }
   step(dt: number): void {
     const t = this.t, T = this.T;
     this.progress = clamp01(t / T.end);
+    if (this.once('aim', T.aim)) this.aim();
+    const body = this.body;
+    if (!body) return;
     if (t < T.arrive) {
-      const u = t / T.arrive;
-      const f = easeIn(u) * 0.75 + u * 0.25;
-      const target = _a.copy(this.impactDir).multiplyScalar(this.R * 1.25);
-      this.body.override!.lerpVectors(this.from, target, f);
+      const u = clamp01((t - T.aim) / (T.arrive - T.aim));
+      const f = easeIn(u) * 0.8 + u * 0.2;
+      this.path.at(f, body.override!);
+      body.grow = Math.max(0.001, easeOut(smooth(0, 0.12, u)));
       this.god.want(this.key, { dread: 0.2 + 0.6 * u, apocalypse: 0.15 * u });
       this.rumble.setVolume(0.2 + 0.7 * u);
-      if (u > 0.5 && this.every('tidal', 0.8, dt)) {
+      if (u > 0.45 && this.every('tidal', 0.7, dt)) {
         this.god.shake(0.3 + u, 0.8);
         // atmosphere and oceans are tugged toward the intruder
-        const tl = this.planet.grid.tileAt(this.impactDir.x, this.impactDir.y, this.impactDir.z);
-        const p0 = this.pos(this.randomTileNear(tl, 0.6), _b, 2);
-        _c.subVectors(this.body.position, p0).normalize().multiplyScalar(20);
+        const p0 = this.pos(this.randomTileNear(this.impactTile, 0.6), _b, 2);
+        _c.subVectors(body.position, p0).normalize().multiplyScalar(22);
         for (let i = 0; i < 6; i++) this.fx.particles.emitAt(PRESETS.aurora, p0.x + fxRand(), p0.y + fxRand(), p0.z + fxRand(), _c.x, _c.y, _c.z, 2, 1);
+      }
+      // the crust glows under the approaching mass
+      if (u > 0.8 && this.every('glow', 0.1, dt)) {
+        const tl = this.randomTileNear(this.impactTile, 0.25);
+        this.fx.particles.emit(PRESETS.ember, this.pos(tl, _a, 1), this.nrm(tl, _c), 4, 1.4, 1.2);
       }
       return;
     }
+    const d = this.path.impactDir;
     if (this.once('impact', T.arrive)) {
       const shells = megaImpact(this, this.impactTile, 1.6 * this.k);
       this.after = new ImpactAftermath(this, this.impactTile, shells);
       this.god.banner('COLLISION', 'Global firestorm — the crust is molten', 'explosion', 0xff5a2a, 4);
       for (let i = 0; i < 30; i++) {
-        _b.copy(this.impactDir).multiplyScalar(30 + fxRand() * 30).addScaledVector(_c.set(fxRand() - 0.5, fxRand() - 0.5, fxRand() - 0.5), 40);
+        _b.copy(d).multiplyScalar(30 + fxRand() * 30).addScaledVector(_c.set(fxRand() - 0.5, fxRand() - 0.5, fxRand() - 0.5), 40);
         const P = this.pos(this.impactTile, _a, 2);
         this.fx.debris.spawn(P.x, P.y, P.z, _b.x, _b.y, _b.z, { size: 1.2 + fxRand() * 2.5, state: InstState.Burning, color: 0x3a2a22, free: true, life: 14 });
       }
     }
     const s = t - T.arrive;
     // the intruder sinks into the crust and is gone
-    this.body.grow = Math.max(0.001, 1 - smooth(0, 2.2, s));
-    this.body.override!.copy(this.impactDir).multiplyScalar(this.R * (1.25 - 0.6 * smooth(0, 2.2, s)));
+    body.grow = Math.max(0.001, 1 - smooth(0, 2.2, s));
+    body.override!.copy(this.path.end).multiplyScalar(1 - 0.45 * smooth(0, 2.2, s));
     this.after?.step(s);
     this.rumble.setVolume(0.9 * (1 - smooth(10, 24, s)));
     // from the debris disk, a moon condenses
@@ -847,12 +885,11 @@ class RogueEffect extends Effect {
 class MoonFallEffect extends Effect {
   private moonIdx: number;
   private spec: MoonSpec;
-  private body: MoonFx;
+  private body: MoonFx | null = null;
   private others: MoonFx[] = [];
-  private start = new Vector3();
-  private impactDir = new Vector3();
-  private impactTile: number;
-  private T = { fall: 14, end: 36 };
+  private path = new Approach();
+  private impactTile = -1;
+  private T = { aim: 2.4, fall: 15.5, end: 38 };
   private after: ImpactAftermath | null = null;
   private sea0 = this.planet.seaOffset;
   private tide = 0;
@@ -861,46 +898,50 @@ class MoonFallEffect extends Effect {
   private rumble = this.loop('rumble', 0.2);
   constructor(ctx: PowerCtx) {
     super(ctx);
-    const view = ctx.view;
     const moons = this.planet.spec.moons;
     this.moonIdx = moons.length ? 0 : -1;
     this.spec = moons[0] ?? { name: 'Wanderer', radius: 0.2, distance: 6, color: 0xb8b2a8, type: 'barren', speed: 0.03, inclination: 0.2, phase: 0 };
-    cameraBasis(view, _e1, _e2, _a);
-    // the moon starts where the camera can see it and falls onto the visible face
-    this.impactDir.copy(_a).negate().addScaledVector(_e2, 0.4).addScaledVector(_e1, -0.2).normalize();
-    this.impactTile = this.planet.grid.tileAt(this.impactDir.x, this.impactDir.y, this.impactDir.z);
-    this.start.copy(_a).negate().multiplyScalar(0.3).addScaledVector(_e1, 1).addScaledVector(_e2, 0.6).normalize().multiplyScalar(this.R * Math.min(5, this.spec.distance));
+    this.frame(this.nrm(ctx.target.tile, _n), this.R * 4.2, 0.03, 2.3);
+    this.god.banner('MOON FALL', `${this.spec.name} has left its orbit`, 'moon', 0xd8d0c0, 4.2);
+    this.sfx('alarm', 0.7);
+    this.god.news('Observatory', '@skywatch', '🌕', `${this.spec.name} appears to be getting bigger. We have checked the telescope. It is not the telescope.`);
+  }
+  private aim(): void {
+    const view = this.ctx.view;
+    const side = this.ctx.game.engine.height > this.ctx.game.engine.width ? -1 : -1.8;
+    this.path.aim(view, this.R, this.R * (1 + this.spec.radius * 0.8), 1.15, side);
+    const d = this.path.impactDir;
+    this.impactTile = this.planet.grid.tileAt(d.x, d.y, d.z);
+    const moons = this.planet.spec.moons;
     if (moons.length) {
       view.env.setLayerVisible('moons', false);
       this.hiddenMoons = true;
       for (const m of moons.slice(1)) this.others.push(this.fx.addPersistent(new MoonFx(view, m)));
     }
     this.body = this.own(new MoonFx(view, this.spec));
-    this.body.override = this.start.clone();
-    this.god.frame(this.impactDir, this.R * 3.4, 0.05, 2.4);
-    this.god.banner('MOON FALL', `${this.spec.name} has left its orbit`, 'moon', 0xd8d0c0, 4.2);
-    this.sfx('alarm', 0.7);
-    this.god.news('Observatory', '@skywatch', '🌕', `${this.spec.name} appears to be getting bigger. We have checked the telescope. It is not the telescope.`);
+    this.body.override = this.path.start.clone();
   }
   step(dt: number): void {
     const t = this.t, T = this.T;
     this.progress = clamp01(t / T.end);
+    if (this.once('aim', T.aim)) this.aim();
+    const body = this.body;
+    if (!body) return;
     if (t < T.fall) {
-      const u = t / T.fall;
+      const u = clamp01((t - T.aim) / (T.fall - T.aim));
       // a decaying spiral onto the impact point
       const f = easeIn(u);
-      const end = _a.copy(this.impactDir).multiplyScalar(this.R * (1 + this.spec.radius));
-      _b.copy(this.start).lerp(end, f);
+      this.path.at(f, _b);
       tangents(_c.copy(_b).normalize(), _e1, _e2);
-      _b.addScaledVector(_e1, Math.sin(u * Math.PI) * this.R * 0.8 * (1 - f));
-      this.body.override!.copy(_b);
+      _b.addScaledVector(_e1, Math.sin(u * Math.PI * 1.5) * this.R * 0.35 * (1 - f));
+      body.override!.copy(_b);
       const roche = smooth(0.62, 0.95, u);
-      this.body.grow = 1 - 0.25 * roche;
+      body.grow = 1 - 0.25 * roche;
       this.god.want(this.key, { dread: 0.2 + 0.6 * u });
       this.rumble.setVolume(0.2 + 0.7 * u);
       // breaking up at the Roche limit: a stream of fragments
       if (roche > 0 && this.every('break', 0.04, dt)) {
-        const P = this.body.position;
+        const P = body.position;
         for (let i = 0; i < 2; i++) {
           _c.set(fxRand() - 0.5, fxRand() - 0.5, fxRand() - 0.5).normalize().multiplyScalar(this.R * this.spec.radius);
           const q = _n.copy(P).add(_c);
@@ -917,13 +958,13 @@ class MoonFallEffect extends Effect {
       return;
     }
     if (this.once('impact', T.fall)) {
-      this.drop(this.body);
+      this.drop(body);
       if (this.tide) this.ops.setSeaOffset(this.sea0);
       const shells = megaImpact(this, this.impactTile, 1.3 * this.k);
       this.after = new ImpactAftermath(this, this.impactTile, shells);
       this.god.banner('IMPACT', `${this.spec.name} is gone. So is the coast.`, 'explosion', 0xff7a3a, 4);
       const sea = openSea(this.planet, this.impactTile, 20);
-      if (sea >= 0) this.god.trigger('tsunami', { tile: sea }, { natural: true, intensity: 2.2 });
+      if (sea >= 0) this.god.trigger('tsunami', { tile: sea }, { natural: true, intensity: 2.2, camera: false });
       // the remains: a ring of debris (if the world had none)
       if (!this.planet.spec.rings) this.ringSpec = { inner: 1.4, outer: 2.3, color: 0xb8b0a4, opacity: 0.7, tilt: 0.25 + this.rng.next() * 0.3 };
     }
@@ -977,7 +1018,7 @@ class VacuumEffect extends Effect {
     this.front.u.uR.value = this.R + 0.6;
     this.front.u.uWidth.value = 0.03;
     this.order = sortedByAngle(this.planet, ctx.target.tile, Math.PI + 0.01);
-    this.god.frame(ctx.target.tile, 70, 0.9, 1.5);
+    this.frame(ctx.target.tile, 70, 0.9, 1.5);
     this.god.banner('VACUUM DECAY', 'The laws of physics are being rewritten', 'sparkles', 0xc8b8ff, 4.4);
     this.sfx('blackhole', 0.8, 1.6);
     this.god.news('Institute of Physics', '@physics', '⚛️', 'The fine-structure constant has changed. Please update your textbooks. And your atoms.');
@@ -989,7 +1030,7 @@ class VacuumEffect extends Effect {
     const r = this.R * 2.8 * Math.pow(clamp01(t / this.grow), 2.2);
     this.bubble.mesh.scale.setScalar(Math.max(0.01, r));
     this.bubble.intensity = 1 - smooth(this.dur - 3, this.dur, t);
-    if (t > 6 && t < 7) this.god.frame(this.up, this.R * 3.6, 0.15, 3);
+    if (t > 6 && t < 7) this.frame(this.up, this.R * 3.6, 0.15, 3);
     // angular reach on the surface of a sphere of radius r centred on the surface point
     const theta = r >= 2 * this.R ? Math.PI + 0.01 : 2 * Math.asin(Math.min(1, r / (2 * this.R)));
     this.front.range(Math.max(0, theta - 0.06), Math.min(Math.PI, theta + 0.02));

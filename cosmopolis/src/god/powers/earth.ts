@@ -175,7 +175,7 @@ class VolcanoEffect extends Effect {
     this.ash.setCenter(this.nrm(this.crater, new Vector3())).colors(0x6a605a, 0x2a2624);
     this.ash.u.uR.value = this.R + this.height * 0.32 + 9;
     this.god.banner('ERUPTION', 'A new volcano is being born', ctx.def.icon, 0xff7a2a, 3.6);
-    this.god.frame(this.crater, 82, 1.18, 2);
+    this.frame(this.crater, 82, 1.18, 2);
     this.sfx('quake', 0.8);
     // anything standing where the mountain rises is thrown down
     const dmg = this.god.damage();
@@ -398,7 +398,7 @@ class TsunamiEffect extends Effect {
     this.sfx('alarm', 0.5);
     // frame from the sea, looking at the coast the wave will hit
     const coast = this.order.tiles.find((t) => !this.planet.isWater(t));
-    if (coast !== undefined) this.god.frame(coast, 62, 1.12, 2.2, this.epi);
+    if (coast !== undefined) this.frame(coast, 62, 1.12, 2.2, this.epi);
     this.fx.particles.emit(PRESETS.splash, this.pos(this.epi, _a), this.center, 30, 2.4, 2);
   }
   resolveDraw(): void {
@@ -493,7 +493,7 @@ class FloodEffect extends Effect {
     this.deck.setCenter(this.center).range(0, 1.2).colors(0x5a6270, 0x262a32);
     this.deck.u.uR.value = this.R + 16;
     this.deck.u.uAngle.value = 1.2;
-    this.god.frame(ctx.target.tile, 120, 0.95, 2.4);
+    this.frame(ctx.target.tile, 120, 0.95, 2.4);
     this.loop('rain', 0.8);
     this.loop('storm', 0.4);
     this.god.banner('THE DELUGE', 'Sea levels surging worldwide', ctx.def.icon, 0x4aa8ff, 4);
