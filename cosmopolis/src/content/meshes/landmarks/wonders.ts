@@ -288,8 +288,8 @@ export function weatherDominion({ b, rng }: Ctx): void {
   b.cyl(2.3, 2.6, 0.7, { color: 0xd8dee8, mat: Mat.Window, seg: 18, y: G, top: 0x8a90a0 });
   ringOf(6, 2.42, (x, z, a) => b.box(0.7, 0.36, 0.04, { color: P.dark, mat: Mat.Screen, x: x * 1.07, z: z * 1.07, y: G + 0.18, ry: a, paint: false, detail: true }), Math.PI / 6);
   // the needle
-  b.cyl(0.35, 1.1, 15.5, { color: 0xe8ecf2, seg: 10, y: G + 0.7, paint: false });
-  ringOf(3, 0.75, (x, z) => b.box(0.06, 13.0, 0.06, { color: P.cyan, mat: Mat.Glow, x: x * 0.82, z: z * 0.82, y: G + 1.6, rx: -z * 0.042, rz: x * 0.042, paint: false }), Math.PI / 3);
+  b.cyl(0.35, 1.1, 15.5, { color: 0xe8ecf2, mat: Mat.Window, seg: 10, y: G + 0.7 });
+  ringOf(3, 1, (x, z) => strut(b, [x * 1.12, G + 0.9, z * 1.12], [x * 0.4, G + 15.9, z * 0.4], 0.05, 0.035, { color: P.cyan, mat: Mat.Glow, seg: 4, paint: false }), Math.PI / 3);
   // cloud-seeding arms with pods
   for (const [y, n, r] of [[9.0, 3, 2.3], [12.0, 3, 1.7]] as [number, number, number][]) {
     ringOf(n, r, (x, z) => {

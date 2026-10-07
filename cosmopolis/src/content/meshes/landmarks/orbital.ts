@@ -51,7 +51,7 @@ function lights(b: B, pts: V3[], color: number = P.red): void {
 
 /** Gold-foil comsat with twin solar wings and a big dish aimed at the surface. */
 export function commSat({ b }: Ctx): void {
-  b.box(0.5, 0.56, 0.46, { color: FOIL, mat: Mat.Metal, y: -0.28, bottom: true, paint: false });
+  b.box(0.5, 0.56, 0.46, { color: FOIL, y: -0.28, bottom: true, paint: false });
   b.box(0.52, 0.06, 0.48, { color: HULL, y: 0.28, paint: false });
   wing(b, 1, 1.3, 0.42);
   wing(b, -1, 1.3, 0.42);
@@ -272,12 +272,17 @@ export function spaceHotel({ b }: Ctx): void {
   b.cyl(0.35, 0.45, 2.6, { color: 0xe8ecf0, mat: Mat.WindowSmall, seg: 10, y: 0.9 });
   ringOf(6, 0.75, (x, z, _a, i) => b.sphere(0.32, { color: 0xbfe6ff, mat: Mat.Glass, x, z, y: 1.6 + (i % 2) * 0.7, wSeg: 10, hSeg: 6, paint: false }));
   b.dome(0.55, { color: 0xffd8b0, mat: Mat.Glass, y: 3.5, h: 0.5, wSeg: 12, hSeg: 4, paint: false });
-  // neon sign
-  b.push({ y: 4.1 });
-  b.box(1.8, 0.6, 0.08, { color: P.dark, mat: Mat.Screen, y: 0, paint: false });
-  b.box(1.9, 0.05, 0.1, { color: P.magenta, mat: Mat.Glow, y: 0.62, paint: false });
-  b.box(1.9, 0.05, 0.1, { color: P.magenta, mat: Mat.Glow, y: -0.04, paint: false });
+  // neon sign on a pylon
+  b.cyl(0.04, 0.05, 0.9, { color: 0xc8ccd4, seg: 4, y: 3.9, paint: false });
+  b.push({ y: 4.75, ry: 0.4 });
+  b.box(1.3, 0.42, 0.08, { color: P.dark, mat: Mat.Screen, y: 0, paint: false });
+  b.box(1.38, 0.04, 0.1, { color: P.magenta, mat: Mat.Glow, y: 0.44, paint: false });
+  b.box(1.38, 0.04, 0.1, { color: P.magenta, mat: Mat.Glow, y: -0.04, paint: false });
   b.pop();
+  // rooftop lido on the saucer: pool ring, deck lights
+  b.cyl(1.9, 1.9, 0.04, { color: 0xd8c8b0, seg, y: 0.86, paint: false });
+  b.torus(1.45, 0.22, { color: P.water, mat: Mat.Water, y: 0.9, seg, tube: 3, sy: 0.15, paint: false });
+  b.torus(1.92, 0.03, { color: P.pink, mat: Mat.Glow, y: 0.9, seg, tube: 3, paint: false, detail: true });
   // docking spire below
   b.cyl(0.25, 0.4, 1.4, { color: 0xc8ccd4, seg: 8, y: -2.0, paint: false });
   b.torus(0.42, 0.05, { color: P.cyan, mat: Mat.Glow, y: -2.0, seg: 12, tube: 3, paint: false });
@@ -352,12 +357,12 @@ export function cargoDepot({ b, rng }: Ctx): void {
 
 /** Solar mirror: a hexagonal array of chrome reflector petals on a truss, focusing sunlight down. */
 export function solarMirror({ b }: Ctx): void {
-  const petal = (x: number, z: number) => {
-    b.cyl(1.0, 1.0, 0.05, { color: 0xeef4ff, seg: 6, flat: true, x, z, y: 0.0, ry: Math.PI / 6, capBottom: true, paint: false });
-    b.cyl(1.02, 1.02, 0.06, { color: 0x8a90a0, seg: 6, flat: true, x, z, y: -0.06, ry: Math.PI / 6, capTop: false, paint: false, detail: true });
+  const petal = (x: number, z: number, col: number) => {
+    b.cyl(1.0, 1.0, 0.05, { color: col, seg: 6, flat: true, x, z, y: 0.0, ry: Math.PI / 6, capBottom: true, paint: false });
+    b.cyl(1.02, 1.02, 0.06, { color: 0xffc860, mat: Mat.Glow, seg: 6, flat: true, x, z, y: -0.03, ry: Math.PI / 6, capTop: false, paint: false, detail: true });
   };
-  petal(0, 0);
-  ringOf(6, 1.78, (x, z) => petal(x, z), 0);
+  petal(0, 0, 0xf4f8ff);
+  ringOf(6, 1.78, (x, z, _a, i) => petal(x, z, i % 2 ? 0xd8e6f6 : 0xc4d6ee), 0);
   // truss behind
   for (let k = 0; k < 3; k++) {
     const a = (k / 3) * TAU;
@@ -402,25 +407,29 @@ export function dysonCollector({ b }: Ctx): void {
  */
 export function orbitalRing({ b }: Ctx): void {
   const R = RING_RADIUS;
-  const seg = b.lod ? 80 : 160;
-  b.torus(R, 1.0, { color: 0xd8dde4, mat: Mat.WindowSmall, seg, tube: 6, sy: 0.55 });
-  b.torus(R, 0.16, { color: P.cyan, mat: Mat.Glow, y: 0.56, seg, tube: 3, paint: false });
-  b.torus(R, 0.16, { color: 0xffb84a, mat: Mat.Glow, y: -0.56, seg, tube: 3, paint: false, detail: true });
-  // hub stations
-  ringOf(8, R, (x, z, a, i) => {
+  const seg = b.lod ? 72 : 144;
+  // the habitat band: a broad, flattened torus (≈ 4.6 wide × 1.2 thick) whose windows glitter all night
+  b.torus(R, 2.3, { color: 0xdfe4ea, mat: Mat.WindowSmall, seg, tube: 8, sy: 0.26 });
+  // glowing rails along the inner and outer edges (always lit: the ring reads from orbit day and night)
+  b.torus(R - 2.35, 0.22, { color: P.cyan, mat: Mat.Glow, seg, tube: 3, paint: false });
+  b.torus(R + 2.35, 0.22, { color: 0xffb84a, mat: Mat.Glow, seg, tube: 3, paint: false });
+  // hub stations: towers rising from the band with glass domes, neon collars and beacons
+  ringOf(10, R, (x, z, a, i) => {
     b.push({ x, z, ry: a });
-    b.box(4.4, 2.6, 3.2, { color: HULL, mat: Mat.WindowSmall, y: -1.3 });
-    b.dome(1.4, { color: 0x8ac8f0, mat: Mat.Glass, y: 1.3, h: 1.0, wSeg: 12, hSeg: 4, paint: false });
-    b.box(4.6, 0.12, 3.4, { color: i % 2 ? P.cyan : P.magenta, mat: Mat.Glow, y: 1.25, paint: false });
-    b.cyl(0.25, 0.25, 2.6, { color: 0xc8ccd4, seg: 6, y: 2.2, paint: false, detail: true });
-    beacon(b, 0, 4.9, 0, 0.3, P.red, Mat.Glow);
-    for (const s of [-1, 1]) b.box(0.08, 0.02, 6.0, { color: PANEL, mat: Mat.Solar, topMat: Mat.Solar, x: s * 3.6, y: 0.5, paint: false, bottom: true, detail: true });
+    b.box(5.6, 3.4, 4.2, { color: HULL, mat: Mat.WindowSmall, y: -1.7 });
+    b.dome(1.7, { color: 0x8ac8f0, mat: Mat.Glass, y: 1.7, h: 1.2, wSeg: 10, hSeg: 3, paint: false });
+    b.box(5.8, 0.16, 4.4, { color: i % 2 ? P.cyan : P.magenta, mat: Mat.Glow, y: 1.62, paint: false });
+    b.cyl(0.22, 0.3, 3.0, { color: 0xc8ccd4, seg: 6, y: 2.6, paint: false, detail: true });
+    beacon(b, 0, 5.8, 0, 0.35, P.red, Mat.Glow);
+    for (const s of [-1, 1]) b.box(0.1, 0.03, 7.0, { color: PANEL, mat: Mat.Solar, topMat: Mat.Solar, x: s * 4.2, y: 0.8, paint: false, bottom: true, detail: true });
     b.pop();
-  }, Math.PI / 8);
-  // space-elevator tethers dropping toward the surface
-  ringOf(4, R, (x, z) => strut(b, [x, -0.6, z], [x * (REF_PLANET_RADIUS + 1) / R, -0.6, z * (REF_PLANET_RADIUS + 1) / R], 0.12, 0.12, { color: 0xbfe8ff, mat: Mat.Glow, seg: 4, paint: false }), 0);
-  // tether anchor climbers
-  ringOf(4, R - 4, (x, z) => b.box(1.0, 1.0, 1.0, { color: HULL, x, z, y: -1.1, paint: false, detail: true }), 0);
+  }, Math.PI / 10);
+  // space-elevator tethers dropping to the surface, with climber pods
+  ringOf(4, R, (x, z) => {
+    const k = (REF_PLANET_RADIUS + 1) / R;
+    strut(b, [x, -0.4, z], [x * k, -0.4, z * k], 0.16, 0.16, { color: 0xbfe8ff, mat: Mat.Glow, seg: 4, paint: false });
+    b.box(1.2, 1.2, 1.2, { color: HULL, x: x * 0.95, z: z * 0.95, y: -1.0, paint: false, detail: true });
+  }, Math.PI / 20);
 }
 
 export const ORBITAL_MESHES = {
