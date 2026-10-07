@@ -39,6 +39,7 @@ export class Sites {
   /** buildings with top ≥ 3.2 (sky-lane anchors), tallest first */
   towers: Site[] = [];
   private byTag = new Map<string, Site[]>();
+  private byId = new Map<number, Site>();
   private dirty = true;
   version = 0;
 
@@ -57,6 +58,7 @@ export class Sites {
     const br = this.view.buildings;
     this.all = [];
     this.byTag.clear();
+    this.byId.clear();
     for (const b of p.buildings.values()) {
       const def = getItem(b.defId);
       if (!def) continue;
@@ -85,6 +87,7 @@ export class Sites {
         radius: FOOTPRINT_RADIUS[def.footprint] * scale,
       };
       this.all.push(s);
+      this.byId.set(s.id, s);
       for (const t of s.tags) {
         let l = this.byTag.get(t);
         if (!l) this.byTag.set(t, (l = []));
@@ -93,6 +96,11 @@ export class Sites {
     }
     this.towers = this.all.filter((s) => s.top >= 3.2).sort((a, b) => b.top - a.top);
     return true;
+  }
+
+  /** Site of a building id (undefined if gone). */
+  get(id: number): Site | undefined {
+    return this.byId.get(id);
   }
 
   tagged(tag: string): Site[] {

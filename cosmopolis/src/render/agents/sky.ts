@@ -248,7 +248,7 @@ export class SkyTraffic {
       h.pos.copy(h.to);
       if (h.t >= h.rest) {
         // next leg from where we landed
-        const site = this.sites.all.find((s) => s.id === h.site) ?? null;
+        const site = this.sites.get(h.site) ?? null;
         if (!this.launchHopper(ctx, h, h.kind, site)) h.active = false;
       }
     }
@@ -309,7 +309,7 @@ export class SkyTraffic {
       let s = smoothstep(0, 0.8, ctx.time - f.born);
       if (f.dying >= 0) s *= 1 - smoothstep(0, 0.8, ctx.time - f.dying);
       const d = Math.sqrt(cull.dist2(f.pos.x, f.pos.y, f.pos.z));
-      s *= d > 10 ? Math.min(1.4, 1 + (d - 10) * 0.012) : 1;
+      s *= 0.82 * (d > 14 ? Math.min(1.3, 1 + (d - 14) * 0.01) : 1);
       const c = CAR_PAINT[f.color];
       ctx.fleet('flyingCar').push(f.pos.x, f.pos.y, f.pos.z, _fr.r.x, _fr.r.y, _fr.r.z, _fr.u.x, _fr.u.y, _fr.u.z, _fr.f.x, _fr.f.y, _fr.f.z, s, c[0], c[1], c[2]);
       _p.copy(f.pos).addScaledVector(_fr.f, -0.12 * s);
@@ -345,7 +345,7 @@ export class SkyTraffic {
         sp.push(px + _fr.r.x * 0.04, py + _fr.r.y * 0.04, pz + _fr.r.z * 0.04, 0.03, 0.2, 1.8, 0.4, 0.5, 1.4, (h.id * 0.31) % 1, 0.5);
         sp.push(px - _fr.r.x * 0.04, py - _fr.r.y * 0.04, pz - _fr.r.z * 0.04, 0.03, 1.8, 0.15, 0.1, 0.5, 1.4, (h.id * 0.31 + 0.5) % 1, 0.5);
       } else {
-        sp.push(px + _up.x * 0.06, py + _up.y * 0.06, pz + _up.z * 0.06, 0.08, 2.2, 2.2, 2.4, 0.4, 1.1, (h.id * 0.17) % 1, 0.12);
+        sp.push(px + _up.x * 0.06, py + _up.y * 0.06, pz + _up.z * 0.06, 0.045, 1.5, 1.5, 1.7, 0.6, 1.1, (h.id * 0.17) % 1, 0.1);
         if (night > 0.02) sp.push(px - _up.x * 0.08, py - _up.y * 0.08, pz - _up.z * 0.08, 0.12, 0.5, 1.6, 1.4, 1);
       }
     }

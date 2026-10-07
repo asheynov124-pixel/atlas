@@ -26,6 +26,13 @@ interface PortState {
   dur: number;
   seed: number;
   flashed: boolean;
+  /** emission bookkeeping (rate-based, interpolated trails) */
+  prev: Vector3;
+  hasPrev: boolean;
+  lastT: number;
+  accF: number;
+  accS: number;
+  accG: number;
 }
 
 const _p = new Vector3();
@@ -50,7 +57,7 @@ export class Ports {
     const add = (kind: PortState['kind'], list: Site[]) => {
       for (const s of list) {
         const old = this.states.get(s.id);
-        keep.set(s.id, old && old.kind === kind ? { ...old, site: s } : { site: s, kind, phase: 0, t: hf(s.id, 1) * 6, dur: 6 + hf(s.id, 2) * 6, seed: hf(s.id, 3), flashed: false });
+        keep.set(s.id, old && old.kind === kind ? { ...old, site: s } : { site: s, kind, phase: 0, t: hf(s.id, 1) * 6, dur: 6 + hf(s.id, 2) * 6, seed: hf(s.id, 3), flashed: false, prev: new Vector3(), hasPrev: false, lastT: 0, accF: 0, accS: 0, accG: 0 });
       }
     };
     add('space', this.sites.tagged('spaceport'));
@@ -126,7 +133,7 @@ export class Ports {
   // ───────────────────────────────────────────── skyport
 
   private runway(st: PortState): { y: number; z: number; x0: number; x1: number } {
-    if (st.site.defId === 'tr.skyport') return { y: PAD_TOP + 0.115, z: -1.9, x0: -1.3, x1: 3.3 };
+    if (st.site.defId === 'tr.skyport') return { y: PAD_TOP + 0.115, z: -1.9, x0: -1.0, x1: 3.3 };
     const r = st.site.radius / st.site.scale;
     return { y: 0.12, z: 0, x0: -r * 0.6, x1: r * 0.7 };
   }
@@ -192,7 +199,7 @@ export class Ports {
         fade = clamp(t / 1.5, 0, 1);
       } else {
         const t2 = t - tTouch;
-        const dec = 0.55;
+        const dec = 0.75;
         const tt = Math.min(t2, vApp / dec);
         dist = vApp * tt - 0.5 * dec * tt * tt;
         h = 0;
@@ -263,7 +270,6 @@ export class Ports {
         let sc = 1;
         if (st.phase === 1) sc = 1 - smoothstep(st.dur - 2, st.dur, st.t);
         if (st.phase === 3) sc = smoothstep(0, 1.2, st.t);
-        // fr.f = radial up, fr.u = travel dir → instance axes: X = right, Y = nose (travel), Z = radial-ish
         ctx.fleet('shuttle').push(_p.x, _p.y, _p.z, _q.x, _q.y, _q.z, _d.x, _d.y, _d.z, _v.x, _v.y, _v.z, sc, 1, 1, 1);
         const burning = (st.phase === 1 && st.t > 0.4) || (st.phase === 3 && st.t > st.dur * 0.45 && st.t < st.dur - 0.2);
         const igniting = st.phase === 1 && st.t < 2.6;
@@ -274,31 +280,49 @@ export class Ports {
         if (burning || igniting) {
           _q.copy(_p).addScaledVector(_d, -0.12 * sc);
           const thr = st.phase === 1 ? clamp(st.t / 1.2, 0, 1) : 0.8;
-          sp.push(_q.x, _q.y, _q.z, 0.55 * sc * thr + 0.05, 3.2, 1.8, 0.7, 0);
-          sp.push(_q.x, _q.y, _q.z, 1.4 * sc * thr, 1.2, 0.5, 0.15, 0);
-          const close = cull.dist2(_q.x, _q.y, _q.z) < 120 * 120;
-          if (close && ctx.time > 0) {
-            for (let k = 0; k < 2; k++) {
-              const j = ctx.rng;
-              ctx.flames.emit(_q.x, _q.y, _q.z, -_d.x * 2.4 + (j.next() - 0.5) * 0.5, -_d.y * 2.4 + (j.next() - 0.5) * 0.5, -_d.z * 2.4 + (j.next() - 0.5) * 0.5, 0.35, 0.12 * sc, 0.35 * sc, 1.6, 0.9, 0.35, 1, 3);
-            }
+          sp.push(_q.x, _q.y, _q.z, 0.45 * sc * thr + 0.05, 3.0, 1.7, 0.7, 0);
+          sp.push(_q.x, _q.y, _q.z, 0.95 * sc * thr, 1.0, 0.42, 0.12, 0);
+          const close = cull.dist2(_q.x, _q.y, _q.z) < 140 * 140;
+          // rate-based emission, interpolated between frames so the trail is continuous at any frame rate
+          const dtE = Math.min(0.25, Math.max(0, ctx.time - st.lastT));
+          st.lastT = ctx.time;
+          if (!st.hasPrev) {
+            st.prev.copy(_q);
+            st.hasPrev = true;
+          }
+          if (close && dtE > 0) {
             const alt = _q.length() - ctx.planet.radius;
-            if (alt < 30 && ctx.rng.next() < 0.8) {
-              const j = ctx.rng;
-              ctx.smoke.emit(_q.x, _q.y, _q.z, -_d.x * 0.6 + (j.next() - 0.5) * 0.2, -_d.y * 0.6 + (j.next() - 0.5) * 0.2, -_d.z * 0.6 + (j.next() - 0.5) * 0.2, 4.5, 0.25, 1.5, 0.92, 0.9, 0.88, 0.5, 0.7, 0.03);
+            st.accF += dtE * 38;
+            st.accS += dtE * (alt < 32 ? 22 : 0) * thr;
+            const nf = Math.floor(st.accF), ns = Math.floor(st.accS);
+            st.accF -= nf;
+            st.accS -= ns;
+            const j = ctx.rng;
+            for (let k = 0; k < nf; k++) {
+              _v.copy(st.prev).lerp(_q, (k + 1) / nf);
+              ctx.flames.emit(_v.x, _v.y, _v.z, -_d.x * 2.4 + (j.next() - 0.5) * 0.5, -_d.y * 2.4 + (j.next() - 0.5) * 0.5, -_d.z * 2.4 + (j.next() - 0.5) * 0.5, 0.35, 0.12 * sc, 0.32 * sc, 1.6, 0.9, 0.35, 1, 3);
+            }
+            for (let k = 0; k < ns; k++) {
+              _v.copy(st.prev).lerp(_q, (k + 1) / ns);
+              ctx.smoke.emit(_v.x, _v.y, _v.z, -_d.x * 0.5 + (j.next() - 0.5) * 0.2, -_d.y * 0.5 + (j.next() - 0.5) * 0.2, -_d.z * 0.5 + (j.next() - 0.5) * 0.2, 5, 0.22, 1.35, 0.94, 0.93, 0.91, 0.42, 0.7, 0.03);
             }
             // ground smoke ring at ignition / touchdown
             if ((st.phase === 1 && st.t < 2.5) || (st.phase === 3 && st.t > st.dur - 2.5)) {
               this.padPoint(st, _base);
               _up.copy(_base).normalize();
-              for (let k = 0; k < 3; k++) {
-                const a = ctx.rng.next() * Math.PI * 2;
+              st.accG += dtE * 16;
+              const ng = Math.floor(st.accG);
+              st.accG -= ng;
+              for (let k = 0; k < ng; k++) {
+                const a = j.next() * Math.PI * 2;
                 _v.copy(s.right).multiplyScalar(Math.cos(a)).addScaledVector(s.fwd, Math.sin(a));
-                const sp0 = 0.8 + ctx.rng.next() * 0.8;
+                const sp0 = 0.8 + j.next() * 0.8;
                 ctx.smoke.emit(_base.x, _base.y, _base.z, _v.x * sp0 + _up.x * 0.1, _v.y * sp0 + _up.y * 0.1, _v.z * sp0 + _up.z * 0.1, 3.5, 0.3, 1.3, 0.95, 0.93, 0.9, 0.55, 0.9, 0.02);
               }
             }
           }
+          st.prev.copy(_q);
+          // a warm flash on the surroundings at ignition when the camera is close
           if (st.phase === 1 && !st.flashed && st.t > 0.5 && cull.dist2(_q.x, _q.y, _q.z) < 40 * 40) {
             st.flashed = true;
             try {
@@ -307,7 +331,7 @@ export class Ports {
               /* optional */
             }
           }
-        }
+        } else st.hasPrev = false;
       } else if (st.kind === 'air') {
         const fade = this.planePose(st, _p, _d);
         if (fade <= 0.01) continue;
