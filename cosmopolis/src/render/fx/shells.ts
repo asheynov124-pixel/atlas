@@ -198,8 +198,10 @@ void main() {
   } else if (mode == 4) {
     float rho = vAng / max(uAngle, 1e-4);
     float edge = 1.0 - smoothstep(0.75, 1.0, rho);
-    vec2 q = vec2(cos(vAz), sin(vAz)) * vAng * 120.0;
-    float n = fxTFbm2(q + vec2(uTime * 0.6, -uTime * 1.6));
+    // two triplanar octaves at an irrational ratio: flames without a visible texture lattice at planet scale
+    vec3 dn = normalize(vW) * clamp(1.8 / max(uAngle, 0.05), 1.0, 6.0);
+    float n = fxTFbm3(dn * 13.0 + vec3(uTime * 0.6, -uTime * 1.6, uTime * 0.3)) * 0.6 + fxTFbm3(dn * 31.7 + vec3(-uTime * 0.9, uTime * 0.4, -uTime * 1.1)) * 0.4;
+    n = clamp((n - 0.5) * 2.0 + 0.5, 0.0, 1.0);
     float f = smoothstep(0.42, 0.85, n);
     a = edge * f * uIntensity;
     col = mix(uColor2, uColor, f) * (1.0 + f);
@@ -215,9 +217,11 @@ void main() {
   } else {
     float rho = vAng / max(uAngle, 1e-4);
     float edge = 1.0 - smoothstep(0.55, 1.0, rho);
-    vec2 pl = vec2(cos(vAz), sin(vAz)) * vAng * 26.0;
-    float n = fxTFbm2b(pl + vec2(uTime * 0.04, -uTime * 0.02));
-    a = edge * smoothstep(0.25, 0.75, n) * uIntensity;
+    // triplanar lookups on the shell direction: no texture repetition even when the veil wraps the whole world
+    vec3 dn = normalize(vW) * clamp(1.8 / max(uAngle, 0.05), 1.0, 6.0);
+    float n = fxTFbm3(dn * 3.2 + vec3(uTime * 0.03, 0.0, -uTime * 0.02)) * 0.62 + fxTFbm3(dn * 8.0 + vec3(0.0, uTime * 0.05, 0.0)) * 0.38;
+    n = clamp((n - 0.5) * 2.4 + 0.5, 0.0, 1.0);
+    a = edge * smoothstep(0.2, 0.8, n) * uIntensity;
     float lit = max(0.0, dot(normalize(vN), uSunDir));
     col = mix(uColor2, uColor, n) * (0.2 + 0.9 * lit) * mix(0.25, 1.0, day);
   }

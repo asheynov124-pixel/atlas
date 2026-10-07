@@ -705,7 +705,7 @@ function megaImpact(e: Effect, tile: number, size: number): { ring: Shell & FxOb
   fire.setCenter(n).colors(0xffd36a, 0xd42400);
   fire.u.uR.value = e.R + 1.0;
   const veil = e.fx.shell(ShellMode.Veil, 48, 220);
-  veil.setCenter(n).colors(0x6e625c, 0x2a2420);
+  veil.setCenter(n).colors(0x4a3e36, 0x16110e);
   veil.u.uR.value = e.R + 14;
   return { ring: e.own(ring), fire: e.own(fire), veil: e.own(veil) };
 }
@@ -730,9 +730,9 @@ class ImpactAftermath {
     const cover = Math.min(Math.PI, 0.4 + s * 0.25);
     veil.range(0, cover);
     veil.u.uAngle.value = cover;
-    veil.u.uIntensity.value = 0.85 * envelope(s / 34, 0.12, 0.4);
+    veil.u.uIntensity.value = 0.95 * envelope(s / 34, 0.12, 0.4);
     const winter = envelope(s / 34, 0.06, 0.45);
-    e.god.want(e.key, { sun: 1 - 0.6 * winter, clouds: 0.9 * winter, storm: 0.6 * winter, apocalypse: 0.6 * winter, dread: 0.5 * winter, lights: 1 });
+    e.god.want(e.key, { sun: 1 - 0.65 * winter, clouds: 0.2 * winter, storm: 0.85 * winter, apocalypse: 0.7 * winter, dread: 0.5 * winter, lights: 1 });
     const batch: number[] = [];
     while (this.idx < this.order.tiles.length && this.order.angles[this.idx] <= front && batch.length < 150) batch.push(this.order.tiles[this.idx++]);
     if (!batch.length) return;
