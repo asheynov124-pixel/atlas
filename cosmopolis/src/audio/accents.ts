@@ -78,7 +78,7 @@ export const ACCENTS: Partial<Record<Category, SfxDef>> = {
     },
   },
   leisure: {
-    gain: 0.55,
+    gain: 1.3,
     wet: 0.3,
     play(v) {
       const t = v.t + 0.06;
@@ -130,7 +130,7 @@ export const ACCENTS: Partial<Record<Category, SfxDef>> = {
     },
   },
   orbital: {
-    gain: 0.55,
+    gain: 0.8,
     wet: 0.3,
     tonal: true,
     play(v, k) {
@@ -146,7 +146,7 @@ export const ACCENTS: Partial<Record<Category, SfxDef>> = {
     },
   },
   decor: {
-    gain: 0.5,
+    gain: 1.1,
     wet: 0.1,
     play(v) {
       const t = v.t + 0.03;

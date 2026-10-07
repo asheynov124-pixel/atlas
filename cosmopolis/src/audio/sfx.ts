@@ -6,7 +6,9 @@
  *
  * SfxDef fields: gain (base level), wet (reverb send), duck (0..1 music/ambience ducking), ui (UI bus — never
  * distance-filtered), gap (min seconds between two plays), max (simultaneous voices), vary (random ± pitch),
- * prio (voice stealing: higher steals lower when the global voice cap is hit).
+ * prio (voice stealing: higher steals lower when the global voice cap is hit), tonal (written in C and transposed
+ * by the engine into the key of the music that is playing, so rewards always harmonise with the score).
+ * Levels are calibrated with diagnose(): UI peaks ≈ 0.1–0.3, tools ≈ 0.3–0.9, catastrophes ≈ 0.9–1.15 pre-limiter.
  */
 import type { SfxName } from '../core/types';
 import { clamp, lerp, type Voice } from './dsp';
