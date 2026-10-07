@@ -87,7 +87,7 @@ const STEPS: Step[] = [
     icon: 'home',
     title: 'Somewhere to live',
     body: 'Tap Zones, pick Residential and paint the lots along your road. Houses grow there by themselves.',
-    short: 'Paint Residential (green) along the road',
+    short: 'Paint green Residential by the road',
     target: '.dk-btn[aria-label="Zones"]',
     check: () => anyZone(isR),
   },
@@ -96,7 +96,7 @@ const STEPS: Step[] = [
     icon: 'shop',
     title: 'Shops and jobs',
     body: 'New residents need work and somewhere to spend it. Paint some Commercial and some Industrial — keep the factories a little away from homes.',
-    short: 'Paint Commercial (blue) and Industrial (amber)',
+    short: 'Paint blue Commercial and amber Industrial',
     target: '.dk-btn[aria-label="Zones"]',
     check: () => anyZone(isC) && anyZone(isI),
   },
@@ -313,9 +313,10 @@ export function Tutorial() {
     style = { left: (vp.w - W) / 2 + 'px', top: vp.landscapePhone ? '18%' : '30%', width: W + 'px' };
   }
   const total = STEPS.length - 2;
-  const idx = Math.max(0, Math.min(total, st.step - 1));
+  const idx = Math.max(1, Math.min(total, st.step));
   return (
     <>
+      {!r && <div class="tu-scrim" aria-hidden="true" />}
       {r && <div class="tu-ring" style={{ left: r.x - 6 + 'px', top: r.y - 6 + 'px', width: r.w + 12 + 'px', height: r.h + 12 + 'px' }} aria-hidden="true" />}
       <div key={st.step + ':' + pulse} class={'tu-card pe glass-strong' + (below ? ' is-below' : r ? ' is-above' : ' is-center')} style={style} role="dialog" aria-label={step.title}>
         {arrow && <span class={'tu-arrow' + (below ? ' is-up' : '')} style={arrow} aria-hidden="true" />}

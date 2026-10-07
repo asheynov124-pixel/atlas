@@ -334,7 +334,7 @@ function TimeTray({ bump }: { bump: () => void }) {
         ))}
         <button
           type="button"
-          class={'ph-chip' + (!paused ? ' is-active' : '')}
+          class="ph-chip"
           onClick={() => {
             const s = paused ? 1 : 0;
             safe(() => game.clock.setSpeed(s), undefined);

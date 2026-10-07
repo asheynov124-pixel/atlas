@@ -34,6 +34,9 @@ interface Label {
   y: number;
   shown: boolean;
   priority: number;
+  /** half extents (px) for declutter, measured once */
+  hw: number;
+  hh: number;
 }
 
 const _v = new Vector3();
@@ -118,6 +121,10 @@ class LabelLayer {
       if (++n >= 48) break;
     }
     this.items.sort((a, b) => b.priority - a.priority);
+    for (const it of this.items) {
+      it.hw = Math.max(20, it.el.offsetWidth / 2);
+      it.hh = Math.max(8, it.el.offsetHeight / 2);
+    }
     this.dirty = true;
   }
 
@@ -150,7 +157,7 @@ class LabelLayer {
     const p = this.planet!;
     const pos = tilePosition(p, tile, new Vector3(), lift).applyMatrix4(_m);
     const normal = pos.clone().normalize();
-    this.items.push({ kind, id, tile, el, pos, normal, x: -1e4, y: -1e4, shown: false, priority });
+    this.items.push({ kind, id, tile, el, pos, normal, x: -1e4, y: -1e4, shown: false, priority, hw: 40, hh: 12 });
   }
 
   private frame = (): void => {
@@ -199,18 +206,22 @@ class LabelLayer {
         else {
           const x = (_v.x * 0.5 + 0.5) * w;
           const y = (-_v.y * 0.5 + 0.5) * h;
-          if (it.kind === 'landmark') {
-            for (let k = 0; k < placed; k++) {
-              if (Math.abs(boxes[k * 2] - x) < 70 && Math.abs(boxes[k * 2 + 1] - y) < 22) {
-                show = false;
-                break;
-              }
+          // box centre: districts are centred on their point, landmarks hang above theirs
+          const cy = it.kind === 'district' ? y : y - it.hh - 5;
+          for (let k = 0; k < placed; k++) {
+            const o = k * 4;
+            if (Math.abs(boxes[o] - x) < boxes[o + 2] + it.hw + 6 && Math.abs(boxes[o + 1] - cy) < boxes[o + 3] + it.hh + 3) {
+              show = false;
+              break;
             }
           }
           if (show) {
             if (placed < 64) {
-              boxes[placed * 2] = x;
-              boxes[placed * 2 + 1] = y;
+              const o = placed * 4;
+              boxes[o] = x;
+              boxes[o + 1] = cy;
+              boxes[o + 2] = it.hw;
+              boxes[o + 3] = it.hh;
               placed++;
             }
             if (Math.abs(x - it.x) >= 0.5 || Math.abs(y - it.y) >= 0.5) {
@@ -228,7 +239,7 @@ class LabelLayer {
     }
   }
 
-  private boxes = new Float32Array(128);
+  private boxes = new Float32Array(256);
 
   dispose(): void {
     cancelAnimationFrame(this.raf);

@@ -667,3 +667,11 @@
 .lb-icon {
   font-size: 12px;
 }
+.tu-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 59;
+  pointer-events: none;
+  background: radial-gradient(120% 80% at 50% 40%, rgba(2, 3, 10, 0.15), rgba(2, 3, 10, 0.55));
+  animation: cz-fade-in var(--dur-3) var(--ease-out) both;
+}
