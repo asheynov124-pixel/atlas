@@ -8,8 +8,9 @@
  *                      template (default Neo Tower). Pauses the clock while you design; close() restores it and
  *                      returns via game.showPlanet().
  *   Editing            mutate(fn, key) is the single entry point (undo/redo with coalescing, dirty flag, live
- *                      preview); helpers: addPart · removePart · duplicatePart · movePart · reorder · updatePart ·
- *                      setFootprint (rescales the plan) · loadTemplate · surprise · blank · optimise.
+ *                      preview); helpers: addPart · removePart · duplicatePart · mirrorPart · arrayPart (radial
+ *                      copies) · movePart · reorder · updatePart · setFootprint (rescales the plan) · loadTemplate ·
+ *                      surprise · blank · optimise · setNight · snapshot (PNG to the share sheet / download).
  *   Saving             save() validates the triangle budget, derives balanced stats from the function & size
  *                      (stats.ts), stores the JSON spec in empire.s.customItems, registers the ItemDef
  *                      (id "custom_<id>", tier 0, mesh = the same builder), clears cached geometry + refreshes the
