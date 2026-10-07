@@ -13,10 +13,13 @@ import { LOOPS, LoopKit } from './loops';
 import { createMood, MOODS } from './moods';
 import type { MusicEnv } from './player';
 import { SampleBank } from './samples';
-import { SFX } from './sfx';
+import { SFX, type SfxDef } from './sfx';
+import { ACCENTS } from './accents';
 
 export interface DiagnoseOptions {
   sfx?: SfxName[] | boolean;
+  /** placement accents per category */
+  accents?: boolean;
   loops?: LoopName[] | boolean;
   moods?: MusicMood[] | boolean;
   /** seconds rendered per mood (default 16) */
@@ -26,7 +29,7 @@ export interface DiagnoseOptions {
 
 export interface SoundStats {
   name: string;
-  kind: 'sfx' | 'loop' | 'mood';
+  kind: 'sfx' | 'accent' | 'loop' | 'mood';
   peak: number;
   rms: number;
   onset: number;
@@ -171,15 +174,15 @@ let sharedBank: SampleBank | undefined;
  * Render one sound offline and return the buffer (diagnostics, spectrogram tooling).
  * kind 'sfx' renders `seconds` (default 8) · 'loop' (default 6) · 'mood' (default 16).
  */
-export async function render(kind: 'sfx' | 'loop' | 'mood', name: string, seconds?: number, sampleRate = 44100, bank?: SampleBank): Promise<{ buf: AudioBuffer; end: number }> {
+export async function render(kind: 'sfx' | 'accent' | 'loop' | 'mood', name: string, seconds?: number, sampleRate = 44100, bank?: SampleBank): Promise<{ buf: AudioBuffer; end: number }> {
   const Ctor = offlineCtor();
   const secs = seconds ?? (kind === 'sfx' ? 8 : kind === 'loop' ? 6 : 16);
   const R = rig(Ctor, secs, sampleRate);
   const b = (bank ?? (sharedBank ??= new SampleBank(R.ctx)));
   let end = secs;
-  if (kind === 'sfx') {
-    const def = SFX[name as SfxName];
-    if (!def) throw new Error('unknown sfx ' + name);
+  if (kind === 'sfx' || kind === 'accent') {
+    const def: SfxDef | undefined = kind === 'sfx' ? SFX[name as SfxName] : ACCENTS[name as keyof typeof ACCENTS];
+    if (!def) throw new Error('unknown ' + kind + ' ' + name);
     const v = new Voice(R.ctx, R.noise, R.out, R.rev, 0.02, 1, 0);
     R.out.gain.value = def.gain;
     const send = R.ctx.createGain();
@@ -240,6 +243,20 @@ export async function diagnose(opts: DiagnoseOptions = {}, shared?: SampleBank):
     if (end - 0.02 > 7.5) st.issues.push('voice longer than render');
     st.ok = st.issues.length === 0;
     items.push(st);
+  }
+
+  if (opts.accents !== false) {
+    for (const name of Object.keys(ACCENTS)) {
+      const a = performance.now();
+      const { buf } = await render('accent', name, 3, sr, bank);
+      const st = analyse(buf, name, 'accent');
+      st.ms = Math.round(performance.now() - a);
+      if (st.peak < 0.005) st.issues.push('silent');
+      else if (st.peak < 0.04) st.issues.push('quiet');
+      if (st.peak > 1.2) st.issues.push('hot');
+      st.ok = st.issues.length === 0;
+      items.push(st);
+    }
   }
 
   for (const name of pick(opts.loops, Object.keys(LOOPS) as LoopName[])) {

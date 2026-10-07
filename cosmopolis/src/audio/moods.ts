@@ -263,7 +263,7 @@ class TensionMood extends MoodPlayer {
   readonly mood = 'tension';
   constructor(env: MusicEnv, seed: number) {
     super(env, seed);
-    this.level = 1.2;
+    this.level = 1.05;
     this.bpm = 112;
     this.root = 38;
     this.scale = PHRYGIAN;

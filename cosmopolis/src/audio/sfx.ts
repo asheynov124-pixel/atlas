@@ -26,6 +26,8 @@ export interface SfxDef {
   max?: number;
   vary?: number;
   prio?: number;
+  /** written in C: transposed into the current music key so it harmonises */
+  tonal?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────── helpers
@@ -200,6 +202,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   notify: {
+    tonal: true,
     gain: 0.55,
     wet: 0.25,
     ui: true,
@@ -393,11 +396,12 @@ export const SFX: Record<SfxName, SfxDef> = {
 
   // ── rewards
   money: {
+    tonal: true,
     gain: 0.6,
     wet: 0.15,
     gap: 0.06,
     max: 3,
-    vary: 0.02,
+    vary: 0,
     play(v, k) {
       smp(v, k, 'glock', 95, v.t, 0.5, 0.5);
       smp(v, k, 'glock', 100, v.t + 0.075, 0.48, 0.9);
@@ -405,6 +409,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   chime: {
+    tonal: true,
     gain: 0.8,
     wet: 0.35,
     gap: 0.12,
@@ -416,6 +421,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   milestone: {
+    tonal: true,
     gain: 0.75,
     wet: 0.3,
     gap: 0.8,
@@ -443,6 +449,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   unlock: {
+    tonal: true,
     gain: 0.65,
     wet: 0.35,
     gap: 0.5,
@@ -458,6 +465,7 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   levelUp: {
+    tonal: true,
     gain: 0.65,
     wet: 0.25,
     gap: 0.4,
@@ -845,11 +853,12 @@ export const SFX: Record<SfxName, SfxDef> = {
     },
   },
   magic: {
+    tonal: true,
     gain: 0.6,
     wet: 0.4,
     gap: 0.15,
     max: 3,
-    vary: 0.03,
+    vary: 0,
     play(v, k) {
       const t = v.t;
       [84, 86, 88, 91, 93, 96, 98, 100].forEach((m, i) => smp(v, k, 'glock', m, t + i * 0.045, 0.18 + i * 0.012, 0.9));

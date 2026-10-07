@@ -122,8 +122,8 @@ export class Soundscape {
     L.wind =
       act *
       atmo *
-      ((0.12 + 0.4 * s.wind) * (0.35 + 0.65 * smooth(0.1, 0.5, z)) * (1 - smooth(0.62, 0.92, z)) + 0.22 * (s.cold + s.hot) * near) *
-      (1 - 0.5 * s.city * near);
+      ((0.07 + 0.26 * s.wind) * (0.3 + 0.7 * smooth(0.1, 0.5, z)) * (1 - smooth(0.62, 0.92, z)) + 0.2 * (s.cold + s.hot) * near) *
+      (1 - 0.75 * s.city * near);
     L.surf = act * s.water * Math.pow(near, 1.1) * atmo * 0.55;
     L.cicada = act * s.insects * (1 - night) * near * atmo * 0.1;
     L.space = clamp(s.space, 0, 1) * 0.2;

@@ -7,10 +7,15 @@
  *                galaxy & universe → galaxy · Architect Studio → studio · planet → day / night (env.daylight at the
  *                camera focus, hysteresis) · destructive god powers → tension, planet-ending ones → apocalypse.
  *                Crossfades between moods; explicit setMood() calls are honoured as hints for a few seconds.
+ *                City size and game speed raise the music's energy sections; milestones & unlocks add an arpeggio
+ *                flourish in key; month ends in the black ring a soft coin. Instrument samples, noise textures and
+ *                the reverb IR are synthesised in a Web Worker (synth.ts) so warming up never costs a frame.
  *   sfx          sfx.ts — UI clicks, building thunks, rewards, elements, creatures, cosmic catastrophes. Voice cap
  *                (28) with priority stealing, per-sound rate limits and caps, random pitch variance, distance-ish
  *                colouring from the camera zoom (far = duller, softer, wetter), music & ambience ducking under big
  *                sounds.
+ *                Tonal sounds (chimes, coins, fanfares, unlocks) are transposed into the key of the music playing,
+ *                and player placements get a category accent (accents.ts: power sparks, park birdsong, station chime…).
  *   loops        loops.ts — smooth fade in / out, live volume, auto-stop when the planet unloads.
  *   soundscape   ambience.ts — city bed scaled by population & camera zoom, biome nature, surf, orbit hum.
  *   global       soft click on any plain <button> press (ui-core Buttons play their own), settings applied live
@@ -42,6 +47,8 @@ import { MOODS, WARM } from './moods';
 import { SampleBank } from './samples';
 import { SynthClient } from './synth';
 import { SFX, type SfxDef } from './sfx';
+import { ACCENTS } from './accents';
+import { getItem } from '../content/catalog';
 import { diagnose, type DiagnoseOptions, type DiagnoseReport } from './diagnose';
 
 /** profiling helper: record the worst section time, return a fresh timestamp */
@@ -68,7 +75,7 @@ const MAX_VOICES = 28;
 const MAX_LOOPS = 16;
 
 interface ActiveVoice {
-  name: SfxName;
+  name: string;
   start: number;
   end: number;
   prio: number;
@@ -205,7 +212,10 @@ export class AudioEngine implements System {
   private synth: SynthClient | null = null;
   // state
   private voices: ActiveVoice[] = [];
-  private lastPlay = new Map<SfxName, number>();
+  private lastPlay = new Map<string, number>();
+  private lastAccentAt = 0;
+  private lastFlourishAt = 0;
+  private lastMonthAt = 0;
   private loops: LoopInst[] = [];
   private pending: { name: SfxName; opts?: SfxOpts; at: number }[] = [];
   private resuming = false;
@@ -285,6 +295,23 @@ export class AudioEngine implements System {
     this.offs.push(bus.on('disaster:start', (e) => this.onDisasterStart(e.powerId)));
     this.offs.push(bus.on('disaster:end', (e) => this.onDisasterEnd(e.powerId)));
     this.offs.push(bus.on('view:changed', () => (this.moodTimer = 0)));
+    // rewards ripple through the score: an arpeggio in the current key after the fanfare
+    this.offs.push(bus.on('milestone:reached', () => this.flourish(1.4)));
+    this.offs.push(
+      bus.on('unlock', (e) => {
+        if (e.kind !== 'item') this.flourish(0.9);
+      }),
+    );
+    // month end: a soft coin when the books close in the black
+    this.offs.push(
+      bus.on('sim:month', () => {
+        const t = performance.now();
+        if (t - this.lastMonthAt < 25000 || ui.view.value !== 'planet' || ui.screen.value !== 'game') return;
+        if ((ui.income.value ?? 0) <= 0) return;
+        this.lastMonthAt = t;
+        this.sfx('money', { volume: 0.25 });
+      }),
+    );
     this.offs.push(
       bus.on('building:added', (e) => {
         try {
@@ -631,7 +658,13 @@ export class AudioEngine implements System {
     }
     if (settings.value.muted) return;
     const def: SfxDef | undefined = SFX[name];
-    if (!def || !this.noise || !this.bank) return;
+    if (def) this.emit(def, name, opts, farOverride);
+  }
+
+  /** build and route one synthesised voice (SFX or placement accent) with rate limits, caps and ducking */
+  private emit(def: SfxDef, name: string, opts: SfxOpts | undefined, farOverride: number): void {
+    const ctx = this.ctx;
+    if (!ctx || ctx.state !== 'running' || !this.noise || !this.bank) return;
     const now = ctx.currentTime;
     const last = this.lastPlay.get(name) ?? -1e9;
     if (now - last < (def.gap ?? 0.03)) return;
@@ -656,12 +689,15 @@ export class AudioEngine implements System {
       let victim: ActiveVoice | null = null;
       for (const v of this.voices) if (v.prio <= prio && (!victim || v.prio < victim.prio || (v.prio === victim.prio && v.start < victim.start))) victim = v;
       if (!victim) return;
+      // fades out in 40 ms and is reaped (disconnected) on a following frame
       this.kill(victim, now);
-      this.voices.splice(this.voices.indexOf(victim), 1);
     }
     this.lastPlay.set(name, now);
     const far = def.ui ? 0 : farOverride >= 0 ? farOverride : this.farness();
-    const pitch = clamp((opts?.pitch ?? 1) * (1 + (rnd.next() * 2 - 1) * (def.vary ?? 0)), 0.1, 4);
+    let pitch = clamp((opts?.pitch ?? 1) * (1 + (rnd.next() * 2 - 1) * (def.vary ?? 0)), 0.1, 4);
+    // tonal sounds are written in C: move them into the key of the music that is playing
+    const cur = this.music?.current;
+    if (def.tonal && cur && cur.stopAt === Infinity) pitch *= Math.pow(2, cur.keyShift / 12);
     const out = ctx.createGain();
     out.gain.value = vol;
     const nodes: AudioNode[] = [out];
@@ -847,8 +883,21 @@ export class AudioEngine implements System {
     return smooth(-0.15, 0.2, s.x * t.x + s.y * t.y + s.z * t.z);
   }
 
+  /** 0..1 musical energy from the game: bigger cities, faster clocks and danger make the music busier */
+  private gameEnergy(): number {
+    const m = this.mood;
+    if (m === 'tension' || m === 'apocalypse') return 0.85;
+    if (m === 'menu' || m === 'space' || m === 'galaxy') return 0.5;
+    const pop = typeof ui.population.value === 'number' ? ui.population.value : 0;
+    const city = clamp(Math.log10(pop + 1) / 5, 0, 1);
+    const speed = this.game.clock?.speed ?? 1;
+    return clamp(0.2 + 0.5 * city + (speed >= 3 ? 0.25 : speed === 0 ? -0.15 : 0), 0, 1);
+  }
+
   private decideMood(): void {
     this.decisions++;
+    const cur = this.music?.current;
+    if (cur) cur.energy = this.gameEnergy();
     const nowS = performance.now() / 1000;
     const want = this.moodOverride ?? this.computeMood(nowS);
     if (want !== this.mood) {
@@ -915,6 +964,19 @@ export class AudioEngine implements System {
     music.play(to, ctx.currentTime, fin, fout);
   }
 
+  private flourish(delay: number): void {
+    const ctx = this.ctx;
+    const cur = this.music?.current;
+    const t = performance.now();
+    if (!ctx || ctx.state !== 'running' || !cur || cur.stopAt !== Infinity || t - this.lastFlourishAt < 3000) return;
+    this.lastFlourishAt = t;
+    try {
+      cur.flourish(ctx.currentTime + delay);
+    } catch (e) {
+      console.error('[audio] flourish failed', e);
+    }
+  }
+
   // ─────────────────────────────────────────────── disasters
   private onDisasterStart(id: string): void {
     const list = (this.game as unknown as { god?: { powers?: { id: string; planetEnding?: boolean; category?: string; danger?: number }[] } }).god?.powers;
@@ -941,11 +1003,23 @@ export class AudioEngine implements System {
   // ─────────────────────────────────────────────── soundscape
   private onBuildingAdded(id: number): void {
     if (!this.scape || ui.view.value !== 'planet' || ui.screen.value !== 'game') return;
-    if (performance.now() - this.lastPlaceAt < 700) return;
     const planet = this.game.planet;
     const cam = this.game.camera;
     const b = planet?.buildings.get(id);
     if (!planet || !b || !cam) return;
+    const since = performance.now() - this.lastPlaceAt;
+    if (since < 250) {
+      // the player just placed it: layer the category's signature on top of the thunk
+      const def = getItem(b.defId);
+      const acc = def && !def.growable ? ACCENTS[def.category] : undefined;
+      const t = performance.now();
+      if (acc && t - this.lastAccentAt > 140) {
+        this.lastAccentAt = t;
+        this.emit(acc, 'accent:' + def!.category, { volume: def!.footprint > 1 ? 1 : 0.8 }, -1);
+      }
+      return;
+    }
+    if (since < 700) return;
     const target = cam.targetTile();
     const ang = planet.grid.angle(target, b.tile);
     if (ang * planet.radius < Math.max(6, cam.distance * 0.7)) this.scape.construct();

@@ -13,8 +13,8 @@
  */
 import type { MusicMood } from '../core/types';
 import { Prng, Voice, type Ctx, type NoiseBank } from './dsp';
-import type { Ins } from './instruments';
-import type { SampleBank } from './samples';
+import { note, type Ins } from './instruments';
+import type { InstName, SampleBank } from './samples';
 
 export interface MusicEnv {
   ctx: Ctx;
@@ -36,6 +36,15 @@ export const AEOLIAN = [0, 2, 3, 5, 7, 8, 10];
 export const DORIAN = [0, 2, 3, 5, 7, 9, 10];
 export const PHRYGIAN = [0, 1, 3, 5, 7, 8, 10];
 
+/** semitones from each mode's root down to its parent major tonic */
+const MODE_OFFSET = new Map<number[], number>([
+  [MAJOR, 0],
+  [LYDIAN, 5],
+  [AEOLIAN, 9],
+  [DORIAN, 2],
+  [PHRYGIAN, 4],
+]);
+
 export abstract class MoodPlayer implements Ins {
   abstract readonly mood: MusicMood;
   bpm = 80;
@@ -52,6 +61,8 @@ export abstract class MoodPlayer implements Ins {
   section = 1;
   /** loudness trim so every mood sits at a similar perceived level */
   level = 1;
+  /** 0..1 gameplay energy (city size, game speed, danger) — biases the section random walk */
+  energy = 0.5;
   readonly v: Voice;
   readonly r: Prng;
   readonly bank: SampleBank;
@@ -115,6 +126,24 @@ export abstract class MoodPlayer implements Ins {
   /** humanise: 0..12 ms late (never early, so nothing lands before `now`) */
   jitter(): number {
     return this.r.next() * 0.012;
+  }
+
+  /**
+   * Transposition (−5..+6 semitones) that moves a C-major motif into this mood's key (its parent major scale), so
+   * tonal SFX (chimes, coins, fanfares) always harmonise with the music.
+   */
+  get keyShift(): number {
+    const tonic = (((this.root - (MODE_OFFSET.get(this.scale) ?? 0)) % 12) + 12) % 12;
+    return tonic > 6 ? tonic - 12 : tonic;
+  }
+
+  /** a short ascending arpeggio in the current chord (milestones, unlocks) */
+  flourish(t: number): void {
+    if (this.mood === 'tension' || this.mood === 'apocalypse') return;
+    const inst: InstName = this.mood === 'night' ? 'piano' : this.mood === 'studio' ? 'ep' : this.mood === 'space' || this.mood === 'galaxy' ? 'glock' : 'harp';
+    const oct = this.mood === 'space' || this.mood === 'galaxy' ? 3 : this.mood === 'studio' ? 0 : 1;
+    const cd = this.chordDeg(this.step >> 4);
+    [0, 2, 4, 7, 9, 11, 14].forEach((k, i) => note(this, inst, this.deg(cd + k, oct), t + i * 0.075, 0.16 + i * 0.02, this.far));
   }
 
   /** scale degree → MIDI (degrees wrap into octaves) */
@@ -215,8 +244,12 @@ export abstract class MoodPlayer implements Ins {
     }
   }
 
+  /** every 8 bars: wander the energy section, drifting toward the gameplay energy */
   protected nextSection(): void {
-    const d = this.r.pick([-1, 0, 1, 1, -1, 0, 1]);
+    const target = Math.round(this.energy * 3);
+    let d = this.r.pick([-1, 0, 1]);
+    if (this.section < target && this.r.chance(0.55)) d = 1;
+    else if (this.section > target && this.r.chance(0.55)) d = -1;
     this.section = Math.max(0, Math.min(3, this.section + d));
   }
 
