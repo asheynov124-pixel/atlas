@@ -50,6 +50,21 @@ async function armPower(page, name, category) {
   await sleep(page, 600);
 }
 
+/** Tap the Star map rail button; report (and retry once) if the view does not change. */
+async function openStarMap(page) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await tap(page, '.rl-btn[aria-label="Star map"]');
+    try {
+      await until(page, () => window.__cosmo.debugInfo().view === 'system', { timeout: 30000, what: 'system view' });
+      return;
+    } catch (e) {
+      const st = await page.evaluate(() => ({ view: window.__cosmo.debugInfo().view, cx: window.__cosmos?.state?.(), top: document.elementFromPoint(715, 185)?.outerHTML.slice(0, 120) }));
+      console.log(`   ! Star map tap #${attempt + 1} did not open the system view: ${JSON.stringify(st)}`);
+      if (attempt === 1) throw e;
+    }
+  }
+}
+
 export default async ({ page, shot }) => {
   page.on('dialog', (d) => d.accept().catch(() => {}));
 
@@ -170,8 +185,7 @@ export default async ({ page, shot }) => {
   // ── cosmos: system + galaxy views, travel and back
   if (!skip.has('cosmos')) {
     step('cosmos: Star map → system view');
-    await tap(page, '.rl-btn[aria-label="Star map"]');
-    await until(page, () => window.__cosmo.debugInfo().view === 'system', { timeout: 60000, what: 'system view' });
+    await openStarMap(page);
     await sleep(page, 2500);
     await shot('system');
     await audit(page, 'system view');
@@ -188,9 +202,23 @@ export default async ({ page, shot }) => {
       await sleep(page, 2000);
     }
     step('cosmos: select another planet and land on it');
-    await until(page, () => [...document.querySelectorAll('.cx-label.kind-planet:not(.is-current)')].some((el) => el.style.visibility !== 'hidden' && Number(el.style.opacity) > 0.3), { timeout: 30000, what: 'planet labels' });
-    const label = page.locator('.cx-label.kind-planet:not(.is-current):not(.is-locked)').first();
-    await label.tap({ force: true });
+    // a planet label that is visible and not under the HUD (its centre hit-tests to itself)
+    const idx = await until(
+      page,
+      () => {
+        const els = [...document.querySelectorAll('.cx-label.kind-planet')];
+        const i = els.findIndex((el) => {
+          if (el.classList.contains('is-current') || el.classList.contains('is-locked')) return false;
+          if (el.style.visibility === 'hidden' || Number(el.style.opacity) < 0.3) return false;
+          const r = el.getBoundingClientRect();
+          const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          return !!top && el.contains(top);
+        });
+        return i >= 0 ? i + 1 : 0;
+      },
+      { timeout: 30000, what: 'an uncovered planet label' },
+    );
+    await page.locator('.cx-label.kind-planet').nth(idx - 1).tap();
     await sleep(page, 1200);
     await shot('planet-card');
     await audit(page, 'planet card');
@@ -200,8 +228,7 @@ export default async ({ page, shot }) => {
     await sleep(page, 4000);
     await shot('new-planet');
     step('cosmos: travel back home');
-    await tap(page, '.rl-btn[aria-label="Star map"]');
-    await until(page, () => window.__cosmo.debugInfo().view === 'system', { timeout: 60000, what: 'system view' });
+    await openStarMap(page);
     await sleep(page, 2000);
     // the Colonies list (side button) is the dependable way home, wherever the home world sits on screen
     await tap(page, '.cx-side-btn[aria-label="Colonies"]');

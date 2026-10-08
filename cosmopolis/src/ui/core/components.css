@@ -1512,6 +1512,12 @@
 .app.on-menu .cz-toasts {
   top: calc(var(--safe-top) + 14px);
 }
+/* phones in portrait: toasts sit between the left and right rails so they never cover rail buttons */
+@media (max-width: 599px) {
+  .app:not(.on-menu) .cz-toasts {
+    width: min(420px, calc(100% - 2 * (var(--gutter) + 54px) - var(--safe-left) - var(--safe-right)));
+  }
+}
 .cz-toast {
   display: flex;
   align-items: center;
@@ -1530,6 +1536,7 @@
 }
 .cz-toast.is-leaving {
   opacity: 0;
+  pointer-events: none;
   transform: translateY(-12px) scale(0.97);
 }
 .cz-toast-icon {
