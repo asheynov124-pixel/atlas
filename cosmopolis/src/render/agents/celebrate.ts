@@ -138,7 +138,7 @@ export class Celebrations {
       if (f.t > 0.35) continue;
       const k = 1 - f.t / 0.35;
       const ci = f.color * 3;
-      ctx.sprites.push(f.pos.x, f.pos.y, f.pos.z, 1.6 * k + 0.2, LIN[ci] * 2 * k, LIN[ci + 1] * 2 * k, LIN[ci + 2] * 2 * k, 0);
+      ctx.sprites.push(f.pos.x, f.pos.y, f.pos.z, 1.1 * k + 0.15, LIN[ci] * 1.4 * k, LIN[ci + 1] * 1.4 * k, LIN[ci + 2] * 1.4 * k, 0);
     }
   }
 

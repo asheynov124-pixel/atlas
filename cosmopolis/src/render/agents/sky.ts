@@ -309,7 +309,7 @@ export class SkyTraffic {
       this.blimps.push({
         a: ctx.rng.next() * Math.PI * 2,
         radius: 7 + k * 4 + ctx.rng.next() * 3,
-        alt: Math.min(9, Math.max(4.5, this.skyline * 0.75)) + k * 0.7,
+        alt: blimpAlt(this.skyline) + k * 0.7,
         speed: (0.22 + ctx.rng.next() * 0.08) * (k % 2 ? -1 : 1),
         color: k,
         pos: new Vector3(),
@@ -320,7 +320,7 @@ export class SkyTraffic {
     this.blimpCount = this.blimps.length;
     const R = ctx.planet.radius;
     for (const bl of this.blimps) {
-      bl.alt = Math.min(9, Math.max(4.5, this.skyline * 0.75)) + (bl.color ? 0.7 : 0);
+      bl.alt = blimpAlt(this.skyline) + (bl.color ? 0.7 : 0);
       bl.a += (bl.speed * dt) / bl.radius;
       // circle around the city centre in its tangent plane
       const c = this.cityCentre;
@@ -444,6 +444,11 @@ export class SkyTraffic {
     this.flyers.length = 0;
     this.hoppers.length = 0;
   }
+}
+
+/** Blimps cruise just above the skyline (never through the towers), between 4.5 and 26 units up. */
+function blimpAlt(skyline: number): number {
+  return Math.min(26, Math.max(4.5, skyline + 1.6));
 }
 
 function pick(ctx: LifeCtx, list: Site[]): Site | null {
