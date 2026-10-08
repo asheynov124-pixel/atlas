@@ -14,6 +14,10 @@ export interface SaveMeta {
   savedAt: number;
   /** small JPEG data URL thumbnail (optional) */
   thumb?: string;
+  /** name of the active city (optional; older saves lack it) */
+  cityName?: string;
+  /** career tier 0..8 (optional) */
+  tier?: number;
 }
 
 export interface SaveFile {

@@ -38,6 +38,8 @@ export interface NewGameOptions {
   planetName?: string;
   planetType?: PlanetTypeId;
   seed?: number;
+  /** planet size (Goldberg frequency; default from the home spec, 40) */
+  frequency?: number;
 }
 
 export class Game {
@@ -122,15 +124,19 @@ export class Game {
   newGame(mode: GameMode, o: NewGameOptions = {}): void {
     ui.loading.value = mode === 'sandbox' ? 'Forging a sandbox universe…' : 'Seeding your homeworld…';
     const seed = o.seed ?? Math.floor(Math.random() * 1e9);
+    // tear the old world down first, so it is saved into the OLD empire (not restored into the new one)
+    this.unloadPlanet();
     this.empire = Empire.create(mode, o.empireName ?? (mode === 'sandbox' ? 'Sandbox' : 'New Empire'), seed);
     this.clock.day = 0;
     this.clock.setSpeed(1);
     this.clock.timeOfDay = 0.28;
+    this.autosaveTimer = 0;
     ui.mode.value = mode;
     ui.news.value = [];
-    const spec = this.cosmos.homePlanetSpec({ seed, name: o.planetName, type: o.planetType });
-    this.enterPlanet(spec, { cityName: o.cityName });
     this.studio.loadFromEmpire();
+    const home = this.cosmos.homePlanetSpec({ seed, name: o.planetName, type: o.planetType });
+    const spec = o.frequency ? { ...home, frequency: o.frequency } : home;
+    this.enterPlanet(spec, { cityName: o.cityName });
     ui.screen.value = 'game';
     ui.loading.value = null;
   }
@@ -223,6 +229,8 @@ export class Game {
         name: e.s.name,
         mode: e.s.mode,
         planetName: this.planet?.spec.name ?? '',
+        cityName: this.planet?.city.name,
+        tier: e.s.tier,
         population: Math.round(this.sim.getMetric('population')),
         day: Math.floor(this.clock.day),
         savedAt: Date.now(),
@@ -251,11 +259,14 @@ export class Game {
     this.unloadPlanet();
     this.empire = new Empire(f.empire);
     this.clock.day = f.empire.day;
+    this.autosaveTimer = 0;
     ui.mode.value = f.empire.mode;
+    ui.news.value = [];
+    // custom (Architect Studio) designs must be registered before the planet deserialises, so their footprints resolve
+    this.studio.loadFromEmpire();
     const id = f.empire.currentPlanet;
     const spec = f.empire.planets[id]?.spec ?? this.cosmos.planetSpec(id) ?? this.cosmos.homePlanetSpec();
     this.enterPlanet(spec);
-    this.studio.loadFromEmpire();
     ui.screen.value = 'game';
     ui.loading.value = null;
     bus.emit('game:loaded', { slot });

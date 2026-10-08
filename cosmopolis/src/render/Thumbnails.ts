@@ -31,7 +31,7 @@ import {
   type WebGLRenderer,
 } from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { getGeometry, getItem } from '../content/catalog';
+import { getGeometry, getItem, type ItemDef } from '../content/catalog';
 import { FOOTPRINT_RADIUS } from '../content/kit';
 import { bus } from '../core/events';
 import type { StyleId } from '../core/types';
@@ -62,6 +62,8 @@ let seqCounter = 0;
 
 const SIZES = { sm: 160, lg: 320 } as const;
 const cache = new Map<string, Signal<string | null>>();
+/** the definition object each portrait was requested for (a re-registered def invalidates its portraits) */
+const portraitDefs = new Map<string, ItemDef>();
 const queue: Job[] = [];
 const failed = new Set<string>();
 
@@ -445,6 +447,7 @@ export function thumbnailSignal(defId: string, o: ThumbOptions = {}): ReadonlySi
     /* default style */
   }
   const def = getItem(defId);
+  if (def) portraitDefs.set(defId, def);
   const styleKey = def?.styleable ? style : '-';
   const key = `${defId}|${styleKey}|${o.variant ?? 0}|${o.level ?? 3}|${px}`;
   let sig = cache.get(key);
@@ -490,10 +493,16 @@ export function clearThumbnails(prefix = ''): void {
   }
 }
 
-// custom (Architect Studio) items change shape when edited
+// items re-registered with a new definition (Architect Studio edits) or removed change shape: forget only those
 bus.on('catalog:changed', () => {
-  for (const k of [...cache.keys()]) {
-    const id = k.split('|')[0];
-    if (getItem(id)?.category === 'custom' || !getItem(id)) clearThumbnails(id + '|');
+  const stale = new Set<string>();
+  for (const k of cache.keys()) {
+    const id = k.slice(0, k.indexOf('|'));
+    const def = getItem(id);
+    if (!def || (portraitDefs.has(id) && portraitDefs.get(id) !== def)) stale.add(id);
+  }
+  for (const id of stale) {
+    portraitDefs.delete(id);
+    clearThumbnails(id + '|');
   }
 });

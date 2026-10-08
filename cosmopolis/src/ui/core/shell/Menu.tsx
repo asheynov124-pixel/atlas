@@ -43,7 +43,7 @@ function SaveRow({ s, onLoad, onDelete }: { s: SaveMeta; onLoad: () => void; onD
         <span class="mm-save-text">
           <span class="mm-save-name ellipsis">{s.name}</span>
           <span class="mm-save-meta num ellipsis">
-            {s.planetName || 'Unknown world'} · {fmtCompact(s.population)} pop · {fmtGameDays(s.day)}
+            {s.cityName ? `${s.cityName}, ` : ''}{s.planetName || 'Unknown world'} · {fmtCompact(s.population)} pop · {fmtGameDays(s.day)}
           </span>
         </span>
         <span class="mm-save-when">{timeAgo(s.savedAt)}</span>
@@ -164,7 +164,7 @@ export function MainMenu() {
                 <span class="mm-continue-k">Continue</span>
                 <span class="mm-continue-name ellipsis">{latest.name}</span>
                 <span class="mm-continue-meta num ellipsis">
-                  {latest.planetName || 'Unknown world'} · {fmtCompact(latest.population)} citizens · {timeAgo(latest.savedAt)}
+                  {latest.cityName ? `${latest.cityName}, ` : ''}{latest.planetName || 'Unknown world'} · {fmtCompact(latest.population)} citizens · {timeAgo(latest.savedAt)}
                 </span>
               </span>
               <Icon name="chevronRight" size={20} class="mm-continue-chev" />

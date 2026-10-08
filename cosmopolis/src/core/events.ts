@@ -56,12 +56,17 @@ type Handler<T> = (payload: T) => void;
 
 export class EventBus {
   private map = new Map<keyof GameEvents, Set<Handler<any>>>();
+  /** cached handler arrays (rebuilt only when subscriptions change) */
+  private snap = new Map<keyof GameEvents, Handler<any>[]>();
 
   on<K extends keyof GameEvents>(type: K, fn: Handler<GameEvents[K]>): () => void {
     let set = this.map.get(type);
     if (!set) this.map.set(type, (set = new Set()));
     set.add(fn);
-    return () => set!.delete(fn);
+    this.snap.delete(type);
+    return () => {
+      if (set!.delete(fn)) this.snap.delete(type);
+    };
   }
 
   once<K extends keyof GameEvents>(type: K, fn: Handler<GameEvents[K]>): () => void {
@@ -73,11 +78,18 @@ export class EventBus {
   }
 
   emit<K extends keyof GameEvents>(type: K, payload: GameEvents[K]): void {
-    const set = this.map.get(type);
-    if (!set) return;
-    for (const fn of [...set]) {
+    // handlers are snapshotted once per subscription change (not per emit), so emitting allocates nothing and
+    // handlers added / removed while emitting take effect from the next emit
+    let list = this.snap.get(type);
+    if (!list) {
+      const set = this.map.get(type);
+      if (!set || !set.size) return;
+      list = [...set];
+      this.snap.set(type, list);
+    }
+    for (let i = 0; i < list.length; i++) {
       try {
-        fn(payload);
+        list[i](payload);
       } catch (err) {
         console.error(`[bus] handler for "${String(type)}" threw`, err);
       }

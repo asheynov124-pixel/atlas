@@ -127,7 +127,7 @@ function SaveRow({ s, inGame, busy, onLoad, onOverwrite, onDelete, onShare }: { 
             )}
           </span>
           <span class="up-save-meta num ellipsis">
-            {s.planetName || 'Unknown world'} · {fmtCompact(s.population)} citizens
+            {s.cityName ? `${s.cityName}, ` : ''}{s.planetName || 'Unknown world'} · {fmtCompact(s.population)} citizens
           </span>
           <span class="up-save-meta num ellipsis">
             {s.mode === 'sandbox' ? 'Sandbox' : 'Career'} · {fmtGameDays(s.day)} · saved {timeAgo(s.savedAt)}

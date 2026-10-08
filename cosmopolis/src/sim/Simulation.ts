@@ -235,7 +235,9 @@ export class Simulation implements System {
 
   init(): void {
     this.globalOffs.push(
-      bus.on('catalog:changed', () => this.onCatalogChanged()),
+      bus.on('catalog:changed', () => {
+        if (this.catVer !== catalogVersion()) this.onCatalogChanged();
+      }),
       bus.on('disaster:start', ({ powerId, tile }) => this.onDisaster(powerId, true, tile)),
       bus.on('disaster:end', ({ powerId }) => this.onDisaster(powerId, false)),
       bus.on('milestone:reached', ({ goalId }) => this.onMilestone(goalId)),

@@ -74,22 +74,19 @@ export function NewGameModal({ open, mode, onClose, onMode }: Props) {
     onClose();
     ui.loading.value = mode === 'sandbox' ? 'Forging a sandbox universe…' : `Seeding ${worldName}…`;
     await nextPaint();
-    const cosmos = game.cosmos;
-    const orig = cosmos.homePlanetSpec;
-    // planet size: wrap the cosmos home-spec factory for this one call (sandbox only)
-    if (mode === 'sandbox' && size !== 40) {
-      cosmos.homePlanetSpec = function (this: typeof cosmos, o) {
-        const spec = orig.call(this, o);
-        return { ...spec, frequency: size };
-      } as typeof orig;
-    }
     try {
-      game.newGame(mode, { empireName: civ.trim() || randomCivName(seed), cityName: city.trim() || randomCityName(seed), planetName: worldName, planetType: world, seed });
+      game.newGame(mode, {
+        empireName: civ.trim() || randomCivName(seed),
+        cityName: city.trim() || randomCityName(seed),
+        planetName: worldName,
+        planetType: world,
+        seed,
+        // planet size (sandbox only)
+        frequency: mode === 'sandbox' && size !== 40 ? size : undefined,
+      });
     } catch (e) {
       console.error('[ui] newGame failed', e);
       notify({ title: 'Could not start the game', body: String((e as Error)?.message ?? e), kind: 'bad', icon: 'alert' });
-    } finally {
-      cosmos.homePlanetSpec = orig;
     }
     if (mode === 'sandbox' && instant && game.planet) {
       ui.loading.value = 'Raising an Instant City…';

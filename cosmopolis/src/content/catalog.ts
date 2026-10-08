@@ -15,6 +15,7 @@ import type { Category, Feature, PlanetTypeId, Placement, RoadKind, ServiceType,
 import { MeshBuilder } from './kit';
 import { STYLES, type StylePalette } from './styles';
 import { Rng, hashString } from '../core/rng';
+import { bus } from '../core/events';
 
 export interface Effects {
   /** + produces / − consumes, MW */
@@ -142,12 +143,24 @@ export function registerItems(defs: ItemDef[]): void {
       if (k.startsWith(d.id + '|')) geoCache.delete(k);
     });
   }
-  version++;
+  changed();
 }
 
 export function unregisterItem(id: string): void {
   items.delete(id);
+  changed();
+}
+
+let emitQueued = false;
+/** Bump the version and emit one coalesced 'catalog:changed' per task (late registrations: Studio, unlocks). */
+function changed(): void {
   version++;
+  if (emitQueued) return;
+  emitQueued = true;
+  queueMicrotask(() => {
+    emitQueued = false;
+    bus.emit('catalog:changed', {});
+  });
 }
 
 export function getItem(id: string): ItemDef | undefined {
