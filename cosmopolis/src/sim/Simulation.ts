@@ -1566,9 +1566,15 @@ export class Simulation implements System {
       if (n < 3 && sup >= dem) continue;
       if (!this.cool('util.' + key, key === 'oxygen' ? 10 : 25)) continue;
       const tile = this.agg.problemTile[bi] >= 0 ? this.agg.problemTile[bi] : undefined;
+      const fix = key === 'garbage' ? 'Build a landfill or recycling plant.' : key === 'power' ? 'Build a power plant.' : key === 'water' ? 'Build a water tower or pump.' : 'Build oxygen generators.';
       const body =
-        sup <= 0 ? `Nothing supplies ${key} yet — ${n} building${n === 1 ? '' : 's'} affected.`
-        : `Demand ${Math.round(dem)} vs supply ${Math.round(sup)} — ${n} building${n === 1 ? '' : 's'} cut off.`;
+        n === 0
+          ? sup <= 0
+            ? `Nothing supplies ${key} yet — trouble starts soon. ${fix}`
+            : `Demand ${Math.round(dem)} vs supply ${Math.round(sup)} — buildings will be cut off soon.`
+          : sup <= 0
+            ? `Nothing supplies ${key} yet — ${n} building${n === 1 ? '' : 's'} affected.`
+            : `Demand ${Math.round(dem)} vs supply ${Math.round(sup)} — ${n} building${n === 1 ? '' : 's'} cut off.`;
       this.toast('util.' + key, { title, body, icon, kind: key === 'oxygen' ? 'bad' : 'warn', tile }, 60);
       const topic = key === 'power' ? 'powerOut' : key === 'water' ? 'waterOut' : key === 'oxygen' ? 'oxygenOut' : 'garbage';
       this.post(this.persona(), line(this.rng, topic, this.vars()), tile);

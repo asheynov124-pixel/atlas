@@ -2429,7 +2429,8 @@
 .up-save-actions {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  /* small icon buttons extend their 44 px hit box 4 px beyond the face: keep neighbouring hit boxes apart */
+  gap: 8px;
 }
 @container up (min-width: 520px) {
   .up-save-actions {

@@ -238,6 +238,11 @@ export default async ({ page, shot }) => {
     await shot('colonies');
     await audit(page, 'colonies');
     await tap(page, `button[aria-label="Travel to ${homeCity}"]`);
+    // travelling between colonies asks first
+    const engage = page.getByRole('button', { name: 'Engage warp drive' }).first();
+    await engage.waitFor({ state: 'visible', timeout: 15000 });
+    await shot('travel-confirm');
+    await engage.tap();
     await until(page, (home) => window.__cosmo.debugInfo().view === 'planet' && window.__cosmo.game.planet?.spec.id === home, { arg: homeId, timeout: 180000, poll: 1000, what: 'return home' });
     await sleep(page, 3000);
     const bHome = await buildings(page);
@@ -247,12 +252,18 @@ export default async ({ page, shot }) => {
 
   // ── save, reload, load
   if (!skip.has('save')) {
-    step('save: More → Save game');
+    step('save: More → Saved Cities → save as a new slot');
     await tapButton(page, 'More', { exact: true });
-    await until(page, () => !!document.querySelector('.mo-sheet .mo-row'), { what: 'more sheet' });
-    await tap(page, '.mo-row:has-text("Save game")');
-    await until(page, () => !!document.querySelector('.cz-toast'), { timeout: 20000, what: 'saved toast' }).catch(() => {});
-    await sleep(page, 1500);
+    await until(page, () => !!document.querySelector('.mo-sheet .mo-tile'), { what: 'more sheet' });
+    await tap(page, '.mo-tile:has-text("Saved Cities")');
+    await until(page, () => !!document.querySelector('.up-saves'), { timeout: 20000, what: 'saves panel' });
+    await sleep(page, 800);
+    await page.locator('.up-save-new input').fill('E2E Save');
+    await tapButton(page, 'Create save');
+    await until(page, () => [...document.querySelectorAll('.up-save-main')].some((b) => (b.getAttribute('aria-label') ?? '').includes('E2E Save')), { timeout: 30000, what: 'the new save in the list' });
+    await shot('saved');
+    await audit(page, 'saves panel');
+    await escape(page);
     const city = await page.evaluate(() => window.__cosmo.game.planet.city.name);
     const nB = await buildings(page);
     step(`saved "${city}" with ${nB} buildings — reloading the page`);
