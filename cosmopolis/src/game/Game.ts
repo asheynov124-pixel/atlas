@@ -26,6 +26,7 @@ import { generatePlanet } from '../world/planetgen';
 import { Planet } from '../world/planet';
 import { PlanetOps } from '../world/ops';
 import { ui, notify } from '../ui/store';
+import { panels } from '../ui/registry';
 import { Clock } from './Clock';
 import { Commands } from './Commands';
 import { Empire } from './Empire';
@@ -72,6 +73,8 @@ export class Game {
   private fpsFrames = 0;
   private lensTimer = 0;
   private running = false;
+  /** seconds a full-screen panel (e.g. Research) has covered the 3D view — rendering pauses to save battery */
+  private coveredFor = 0;
 
   constructor(container: HTMLElement) {
     setGame(this);
@@ -313,10 +316,13 @@ export class Game {
         console.error('[game] system update failed', s, e);
       }
     }
+    const pid = ui.panel.value;
+    this.coveredFor = pid && panels.get(pid)?.kind === 'full' ? this.coveredFor + dt : 0;
     if (this.activeView) {
       try {
         this.activeView.update(dt);
-        this.engine.render(this.activeView, dt);
+        // a full-screen panel hides the world: keep simulating, stop drawing once its fade-in is done
+        if (this.coveredFor < 0.5) this.engine.render(this.activeView, dt);
       } catch (e) {
         console.error('[game] render failed', e);
       }
