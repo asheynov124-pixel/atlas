@@ -684,6 +684,8 @@ export class RoadTraffic {
     this.visible = 0;
     if (!close) {
       for (const c of this.cars) c.seen = false;
+      // at night from high above, every car becomes a speck of light streaming along the roads (no meshes)
+      if (night > 0.05 && cull.altitude < ctx.planet.radius * 2.6) this.renderSpecks(ctx);
       return;
     }
     const sprites = ctx.sprites;
@@ -759,6 +761,21 @@ export class RoadTraffic {
       }
     }
     this.capped = mine <= 0;
+  }
+
+  /** Far-away night view: one warm (headlight) or red (tail-light) glow per car, sprites only. */
+  private renderSpecks(ctx: LifeCtx): void {
+    const cull = ctx.cull;
+    const sprites = ctx.sprites;
+    const far = cull.camDist;
+    for (let i = 0; i < this.cars.length; i++) {
+      const c = this.cars[i];
+      if (!c.active || c.dying >= 0) continue;
+      const P = c.pos;
+      if (!cull.visible(P.x, P.y, P.z, 0.2, far)) continue;
+      if (c.id & 1) sprites.push(P.x, P.y, P.z, 0.2, 1.5, 1.25, 0.85, 1);
+      else sprites.push(P.x, P.y, P.z, 0.17, 1.5, 0.1, 0.06, 1);
+    }
   }
 
   /**
