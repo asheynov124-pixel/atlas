@@ -6,15 +6,19 @@
  *     circular orbit — radius = orbit × planet radius, node Ω, inclination i, phase, speed (× game speed). The
  *     convention matches tools/orbit.ts: N = (cos Ω, 0, sin Ω), n = (−sin Ω sin i, cos i, cos Ω sin i),
  *     pos(u) = R·orbit·(cos u N + sin u (n × N)). Objects keep +Y away from the planet and +Z along their velocity.
- *     Small satellites grow a little with camera distance so they stay readable from orbit; giant orbitals whose
- *     mesh is planet-sized (rings, Dyson swarms…) are centred on the planet and slowly turn instead.
+ *     Small satellites grow a little with camera distance so they stay readable from orbit. Planet-centred
+ *     megastructures (the Orbital Ring: modelled around the planet centre for a reference planet of radius
+ *     REF_PLANET_RADIUS = 66, see content/meshes/landmarks/orbital.ts) sit at the planet centre, tilted by their
+ *     inclination, scaled by planet.radius / 66 so they fit every world size, and slowly turn about their axis.
  *   • soft orbit trails (additive lines, bright just behind each object, fading around the ring) fade in as the
  *     camera pulls out to orbit
  *   • cargo haulers ply between stations and up from spaceports (engine glow, docking fades)
  *   • launch(defId, from, params, done): the orbit tool's launch hook — a rocket climbs from the pad on a gravity
  *     turn into the insertion point with flame + smoke, then calls done()
- *   • pickOrbital(ray) → id | null for selection (generous touch radius, occluded by the planet)
- *   • position(id, out) → world position for camera follow (CameraRig.follow(() => view.orbitals.position(id, v)))
+ *   • pickOrbital(ray) → id | null for selection (generous touch radius, occluded by the planet; rings are picked
+ *     where the ray crosses their plane near the band)
+ *   • position(id, out) → world position for camera follow (CameraRig.follow(() => view.orbitals.position(id, v)));
+ *     for a ring it is a point on the band that turns with it
  * Reacts to orbital:added / orbital:removed / selection:changed; disposes everything on unload.
  */
 import {
@@ -29,6 +33,7 @@ import {
 } from 'three';
 import { bus } from '../../core/events';
 import { getGeometry, getItem } from '../../content/catalog';
+import { REF_PLANET_RADIUS, RING_RADIUS } from '../../content/meshes/landmarks/orbital';
 import { game } from '../../game/instance';
 import type { OrbitalInstance } from '../../world/planet';
 import { InstState, SHADER_COMMON, shared } from '../materials';
@@ -48,6 +53,10 @@ interface Orb {
   phase0: number;
   centred: boolean;
   bound: number;
+  /** planet-centred structures: draw scale (planet.radius / REF_PLANET_RADIUS) */
+  scale: number;
+  /** planet-centred structures: band radius at the reference planet size (picking / follow point) */
+  ring: number;
   r: number;
   g: number;
   b: number;
@@ -218,14 +227,20 @@ export class OrbitalRenderer {
     const bound = b?.radius ?? 1;
     const col = new Float32Array(3);
     linHex(o.tint ?? 0xffffff, col);
+    // meshes are modelled at absolute scale: anything bigger than a third of the reference planet must be one of
+    // the planet-centred megastructures (stations top out around 10 units)
+    const centred = bound > REF_PLANET_RADIUS * 0.4;
+    const def = getItem(o.defId);
     this.orbs.set(o.id, {
       id: o.id,
       key,
       u: o.phase,
       t0: this.clock,
       phase0: o.phase - o.speed * this.clock,
-      centred: bound > this.R * 0.4,
+      centred,
       bound,
+      scale: centred ? this.R / REF_PLANET_RADIUS : 1,
+      ring: centred ? (def?.tags?.includes('ring') ? RING_RADIUS : Math.max(1, bound - 2)) : 0,
       r: col[0],
       g: col[1],
       b: col[2],
@@ -255,7 +270,8 @@ export class OrbitalRenderer {
     orb.pos.copy(_N).multiplyScalar(cu * rad).addScaledVector(_M, su * rad);
     const sgn = o.speed >= 0 ? 1 : -1;
     orb.vel.copy(_N).multiplyScalar(-su * sgn).addScaledVector(_M, cu * sgn);
-    if (orb.centred) orb.pos.set(0, 0, 0);
+    // planet-centred: the "position" is a point on the band (local +X) that turns with the structure
+    if (orb.centred) orb.pos.copy(_N).multiplyScalar(cu).addScaledVector(_M, su).multiplyScalar(orb.ring * orb.scale);
   }
 
   private rebuildTrails(): void {
@@ -329,7 +345,23 @@ export class OrbitalRenderer {
     const disc = b * b - c;
     const planetT = disc >= 0 ? -b - Math.sqrt(disc) : Infinity;
     for (const o of this.orbs.values()) {
-      if (o.centred) continue;
+      if (o.centred) {
+        // ring: where the ray crosses the ring plane, close to the band (and in front of the planet)
+        const inst = this.view.planet.orbitals.get(o.id);
+        if (!inst) continue;
+        this.basis(inst);
+        const den = ray.direction.dot(_n);
+        if (Math.abs(den) < 1e-4) continue;
+        const t = -ray.origin.dot(_n) / den;
+        if (t <= 0 || t > planetT || t >= bestT) continue;
+        _d.copy(ray.origin).addScaledVector(ray.direction, t);
+        const tol = 4 * o.scale + t * 0.03;
+        if (Math.abs(_d.length() - o.ring * o.scale) <= tol) {
+          bestT = t;
+          best = o.id;
+        }
+        continue;
+      }
       _d.copy(o.pos).sub(ray.origin);
       const t = _d.dot(ray.direction);
       if (t <= 0 || t > planetT) continue;
@@ -367,7 +399,8 @@ export class OrbitalRenderer {
   // ───────────────────────────────────────────── per frame
 
   private scaleFor(o: Orb): number {
-    if (o.centred || o.bound > 6) return 1;
+    if (o.centred) return o.scale;
+    if (o.bound > 6) return 1;
     const d = Math.sqrt(this.cull.dist2(o.pos.x, o.pos.y, o.pos.z));
     return Math.max(1, Math.min(2.6, d / 80));
   }
@@ -420,10 +453,11 @@ export class OrbitalRenderer {
         this.basis(inst);
         const a = o.u;
         const ca = Math.cos(a), sa = Math.sin(a);
-        // right = N rotated in the orbit plane, fwd = M rotated, up = orbit normal
+        // right = N rotated in the orbit plane, up = orbit normal, fwd = right × up (a proper rotation — a mirrored
+        // basis would flip the winding and draw the band inside out)
         _a.copy(_N).multiplyScalar(ca).addScaledVector(_M, sa);
-        _c.copy(_M).multiplyScalar(ca).addScaledVector(_N, -sa);
-        b.push(0, 0, 0, _a.x, _a.y, _a.z, _n.x, _n.y, _n.z, _c.x, _c.y, _c.z, 1, o.r, o.g, o.b, state);
+        _c.copy(_N).multiplyScalar(sa).addScaledVector(_M, -ca);
+        b.push(0, 0, 0, _a.x, _a.y, _a.z, _n.x, _n.y, _n.z, _c.x, _c.y, _c.z, o.scale, o.r, o.g, o.b, state);
         continue;
       }
       _up.copy(o.pos).normalize();
