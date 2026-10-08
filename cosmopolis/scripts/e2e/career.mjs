@@ -231,14 +231,48 @@ export default async ({ page, shot }) => {
   await audit(page, 'budget');
   await escape(page, 2);
 
-  // ── milestone / goal completion
-  step('first goal completed');
-  await until(page, () => window.__cosmo.game.empire.s.goalsDone.length > 0 || !!document.querySelector('.ce-card'), {
-    timeout: 120000,
-    poll: 1000,
-    what: 'a goal / milestone',
-  });
+  // ── milestone: extend the street network to 25 tiles → "Paving Paradise" completes (reward + celebration toast)
+  step('milestone: extend the roads to 25 tiles');
+  await tap(page, '.dk-btn[aria-label="Roads"]');
+  await until(page, () => !!document.querySelector('.bs-sheet .bs-card-main'), { what: 'roads sheet' });
+  await tap(page, '.bs-card-main[aria-label="Street"]');
+  await sleep(page, 900);
+  for (let k = 0; k < 6; k++) {
+    const roadTiles = await page.evaluate(() => window.__cosmo.game.sim.getMetric('roadTiles'));
+    if (roadTiles >= 25) break;
+    // chain from the current end of the network to a clear tile 4–8 steps away
+    const hop = await page.evaluate((from) => {
+      const g = window.__cosmo.game, p = g.planet, grid = p.grid;
+      const ends = [];
+      for (let t = 0; t < p.count; t++) if (p.road[t]) ends.push(t);
+      for (const a of ends.reverse()) {
+        for (const d of [8, 7, 6, 5, 4]) {
+          for (const b of grid.ring(a, d)) {
+            if (p.isWater(b) || p.road[b] || p.building[b] >= 0 || p.zone[b]) continue;
+            if (Math.abs(p.elevation[b] - p.elevation[a]) > 1) continue;
+            if (window.__e2e.tappable(a) && window.__e2e.tappable(b)) return [a, b];
+          }
+        }
+      }
+      return null;
+    });
+    if (!hop) throw new Error('no on-screen spot to extend the road network');
+    await tapTile(page, hop[0]);
+    await sleep(page, 700);
+    await tapTile(page, hop[1]);
+    await sleep(page, 1200);
+    await escape(page);
+    await tap(page, '.dk-btn[aria-label="Roads"]').catch(() => {});
+    await tap(page, '.bs-card-main[aria-label="Street"]').catch(() => {});
+    await sleep(page, 700);
+  }
+  await escape(page, 2);
+  const roadTiles = await page.evaluate(() => window.__cosmo.game.sim.getMetric('roadTiles'));
+  step(`road tiles: ${roadTiles}`);
+  await shot('roads-25');
+  await until(page, () => window.__cosmo.game.empire.s.goalsDone.includes('city.roads'), { timeout: 90000, poll: 1000, what: 'the "Paving Paradise" goal' });
+  await sleep(page, 1500);
   await shot('milestone');
   const end = await info(page);
-  step(`end: population ${Math.round(end.population)}, money ${Math.round(end.money)}, day ${end.day}`);
+  step(`end: population ${Math.round(end.population)}, money ${Math.round(end.money)}, day ${end.day}, goals ${await page.evaluate(() => window.__cosmo.game.empire.s.goalsDone.join(','))}`);
 };

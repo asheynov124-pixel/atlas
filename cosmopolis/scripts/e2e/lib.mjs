@@ -197,3 +197,31 @@ export async function escape(page, times = 1) {
 export function expect(cond, msg) {
   if (!cond) throw new Error('expectation failed: ' + msg);
 }
+
+/** A real one-finger touch drag through CDP (touchStart → touchMove × steps → touchEnd) between screen points. */
+export async function touchDrag(page, from, to, steps = 8) {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: from.x, y: from.y }] });
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t }] });
+      await page.waitForTimeout(40);
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  } finally {
+    await cdp.detach().catch(() => {});
+  }
+}
+
+/** Find tappable land tiles near the camera target: { center, tiles[] } sorted by distance. */
+export async function landNearCamera(page, maxRing = 8) {
+  await installHelpers(page);
+  return page.evaluate((maxRing) => {
+    const g = window.__cosmo.game, p = g.planet, grid = p.grid;
+    const center = g.camera.targetTile();
+    const out = [];
+    for (let r = 0; r <= maxRing; r++) for (const t of grid.ring(center, r)) if (!p.isWater(t) && window.__e2e.tappable(t)) out.push(t);
+    return { center, tiles: out };
+  }, maxRing);
+}
