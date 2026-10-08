@@ -161,14 +161,15 @@ export class PlanetOps {
   updateBuilding(id: number, patch: Partial<Pick<BuildingInstance, 'level' | 'variant' | 'state' | 'tint' | 'name' | 'style' | 'progress' | 'occupants' | 'jobs' | 'rot'>>): void {
     const b = this.planet.buildings.get(id);
     if (!b) return;
-    const before = { ...b };
+    // capture only the compared fields (no object copy: the sim calls this from its daily pass)
+    const level = b.level, state = b.state, variant = b.variant, style = b.style, tint = b.tint, rot = b.rot;
     Object.assign(b, patch);
-    const what = patch.level !== undefined && patch.level !== before.level ? 'level'
-      : patch.state !== undefined && patch.state !== before.state ? 'state'
-      : patch.variant !== undefined && patch.variant !== before.variant ? 'variant'
-      : patch.style !== undefined && patch.style !== before.style ? 'style'
-      : patch.tint !== before.tint && 'tint' in patch ? 'tint'
-      : patch.rot !== undefined && patch.rot !== before.rot ? 'variant'
+    const what = patch.level !== undefined && patch.level !== level ? 'level'
+      : patch.state !== undefined && patch.state !== state ? 'state'
+      : patch.variant !== undefined && patch.variant !== variant ? 'variant'
+      : patch.style !== undefined && patch.style !== style ? 'style'
+      : patch.tint !== tint && 'tint' in patch ? 'tint'
+      : patch.rot !== undefined && patch.rot !== rot ? 'variant'
       : patch.name !== undefined ? 'name' : null;
     if (what) bus.emit('building:updated', { id, what });
   }
