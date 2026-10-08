@@ -207,7 +207,7 @@ npm run build:single   # single-file HTML for phone preview
 
 **Do not end a task until `npm run check` passes.** Plausible-looking code that fails the check is not done.
 
-> Status: as of slice 1, `check` = typecheck + lint + test. `validate:content` joins in slice 2, `e2e` in slice 3; `dev`/`build`/`build:single` arrive with the first screen.
+> Status: as of slice 2, `check` = typecheck + lint + test + validate:content. `e2e` joins in slice 3; `dev`/`build`/`build:single` arrive with the first screen.
 
 `validate:content` must fail when:
 - an exercise does not have exactly 5 drafts
@@ -216,6 +216,18 @@ npm run build:single   # single-file HTML for phone preview
 - more than one `KEEP` mark appears per draft
 - any draft contains a citation pattern (`\d+ N\.J\.`, `\d+ F\.\d`, `U\.S\.`) not covered by the allowlist
 - any file in `/content/courses` was last written by a generation script — Master Mode exports carry `"authoredBy": "master"`
+
+**Validator extras (slice 2, beyond the list above):**
+- Shipping lessons may cite an allowlisted authority only once its entry has `"verifiedByOwner": true`. Unreviewed candidates may cite unverified entries.
+- NJ statutes (`N.J.S.A. x:y-z`) and court rules (`R. x:y-z` / `Rule x:y-z`) must be allowlisted too, enforcing §6.
+- A master mark must reference a sentence in *its own* draft, and no sentence may be marked twice.
+- `content/unreviewed/*.candidates.json` must say `"generatedBy": "claude"`, have 4–7 sentences per draft (§9), and carry no `masterRank` / `masterMarks` / `masterSummary`.
+- Only Master Mode `.json` exports (plus dotfiles) may live in `content/courses`.
+
+**Content layout:**
+- `content/rubrics/<rubricId>.json`: the rubric a lesson's `rubricId` resolves to. `legal-writing-v0.json` is §8 transcribed verbatim. It stays outside `content/courses` because only Master Mode writes there.
+- `content/unreviewed/lesson-01.candidates.json`: Claude's five drafts. The draft order is shuffled, so position says nothing about quality.
+- `content/unreviewed/lesson-01.profiles.sealed.json`: which §9 profile each draft was aimed at. The app never reads it. The owner opens it after grading, if at all.
 
 The e2e suite must:
 - complete Lesson 1 end to end on a 390px viewport

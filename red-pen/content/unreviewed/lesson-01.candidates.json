@@ -1,0 +1,62 @@
+{
+  "generatedBy": "claude",
+  "status": "unreviewed",
+  "exerciseId": "l01-e01",
+  "factPattern": "Plaintiff Dana Ferro trips on a raised sidewalk slab outside the Township of Harlow municipal building on March 3. She serves no notice of claim. On November 20 she files a negligence complaint against the Township. The Township moves to dismiss for failure to serve notice under the Tort Claims Act.",
+  "task": "Write the opening paragraph of the Township's brief in support of its motion to dismiss.",
+  "drafts": [
+    {
+      "id": "d1",
+      "sentences": [
+        { "id": "d1-s1", "text": "This action arises from a fall on a public sidewalk in the Township of Harlow." },
+        { "id": "d1-s2", "text": "Plaintiff Dana Ferro alleges that on March 3 she tripped on a raised slab outside the municipal building and was injured." },
+        { "id": "d1-s3", "text": "She alleges that the Township negligently failed to repair the slab, and she seeks compensatory damages." },
+        { "id": "d1-s4", "text": "The Township disputes that the slab was a dangerous condition and denies that it had notice of any defect." },
+        { "id": "d1-s5", "text": "But the Court need not reach those questions, because Ms. Ferro never served the notice of claim that N.J.S.A. 59:8-8 requires within ninety days of her fall." },
+        { "id": "d1-s6", "text": "Her claim is therefore barred, and the complaint should be dismissed with prejudice." }
+      ]
+    },
+    {
+      "id": "d2",
+      "sentences": [
+        { "id": "d2-s1", "text": "Plaintiff Dana Ferro's lawsuit is a textbook case of a claimant ignoring the law and hoping the courts will look the other way." },
+        { "id": "d2-s2", "text": "The Tort Claims Act requires notice within ninety days, N.J.S.A. 59:8-8, and New Jersey courts have dismissed every suit ever filed without it, without exception [CITE]." },
+        { "id": "d2-s3", "text": "Ms. Ferro did not merely fail to serve notice; she chose not to, knowing exactly what the law required." },
+        { "id": "d2-s4", "text": "No circumstance could excuse that choice, and no court has the power to relieve her of it." },
+        { "id": "d2-s5", "text": "The complaint must be dismissed with prejudice, and the Township should be awarded the fees it has spent answering a suit that never should have been filed." }
+      ]
+    },
+    {
+      "id": "d3",
+      "sentences": [
+        { "id": "d3-s1", "text": "Plaintiff Dana Ferro never served the Township of Harlow with a notice of claim, and the Tort Claims Act makes that omission dispositive." },
+        { "id": "d3-s2", "text": "The Act requires anyone suing a public entity for an injury to serve notice within ninety days of the accident, N.J.S.A. 59:8-8, and a claimant who does not is barred from recovering." },
+        { "id": "d3-s3", "text": "Ms. Ferro fell on March 3, so her ninety days ran out on June 1." },
+        { "id": "d3-s4", "text": "She served no notice by that date or any other, and she has never asked the Court for leave to serve one late." },
+        { "id": "d3-s5", "text": "Instead, she filed this negligence action on November 20, nearly six months after the deadline passed." },
+        { "id": "d3-s6", "text": "Because notice is a condition of any suit against the Township, the Court should dismiss the complaint with prejudice." }
+      ]
+    },
+    {
+      "id": "d4",
+      "sentences": [
+        { "id": "d4-s1", "text": "Plaintiff Dana Ferro's complaint should be dismissed because it does not plead the elements of a claim against a public entity." },
+        { "id": "d4-s2", "text": "It never alleges that the raised slab was a dangerous condition as the Act defines that term, or that the Township had actual or constructive notice of it [CITE]." },
+        { "id": "d4-s3", "text": "Nor does it allege that the Township's failure to act was palpably unreasonable [CITE]." },
+        { "id": "d4-s4", "text": "It does not even give the height of the slab, the time of day, or the lighting when Ms. Ferro fell." },
+        { "id": "d4-s5", "text": "Without those allegations, the Township cannot fairly respond, and the complaint should be dismissed." },
+        { "id": "d4-s6", "text": "The Township also notes that Ms. Ferro did not serve a notice of claim under N.J.S.A. 59:8-8." }
+      ]
+    },
+    {
+      "id": "d5",
+      "sentences": [
+        { "id": "d5-s1", "text": "Defendant Township of Harlow (\"the Township\"), by and through its undersigned counsel, respectfully submits this brief in support of its motion to dismiss the Complaint of Plaintiff Dana Ferro pursuant to [CITE]." },
+        { "id": "d5-s2", "text": "As set forth more fully below, the Complaint should be dismissed for several reasons." },
+        { "id": "d5-s3", "text": "The Township respectfully submits that Plaintiff failed to comply with the notice provisions of the Tort Claims Act, N.J.S.A. 59:8-8." },
+        { "id": "d5-s4", "text": "The Township further respectfully submits that the Complaint fails to state a claim upon which relief can be granted." },
+        { "id": "d5-s5", "text": "For these reasons, and for the reasons set forth herein, the Township respectfully requests that the Court grant its motion." }
+      ]
+    }
+  ]
+}

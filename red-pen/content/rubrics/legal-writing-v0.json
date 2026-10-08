@@ -1,0 +1,14 @@
+{
+  "id": "legal-writing-v0",
+  "source": "Transcribed verbatim from CLAUDE.md §8 (owner's draft). DRAFT — owner to rewrite before any learner sees it. IDs are stable; labels are not.",
+  "criteria": [
+    { "id": "R1", "label": "Buried winner", "test": "The ground that wins on its own is not first" },
+    { "id": "R2", "label": "Can't rule from it", "test": "A judge reading only this sentence could not tell what to grant and why" },
+    { "id": "R3", "label": "Throat-clearing", "test": "Procedural recital, \"respectfully submits,\" restating the caption" },
+    { "id": "R4", "label": "Overclaim", "test": "Asserts more than the record or law supports — a candor risk" },
+    { "id": "R5", "label": "Missing ask", "test": "The relief sought (dismissal with prejudice) is absent or vague" },
+    { "id": "R6", "label": "Fog", "test": "An abstraction where a fact would do the work" },
+    { "id": "R7", "label": "Wrong fight", "test": "Argues a point the plaintiff can cure by amendment" },
+    { "id": "KEEP", "label": "Keeper", "test": "The best sentence in the draft — learner and master may mark one per draft" }
+  ]
+}

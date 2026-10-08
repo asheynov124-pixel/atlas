@@ -1,0 +1,11 @@
+{
+  "note": "Generation intent only — which §9 profile Claude aimed each candidate at. NOT master judgment, and deliberately kept out of the candidates file and out of the app so it cannot anchor the master's ranking. Draft order was shuffled before IDs were assigned. Open it after you have ranked and marked in Master Mode, if at all.",
+  "exerciseId": "l01-e01",
+  "intendedProfiles": {
+    "d1": "strong-but-buried",
+    "d2": "overclaiming",
+    "d3": "genuinely strong",
+    "d4": "fights a curable point",
+    "d5": "throat-clearing"
+  }
+}
