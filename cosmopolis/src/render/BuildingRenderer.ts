@@ -9,6 +9,7 @@ import { getGeometry, getItem, meshKey } from '../content/catalog';
 import { tileMatrix } from '../world/geo';
 import type { BuildingInstance } from '../world/planet';
 import { InstancePool } from './InstancePool';
+import { game } from '../game/instance';
 import { InstState, getBuildingMaterial } from './materials';
 import type { PlanetView } from './PlanetView';
 
@@ -30,6 +31,10 @@ export class BuildingRenderer {
   private forced = new Map<number, number>();
   private selected = -1;
   private offs: (() => void)[] = [];
+  /** buildings the sim reports without power (blackout look at night) — swept a slice per frame */
+  private unpowered = new Set<number>();
+  private sweepIds: number[] = [];
+  private sweepAt = 0;
 
   constructor(private view: PlanetView) {
     this.pool = new InstancePool(view.root, getBuildingMaterial(), (key, lod) => this.geometryFor(key, lod), {
@@ -100,6 +105,7 @@ export class BuildingRenderer {
     this.handles.delete(id);
     this.anims.delete(id);
     this.forced.delete(id);
+    this.unpowered.delete(id);
   }
 
   /** Re-sync one building (matrix, colour, state, and geometry key when `rekey`). */
@@ -135,6 +141,7 @@ export class BuildingRenderer {
     if (f & TileFlag.Blessed) return InstState.Blessed;
     if (b.state === BuildingState.Abandoned) return InstState.Dark;
     if (b.state === BuildingState.Constructing || b.state === BuildingState.Upgrading) return InstState.Blueprint;
+    if (this.unpowered.has(b.id)) return InstState.NoPower;
     return InstState.Normal;
   }
 
@@ -181,7 +188,29 @@ export class BuildingRenderer {
         if (x >= 1) this.anims.delete(id);
       }
     }
+    this.sweepPower();
     this.pool.update(this.view.camera, this.view.planet.radius);
+  }
+
+  /** Mirror the sim's "no power" problem into the blackout state, a slice of buildings per frame (~1.5 s per sweep). */
+  private sweepPower(): void {
+    const sim = game?.sim;
+    if (!sim || sim.planet !== this.view.planet) return;
+    if (this.sweepAt >= this.sweepIds.length) {
+      this.sweepIds = [...this.handles.keys()];
+      this.sweepAt = 0;
+      if (!this.sweepIds.length) return;
+    }
+    const end = Math.min(this.sweepIds.length, this.sweepAt + Math.max(40, Math.ceil(this.sweepIds.length / 90)));
+    for (; this.sweepAt < end; this.sweepAt++) {
+      const id = this.sweepIds[this.sweepAt];
+      if (!this.handles.has(id)) continue;
+      const off = (sim.problemsOf(id) & 1) !== 0;
+      if (off === this.unpowered.has(id)) continue;
+      if (off) this.unpowered.add(id);
+      else this.unpowered.delete(id);
+      this.applyState(id);
+    }
   }
 
   dispose(): void {

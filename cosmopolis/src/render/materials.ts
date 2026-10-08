@@ -60,6 +60,8 @@ export const InstState = {
   Highlight: 7,
   /** translucent-looking blueprint (under construction) */
   Blueprint: 8,
+  /** blackout: lights, windows and signs off (no power), otherwise normal */
+  NoPower: 9,
 } as const;
 
 const VERT_PARS = /* glsl */ `
@@ -218,6 +220,8 @@ if ( cState == 1 ) {
   float grid = max( step( 0.92, fract( vFac.x * 4.0 ) ), step( 0.92, fract( vFac.y * 4.0 ) ) );
   diffuseColor.rgb = mix( vec3( 0.2, 0.45, 0.8 ), vec3( 0.7, 0.9, 1.0 ), grid );
   cEmit = vec3( 0.1, 0.35, 0.7 ) * ( 0.6 + grid );
+} else if ( cState == 9 ) {
+  cEmit *= 0.05;
 }
 `;
 
