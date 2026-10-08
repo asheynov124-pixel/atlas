@@ -736,6 +736,26 @@ export class RoadTraffic {
     }
   }
 
+  /**
+   * Live position getter for a random car currently on screen (null when none). kind: 'car' (any), 'bus',
+   * 'emergency' (responding / flashing). The getter returns null once that car leaves the road.
+   */
+  tracker(kind: string, rng: () => number): (() => Vector3 | null) | null {
+    const pool: Car[] = [];
+    for (const c of this.cars) {
+      if (!c.active || c.dying >= 0) continue;
+      if (kind === 'bus' && c.type !== T_BUS) continue;
+      if (kind === 'emergency' && !c.flashing) continue;
+      pool.push(c);
+    }
+    const seen = pool.filter((c) => c.seen);
+    const list = seen.length ? seen : pool;
+    if (!list.length) return null;
+    const c = list[Math.floor(rng() * list.length)];
+    const id = c.id;
+    return () => (c.active && c.id === id ? c.pos : null);
+  }
+
   dispose(): void {
     this.cars.length = 0;
     this.free.length = 0;

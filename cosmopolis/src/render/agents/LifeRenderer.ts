@@ -13,12 +13,14 @@
  *   • Fauna         flocks of birds or alien flyers chosen by biome / planet type
  *   • Beacons       blinking red aviation lights on very tall buildings
  *   • Pedestrians   tiny citizens strolling the pavements near shops and parks (street-level zoom only)
+ *   • Celebrations  fireworks over stadiums, venues and landmarks after dark; advertising blimps circle big cities
  * Density follows population, road count and the quality tier; ≤ 600 moving agents are drawn per frame.
  *
- * Public extras (for UI / camera / tests): stats(), vehicleCount, followRandom(kind) → getter for CameraRig.follow,
- * dispatch(tile) (emergency response). URL: &life=0 disables, &life=dense doubles density (screenshots).
+ * Public extras (for UI / camera / tests): stats(), vehicleCount, profile + timings,
+ * dispatch(tile) (emergency response), track(kind) → getter for CameraRig.follow.
+ * URL: &life=0 disables · &life=dense doubles density · &follow=car|bus|emergency|train|flyer|drone|taxi|boat rides along.
  */
-import { Group } from 'three';
+import { Group, type Vector3 } from 'three';
 import { bus } from '../../core/events';
 import { hashString } from '../../core/rng';
 import { game } from '../../game/instance';
@@ -29,6 +31,7 @@ import { DecalBatch, KitBatch, Particles, SpriteBatch } from './batch';
 import { Cull, FastRng, MOTION_SPEED } from './common';
 import type { FleetKey, LifeCtx } from './ctx';
 import { Beacons } from './beacons';
+import { Celebrations } from './celebrate';
 import { Fauna } from './fauna';
 import { Pedestrians } from './people';
 import { Ports } from './ports';
@@ -56,6 +59,7 @@ const FACTORIES: Record<FleetKey, () => BufferGeometry> = {
   flyingCar: M.flyingCar,
   drone: M.drone,
   airTaxi: M.airTaxi,
+  blimp: M.blimp,
   airliner: M.airliner,
   shuttle: M.shuttle,
   sled: M.sled,
@@ -75,6 +79,8 @@ const FACTORIES: Record<FleetKey, () => BufferGeometry> = {
   glowDown: () => M.flyer(-1, true),
   pedestrian: M.pedestrian,
 };
+
+export type TrackKind = 'car' | 'bus' | 'emergency' | 'train' | 'flyer' | 'drone' | 'taxi' | 'boat';
 
 /** Hard cap on moving agents drawn per frame (iPhone budget). */
 const VISIBLE_BUDGET = 600;
@@ -98,6 +104,7 @@ export class LifeRenderer {
   readonly fauna: Fauna;
   readonly beacons: Beacons;
   readonly people: Pedestrians;
+  readonly party: Celebrations;
   readonly sites: Sites;
   private subs: { name: string; sub: Sub }[] = [];
   private offs: (() => void)[] = [];
@@ -107,6 +114,8 @@ export class LifeRenderer {
   private dense = 1;
   /** per-subsystem smoothed CPU ms (set profile = true; read timings) */
   profile = false;
+  /** &follow=<TrackKind>: ride along with an agent once the city is populated (screenshots / attract mode) */
+  private followParam: TrackKind | null = null;
   readonly timings: Record<string, number> = {};
 
   constructor(private view: PlanetView) {
@@ -116,6 +125,7 @@ export class LifeRenderer {
     const params = typeof location !== 'undefined' ? new URLSearchParams(location.search) : null;
     this.enabled = params?.get('life') !== '0';
     this.dense = params?.get('life') === 'dense' ? 2 : 1;
+    this.followParam = (params?.get('follow') as TrackKind | null) ?? null;
     const g = this.group;
     this.ctx = {
       view,
@@ -129,7 +139,7 @@ export class LifeRenderer {
       wakes: new DecalBatch(g, 64, 'wakes', 2, false),
       rings: new DecalBatch(g, 32, 'rings', 3, false),
       smoke: new Particles(g, 900, 'smoke', false),
-      flames: new Particles(g, 500, 'flames', true),
+      flames: new Particles(g, 1400, 'flames', true),
       rng: new FastRng(hashString(planet.spec.id) ^ planet.spec.seed),
       density: 1,
       budget: VISIBLE_BUDGET,
@@ -143,6 +153,7 @@ export class LifeRenderer {
     this.fauna = new Fauna(this.ctx);
     this.beacons = new Beacons(this.sites);
     this.people = new Pedestrians(planet);
+    this.party = new Celebrations(this.sites);
     this.subs.push(
       { name: 'traffic', sub: this.traffic },
       { name: 'rail', sub: this.rail },
@@ -152,6 +163,7 @@ export class LifeRenderer {
       { name: 'fauna', sub: this.fauna },
       { name: 'beacons', sub: this.beacons },
       { name: 'people', sub: this.people },
+      { name: 'party', sub: this.party },
     );
 
     const roads = () => {
@@ -229,6 +241,8 @@ export class LifeRenderer {
       birdsVisible: this.fauna.visible,
       beacons: this.beacons.count,
       people: this.people.active,
+      blimps: this.sky.blimpCount,
+      fireworks: this.party.bursts,
       peopleVisible: this.people.visible,
     };
     let drawn = 0;
@@ -236,6 +250,32 @@ export class LifeRenderer {
     out.drawn = drawn;
     out.sprites = this.ctx.sprites.count;
     return out;
+  }
+
+  /**
+   * Position getter for CameraRig.follow — ride along with a random agent on screen.
+   * kind: 'car' | 'bus' | 'emergency' | 'train' | 'flyer' | 'drone' | 'taxi' | 'boat'. Null when none exist.
+   * The getter itself returns null once the agent despawns (the rig then stops following).
+   */
+  track(kind: TrackKind = 'car'): (() => Vector3 | null) | null {
+    const rng = () => this.ctx.rng.next();
+    try {
+      switch (kind) {
+        case 'train':
+          return this.rail.tracker(rng);
+        case 'flyer':
+        case 'drone':
+        case 'taxi':
+          return this.sky.tracker(kind, rng);
+        case 'boat':
+          return this.sea.tracker(rng);
+        default:
+          return this.traffic.tracker(kind, rng);
+      }
+    } catch (e) {
+      console.error('[life] track failed', e);
+      return null;
+    }
   }
 
   /** Emergency services rush to a tile. */
@@ -279,6 +319,13 @@ export class LifeRenderer {
     ctx.rings.end();
     ctx.smoke.flush();
     ctx.flames.flush();
+    if (this.followParam && this.time > 0.5) {
+      const kind = this.followParam;
+      this.followParam = null;
+      const get = this.track(kind);
+      const cam = game?.camera as unknown as { follow?: (g: () => Vector3 | null, o?: { distance?: number; tilt?: number }) => void } | undefined;
+      if (get && cam?.follow) cam.follow(get, { distance: kind === 'train' || kind === 'boat' ? 5 : 3.2, tilt: 1.1 });
+    }
   }
 
   dispose(): void {

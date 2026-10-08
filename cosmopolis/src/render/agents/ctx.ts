@@ -11,7 +11,7 @@ import type { Cull, FastRng } from './common';
 export type FleetKey =
   | 'sedan' | 'coupe' | 'van' | 'bus' | 'truck' | 'taxi' | 'police' | 'ambulance' | 'fire' | 'garbage'
   | 'maglevHead' | 'maglevCar' | 'hyperPod'
-  | 'flyingCar' | 'drone' | 'airTaxi' | 'airliner' | 'shuttle' | 'sled' | 'climber'
+  | 'flyingCar' | 'drone' | 'airTaxi' | 'blimp' | 'airliner' | 'shuttle' | 'sled' | 'climber'
   | 'speedboat' | 'sailboat' | 'hovercraft' | 'ferry' | 'cargoShip' | 'trawler' | 'whale'
   | 'birdUp' | 'birdMid' | 'birdDown' | 'glowUp' | 'glowMid' | 'glowDown'
   | 'pedestrian';

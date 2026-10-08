@@ -347,6 +347,24 @@ export function climber(): BufferGeometry {
   return b.build();
 }
 
+/** Advertising blimp: paintable envelope, animated screens on both flanks, gondola, tail fins. */
+export function blimp(): BufferGeometry {
+  const b = new MeshBuilder();
+  b.sphere(0.32, { color: WHITE, sz: 2.6, wSeg: 14, hSeg: 8 });
+  for (const s of [-1, 1]) {
+    b.box(0.008, 0.24, 0.66, { color: 0xffffff, mat: Mat.Screen, x: s * 0.31, y: -0.02, ...NP });
+    b.box(0.006, 0.26, 0.68, { color: 0x2a2e36, x: s * 0.302, y: -0.02, ...NP });
+  }
+  b.box(0.12, 0.06, 0.28, { color: 0xe8ecf0, y: -0.37, z: 0.05, ...NP });
+  b.box(0.122, 0.022, 0.2, { color: GLASS, y: -0.345, z: 0.07, ...NP });
+  for (let k = 0; k < 4; k++) {
+    b.group({ z: -0.74, rz: (k * Math.PI) / 2 }, () => b.box(0.012, 0.22, 0.2, { color: 0xd84a3a, y: 0.08, ...NP }));
+  }
+  b.box(0.012, 0.012, 0.012, { color: 0xff3030, mat: Mat.Glow, x: -0.33, ...NP });
+  b.box(0.012, 0.012, 0.012, { color: 0x30ff60, mat: Mat.Glow, x: 0.33, ...NP });
+  return b.build();
+}
+
 // ───────────────────────────────────────────────────────────── water (origin = waterline centre)
 
 function hull(b: MeshBuilder, w: number, l: number, h: number, color: number, o: { paint?: boolean; y?: number } = {}): void {

@@ -264,6 +264,16 @@ export class RailTraffic {
     }
   }
 
+  /** Live position getter for a random train (maglev preferred) — null when none. */
+  tracker(rng: () => number): (() => Vector3 | null) | null {
+    const list = this.trains.filter((t) => t.active);
+    if (!list.length) return null;
+    const m = list.filter((t) => t.kind === RoadKind.Maglev);
+    const tr = (m.length ? m : list)[Math.floor(rng() * (m.length ? m : list).length)];
+    const id = tr.id;
+    return () => (tr.active && tr.id === id ? tr.pos : null);
+  }
+
   dispose(): void {
     this.trains.length = 0;
   }

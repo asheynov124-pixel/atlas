@@ -431,6 +431,15 @@ export class SeaTraffic {
     this.renderWhale(ctx);
   }
 
+  /** Live position getter for a random boat (ferries and ships included) — null when none. */
+  tracker(rng: () => number): (() => Vector3 | null) | null {
+    const list = this.boats.filter((b) => b.active && b.dying < 0);
+    if (!list.length) return null;
+    const b = list[Math.floor(rng() * list.length)];
+    const id = b.id;
+    return () => (b.active && b.id === id ? b.pos : null);
+  }
+
   dispose(): void {
     this.boats.length = 0;
     this.water.clear();

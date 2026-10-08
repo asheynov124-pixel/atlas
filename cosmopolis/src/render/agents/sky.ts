@@ -6,6 +6,7 @@
  *   • delivery drones hop from shops, factories and drone pads to rooftops: vertical take-off, cruise, gentle
  *     landing, a moment on the roof, then off again — blinking green/red LEDs
  *   • air taxis shuttle between drone ports and skyscraper roofs with white anti-collision strobes
+ *   • advertising blimps (animated screens on their flanks) circle above big cities
  * Counts scale with population and the quality tier; nothing flies until the city has people.
  */
 import { Vector3 } from 'three';
@@ -22,6 +23,7 @@ const _up = new Vector3();
 const _t = new Vector3();
 const _fr = newFrame();
 
+const BLIMP_A = [0.92, 0.94, 0.97], BLIMP_B = [0.12, 0.62, 0.66];
 const CAR_PAINT: [number, number, number][] = [
   [0.9, 0.92, 0.95], [0.85, 0.08, 0.08], [0.02, 0.35, 0.85], [0.95, 0.55, 0.02], [0.08, 0.7, 0.62], [0.05, 0.05, 0.06], [0.55, 0.2, 0.85], [0.95, 0.75, 0.05],
 ];
@@ -69,7 +71,21 @@ class Hopper {
   born = -10;
 }
 
+interface Blimp {
+  a: number;
+  radius: number;
+  alt: number;
+  speed: number;
+  color: number;
+  pos: Vector3;
+  dir: Vector3;
+}
+
 export class SkyTraffic {
+  private blimps: Blimp[] = [];
+  private cityCentre = new Vector3();
+  private skyline = 4;
+  blimpCount = 0;
   private flyers: Flyer[] = [];
   private hoppers: Hopper[] = [];
   private anchors: Site[] = [];
@@ -91,6 +107,16 @@ export class SkyTraffic {
   private index(): void {
     const s = this.sites;
     this.version = s.version;
+    // city centre (mean building direction) and skyline height for the blimps
+    this.cityCentre.set(0, 0, 0);
+    let tall = 0;
+    for (const x of s.all) {
+      _t.copy(x.pos).normalize();
+      this.cityCentre.add(_t);
+      if (x.top > tall && x.top < 30) tall = x.top;
+    }
+    if (s.all.length) this.cityCentre.normalize();
+    this.skyline = tall;
     this.anchors = s.towers.slice(0, 60);
     if (this.anchors.length < 4) this.anchors = s.all.filter((x) => x.top >= 1.4).slice(0, 60);
     this.homes = s.all.filter((x) => x.family === 'R');
@@ -276,6 +302,38 @@ export class SkyTraffic {
     }
     this.flyerCount = nf;
     this.hopperCount = nd + nt;
+    // blimps: one over a big city, two over a metropolis
+    const wantB = this.sites.all.length > 60 || pop > 900 ? (this.sites.all.length > 150 || pop > 6000 ? 2 : 1) : 0;
+    while (this.blimps.length < wantB) {
+      const k = this.blimps.length;
+      this.blimps.push({
+        a: ctx.rng.next() * Math.PI * 2,
+        radius: 7 + k * 4 + ctx.rng.next() * 3,
+        alt: Math.min(9, Math.max(4.5, this.skyline * 0.75)) + k * 0.7,
+        speed: (0.22 + ctx.rng.next() * 0.08) * (k % 2 ? -1 : 1),
+        color: k,
+        pos: new Vector3(),
+        dir: new Vector3(),
+      });
+    }
+    if (this.blimps.length > wantB) this.blimps.length = wantB;
+    this.blimpCount = this.blimps.length;
+    const R = ctx.planet.radius;
+    for (const bl of this.blimps) {
+      bl.alt = Math.min(9, Math.max(4.5, this.skyline * 0.75)) + (bl.color ? 0.7 : 0);
+      bl.a += (bl.speed * dt) / bl.radius;
+      // circle around the city centre in its tangent plane
+      const c = this.cityCentre;
+      _t.set(0, 1, 0).addScaledVector(c, -c.y);
+      if (_t.lengthSq() < 1e-6) _t.set(1, 0, 0);
+      _t.normalize();
+      _d.crossVectors(c, _t);
+      const ang = bl.radius / R;
+      const ca = Math.cos(bl.a), sa = Math.sin(bl.a);
+      _p.copy(_t).multiplyScalar(ca).addScaledVector(_d, sa);
+      bl.pos.copy(c).multiplyScalar(Math.cos(ang)).addScaledVector(_p, Math.sin(ang)).normalize().multiplyScalar(R + bl.alt);
+      bl.dir.copy(_t).multiplyScalar(-sa).addScaledVector(_d, ca).multiplyScalar(Math.sign(bl.speed));
+    }
     if (dt <= 0) return;
     for (const f of this.flyers) {
       if (!f.active) continue;
@@ -321,6 +379,20 @@ export class SkyTraffic {
         sp.push(_p.x, _p.y, _p.z, 0.05, 0.15, 0.7, 1.1, 1);
       }
     }
+    for (const bl of this.blimps) {
+      if (!cull.visible(bl.pos.x, bl.pos.y, bl.pos.z, 1.2, 110)) continue;
+      ctx.budget--;
+      _up.copy(bl.pos).normalize();
+      frameUp(_fr, _up, bl.dir);
+      roll(_fr, Math.sin(ctx.realTime * 0.4 + bl.color) * 0.03);
+      // fade out when the camera gets close so a blimp never blocks the view
+      const s = 1.35 * smoothstep(5, 13, Math.sqrt(cull.dist2(bl.pos.x, bl.pos.y, bl.pos.z)));
+      if (s < 0.02) continue;
+      const c = bl.color ? BLIMP_B : BLIMP_A;
+      ctx.fleet('blimp').push(bl.pos.x, bl.pos.y, bl.pos.z, _fr.r.x, _fr.r.y, _fr.r.z, _fr.u.x, _fr.u.y, _fr.u.z, _fr.f.x, _fr.f.y, _fr.f.z, s, c[0], c[1], c[2]);
+      _p.copy(bl.pos).addScaledVector(_up, -0.4 * s);
+      sp.push(_p.x, _p.y, _p.z, 0.12, 2.4, 0.2, 0.15, 0.4, 0.9, bl.color * 0.5, 0.2);
+    }
     for (const h of this.hoppers) {
       if (!h.active) continue;
       if (!cull.visible(h.pos.x, h.pos.y, h.pos.z, 0.3, 60)) continue;
@@ -349,6 +421,23 @@ export class SkyTraffic {
         if (night > 0.02) sp.push(px - _up.x * 0.07, py - _up.y * 0.07, pz - _up.z * 0.07, 0.06, 0.4, 1.3, 1.2, 1);
       }
     }
+  }
+
+  /** Live position getter for a random flying car ('flyer'), drone ('drone') or air taxi ('taxi'). */
+  tracker(kind: string, rng: () => number): (() => Vector3 | null) | null {
+    if (kind === 'flyer') {
+      const list = this.flyers.filter((f) => f.active && f.dying < 0);
+      if (!list.length) return null;
+      const f = list[Math.floor(rng() * list.length)];
+      const id = f.id;
+      return () => (f.active && f.id === id ? f.pos : null);
+    }
+    const want = kind === 'taxi' ? 'airTaxi' : 'drone';
+    const list = this.hoppers.filter((h) => h.active && h.kind === want);
+    if (!list.length) return null;
+    const h = list[Math.floor(rng() * list.length)];
+    const id = h.id;
+    return () => (h.active && h.id === id ? h.pos : null);
   }
 
   dispose(): void {
