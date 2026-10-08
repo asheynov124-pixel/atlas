@@ -121,6 +121,8 @@ interface SavedState {
   milestonesPop: number;
   recs: { id: number[]; hap: number[]; lp: number[]; dis: number[]; ab: number[]; gb: number[]; edu: number[]; burn: number[]; flood: number[]; haz: number[]; low: number[] };
   fields?: { pol: string; lv: string; crime: string; noise: string };
+  /** residents of orbital habitats by orbital id */
+  orbitalRes?: Record<string, number>;
 }
 
 function emptyHistory(): CityHistory {
@@ -207,6 +209,8 @@ export class Simulation implements System {
   private nextFlavourDay = 8;
   private projected: MonthReport | null = null;
   private orbitalCoverage = new Float32Array(SERVICE_INDEX.spiritual + 1);
+  /** residents living in orbital habitats (orbital id → people) */
+  private orbitalRes = new Map<number, number>();
   private ctx: FieldContext | null = null;
   private liveRef: LiveSimState | null = null;
   private abandonCause = new Map<number, string>();
@@ -312,6 +316,7 @@ export class Simulation implements System {
         this.nets!.beginDay();
         this.acc.reset();
         for (const r of this.recs) updateRec(this, r);
+        this.accumulateOrbitals();
         this.swapAgg();
         this.addOrbitals();
         this.nets!.resolve(this.rules.freeUtilities);
@@ -660,6 +665,56 @@ export class Simulation implements System {
     }
   }
 
+  /**
+   * Orbital effects that live in the daily aggregates: habitats house people (they move in gradually, like
+   * homes on the ground), stations employ crews, labs produce research and attractions draw tourists.
+   * Orbitals sit above every network, so they are always served; their department budget scales output.
+   */
+  private accumulateOrbitals(): void {
+    const p = this.planet;
+    if (!p || !p.orbitals.size) {
+      if (this.orbitalRes.size) this.orbitalRes.clear();
+      return;
+    }
+    const acc = this.acc;
+    const mods = this.cityMods;
+    for (const o of p.orbitals.values()) {
+      const info = defInfo(o.defId);
+      if (!info) continue;
+      const eff = info.dept ? budgetEffect(this.budget[info.dept] ?? 1) : 1;
+      if (info.housing > 0) {
+        const cap = info.housing;
+        let res = Math.min(cap, this.orbitalRes.get(o.id) ?? 0);
+        if (!this.settling) {
+          const target = cap * (this.demand.R < -0.45 ? 0.9 : 1);
+          if (res < target) res = Math.min(target, res + Math.max(2, cap * 0.08) * (this.demand.R > -0.2 ? 1 : 0.3) * (this.rules.fastGrowth ? 3 : 1));
+          else res -= Math.ceil((res - target) * 0.25);
+          res = Math.max(0, Math.round(res));
+          this.orbitalRes.set(o.id, res);
+        }
+        // spacefarers are well educated: mostly educated, some graduates
+        acc.eduRes[1] += res * 0.7;
+        acc.eduRes[2] += res * 0.3;
+        acc.population += res;
+        acc.housingCap += cap;
+        acc.healthSum += 70 * res;
+        acc.healthW += res;
+        acc.eduSum += 1.3 * res;
+        acc.eduW += res;
+        acc.happySum += 68 * res;
+        acc.happyW += res;
+      }
+      if (info.jobs > 0) {
+        acc.jobs[4] += info.jobs * eff;
+        acc.jobsE1[4] += info.jobs * eff * 0.45;
+        acc.jobsE2[4] += info.jobs * eff * 0.25;
+        acc.workers[4] += Math.round(info.jobs * eff * this.fill[4]);
+      }
+      if (info.research > 0) acc.research += info.research * eff * mods.research * this.eventMods.research;
+      if (info.tourism > 0) acc.visitors += info.tourism * mods.tourism * this.eventMods.tourism;
+    }
+  }
+
   /** Re-collect network supply/demand from cached per-building values (after a topology rebuild). */
   private reaccumulate(): void {
     const nets = this.nets!;
@@ -708,6 +763,7 @@ export class Simulation implements System {
     // 1. finish the rolling building pass
     while (this.cursor < this.recs.length) updateRec(this, this.recs[this.cursor++]);
     this.cursor = 0;
+    this.accumulateOrbitals();
     // 2. aggregates
     this.swapAgg();
     // 3. utilities
@@ -1728,6 +1784,8 @@ export class Simulation implements System {
     this.displaced = st?.displaced ?? 0;
     this.nextLoanId = st?.nextLoanId ?? 1;
     this.milestonesPop = st?.milestonesPop ?? 0;
+    this.orbitalRes.clear();
+    if (st?.orbitalRes) for (const [k, v] of Object.entries(st.orbitalRes)) this.orbitalRes.set(Number(k), Number(v) || 0);
     if (st) {
       this.rng.s = st.rng >>> 0 || this.rng.s;
       this.day = Math.max(this.day, st.day ?? 0);
@@ -1825,6 +1883,7 @@ export class Simulation implements System {
       milestonesPop: this.milestonesPop,
       recs: col,
       fields,
+      orbitalRes: this.orbitalRes.size ? Object.fromEntries([...this.orbitalRes].map(([k, v]) => [String(k), Math.round(v)])) : undefined,
     };
   }
 }

@@ -209,7 +209,7 @@ function Overview() {
         <Stat icon="zones" label="Zoned lots" value={fmtInt(st.zonedTiles ?? 0)} />
         <Stat icon="park" label="Parks" value={fmtInt(st.parks ?? 0)} tone="good" />
         <Stat icon="tourism" label="Tourists / mo" value={fmtCompact(st.tourism ?? 0)} tone="violet" />
-        <Stat icon="landmarks" label="Landmarks" value={fmtInt((st.landmarks ?? 0) + (st.wonders ?? 0))} tone="money" />
+        <Stat icon="landmarks" label="Landmarks" value={fmtInt(st.landmarks ?? 0)} tone="money" />
         <Stat icon="district" label="Districts" value={fmtInt(st.districts ?? 0)} />
         <Stat icon="policy" label="Policies" value={fmtInt(st.policies ?? 0)} />
         <Stat icon="research" label="Research / mo" value={fmtCompact(st.researchRate ?? 0)} tone="violet" />

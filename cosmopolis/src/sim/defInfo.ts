@@ -247,7 +247,7 @@ function build(def: ItemDef): DefInfo {
     radius: Math.max(1, Math.min(40, e.radius ?? 4)),
     park: def.category === 'leisure' || tags.includes('park'),
     landmark: def.category === 'landmarks' || tags.includes('landmark'),
-    wonder: tags.includes('wonder') || (def.category === 'landmarks' && !!def.unique),
+    wonder: tags.includes('wonder') || def.group === 'Wonders',
     shelter: tags.includes('shelter'),
     waterPlaced: def.placement === 'water',
     spaceport: tags.includes('spaceport') || /spaceport|starport/i.test(def.id) || /spaceport|starport/i.test(def.group ?? ''),
