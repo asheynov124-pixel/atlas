@@ -39,7 +39,7 @@ import type { OrbitalInstance } from '../../world/planet';
 import { InstState, SHADER_COMMON, shared } from '../materials';
 import type { PlanetView } from '../PlanetView';
 import { KitBatch, Particles, SpriteBatch, linHex } from './batch';
-import { Cull, FastRng, MOTION_SPEED, bezier3, frameFwd, newFrame, smoothstep } from './common';
+import { Cull, FastRng, MOTION_SPEED, bezier3, firstFree, frameFwd, newFrame, smoothstep } from './common';
 import { Sites } from './sites';
 import { hauler, satellite, shuttle } from './vehicles';
 
@@ -137,6 +137,8 @@ export class OrbitalRenderer {
   private orbs = new Map<number, Orb>();
   private batches = new Map<string, KitBatch>();
   private hauls: Haul[] = [];
+  /** scratch: ids of the orbitals haulers may dock at (rebuilt per frame, never reallocated) */
+  private stationIds: number[] = [];
   private launches: Launch[] = [];
   private offs: (() => void)[] = [];
   private clock = 0;
@@ -494,13 +496,14 @@ export class OrbitalRenderer {
   private updateHauls(dt: number): void {
     this.sites.refresh();
     const ports = this.sites.tagged('spaceport');
-    const stations: number[] = [];
+    const stations = this.stationIds;
+    stations.length = 0;
     for (const o of this.orbs.values()) if (!o.centred) stations.push(o.id);
     const want = Math.min(this.hauls.length, stations.length * 2 + ports.length * 2, stations.length || ports.length ? 10 : 0);
     let n = 0;
     for (const h of this.hauls) if (h.active) n++;
     if (n < want && this.rng.next() < 0.03 + dt) {
-      const h = this.hauls.find((x) => !x.active);
+      const h = firstFree(this.hauls);
       if (h) {
         const r = this.rng.next();
         if (stations.length >= 2 && (r < 0.5 || !ports.length)) {

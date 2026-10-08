@@ -95,6 +95,8 @@ export class LifeRenderer {
   readonly group = new Group();
   private readonly ctx: LifeCtx;
   private readonly batches = new Map<FleetKey, KitBatch>();
+  /** same batches as a list (iterated twice per frame without Map iterators) */
+  private readonly batchList: KitBatch[] = [];
   private readonly cull = new Cull();
   readonly traffic: RoadTraffic;
   readonly rail: RailTraffic;
@@ -106,7 +108,7 @@ export class LifeRenderer {
   readonly people: Pedestrians;
   readonly party: Celebrations;
   readonly sites: Sites;
-  private subs: { name: string; sub: Sub }[] = [];
+  private subs: { name: string; rname: string; sub: Sub }[] = [];
   private offs: (() => void)[] = [];
   private failed = new Set<string>();
   private time = 0;
@@ -154,33 +156,36 @@ export class LifeRenderer {
     this.beacons = new Beacons(this.sites);
     this.people = new Pedestrians(planet);
     this.party = new Celebrations(this.sites);
-    this.subs.push(
-      { name: 'traffic', sub: this.traffic },
-      { name: 'rail', sub: this.rail },
-      { name: 'sky', sub: this.sky },
-      { name: 'ports', sub: this.ports },
-      { name: 'sea', sub: this.sea },
-      { name: 'fauna', sub: this.fauna },
-      { name: 'beacons', sub: this.beacons },
-      { name: 'people', sub: this.people },
-      { name: 'party', sub: this.party },
-    );
+    const subs: [string, Sub][] = [
+      ['traffic', this.traffic],
+      ['rail', this.rail],
+      ['sky', this.sky],
+      ['ports', this.ports],
+      ['sea', this.sea],
+      ['fauna', this.fauna],
+      ['beacons', this.beacons],
+      ['people', this.people],
+      ['party', this.party],
+    ];
+    for (const [name, sub] of subs) this.subs.push({ name, rname: name + ':render', sub });
 
+    // roads / terrain rebuild the networks at once; building churn (a growing city adds and levels buildings many
+    // times a second at high speed) only refreshes the throttled indexes (vehicle mix, stations, sites)
     const roads = () => {
       this.traffic.invalidate();
       this.rail.invalidate();
       this.people.invalidate();
     };
     const buildings = () => {
-      this.traffic.invalidate();
-      this.rail.invalidate();
+      this.traffic.invalidateMix();
+      this.rail.invalidateStations();
       this.sites.invalidate();
     };
     this.offs.push(
       bus.on('tiles:road', roads),
       bus.on('tiles:terrain', () => {
         roads();
-        this.sites.invalidate();
+        this.sites.invalidate(true);
         this.sea.invalidate();
       }),
       bus.on('planet:sea', () => {
@@ -192,7 +197,7 @@ export class LifeRenderer {
       bus.on('building:updated', ({ what }) => {
         if (what === 'level' || what === 'variant' || what === 'style') this.sites.invalidate();
       }),
-      bus.on('tiles:zone', () => this.traffic.invalidate()),
+      bus.on('tiles:zone', () => this.traffic.invalidateMix()),
       bus.on('tiles:flags', ({ tiles }) => this.safe('flags', () => this.traffic.onFlags(this.ctx, tiles))),
       bus.on('disaster:start', ({ tile }) => this.safe('disaster', () => this.traffic.onDisaster(this.ctx, tile))),
     );
@@ -204,6 +209,7 @@ export class LifeRenderer {
       b = new KitBatch(this.group, FACTORIES[key](), 32, key);
       b.begin();
       this.batches.set(key, b);
+      this.batchList.push(b);
     }
     return b;
   }
@@ -212,10 +218,15 @@ export class LifeRenderer {
     try {
       fn();
     } catch (e) {
-      if (!this.failed.has(name)) {
-        this.failed.add(name);
-        console.error(`[life] ${name} failed`, e);
-      }
+      this.fail(name, e);
+    }
+  }
+
+  /** Log a subsystem failure once (the frame loop never sees the exception). */
+  private fail(name: string, e: unknown): void {
+    if (!this.failed.has(name)) {
+      this.failed.add(name);
+      console.error(`[life] ${name} failed`, e);
     }
   }
 
@@ -297,22 +308,34 @@ export class LifeRenderer {
     ctx.budget = VISIBLE_BUDGET;
     this.cull.update(view.camera, view.planet.radius, view.sunDir);
     const prof = this.profile;
-    for (const s of this.subs) {
+    const subs = this.subs;
+    for (let i = 0; i < subs.length; i++) {
+      const s = subs[i];
       const t0 = prof ? performance.now() : 0;
-      this.safe(s.name, () => s.sub.update(ctx, mdt));
+      try {
+        s.sub.update(ctx, mdt);
+      } catch (e) {
+        this.fail(s.name, e);
+      }
       if (prof) this.timings[s.name] = (this.timings[s.name] ?? 0) * 0.9 + (performance.now() - t0) * 0.1;
     }
-    for (const b of this.batches.values()) b.begin();
+    const bl = this.batchList;
+    for (let i = 0; i < bl.length; i++) bl[i].begin();
     ctx.sprites.begin();
     ctx.beams.begin();
     ctx.wakes.begin();
     ctx.rings.begin();
-    for (const s of this.subs) {
+    for (let i = 0; i < subs.length; i++) {
+      const s = subs[i];
       const t0 = prof ? performance.now() : 0;
-      this.safe(s.name + ':render', () => s.sub.render(ctx));
-      if (prof) this.timings[s.name + ':r'] = (this.timings[s.name + ':r'] ?? 0) * 0.9 + (performance.now() - t0) * 0.1;
+      try {
+        s.sub.render(ctx);
+      } catch (e) {
+        this.fail(s.rname, e);
+      }
+      if (prof) this.timings[s.rname] = (this.timings[s.rname] ?? 0) * 0.9 + (performance.now() - t0) * 0.1;
     }
-    for (const b of this.batches.values()) b.end();
+    for (let i = 0; i < bl.length; i++) bl[i].end();
     ctx.sprites.end();
     ctx.beams.end();
     ctx.wakes.end();
@@ -332,8 +355,9 @@ export class LifeRenderer {
     this.offs.forEach((f) => f());
     this.offs.length = 0;
     for (const s of this.subs) this.safe(s.name + ':dispose', () => s.sub.dispose());
-    for (const b of this.batches.values()) b.dispose();
+    for (const b of this.batchList) b.dispose();
     this.batches.clear();
+    this.batchList.length = 0;
     this.ctx.sprites.dispose();
     this.ctx.beams.dispose();
     this.ctx.wakes.dispose();

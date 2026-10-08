@@ -7,6 +7,7 @@
  */
 import { Vector3 } from 'three';
 import { linHex } from './batch';
+import { firstFree } from './common';
 import type { LifeCtx } from './ctx';
 import type { Site, Sites } from './sites';
 
@@ -96,7 +97,7 @@ export class Celebrations {
   }
 
   private launch(ctx: LifeCtx, s: Site, delay: number): void {
-    const sh = this.shells.find((x) => !x.active);
+    const sh = firstFree(this.shells);
     if (!sh) return;
     const r = ctx.rng;
     sh.pos.copy(s.pos).addScaledVector(s.up, s.top + 0.2).addScaledVector(s.right, (r.next() - 0.5) * s.radius).addScaledVector(s.fwd, (r.next() - 0.5) * s.radius);

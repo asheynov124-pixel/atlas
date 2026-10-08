@@ -102,6 +102,9 @@ export class RoadTraffic {
   private network: Int32Array = new Int32Array(0);
   private netCount = 0;
   private dirty = true;
+  /** buildings / zones changed: the vehicle mix and bus stops need a (throttled) refresh */
+  private mixDirty = true;
+  private mixCool = 0;
   private stopTiles = new Set<number>();
   private weights = new Float32Array(10);
   private edgeHead: Int32Array;
@@ -112,6 +115,9 @@ export class RoadTraffic {
   private dispatchCool = 0;
   private fields = new Map<number, Map<number, number>>();
   private frame = 0;
+  /** draw distance: shrinks while the visible share is exhausted so the nearest cars win, recovers slowly */
+  private drawDist = 72;
+  private capped = false;
   /** current number of active cars */
   active = 0;
   target = 0;
@@ -131,16 +137,20 @@ export class RoadTraffic {
     this.touched = new Int32Array(capacity * 2);
   }
 
-  /** Roads / buildings changed: rebuild the drivable network lazily. */
+  /** Roads / terrain changed: rebuild the drivable network (next frame). */
   invalidate(): void {
     this.dirty = true;
+  }
+
+  /** Buildings / zones changed: refresh the vehicle mix and bus stops (throttled — growth fires this a lot). */
+  invalidateMix(): void {
+    this.mixDirty = true;
   }
 
   private rebuild(): void {
     this.dirty = false;
     this.fields.clear();
     const p = this.planet;
-    const g = p.grid;
     const list: number[] = [];
     for (let t = 0; t < p.count; t++) {
       if (!isDrivable(p.road[t])) continue;
@@ -148,7 +158,21 @@ export class RoadTraffic {
     }
     this.network = Int32Array.from(list);
     this.netCount = list.length;
-    // services present → vehicle mix; shuttle stops → bus dwell tiles
+    this.rebuildMix();
+    // drop cars that now sit on removed roads
+    for (const c of this.cars) {
+      if (!c.active) continue;
+      const h = c.route.hop(c.hi);
+      if (!isDrivable(p.road[h.a]) || !isDrivable(p.road[h.b])) this.kill(c);
+    }
+  }
+
+  /** Services present → vehicle mix; shuttle stops → bus dwell tiles; zone shares → trucks / taxis. */
+  private rebuildMix(): void {
+    this.mixDirty = false;
+    this.mixCool = 2;
+    const p = this.planet;
+    const g = p.grid;
     let police = 0, health = 0, fire = 0, garbage = 0, busy = 0;
     this.stopTiles.clear();
     for (const b of p.buildings.values()) {
@@ -185,12 +209,6 @@ export class RoadTraffic {
     w[T_AMB] = health ? 1.8 : 0.35;
     w[T_FIRE] = fire ? 1.1 : 0.2;
     w[T_GARBAGE] = garbage ? 1.8 : 0.5;
-    // drop cars that now sit on removed roads
-    for (const c of this.cars) {
-      if (!c.active) continue;
-      const h = c.route.hop(c.hi);
-      if (!isDrivable(p.road[h.a]) || !isDrivable(p.road[h.b])) this.kill(c);
-    }
   }
 
   /** Drivable linked neighbours k of tile t (both ends drivable). */
@@ -480,7 +498,9 @@ export class RoadTraffic {
   }
 
   update(ctx: LifeCtx, dt: number): void {
+    this.mixCool -= dt;
     if (this.dirty) this.rebuild();
+    else if (this.mixDirty && this.mixCool <= 0) this.rebuildMix();
     this.dispatchCool = Math.max(0, this.dispatchCool - dt);
     const p = this.planet;
     // ── density target
@@ -669,14 +689,18 @@ export class RoadTraffic {
     const sprites = ctx.sprites;
     const beams = ctx.beams;
     const rt = ctx.realTime;
+    // cars may take at most ~2/3 of the shared visible budget so aircraft, boats and birds always get their share
+    let mine = Math.min(ctx.budget, Math.round(ctx.budget * 0.66));
+    this.drawDist = this.capped ? Math.max(18, this.drawDist * 0.92) : Math.min(72, this.drawDist + 0.5);
+    this.capped = false;
     for (let i = 0; i < this.cars.length; i++) {
       const c = this.cars[i];
       if (!c.active) continue;
       const P = c.pos;
       c.seen = false;
-      if (!cull.visible(P.x, P.y, P.z, 0.6, 72)) continue;
+      if (mine <= 0 || !cull.visible(P.x, P.y, P.z, 0.6, this.drawDist)) continue;
       c.seen = true;
-      if (ctx.budget <= 0) return;
+      mine--;
       ctx.budget--;
       this.visible++;
       _up.copy(P).normalize();
@@ -734,6 +758,7 @@ export class RoadTraffic {
         }
       }
     }
+    this.capped = mine <= 0;
   }
 
   /**

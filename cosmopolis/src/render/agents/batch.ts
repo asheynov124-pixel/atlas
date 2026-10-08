@@ -40,6 +40,13 @@ export function linHex(hex: number, out: Float32Array | number[], o = 0): void {
   out[o + 2] = _c.b;
 }
 
+/** Mark [start, start + count) of an attribute for upload (allocation-free). */
+function upload(a: InstancedBufferAttribute, start: number, count: number): void {
+  a.clearUpdateRanges();
+  a.addUpdateRange(start, count);
+  a.needsUpdate = true;
+}
+
 // ───────────────────────────────────────────────────────────── KitBatch
 
 export class KitBatch {
@@ -277,11 +284,9 @@ export class SpriteBatch {
     this.geo.instanceCount = n;
     this.mesh.visible = n > 0;
     if (!n) return;
-    for (const [a, k] of [[this.pos, 3], [this.col, 4], [this.size, 4]] as [InstancedBufferAttribute, number][]) {
-      a.clearUpdateRanges();
-      a.addUpdateRange(0, n * k);
-      a.needsUpdate = true;
-    }
+    upload(this.pos, 0, n * 3);
+    upload(this.col, 0, n * 4);
+    upload(this.size, 0, n * 4);
   }
 
   dispose(): void {
@@ -561,12 +566,11 @@ export class Particles {
   /** Upload what was emitted this frame. */
   flush(): void {
     if (this.dirtyMax < 0) return;
-    const lo = this.dirtyMin, n = this.dirtyMax - this.dirtyMin + 1;
-    for (const a of [this.p0, this.vel, this.col, this.sz]) {
-      a.clearUpdateRanges();
-      a.addUpdateRange(lo * 4, n * 4);
-      a.needsUpdate = true;
-    }
+    const lo = this.dirtyMin * 4, n = (this.dirtyMax - this.dirtyMin + 1) * 4;
+    upload(this.p0, lo, n);
+    upload(this.vel, lo, n);
+    upload(this.col, lo, n);
+    upload(this.sz, lo, n);
     this.dirtyMin = Infinity;
     this.dirtyMax = -1;
   }

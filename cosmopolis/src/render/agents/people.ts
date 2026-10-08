@@ -10,7 +10,7 @@ import { RoadKind } from '../../core/types';
 import { game } from '../../game/instance';
 import type { Planet } from '../../world/planet';
 import { linHex } from './batch';
-import { frameFwd, newFrame, smoothstep } from './common';
+import { firstFree, frameFwd, newFrame, smoothstep } from './common';
 import type { LifeCtx } from './ctx';
 import { Route } from './route';
 
@@ -97,7 +97,7 @@ export class Pedestrians {
 
   private spawn(ctx: LifeCtx): void {
     if (!this.candidates.length) return;
-    const w = this.walkers.find((x) => !x.active);
+    const w = firstFree(this.walkers);
     if (!w) return;
     const p = this.planet;
     const g = p.grid;

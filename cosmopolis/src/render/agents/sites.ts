@@ -4,6 +4,8 @@
  * position, up / right / forward from the BuildingRenderer's own matrix), roof height (from the cached LOD0
  * geometry bounds), footprint radius, tags and zone family. Sky traffic weaves between the `towers`, drones land on
  * roofs, ports find their spaceports / skyports / mass drivers / elevators / harbours, beacons light the tall ones.
+ * A growing city adds and levels buildings many times a second at high speed, so rebuilds are throttled (at most
+ * one per REBUILD_EVERY seconds unless forced) and Site objects are reused per building id.
  */
 import { Matrix4, Vector3 } from 'three';
 import { zoneFamily, type Zone, type ZoneFamily } from '../../core/types';
@@ -33,6 +35,12 @@ export interface Site {
 
 const _m = new Matrix4();
 const roofCache = new Map<string, number>();
+/** minimum real seconds between two index rebuilds while buildings keep changing */
+const REBUILD_EVERY = 1.2;
+
+function now(): number {
+  return typeof performance !== 'undefined' ? performance.now() / 1000 : Date.now() / 1000;
+}
 
 export class Sites {
   all: Site[] = [];
@@ -41,51 +49,58 @@ export class Sites {
   private byTag = new Map<string, Site[]>();
   private byId = new Map<number, Site>();
   private dirty = true;
+  private built = false;
+  private lastBuild = -1e9;
   version = 0;
 
   constructor(private view: PlanetView) {}
 
-  invalidate(): void {
+  /** Buildings changed: rebuild soon (throttled). `now` forces the next refresh() to rebuild immediately. */
+  invalidate(now = false): void {
     this.dirty = true;
+    if (now) this.lastBuild = -1e9;
   }
 
-  /** Rebuild if needed. Returns true when the index changed. */
+  /** Rebuild if needed (throttled while the city keeps changing). Returns true when the index changed. */
   refresh(): boolean {
     if (!this.dirty) return false;
+    const t = now();
+    if (this.built && t - this.lastBuild < REBUILD_EVERY) return false;
     this.dirty = false;
+    this.built = true;
+    this.lastBuild = t;
     this.version++;
     const p: Planet = this.view.planet;
     const br = this.view.buildings;
+    const old = this.byId;
+    this.byId = new Map();
     this.all = [];
     this.byTag.clear();
-    this.byId.clear();
     for (const b of p.buildings.values()) {
       const def = getItem(b.defId);
       if (!def) continue;
       br.matrixFor(b, _m);
       const e = _m.elements;
-      const right = new Vector3(e[0], e[1], e[2]);
-      const up = new Vector3(e[4], e[5], e[6]);
-      const fwd = new Vector3(e[8], e[9], e[10]);
-      const scale = right.length() || 1;
-      const sy = up.length() || 1;
-      right.normalize();
-      up.normalize();
-      fwd.normalize();
-      const s: Site = {
-        id: b.id,
-        defId: b.defId,
-        tile: b.tile,
-        tags: def.tags ?? [],
-        family: zoneFamily(p.zone[b.tile] as Zone) ?? (def.growable ? zoneFamily(def.growable.zone) : null),
-        pos: new Vector3(e[12], e[13], e[14]),
-        up,
-        right,
-        fwd,
-        scale,
-        top: roofHeight(b.defId, b.variant, b.level, b.style) * sy,
-        radius: FOOTPRINT_RADIUS[def.footprint] * scale,
-      };
+      // reuse the Site of a building we already knew (only its frame / roof may have changed)
+      let s = old.get(b.id);
+      if (!s || s.defId !== b.defId) {
+        s = { id: b.id, defId: b.defId, tile: b.tile, tags: [], family: null, pos: new Vector3(), up: new Vector3(), right: new Vector3(), fwd: new Vector3(), scale: 1, top: 1, radius: 1 };
+      }
+      s.tile = b.tile;
+      s.right.set(e[0], e[1], e[2]);
+      s.up.set(e[4], e[5], e[6]);
+      s.fwd.set(e[8], e[9], e[10]);
+      s.pos.set(e[12], e[13], e[14]);
+      const scale = s.right.length() || 1;
+      const sy = s.up.length() || 1;
+      s.right.normalize();
+      s.up.normalize();
+      s.fwd.normalize();
+      s.scale = scale;
+      s.tags = def.tags ?? [];
+      s.family = zoneFamily(p.zone[b.tile] as Zone) ?? (def.growable ? zoneFamily(def.growable.zone) : null);
+      s.top = roofHeight(b.defId, b.variant, b.level, b.style) * sy;
+      s.radius = FOOTPRINT_RADIUS[def.footprint] * scale;
       this.all.push(s);
       this.byId.set(s.id, s);
       for (const t of s.tags) {

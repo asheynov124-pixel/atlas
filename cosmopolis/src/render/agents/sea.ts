@@ -11,7 +11,7 @@
  */
 import { Vector3 } from 'three';
 import { game } from '../../game/instance';
-import { clamp, frameFwd, newFrame, pitch, roll, smoothstep } from './common';
+import { clamp, firstFree, frameFwd, newFrame, pitch, roll, smoothstep } from './common';
 import type { FleetKey, LifeCtx } from './ctx';
 import type { Sites } from './sites';
 
@@ -61,6 +61,11 @@ export class SeaTraffic {
   private harbours = 0;
   private dirty = true;
   private version = -1;
+  /** agent seconds until a building-driven rebuild is allowed again (terrain / sea changes rebuild at once) */
+  private cool = 0;
+  private near: Uint8Array | null = null;
+  private depthArr: Int8Array | null = null;
+  private queue: Int32Array | null = null;
   private nextId = 1;
   // whale
   private whaleOK = false;
@@ -80,6 +85,7 @@ export class SeaTraffic {
   private rebuild(ctx: LifeCtx): void {
     this.dirty = false;
     this.version = this.sites.version;
+    this.cool = 6;
     const p = ctx.planet;
     const g = p.grid;
     this.water.clear();
@@ -89,33 +95,52 @@ export class SeaTraffic {
     const params = typeof location !== 'undefined' ? new URLSearchParams(location.search) : null;
     this.whaleOK = p.spec.hasOcean && (p.spec.type === 'ocean' || params?.get('whale') === '1');
     if (!p.spec.hasOcean) return;
-    // BFS outward from water tiles that touch built land, up to 9 rings
-    const depth = new Map<number, number>();
-    const queue: number[] = [];
-    for (const s of this.sites.all) {
-      for (const n of g.disk(s.tile, 2)) {
-        if (!p.isWater(n) || depth.has(n)) continue;
-        depth.set(n, 0);
-        queue.push(n);
+    // typed-array BFS (a growing city triggers this every few seconds): mark land within 2 steps of a building,
+    // seed with the water tiles among them, then flood outward over water up to 9 rings / 4000 tiles
+    const N = p.count;
+    if (!this.near || this.near.length !== N) {
+      this.near = new Uint8Array(N);
+      this.depthArr = new Int8Array(N);
+      this.queue = new Int32Array(Math.min(N, 4096));
+    }
+    const near = this.near, depth = this.depthArr!, queue = this.queue!;
+    near.fill(0);
+    depth.fill(-1);
+    // near: 3 = built tile, 2 = one step away, 1 = two steps away
+    for (let t = 0; t < N; t++) if (p.building[t] >= 0) near[t] = 3;
+    for (let lvl = 3; lvl >= 2; lvl--) {
+      for (let t = 0; t < N; t++) {
+        if (near[t] !== lvl) continue;
+        const d = g.degree(t);
+        for (let k = 0; k < d; k++) {
+          const n = g.neighbor(t, k);
+          if (near[n] === 0) near[n] = lvl - 1;
+        }
       }
     }
-    for (let qi = 0; qi < queue.length; qi++) {
+    let qn = 0;
+    for (let t = 0; t < N && qn < queue.length; t++) {
+      if (!near[t] || !p.isWater(t)) continue;
+      depth[t] = 0;
+      queue[qn++] = t;
+    }
+    for (let qi = 0; qi < qn; qi++) {
       const t = queue[qi];
-      const d = depth.get(t)!;
-      if (d >= 9) continue;
-      for (const n of g.neighbors(t)) {
-        if (!p.isWater(n) || depth.has(n)) continue;
-        depth.set(n, d + 1);
-        queue.push(n);
+      const dd = depth[t];
+      if (dd >= 9) continue;
+      const deg = g.degree(t);
+      for (let k = 0; k < deg && qn < queue.length; k++) {
+        const n = g.neighbor(t, k);
+        if (depth[n] >= 0 || !p.isWater(n)) continue;
+        depth[n] = dd + 1;
+        queue[qn++] = n;
       }
-      if (queue.length > 4000) break;
     }
-    for (const t of queue) {
+    for (let qi = 0; qi < qn; qi++) {
+      const t = queue[qi];
       this.water.add(t);
       this.list.push(t);
-      let all = true;
-      for (const n of g.neighbors(t)) if (!p.isWater(n)) all = false;
-      if (all) this.deep.push(t);
+      if (this.isDeep(ctx, t)) this.deep.push(t);
     }
     // ferry routes: terminal → a water tile 6–12 tiles away near another shore
     this.harbours = 0;
@@ -184,12 +209,14 @@ export class SeaTraffic {
 
   private isDeep(ctx: LifeCtx, t: number): boolean {
     const p = ctx.planet;
-    for (const n of p.grid.neighbors(t)) if (!p.isWater(n)) return false;
+    const g = p.grid;
+    const d = g.degree(t);
+    for (let k = 0; k < d; k++) if (!p.isWater(g.neighbor(t, k))) return false;
     return true;
   }
 
   private spawn(ctx: LifeCtx, ferryPath?: number[]): void {
-    const b = this.boats.find((x) => !x.active);
+    const b = firstFree(this.boats);
     if (!b) return;
     const g = ctx.planet.grid;
     b.id = this.nextId++;
@@ -245,7 +272,8 @@ export class SeaTraffic {
 
   update(ctx: LifeCtx, dt: number): void {
     this.sites.refresh();
-    if (this.dirty || this.version !== this.sites.version) this.rebuild(ctx);
+    this.cool -= dt;
+    if (this.dirty || (this.version !== this.sites.version && this.cool <= 0)) this.rebuild(ctx);
     const want = this.list.length > 12 ? Math.min(30, Math.round(clamp(this.list.length / 16 + this.harbours * 2.5, 3, 26) * ctx.density)) : 0;
     let n = 0, nf = 0;
     for (const b of this.boats) if (b.active) b.kind === K_FERRY ? nf++ : n++;

@@ -43,6 +43,8 @@ const _up = new Vector3();
 const _base = new Vector3();
 const _dr = new Vector3();
 const _fr = newFrame();
+/** runway layout scratch (site-local units) */
+const _rw = { y: 0, z: 0, x0: 0, x1: 0 };
 
 export class Ports {
   private states = new Map<number, PortState>();
@@ -132,10 +134,20 @@ export class Ports {
 
   // ───────────────────────────────────────────── skyport
 
-  private runway(st: PortState): { y: number; z: number; x0: number; x1: number } {
-    if (st.site.defId === 'tr.skyport') return { y: PAD_TOP + 0.115, z: -1.9, x0: -1.0, x1: 3.3 };
-    const r = st.site.radius / st.site.scale;
-    return { y: 0.12, z: 0, x0: -r * 0.6, x1: r * 0.7 };
+  private runway(st: PortState): typeof _rw {
+    if (st.site.defId === 'tr.skyport') {
+      _rw.y = PAD_TOP + 0.115;
+      _rw.z = -1.9;
+      _rw.x0 = -1.0;
+      _rw.x1 = 3.3;
+    } else {
+      const r = st.site.radius / st.site.scale;
+      _rw.y = 0.12;
+      _rw.z = 0;
+      _rw.x0 = -r * 0.6;
+      _rw.x1 = r * 0.7;
+    }
+    return _rw;
   }
 
   private stepAir(ctx: LifeCtx, st: PortState): void {
@@ -224,25 +236,26 @@ export class Ports {
     st.dur = st.phase === 0 ? 9 + st.seed * 8 : st.phase === 1 ? 1.6 : 2.2;
   }
 
+  /** Point at fraction t along a mass driver's coil rail (site-local layout of tr.massdriver, generic otherwise). */
+  private railAt(s: Site, t: number, o: Vector3): Vector3 {
+    if (s.defId !== 'tr.massdriver') return this.sites.local(s, 0, (s.top * t) / s.scale, -t * 2, o);
+    const z0 = 1.3, y0 = PAD_TOP + 0.43, z1 = -4.6, y1 = PAD_TOP + 4.28;
+    return this.sites.local(s, 0, y0 + (y1 - y0) * (t * t * 0.55 + t * 0.45), z0 + (z1 - z0) * t, o);
+  }
+
   private sledPose(st: PortState, pos: Vector3, dir: Vector3): boolean {
     if (st.phase === 0) return false;
     const s = st.site;
-    const generic = s.defId !== 'tr.massdriver';
-    const z0 = 1.3, y0 = PAD_TOP + 0.43, z1 = -4.6, y1 = PAD_TOP + 4.28;
-    const at = (t: number, o: Vector3) => {
-      if (generic) return this.sites.local(s, 0, s.top * t / s.scale, -t * 2, o);
-      return this.sites.local(s, 0, y0 + (y1 - y0) * (t * t * 0.55 + t * 0.45), z0 + (z1 - z0) * t, o);
-    };
     if (st.phase === 1) {
       const k = Math.pow(clamp(st.t / st.dur, 0, 1), 2);
-      at(k, pos);
-      at(Math.max(0, k - 0.02), _v);
-      at(Math.max(0.02, k), _q);
+      this.railAt(s, k, pos);
+      this.railAt(s, Math.max(0, k - 0.02), _v);
+      this.railAt(s, Math.max(0.02, k), _q);
       dir.copy(_q).sub(_v).normalize();
       return true;
     }
-    at(1, _q);
-    at(0.98, _v);
+    this.railAt(s, 1, _q);
+    this.railAt(s, 0.98, _v);
     dir.copy(_q).sub(_v).normalize();
     pos.copy(_q).addScaledVector(dir, st.t * 18);
     return st.t < 2;

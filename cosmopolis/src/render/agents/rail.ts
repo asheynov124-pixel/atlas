@@ -10,7 +10,7 @@ import { RoadKind } from '../../core/types';
 import { getItem } from '../../content/catalog';
 import type { Planet } from '../../world/planet';
 import { roadSpec } from '../roads/lanes';
-import { clamp, frameFwd, newFrame, smoothstep } from './common';
+import { clamp, firstFree, frameFwd, newFrame, smoothstep } from './common';
 import type { LifeCtx } from './ctx';
 import { Route, TURN_T } from './route';
 
@@ -44,6 +44,8 @@ export class RailTraffic {
   private tiles = { [RoadKind.Maglev]: [] as number[], [RoadKind.Hyperloop]: [] as number[] };
   private stations = new Set<number>();
   private dirty = true;
+  private stationsDirty = true;
+  private stationsCool = 0;
   private nextId = 1;
   active = 0;
   visible = 0;
@@ -52,8 +54,14 @@ export class RailTraffic {
     for (let i = 0; i < 28; i++) this.trains.push(new Train());
   }
 
+  /** Rails / terrain changed: rebuild the networks next frame. */
   invalidate(): void {
     this.dirty = true;
+  }
+
+  /** Buildings changed: refresh the station stops (throttled). */
+  invalidateStations(): void {
+    this.stationsDirty = true;
   }
 
   private links(t: number, kind: number, out: number[]): number {
@@ -79,18 +87,26 @@ export class RailTraffic {
     }
     this.tiles[RoadKind.Maglev] = m;
     this.tiles[RoadKind.Hyperloop] = h;
+    this.rebuildStations();
+    for (const tr of this.trains) {
+      if (!tr.active) continue;
+      const hp = tr.route.hop(tr.hi);
+      if (p.road[hp.a] !== tr.kind || p.road[hp.b] !== tr.kind) this.kill(tr);
+    }
+  }
+
+  private rebuildStations(): void {
+    this.stationsDirty = false;
+    this.stationsCool = 2;
+    const p = this.planet;
+    const g = p.grid;
     this.stations.clear();
-    if (m.length || h.length) {
+    if (this.tiles[RoadKind.Maglev].length || this.tiles[RoadKind.Hyperloop].length) {
       for (const b of p.buildings.values()) {
         const tags = getItem(b.defId)?.tags;
         if (!tags || !(tags.includes('maglev') || tags.includes('hyperloop') || tags.includes('station'))) continue;
         for (const t of b.tiles) for (const n of g.neighbors(t)) if (p.road[n] === RoadKind.Maglev || p.road[n] === RoadKind.Hyperloop) this.stations.add(n);
       }
-    }
-    for (const tr of this.trains) {
-      if (!tr.active) continue;
-      const hp = tr.route.hop(tr.hi);
-      if (p.road[hp.a] !== tr.kind || p.road[hp.b] !== tr.kind) this.kill(tr);
     }
   }
 
@@ -128,7 +144,7 @@ export class RailTraffic {
   private spawn(ctx: LifeCtx, kind: number): void {
     const list = this.tiles[kind as RoadKind.Maglev];
     if (!list.length) return;
-    const tr = this.trains.find((t) => !t.active);
+    const tr = firstFree(this.trains);
     if (!tr) return;
     const p = this.planet;
     const g = p.grid;
@@ -158,7 +174,9 @@ export class RailTraffic {
   }
 
   update(ctx: LifeCtx, dt: number): void {
+    this.stationsCool -= dt;
     if (this.dirty) this.rebuild();
+    else if (this.stationsDirty && this.stationsCool <= 0) this.rebuildStations();
     const m = this.tiles[RoadKind.Maglev].length, h = this.tiles[RoadKind.Hyperloop].length;
     const wantM = m >= 3 ? clamp(Math.round((m / 9) * ctx.density), 1, 10) : 0;
     const wantH = h >= 3 ? clamp(Math.round((h / 4) * ctx.density), 1, 16) : 0;

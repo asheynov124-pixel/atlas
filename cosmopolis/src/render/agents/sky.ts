@@ -11,7 +11,7 @@
  */
 import { Vector3 } from 'three';
 import { game } from '../../game/instance';
-import { clamp, frameFwd, frameUp, newFrame, roll, smoothstep } from './common';
+import { clamp, firstFree, frameFwd, frameUp, newFrame, roll, smoothstep } from './common';
 import type { LifeCtx } from './ctx';
 import type { Site, Sites } from './sites';
 
@@ -156,7 +156,7 @@ export class SkyTraffic {
   }
 
   private spawnFlyer(ctx: LifeCtx): void {
-    const f = this.flyers.find((x) => !x.active);
+    const f = firstFree(this.flyers);
     if (!f || this.anchors.length < 2) return;
     f.id = this.nextId++;
     f.band = Math.floor(ctx.rng.next() * 3);
@@ -293,11 +293,11 @@ export class SkyTraffic {
     for (const h of this.hoppers) if (h.active) h.kind === 'drone' ? nd++ : nt++;
     if (nf < wantF) this.spawnFlyer(ctx);
     if (nd < wantD) {
-      const h = this.hoppers.find((x) => !x.active);
+      const h = firstFree(this.hoppers);
       if (h) this.launchHopper(ctx, h, 'drone', null);
     }
     if (nt < wantT) {
-      const h = this.hoppers.find((x) => !x.active);
+      const h = firstFree(this.hoppers);
       if (h) this.launchHopper(ctx, h, 'airTaxi', null);
     }
     this.flyerCount = nf;

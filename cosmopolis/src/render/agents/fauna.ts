@@ -10,7 +10,7 @@
 import { Vector3 } from 'three';
 import { game } from '../../game/instance';
 import type { PlanetTypeId } from '../../core/types';
-import { frameFwd, frameUp, newFrame, roll, smoothstep } from './common';
+import { firstFree, frameFwd, frameUp, newFrame, roll, smoothstep } from './common';
 import type { FleetKey, LifeCtx } from './ctx';
 import { linHex } from './batch';
 
@@ -140,7 +140,7 @@ export class Fauna {
     let n = 0;
     for (const f of this.flocks) if (f.active) n++;
     if (n < want) {
-      const f = this.flocks.find((x) => !x.active);
+      const f = firstFree(this.flocks);
       if (f) this.spawn(ctx, f);
     }
     const ft = this.focus(ctx);

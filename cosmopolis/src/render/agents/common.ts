@@ -68,6 +68,12 @@ export class Cull {
   }
 }
 
+/** First inactive entry of a pool (no closure allocation, unlike Array.find). */
+export function firstFree<T extends { active: boolean }>(list: T[]): T | undefined {
+  for (let i = 0; i < list.length; i++) if (!list[i].active) return list[i];
+  return undefined;
+}
+
 export function smoothstep(a: number, b: number, x: number): number {
   const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
   return t * t * (3 - 2 * t);
