@@ -22,6 +22,7 @@
  *
  * URL params (dev): &star=<StarKind> force a star kind · &rings=1 give the planet rings for testing.
  */
+import type { SceneHints } from '../post/PostFX';
 import { AmbientLight, Color, DirectionalLight, Group, HemisphereLight, Quaternion, Vector2, Vector3 } from 'three';
 import { bus } from '../../core/events';
 import { hashString } from '../../core/rng';
@@ -59,11 +60,7 @@ interface CosmosLike {
 }
 
 /** Per-frame scene hints for PostFX (see PostFX.hint). */
-interface SceneHint {
-  exposure: number;
-  warmth: number;
-  night: number;
-}
+type SceneHint = SceneHints;
 
 /** Optional extras cosmos passes with setStar (binary companion kind, catalogue colour). */
 export interface StarOptions {
@@ -456,12 +453,12 @@ export class SpaceEnvironment {
     this.rings?.update(sunDir, sunCol);
 
     // ── hint the grade: slightly brighter exposure at night so cities read, a hair warmer at golden hour
-    const post = game?.engine?.post as unknown as { hint?: (h: SceneHint) => void } | undefined;
+    const post = game?.engine?.post;
     const hint = this.hintOut;
     hint.exposure = (1 + 0.2 * (1 - day) * (1 - far * 0.6)) * (1 + 0.08 * golden);
     hint.warmth = golden * 0.4;
     hint.night = 1 - day;
-    post?.hint?.(hint);
+    post?.hint(hint);
   }
 
   dispose(): void {

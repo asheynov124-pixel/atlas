@@ -94,7 +94,8 @@ export const DEFAULT_POST: PostParams = {
 const _size = new Vector2();
 const _clear = new Color();
 
-interface SceneHints {
+/** Per-frame scene hints (typed channel for SpaceEnvironment and cosmos views). */
+export interface SceneHints {
   exposure: number;
   warmth: number;
   night: number;
