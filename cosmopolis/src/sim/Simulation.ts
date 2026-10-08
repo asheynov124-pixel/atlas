@@ -53,7 +53,7 @@ import { b64ToBytes, bytesToB64 } from '../core/b64';
 import { Agg } from './agg';
 import { BRec, P, PROBLEM_INFO, U, U_COUNT, type CityEvent, type CityHistory, type DemandReason, type DistrictStats, type Loan, type LoanOffer, type MonthReport, type ProblemSummary, type SandboxRules } from './state';
 import { DEFAULT_TAX, DEPARTMENTS, DEPT_IDS, FAMILIES, GARBAGE_START_POP, MAX_TAX, SERVICE_INDEX, budgetEffect, type DeptId } from './params';
-import { POLICIES, POLICY_MAP, applyPatch, baseMods, modsFor, type Mods, type SimPolicyDef } from './policies';
+import { POLICIES, POLICY_MAP, applyPatch, baseMods, modsFor, type ModPatch, type Mods, type SimPolicyDef } from './policies';
 import { catalogCaps, clearDefInfo, defInfo } from './defInfo';
 import { Fields, type FieldContext } from './fields';
 import { Networks } from './networks';
@@ -209,6 +209,9 @@ export class Simulation implements System {
   private nextFlavourDay = 8;
   private projected: MonthReport | null = null;
   private orbitalCoverage = new Float32Array(SERVICE_INDEX.spiritual + 1);
+  /** research (cosmos tech) modifiers are merged into city and district mods here — cosmos stops patching cityMods */
+  readonly techModsMerged = true;
+  private techSig = '';
   /** residents living in orbital habitats (orbital id → people) */
   private orbitalRes = new Map<number, number>();
   private ctx: FieldContext | null = null;
@@ -756,7 +759,7 @@ export class Simulation implements System {
       this.recomputeMods();
     }
     const amb = this.ambientSignature();
-    if (amb !== this.ambientSig) this.recomputeMods();
+    if (amb !== this.ambientSig || techSignature(this.techPatch()) !== this.techSig) this.recomputeMods();
     const season = this.season();
     if (season.id !== this.lastSeason) {
       if (this.lastSeason && season.strength > 0.3 && this.agg.population > 50) this.post(CHARACTERS.weather, line(this.rng, 'season_' + season.id, this.vars()));
@@ -930,14 +933,18 @@ export class Simulation implements System {
     const p = this.planet;
     if (!p) return;
     this.policySig = this.policySignature();
+    const tech = this.techPatch();
+    this.techSig = techSignature(tech);
     const city = p.districts[0]?.policies ?? [];
     this.cityMods = modsFor(city);
+    applyPatch(this.cityMods, tech);
     this.districtMods = [];
     for (let i = 1; i < p.districts.length; i++) {
       const d = p.districts[i];
       if (!d || !d.policies.length) continue;
       const m = modsFor(city);
       modsFor(d.policies, m);
+      applyPatch(m, tech);
       this.districtMods[i] = m;
     }
     this.eventMods = baseMods();
@@ -948,6 +955,15 @@ export class Simulation implements System {
     applyPatch(this.eventMods, this.ambientPatch());
     this.ambientSig = this.ambientSignature();
     if (this.fields) this.fields.fullNext = true;
+  }
+
+  /** Research modifiers from the cosmos tech tree (keys match sim Mods; empty without a progression system). */
+  private techPatch(): ModPatch {
+    try {
+      return (this.game.progression?.techMods?.() ?? {}) as ModPatch;
+    } catch {
+      return {};
+    }
   }
 
   // ───────────────────────────── seasons, wonders, spaceports
@@ -1899,6 +1915,12 @@ class LiveSimState {
   toJSON(): SavedState | Record<string, never> {
     return LIVE.get(this)?.serialize() ?? {};
   }
+}
+
+function techSignature(p: ModPatch): string {
+  let s = '';
+  for (const k in p) s += k + ':' + (p as Record<string, unknown>)[k] + ';';
+  return s;
 }
 
 function tierLabel(id: string): string {
