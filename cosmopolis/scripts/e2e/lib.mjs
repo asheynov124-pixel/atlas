@@ -152,6 +152,15 @@ export async function layoutAudit(page, scope = 'body') {
     const W = innerWidth, H = innerHeight;
     const name = (el) => (el.getAttribute('aria-label') || el.textContent || el.className || el.tagName).trim().replace(/\s+/g, ' ').slice(0, 40);
     const rects = els.map((el) => ({ el, r: el.getBoundingClientRect() }));
+    const scroller = (el) => {
+      let s = el.parentElement;
+      while (s && s !== document.body) {
+        const cs = getComputedStyle(s);
+        if (/(auto|scroll)/.test(cs.overflowX + cs.overflowY)) return s;
+        s = s.parentElement;
+      }
+      return document.body;
+    };
     for (const { el, r } of rects) {
       if (r.right > W + 1 || r.bottom > H + 1 || r.left < -1 || r.top < -1) {
         // elements inside scrollable containers may legitimately extend beyond the viewport
@@ -171,6 +180,8 @@ export async function layoutAudit(page, scope = 'body') {
       for (let j = i + 1; j < rects.length; j++) {
         const a = rects[i], b = rects[j];
         if (a.el.contains(b.el) || b.el.contains(a.el)) continue;
+        // content scrolled under a fixed header is not an overlap: compare only within one scroll container
+        if (scroller(a.el) !== scroller(b.el)) continue;
         const ox = Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left);
         const oy = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top);
         if (ox > 6 && oy > 6) {
@@ -214,14 +225,19 @@ export async function touchDrag(page, from, to, steps = 8) {
   }
 }
 
-/** Find tappable land tiles near the camera target: { center, tiles[] } sorted by distance. */
-export async function landNearCamera(page, maxRing = 8) {
+/** Find tappable land tiles near the camera target: { center, tiles[] } sorted by distance (retries while sheets close). */
+export async function landNearCamera(page, maxRing = 8, want = 10, timeout = 15000) {
   await installHelpers(page);
-  return page.evaluate((maxRing) => {
-    const g = window.__cosmo.game, p = g.planet, grid = p.grid;
-    const center = g.camera.targetTile();
-    const out = [];
-    for (let r = 0; r <= maxRing; r++) for (const t of grid.ring(center, r)) if (!p.isWater(t) && window.__e2e.tappable(t)) out.push(t);
-    return { center, tiles: out };
-  }, maxRing);
+  const t0 = Date.now();
+  for (;;) {
+    const r = await page.evaluate((maxRing) => {
+      const g = window.__cosmo.game, p = g.planet, grid = p.grid;
+      const center = g.camera.targetTile();
+      const out = [];
+      for (let r = 0; r <= maxRing; r++) for (const t of grid.ring(center, r)) if (!p.isWater(t) && window.__e2e.tappable(t)) out.push(t);
+      return { center, tiles: out };
+    }, maxRing);
+    if (r.tiles.length >= want || Date.now() - t0 > timeout) return r;
+    await page.waitForTimeout(500);
+  }
 }

@@ -23,6 +23,8 @@ interface Snap {
   at: number;
   lastActivity: number;
   money: number;
+  /** camera pose when the catastrophe began (the rewind glides back to it) */
+  pose: { target: Vector3; distance: number; heading: number; tilt: number } | null;
 }
 
 /** A session ends when nothing has happened for this long (ms). */
@@ -51,7 +53,9 @@ export class Chrono {
       try {
         const t0 = performance.now();
         const save = JSON.parse(JSON.stringify(p.serialize())) as PlanetSave;
-        this.snap = { save, planetId: p.spec.id, names: [name], at: now, lastActivity: now, money: this.game.empire.s.money };
+        const cam = this.game.camera;
+        const pose = cam ? { target: cam.target.clone() as Vector3, distance: cam.distance, heading: cam.heading, tilt: cam.tilt } : null;
+        this.snap = { save, planetId: p.spec.id, names: [name], at: now, lastActivity: now, money: this.game.empire.s.money, pose };
         if (performance.now() - t0 > 60) console.info(`[god] chrono snapshot took ${(performance.now() - t0).toFixed(0)} ms`);
       } catch (e) {
         console.error('[god] snapshot failed', e);
@@ -111,6 +115,15 @@ export class Chrono {
     try {
       this.game.god.stopAll(true);
       this.reload(snap.save);
+      // planet-ending powers pull the camera far out: glide back to where the player was watching from
+      const pose = snap.pose;
+      if (pose) {
+        try {
+          void this.game.camera.flyTo(pose.target, { distance: pose.distance, heading: pose.heading, tilt: pose.tilt, duration: 1.6 });
+        } catch {
+          /* camera optional */
+        }
+      }
       if (!this.game.empire.sandbox) this.game.empire.s.money = Math.max(this.game.empire.s.money, snap.money);
       try {
         this.game.empire.bump('cosmos.power.rewind');

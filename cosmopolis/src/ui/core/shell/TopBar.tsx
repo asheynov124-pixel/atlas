@@ -35,11 +35,17 @@ function tierName(t: number): string {
   }
 }
 
-/** Population trend: compares against the value ~10 s ago. */
+/** Population trend: compares against the value ~10 s ago (on the same planet — travel resets it). */
 function usePopTrend(pop: number): number {
   const hist = useRef<{ t: number; v: number }[]>([]);
+  const planetRef = useRef<string | null>(null);
   const now = performance.now();
   const h = hist.current;
+  const planet = ui.planetId.value;
+  if (planetRef.current !== planet) {
+    planetRef.current = planet;
+    h.length = 0;
+  }
   if (!h.length || now - h[h.length - 1].t > 1000) {
     h.push({ t: now, v: pop });
     while (h.length > 12) h.shift();
