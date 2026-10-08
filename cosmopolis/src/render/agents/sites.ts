@@ -5,11 +5,13 @@
  * geometry bounds), footprint radius, tags and zone family. Sky traffic weaves between the `towers`, drones land on
  * roofs, ports find their spaceports / skyports / mass drivers / elevators / harbours, beacons light the tall ones.
  * A growing city adds and levels buildings many times a second at high speed, so rebuilds are throttled (at most
- * one per REBUILD_EVERY seconds unless forced) and Site objects are reused per building id.
+ * one per REBUILD_EVERY seconds unless forced) and Site objects are reused per building id. Roof heights come from
+ * mesh bounds; a mesh the renderer has not built yet would cost a factory run, so unknown heights start from the
+ * declared ItemDef height and are measured in the background (≈1 ms per frame), bumping `version` when done.
  */
 import { Matrix4, Vector3 } from 'three';
 import { zoneFamily, type Zone, type ZoneFamily } from '../../core/types';
-import { getGeometry, getItem } from '../../content/catalog';
+import { getGeometry, getItem, meshKey } from '../../content/catalog';
 import { FOOTPRINT_RADIUS } from '../../content/kit';
 import type { Planet } from '../../world/planet';
 import type { PlanetView } from '../PlanetView';
@@ -31,10 +33,18 @@ export interface Site {
   top: number;
   /** usable footprint radius (world units) */
   radius: number;
+  /** roof-height cache key (def|variant|level|style) and the instance's vertical scale */
+  roofKey: string;
+  sy: number;
 }
 
 const _m = new Matrix4();
 const roofCache = new Map<string, number>();
+/** roof heights still to measure (keys) — drained a little every frame */
+const roofQueue: string[] = [];
+const roofQueued = new Set<string>();
+/** ms of roof measuring allowed per frame */
+const ROOF_MS = 1.0;
 /** minimum real seconds between two index rebuilds while buildings keep changing */
 const REBUILD_EVERY = 1.2;
 
@@ -51,6 +61,9 @@ export class Sites {
   private dirty = true;
   private built = false;
   private lastBuild = -1e9;
+  private lastDrain = -1e9;
+  /** some sites still carry an estimated roof height */
+  private estimated = false;
   version = 0;
 
   constructor(private view: PlanetView) {}
@@ -63,8 +76,9 @@ export class Sites {
 
   /** Rebuild if needed (throttled while the city keeps changing). Returns true when the index changed. */
   refresh(): boolean {
-    if (!this.dirty) return false;
     const t = now();
+    if (this.estimated && t - this.lastDrain > 0.012) this.drain(t);
+    if (!this.dirty) return false;
     if (this.built && t - this.lastBuild < REBUILD_EVERY) return false;
     this.dirty = false;
     this.built = true;
@@ -84,7 +98,7 @@ export class Sites {
       // reuse the Site of a building we already knew (only its frame / roof may have changed)
       let s = old.get(b.id);
       if (!s || s.defId !== b.defId) {
-        s = { id: b.id, defId: b.defId, tile: b.tile, tags: [], family: null, pos: new Vector3(), up: new Vector3(), right: new Vector3(), fwd: new Vector3(), scale: 1, top: 1, radius: 1 };
+        s = { id: b.id, defId: b.defId, tile: b.tile, tags: [], family: null, pos: new Vector3(), up: new Vector3(), right: new Vector3(), fwd: new Vector3(), scale: 1, top: 1, radius: 1, roofKey: '', sy: 1 };
       }
       s.tile = b.tile;
       s.right.set(e[0], e[1], e[2]);
@@ -99,7 +113,18 @@ export class Sites {
       s.scale = scale;
       s.tags = def.tags ?? [];
       s.family = zoneFamily(p.zone[b.tile] as Zone) ?? (def.growable ? zoneFamily(def.growable.zone) : null);
-      s.top = roofHeight(b.defId, b.variant, b.level, b.style) * sy;
+      s.sy = sy;
+      s.roofKey = meshKey(def, { variant: b.variant, level: b.level, style: b.style });
+      const h = roofCache.get(s.roofKey);
+      if (h !== undefined) s.top = h * sy;
+      else {
+        s.top = (def.height ?? 1) * sy;
+        this.estimated = true;
+        if (!roofQueued.has(s.roofKey)) {
+          roofQueued.add(s.roofKey);
+          roofQueue.push(s.roofKey);
+        }
+      }
       s.radius = FOOTPRINT_RADIUS[def.footprint] * scale;
       this.all.push(s);
       this.byId.set(s.id, s);
@@ -118,6 +143,33 @@ export class Sites {
     return this.byId.get(id);
   }
 
+  /** Measure queued roof heights for ~ROOF_MS; once none are left, apply them and publish a new version. */
+  private drain(t: number): void {
+    this.lastDrain = t;
+    const t0 = now();
+    while (roofQueue.length && (now() - t0) * 1000 < ROOF_MS) {
+      const key = roofQueue.shift()!;
+      roofQueued.delete(key);
+      measureRoof(key);
+    }
+    if (roofQueue.length) return;
+    this.estimated = false;
+    let changed = false;
+    for (const s of this.all) {
+      const h = roofCache.get(s.roofKey);
+      if (h === undefined) continue;
+      const top = h * s.sy;
+      if (Math.abs(top - s.top) > 1e-3) {
+        s.top = top;
+        changed = true;
+      }
+    }
+    if (changed) {
+      this.towers = this.all.filter((x) => x.top >= 3.2).sort((a, b) => b.top - a.top);
+      this.version++;
+    }
+  }
+
   tagged(tag: string): Site[] {
     return this.byTag.get(tag) ?? [];
   }
@@ -133,13 +185,17 @@ export class Sites {
   }
 }
 
-function roofHeight(defId: string, variant: number, level: number, style: string): number {
-  const key = `${defId}|${variant}|${level}|${style}`;
+/** Measure (and cache) the roof height of a def|variant|level|style key from its LOD0 mesh bounds. */
+function measureRoof(key: string): number {
   let h = roofCache.get(key);
   if (h !== undefined) return h;
+  // key = catalog meshKey: id|variant|level|style ('-' = not styleable); ids never contain '|'
+  const parts = key.split('|');
+  const style = parts.pop()!, level = Number(parts.pop()), variant = Number(parts.pop());
+  const defId = parts.join('|');
   const def = getItem(defId);
   try {
-    const g = getGeometry(defId, { variant, level, style: style as never, lod: 0 });
+    const g = getGeometry(defId, { variant, level, style: style === '-' ? undefined : (style as never), lod: 0 });
     if (g) {
       if (!g.boundingBox) g.computeBoundingBox();
       h = Math.max(0.05, g.boundingBox!.max.y);
