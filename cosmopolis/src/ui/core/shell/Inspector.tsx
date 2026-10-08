@@ -124,6 +124,16 @@ function BuildingBody({ id, onClose }: { id: number; onClose: () => void }) {
       },
     },
     {
+      id: 'move',
+      icon: 'navigate',
+      label: 'Move',
+      run: () => {
+        // the move tool lifts the inspected building on enter, so select it while the selection still stands
+        selectTool({ id: 'move', label: 'Move' });
+        setSelection(null);
+      },
+    },
+    {
       id: 'rename',
       icon: 'edit',
       label: 'Rename',

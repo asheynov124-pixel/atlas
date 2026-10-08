@@ -24,6 +24,7 @@ const TOOL_META: Record<string, { icon: string; label: string; sub: string }> = 
   terraform: { icon: 'terraform', label: 'Terraform', sub: 'Drag to sculpt the land' },
   district: { icon: 'district', label: 'Districts', sub: 'Drag to paint a district' },
   paint: { icon: 'paint', label: 'Paint', sub: 'Tap a building to recolour' },
+  move: { icon: 'navigate', label: 'Move', sub: 'Tap a building to pick it up' },
   decor: { icon: 'nature', label: 'Decorate', sub: 'Tap to plant' },
   orbit: { icon: 'orbital', label: 'Orbit', sub: 'Tap to launch' },
   god: { icon: 'god', label: 'God power', sub: 'Choose your target' },
