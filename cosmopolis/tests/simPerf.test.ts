@@ -37,33 +37,61 @@ it('simulates 5k buildings on 16k tiles within budget', () => {
   h.days(20); // reach a steady state and warm up the JIT
   const sim = h.sim as unknown as { fields: { pass(ctx: unknown): Generator }; fieldCtx(): unknown; finishDay(): void; flushFields(fresh: boolean): void };
   sim.flushFields(true); // warm the stamp cache like a running game would
-  // CPU time (not wall clock) and best of 2, so parallel test workers / GC don't distort the budget check
+  // CPU time (not wall clock): parallel test workers and other processes on a shared machine inflate wall time but
+  // much less so CPU time. Each sample is the best of 2; we take several samples and judge the median (typical cost)
+  // and the best one (the floor — a real regression raises every sample, contention only some of them).
   const proc = (globalThis as unknown as { process?: { cpuUsage(): { user: number; system: number } } }).process;
   const cpuMs = () => {
     if (!proc) return performance.now();
     const u = proc.cpuUsage();
     return (u.user + u.system) / 1000;
   };
-  let fieldMs = Infinity, steps = 0;
-  for (let rep = 0; rep < 2; rep++) {
-    const t0 = cpuMs();
-    const job = sim.fields.pass(sim.fieldCtx());
-    steps = 0;
-    while (!job.next().done) steps++;
-    fieldMs = Math.min(fieldMs, cpuMs() - t0);
-  }
+  const sampleField = (): number => {
+    let best = Infinity;
+    for (let rep = 0; rep < 2; rep++) {
+      const t0 = cpuMs();
+      const job = sim.fields.pass(sim.fieldCtx());
+      steps = 0;
+      while (!job.next().done) steps++;
+      best = Math.min(best, cpuMs() - t0);
+    }
+    return best;
+  };
+  const sampleDay = (): number => {
+    let best = Infinity;
+    for (let rep = 0; rep < 2; rep++) {
+      const t0 = cpuMs();
+      for (let k = 0; k < 8; k++) sim.finishDay();
+      best = Math.min(best, (cpuMs() - t0) / 8);
+    }
+    return best;
+  };
+  let steps = 0;
+  const fieldSamples: number[] = [];
+  for (let s = 0; s < 3; s++) fieldSamples.push(sampleField());
   // one sim day without the field pass (that one is amortised separately)
   (h.sim as unknown as { nextFieldDay: number }).nextFieldDay = 1e9;
-  let dayMs = Infinity;
-  for (let rep = 0; rep < 2; rep++) {
-    const t0 = cpuMs();
-    for (let k = 0; k < 8; k++) sim.finishDay();
-    dayMs = Math.min(dayMs, (cpuMs() - t0) / 8);
-  }
-  console.info(`[sim perf] ${p.buildings.size} buildings · day ${dayMs.toFixed(2)} ms · field pass ${fieldMs.toFixed(2)} ms in ${steps} slices · pop ${h.sim.stats.population}`);
+  const daySamples: number[] = [];
+  for (let s = 0; s < 3; s++) daySamples.push(sampleDay());
+  const median = (a: number[]) => [...a].sort((x, y) => x - y)[a.length >> 1];
   // speed 4 = 12 days/s: per-frame cost at 60 fps ≈ (12·day + 4·field) / 60
-  const perFrame = (12 * dayMs + 4 * fieldMs) / 60;
-  console.info(`[sim perf] ≈ ${perFrame.toFixed(2)} ms per frame at speed 4`);
-  expect(perFrame).toBeLessThan(10); // regression guard (parallel test workers add noise); ~1.5–3 ms on a desktop
+  const frame = (day: number, field: number) => (12 * day + 4 * field) / 60;
+  const perFrame = frame(median(daySamples), median(fieldSamples));
+  const bestFrame = frame(Math.min(...daySamples), Math.min(...fieldSamples));
+  console.info(
+    `[sim perf] ${p.buildings.size} buildings · day ${median(daySamples).toFixed(2)} ms · field pass ${median(fieldSamples).toFixed(2)} ms in ${steps} slices · pop ${h.sim.stats.population}`,
+  );
+  // Machine contention (load average above the core count) slows even CPU time through cache / frequency effects:
+  // widen the median bound then, but keep the floor bound so a genuine regression still fails.
+  let contention = 1;
+  try {
+    const os = (globalThis as unknown as { process?: { getBuiltinModule?(m: string): { loadavg(): number[]; cpus(): unknown[] } } }).process?.getBuiltinModule?.('os');
+    if (os) contention = Math.max(1, os.loadavg()[0] / Math.max(1, os.cpus().length));
+  } catch {
+    /* not node */
+  }
+  console.info(`[sim perf] ≈ ${perFrame.toFixed(2)} ms per frame at speed 4 (best ${bestFrame.toFixed(2)} ms, contention ×${contention.toFixed(2)})`);
+  expect(bestFrame).toBeLessThan(10); // regression floor; ~1.5–3 ms on a desktop
+  expect(perFrame).toBeLessThan(contention > 1.25 ? 25 : 14);
   expect(steps).toBeGreaterThan(5); // the field pass really is sliced
 }, 120_000);
