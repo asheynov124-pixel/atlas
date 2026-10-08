@@ -104,8 +104,8 @@ const STEPS: Step[] = [
     id: 'utilities',
     icon: 'power',
     title: 'Power and water',
-    body: 'Nothing grows in the dark. Open Build, place a power plant and a water pump next to a road on the same network.',
-    short: 'Build → place power and water by a road',
+    body: 'Nothing grows in the dark. Open Build, place a power plant and a water tower (pumps go on the shore) next to your road.',
+    short: 'Build → power plant + water tower',
     target: '.dk-btn[aria-label="Build"]',
     check: () => {
       const st = ui.stats.value;
@@ -251,41 +251,46 @@ export function Tutorial() {
   useEffect(() => {
     if (st && ui.speed.value >= 2) sawFast = true;
   });
-  // auto-advance
-  useEffect(() => {
-    if (!st) return;
-    const step = STEPS[st.step];
-    if (!step?.check) return;
-    let ok = false;
+  // auto-advance: evaluated on every (500 ms) render, but the pending advance timer only restarts when the
+  // step or its completion changes — re-rendering must not cancel it (it did, so steps never advanced at 60 fps)
+  const curStep = st ? STEPS[st.step] : undefined;
+  let stepDone = false;
+  if (st && curStep?.check) {
     try {
-      ok = step.check();
+      stepDone = curStep.check();
     } catch {
-      ok = false;
+      stepDone = false;
     }
-    if (ok) {
-      const t = setTimeout(() => {
-        uiSound('chime');
-        const n = { step: st.step + 1, done: st.step + 1 >= STEPS.length };
-        if (n.done) finish(false);
-        else {
-          store(n);
-          active.value = n;
-          setPulse((x) => x + 1);
-        }
-      }, 650);
-      return () => clearTimeout(t);
-    }
-  });
+  }
+  useEffect(() => {
+    if (!st || !stepDone) return;
+    const t = setTimeout(() => {
+      uiSound('chime');
+      const n = { step: st.step + 1, done: st.step + 1 >= STEPS.length };
+      if (n.done) finish(false);
+      else {
+        store(n);
+        active.value = n;
+        setPulse((x) => x + 1);
+      }
+    }, 650);
+    return () => clearTimeout(t);
+  }, [st?.step, stepDone]);
   if (!st || ui.screen.value !== 'game' || ui.view.value !== 'planet' || ui.photo.value || ui.chromeHidden.value) return null;
   const step = STEPS[st.step];
   if (!step) return null;
-  const busy = !!ui.panel.value || !!ui.category.value || !!ui.tool.value || !!ui.selection.value;
+  // fold into the pill while the player works: panels, sheets, tools, the inspector, the More menu or any modal
+  const overlayOpen = typeof document !== 'undefined' && !!document.querySelector('.cz-modal-root.is-shown, .cz-sheet-root.is-shown');
+  const busy = !!ui.panel.value || !!ui.category.value || !!ui.tool.value || !!ui.selection.value || overlayOpen;
+  // waiting steps (nothing to tap, nothing to confirm) never cover the city — they show as the pill
+  const waiting = !step.target && !step.next;
   const vp0 = viewport.value;
   const k = uiScale();
   const vp = { w: vp0.w / k, h: vp0.h / k, landscapePhone: vp0.landscapePhone };
   const prog = step.progress?.();
-  if (busy && step.id !== 'goals') {
-    if (step.next) return null;
+  if ((busy || waiting) && step.id !== 'goals') {
+    // a sheet or modal owns the screen: stay out of its way entirely
+    if (step.next || overlayOpen) return null;
     return (
       <div class="tu-pill pe" role="status">
         <span class="tu-pill-icon">
