@@ -24,6 +24,8 @@ export const shared = {
   uApocalypse: { value: 0 },
   /** camera world position */
   uCameraPos: { value: new Vector3() },
+  /** strength of the procedural sky reflection (cheap planet-aware IBL for metals and glass; 0 disables) */
+  uEnvIntensity: { value: 0.85 },
 };
 
 export const SHADER_COMMON = /* glsl */ `
@@ -34,6 +36,7 @@ uniform float uNightLights;
 uniform vec3 uWindowColor;
 uniform float uApocalypse;
 uniform vec3 uCameraPos;
+uniform float uEnvIntensity;
 float cHash12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 float cNight(vec3 wpos) { vec3 up = normalize(wpos - uPlanetCenter); return smoothstep(0.10, -0.20, dot(up, uSunDir)); }
 `;
@@ -218,6 +221,35 @@ if ( cState == 1 ) {
 }
 `;
 
+/**
+ * Procedural planet-aware sky reflection — a cheap stand-in for an environment map so metals and glass read
+ * instead of rendering near-black (the planet scene has no envMap). The reflected view ray is compared with the
+ * LOCAL up (planet centre → fragment): sky gradient above the horizon, warm ground below, scaled by daylight with a
+ * faint moonlit floor at night. Skipped when a real envMap is bound (thumbnails, Studio).
+ */
+const FRAG_ENV = /* glsl */ `
+#ifndef USE_ENVMAP
+if ( uEnvIntensity > 0.0 ) {
+  vec3 cUpW = normalize( vWPos - uPlanetCenter );
+  vec3 cNW = inverseTransformDirection( geometryNormal, viewMatrix );
+  vec3 cRW = reflect( normalize( vWPos - cameraPosition ), cNW );
+  float cRu = dot( cRW, cUpW );
+  float cSunUp = dot( cUpW, uSunDir );
+  float cDay = smoothstep( -0.12, 0.18, cSunUp );
+  vec3 cZenith = mix( vec3( 0.012, 0.018, 0.04 ), vec3( 0.34, 0.52, 0.86 ), cDay );
+  vec3 cHorizon = mix( vec3( 0.03, 0.035, 0.06 ), vec3( 0.78, 0.84, 0.92 ), cDay );
+  cHorizon = mix( cHorizon, vec3( 0.95, 0.62, 0.38 ), cDay * ( 1.0 - smoothstep( 0.05, 0.3, cSunUp ) ) * 0.6 );
+  vec3 cGround = mix( vec3( 0.012, 0.012, 0.016 ), vec3( 0.2, 0.19, 0.16 ), cDay );
+  vec3 cSky = mix( cHorizon, cZenith, smoothstep( 0.0, 0.65, cRu ) );
+  vec3 cEnvCol = mix( cGround, cSky, smoothstep( -0.18, 0.06, cRu ) );
+  // a soft sun lobe in the reflection (the direct light handles the sharp highlight)
+  cEnvCol += vec3( 1.0, 0.9, 0.75 ) * pow( max( dot( cRW, uSunDir ), 0.0 ), 24.0 ) * cDay * 0.6;
+  radiance += cEnvCol * uEnvIntensity;
+  irradiance += mix( cGround, cZenith, 0.5 + 0.5 * dot( cNW, cUpW ) ) * uEnvIntensity * 0.35 * metalnessFactor;
+}
+#endif
+`;
+
 /** Patch any MeshStandardMaterial so it understands kit attributes. Idempotent. */
 export function patchBuildingMaterial<T extends MeshStandardMaterial>(mat: T, key = 'cosmo-building'): T {
   mat.vertexColors = true;
@@ -232,7 +264,8 @@ export function patchBuildingMaterial<T extends MeshStandardMaterial>(mat: T, ke
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', '#include <common>\n' + FRAG_PARS)
       .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\n' + FRAG_MAIN)
-      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n totalEmissiveRadiance += cEmit;');
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n totalEmissiveRadiance += cEmit;')
+      .replace('#include <lights_fragment_maps>', '#include <lights_fragment_maps>\n' + FRAG_ENV);
   };
   mat.customProgramCacheKey = () => key;
   return mat;
