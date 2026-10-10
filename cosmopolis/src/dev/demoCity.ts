@@ -6,7 +6,7 @@
 import { Vector3 } from 'three';
 import { RoadKind, Zone, type Category } from '../core/types';
 import { Rng } from '../core/rng';
-import { allItems, growablesFor, itemsByCategory, type ItemDef } from '../content/catalog';
+import { allItems, getItem, growablesFor, itemsByCategory, type ItemDef } from '../content/catalog';
 import type { Game } from '../game/Game';
 import type { Planet } from '../world/planet';
 import { homeSite } from '../world/planetgen';
@@ -78,6 +78,98 @@ function orderedRing(p: Planet, center: number, r: number): number[] {
     .map((x) => x.t);
 }
 
+/** Utility kinds the city needs supplied: item effect key, sim demand / supply stats. */
+const UTILITIES = [
+  { eff: 'power', dem: 'powerDemand', sup: 'powerSupply' },
+  { eff: 'water', dem: 'waterDemand', sup: 'waterSupply' },
+  { eff: 'oxygen', dem: 'oxygenDemand', sup: 'oxygenSupply' },
+  { eff: 'garbage', dem: 'garbageProduced', sup: 'garbageCapacity' },
+  { eff: 'data', dem: 'dataDemand', sup: 'dataCapacity' },
+] as const;
+
+type Placer = (def: ItemDef, minD: number, maxD: number) => boolean;
+type UtilEff = (typeof UTILITIES)[number]['eff'];
+
+/** Place the best-sized supply buildings for `eff` until `have` reaches `need`; returns [placed, have]. */
+function fillUtility(p: Planet, eff: UtilEff, have: number, need: number, placeNear: Placer, R: number): [number, number] {
+  const cands = allItems().filter(
+    (d) => !d.hidden && !!d.mesh && d.placement === 'surface' && !d.growable && (d.effects?.[eff] ?? 0) > 0 && (!d.planetTypes || d.planetTypes.includes(p.spec.type)),
+  );
+  let placed = 0;
+  for (let k = 0; k < 8 && have < need && cands.length; k++) {
+    const gap = need - have;
+    // the plant whose output best matches the gap (log scale), small footprints first on ties
+    const fit = (d: ItemDef) => Math.abs(Math.log((d.effects![eff] ?? 1) / gap)) + (d.footprint === 1 ? 0 : d.footprint === 7 ? 0.2 : 0.5);
+    const pick = [...cands].sort((a, b) => fit(a) - fit(b));
+    let ok = false;
+    for (const def of pick.slice(0, 5)) {
+      if ((def.footprint > 1 && placeNear(def, R + 1, R + 3)) || placeNear(def, R - 3, R + 1) || placeNear(def, 2, R + 3)) {
+        have += def.effects![eff] ?? 0;
+        placed++;
+        ok = true;
+        break;
+      }
+    }
+    if (!ok) break;
+  }
+  return [placed, have];
+}
+
+/** Supply already on the ground (the random ploppables) for one utility. */
+function supplied(p: Planet, eff: UtilEff): number {
+  let n = 0;
+  for (const b of p.buildings.values()) n += Math.max(0, getItem(b.defId)?.effects?.[eff] ?? 0);
+  return n;
+}
+
+/**
+ * Before the growables move in: reserve plots for utilities sized from the zoned lots (≈ what a lot consumes once
+ * built up), so the big plants and landfills still find room. Returns the number placed.
+ */
+function reserveUtilities(game: Game, p: Planet, lots: number, placeNear: Placer, R: number): number {
+  const perLot: Record<UtilEff, number> = { power: 1.7, water: 1.2, oxygen: 1.2, garbage: 4.2, data: 0 };
+  const needsOxygen = (game.sim as unknown as { needsOxygen?: boolean }).needsOxygen ?? !p.spec.atmosphere.breathable;
+  let placed = 0;
+  for (const u of UTILITIES) {
+    if (u.eff === 'oxygen' && !needsOxygen) continue;
+    const need = lots * perLot[u.eff];
+    if (need <= 0) continue;
+    placed += fillUtility(p, u.eff, supplied(p, u.eff), need, placeNear, R)[0];
+  }
+  return placed;
+}
+
+/**
+ * After the growables: run the sim for a couple of days to measure what the city really consumes and top up every
+ * network to ~60 % headroom with whatever still fits. Returns the number placed.
+ */
+function topUpUtilities(game: Game, p: Planet, placeNear: Placer, R: number): number {
+  const sim = game.sim as unknown as { tick(days: number): void; stats: Record<string, number> };
+  const tick = (): boolean => {
+    try {
+      game.clock.day += 1;
+      sim.tick(1);
+      return true;
+    } catch (e) {
+      console.warn('[demo] sim tick failed while sizing utilities', e);
+      return false;
+    }
+  };
+  // two days: the first fills the city, the second switches garbage on once the population is counted
+  if (!tick() || !tick()) return 0;
+  const st = sim.stats;
+  let placed = 0;
+  for (const u of UTILITIES) {
+    let demand = st[u.dem] ?? 0;
+    if (u.eff === 'garbage') demand = Math.max(demand, (st.population ?? 0) * 0.2);
+    if (!(demand > 0)) continue;
+    // the city is still filling up (and winters draw more): leave ~60 % headroom over the day-2 reading
+    placed += fillUtility(p, u.eff, st[u.sup] ?? 0, demand * 1.6 + 4, placeNear, R)[0];
+  }
+  if (placed) tick();
+  return placed;
+}
+
 export function buildDemoCity(game: Game, kind = 'city'): DemoResult | null {
   const p = game.planet;
   const ops = game.ops;
@@ -146,8 +238,12 @@ export function buildDemoCity(game: Game, kind = 'city'): DemoResult | null {
   // pre-pick space for ploppables (before growables fill everything)
   const ploppable = (cats: Category[], max: number) =>
     allItems().filter((d) => cats.includes(d.category) && !d.hidden && d.mesh && d.placement === 'surface' && !d.growable).sort(() => rng.next() - 0.5).slice(0, max);
+  // candidate sites reach a few rings past the zoned area: plants and landfills sit on the outskirts, where
+  // footprints of 7 / 19 tiles fit between the ring road and the countryside
+  const far = new Map(dist);
+  for (let r = R + 2; r <= R + 4; r++) for (const t of g.ring(center, r)) far.set(t, r);
   const placeNear = (def: ItemDef, minD: number, maxD: number): boolean => {
-    const cands = [...dist.entries()].filter(([, d]) => d >= minD && d <= maxD).map(([t]) => t).sort(() => rng.next() - 0.5);
+    const cands = [...far.entries()].filter(([, d]) => d >= minD && d <= maxD).map(([t]) => t).sort(() => rng.next() - 0.5);
     for (const t of cands) {
       const chk = ops.checkPlace(def.id, t);
       if (!chk.ok) {
@@ -169,6 +265,9 @@ export function buildDemoCity(game: Game, kind = 'city'): DemoResult | null {
   for (const def of ploppable(['services', 'education', 'leisure', 'transit'], big ? 16 : 10)) if (placeNear(def, 2, R)) buildings++;
   for (const def of ploppable(['power', 'water', 'industry'], big ? 6 : 4)) if (placeNear(def, R - 3, R + 1)) buildings++;
 
+  // utility plots sized for the zoned lots (before growables take every lot by the roads)
+  buildings += reserveUtilities(game, p, zoned.length, placeNear, R);
+
   // grown buildings
   for (const t of zoned) {
     if (p.building[t] >= 0 || p.road[t]) continue;
@@ -181,6 +280,10 @@ export function buildDemoCity(game: Game, kind = 'city'): DemoResult | null {
     const rot = Math.max(0, g.neighbors(t).findIndex((n) => p.road[n] !== 0));
     if (ops.placeBuilding(def.id, t, rot, { level, variant: rng.int(0, 99), day })) buildings++;
   }
+
+  // essentials: enough power / water / oxygen / garbage / data for everything that was just built — measured by
+  // the sim, so an Instant City starts healthy instead of emptying out over its first month
+  buildings += topUpUtilities(game, p, placeNear, R);
 
   // decor: trees & props on leftover tiles near the centre
   const decor = itemsByCategory('decor').filter((d) => d.mesh);

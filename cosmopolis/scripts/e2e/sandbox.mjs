@@ -175,12 +175,17 @@ export default async ({ page, shot }) => {
     await sleep(page, 1500);
     const defId = await page.evaluate(() => window.__cosmo.game.tools.current?.itemId);
     expect(String(defId).length > 0, 'design armed for placement');
-    const spots = await landNearCamera(page, 8);
+    const spots = await landNearCamera(page, 10, 30);
+    // the Instant City core is solid buildings and roads: only empty lots can take the design
+    const free = await page.evaluate((tiles) => tiles.filter((t) => window.__cosmo.game.planet.building[t] < 0 && !window.__cosmo.game.planet.road[t]), spots.tiles);
+    step(`${free.length} free lots on screen for the design`);
     let placed = false;
-    for (const t of spots.tiles.slice().reverse()) {
+    for (const t of free) {
       const n0 = await buildings(page);
       await tapTile(page, t).catch(() => {});
       await sleep(page, 900);
+      const where = await page.evaluate(() => ({ studio: !!document.querySelector('.st-top'), tool: window.__cosmo.game.tools.current?.id }));
+      if (where.studio || where.tool !== 'plop') throw new Error(`tapping tile ${t} left the plop tool: ${JSON.stringify(where)}`);
       if ((await buildings(page)) > n0) {
         placed = await page.evaluate((id) => [...window.__cosmo.game.planet.buildings.values()].some((b) => b.defId === id), defId);
         if (placed) break;

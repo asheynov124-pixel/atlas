@@ -281,7 +281,9 @@ export class PlopTool extends Tool {
     if (!d || !p) return false;
     this.evaluate(tile, true);
     if (!this.verdict?.ok) {
-      if (!quiet) this.game.commands.feedback("Can't build here", friendlyReason(this.verdict?.reason));
+      // the reason is already on screen three times (hint bar, tag at the tile, tool bar): just the error blip,
+      // no toast on top of the city
+      if (!quiet) this.game.commands.sfx('error', 0.25);
       return false;
     }
     const b = this.game.commands.place(d.id, tile, this.rot, { ...this.placeOpts(), quiet });

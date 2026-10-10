@@ -131,12 +131,15 @@ export async function installHelpers(page) {
       if (sx < 0 || sy < 0 || sx > innerWidth || sy > innerHeight) return null;
       return { x: sx, y: sy };
     };
-    // tappable: on screen, not under UI, and the planet pick at that point really is this tile
+    // tappable: on screen, clear of the rails / bars (with a margin, since UI slides in and out), not under UI
     const tappable = (tile) => {
       const s = screen(tile);
       if (!s) return null;
-      const el = document.elementFromPoint(s.x, s.y);
-      if (!el || el.tagName !== 'CANVAS') return null;
+      if (s.x < 72 || s.x > innerWidth - 72 || s.y < 110 || s.y > innerHeight - 120) return null;
+      for (const [dx, dy] of [[0, 0], [-18, 0], [18, 0], [0, -18], [0, 18]]) {
+        const el = document.elementFromPoint(s.x + dx, s.y + dy);
+        if (!el || el.tagName !== 'CANVAS') return null;
+      }
       return s;
     };
     window.__e2e = { screen, tappable };
