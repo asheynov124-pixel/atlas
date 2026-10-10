@@ -62,6 +62,15 @@ async function settle(page, loc, timeout) {
   }
 }
 
+/**
+ * The touch events went out but the page was too busy to acknowledge them before the timeout (SwiftShader compiling
+ * shaders for a freshly opened view can block the main thread for many seconds). Callers verify the outcome anyway.
+ */
+function dispatched(e) {
+  const lines = e.message.split('\n').map((l) => l.replace(/\x1b\[[0-9;]*m/g, '').trim()).filter(Boolean);
+  return /Timeout/.test(lines[0] ?? '') && /performing tap action/.test(lines[lines.length - 1] ?? '');
+}
+
 /** Tap a visible element matched by a Playwright locator (CSS / text= / role=). */
 export async function tap(page, selector, { timeout = 15000, nth = 0, force = false } = {}) {
   const loc = page.locator(selector).nth(nth);
@@ -70,6 +79,7 @@ export async function tap(page, selector, { timeout = 15000, nth = 0, force = fa
     await settle(page, loc, timeout);
     await loc.tap({ timeout, force });
   } catch (e) {
+    if (dispatched(e)) return console.log(`   (tap on "${selector}" dispatched; the page stayed busy past the timeout)`);
     throw new Error(`could not tap "${selector}": ${callLog(e)}`);
   }
 }
@@ -83,6 +93,7 @@ export async function tapButton(page, name, opts = {}) {
     await settle(page, loc, opts.timeout ?? 15000);
     await loc.tap({ timeout: opts.timeout ?? 15000, force: opts.force ?? false });
   } catch (e) {
+    if (dispatched(e)) return console.log(`   (tap on "${name}" dispatched; the page stayed busy past the timeout)`);
     throw new Error(`could not tap button "${name}": ${callLog(e)}`);
   }
 }

@@ -288,9 +288,18 @@ export class Game {
   private frame = (now: number): void => {
     if (!this.running) return;
     requestAnimationFrame(this.frame);
-    const dt = Math.min(0.1, Math.max(0, (now - this.last) / 1000));
+    const raw = Math.max(0, (now - this.last) / 1000);
+    const dt = Math.min(0.1, raw);
     this.last = now;
     if (document.hidden) return;
+    // fps from wall-clock time (dt is clamped, so it would never report below 10 fps)
+    this.fpsAcc += Math.min(raw, 2);
+    this.fpsFrames++;
+    if (this.fpsAcc >= 1) {
+      ui.fps.value = Math.round(this.fpsFrames / this.fpsAcc);
+      this.fpsAcc = 0;
+      this.fpsFrames = 0;
+    }
     this.step(dt);
   };
 
@@ -334,14 +343,6 @@ export class Game {
       this.lensTimer = 1.5;
       const lens = this.sim.lenses.find((l) => l.id === ui.lens.value);
       if (lens) this.planetView.surface.overlay.showValues(lens.values(this.planetView.planet), lens.ramp);
-    }
-    // fps
-    this.fpsAcc += dt;
-    this.fpsFrames++;
-    if (this.fpsAcc >= 1) {
-      ui.fps.value = Math.round(this.fpsFrames / this.fpsAcc);
-      this.fpsAcc = 0;
-      this.fpsFrames = 0;
     }
     if ((this.uiTimer -= dt) <= 0) {
       this.uiTimer = 0.2;

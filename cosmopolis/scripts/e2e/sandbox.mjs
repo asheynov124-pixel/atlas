@@ -132,7 +132,17 @@ export default async ({ page, shot }) => {
     await tapButton(page, 'End this world');
     await sleep(page, 6000);
     await shot('blackhole');
-    await until(page, () => !!document.querySelector('.gd-rewind'), { timeout: 180000, poll: 1000, what: 'the rewind offer' });
+    // SwiftShader draws the singularity at well under 1 fps (dt is clamped to 0.1 s per frame), so its 36 s of
+    // effect time would take ten minutes here: skip every running effect to its last few seconds instead
+    await page.evaluate(() => {
+      for (const e of window.__cosmo.game.god.effects ?? []) {
+        const end = e.progress > 0.01 ? e.t / e.progress : e.t + 40;
+        e.t = Math.max(e.t, end - 7);
+      }
+    });
+    await sleep(page, 2000);
+    await shot('blackhole-late');
+    await until(page, () => !!document.querySelector('.gd-rewind'), { timeout: 240000, poll: 1000, what: 'the rewind offer' });
     await shot('rewind-offer');
     await audit(page, 'rewind offer');
     await tapButton(page, 'Rewind time');
