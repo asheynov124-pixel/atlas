@@ -133,6 +133,9 @@ export class GodPowers implements System {
   private uiTimer = 0;
   private urlDone = false;
   private damageCache: { planet: Planet; dmg: Damage } | null = null;
+  /** a finished disaster of the running session warrants the Rewind offer (planet-ending → the "world ended" text) */
+  private severe = false;
+  private ending = false;
   private seed = (Date.now() & 0xffffff) ^ 0x5bd1e995;
   private offs: (() => void)[] = [];
   /** tiles currently on fire (flames & smoke drawn over them — the sim spreads and fights the fires) */
@@ -312,6 +315,8 @@ export class GodPowers implements System {
   stopAll(silent = false): void {
     const list = this.effects;
     this.effects = [];
+    this.severe = false;
+    this.ending = false;
     for (const e of list) {
       try {
         e.end();
@@ -417,7 +422,18 @@ export class GodPowers implements System {
     const destructive = (e as Effect & { destructive?: boolean }).destructive;
     if (destructive) bus.emit('disaster:end', { powerId: def.id });
     this.reportDamage(e);
-    if (destructive && ((def.danger ?? 0) >= 4 || def.planetEnding) && !godUi.rewind.value && !godUi.rewinding.value) this.chrono.offer(!!def.planetEnding);
+    if (destructive && ((def.danger ?? 0) >= 4 || def.planetEnding)) {
+      this.severe = true;
+      this.ending ||= !!def.planetEnding;
+    }
+    // offer Rewind once the catastrophe is over: not while another disaster of the same session is still raging
+    // (a meteor landing mid–black hole would otherwise ask "rewind?" with the planet still being swallowed)
+    if (!this.severe || godUi.rewinding.value) return;
+    if (this.effects.some((x) => (x as Effect & { destructive?: boolean }).destructive)) return;
+    const shown = godUi.rewind.value;
+    if (!shown || (this.ending && !shown.planetEnding)) this.chrono.offer(this.ending);
+    this.severe = false;
+    this.ending = false;
   }
 
   private reportDamage(e: Effect): void {
