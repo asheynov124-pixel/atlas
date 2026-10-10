@@ -271,7 +271,8 @@ export default async ({ page, shot }) => {
   step(`road tiles: ${roadTiles}`);
   await shot('roads-25');
   await until(page, () => window.__cosmo.game.empire.s.goalsDone.includes('city.roads'), { timeout: 90000, poll: 1000, what: 'the "Paving Paradise" goal' });
-  await sleep(page, 1500);
+  await until(page, () => [...document.querySelectorAll('.cz-toast')].some((t) => t.textContent.includes('Paving Paradise')), { timeout: 30000, poll: 200, what: 'the goal-complete toast' });
+  await sleep(page, 600);
   await shot('milestone');
   const end = await info(page);
   step(`end: population ${Math.round(end.population)}, money ${Math.round(end.money)}, day ${end.day}, goals ${await page.evaluate(() => window.__cosmo.game.empire.s.goalsDone.join(','))}`);

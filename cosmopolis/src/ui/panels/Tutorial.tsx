@@ -22,6 +22,9 @@ import { tutorialRequest } from './state';
 
 const EXT_KEY = 'ui-panels.tutorial';
 const GROW_TARGET = 60;
+/** …or at least this many citizens once growth has stalled for GROW_STALL_DAYS (every painted home is full) */
+const GROW_MIN = 8;
+const GROW_STALL_DAYS = 30;
 
 interface TutState {
   step: number;
@@ -40,6 +43,8 @@ interface Step {
   /** manual advance button label */
   next?: string;
   progress?: () => [number, number];
+  /** live pill text that replaces `short` once there is something to report (null → `short`) */
+  live?: () => string | null;
 }
 
 function anyZone(test: (z: number) => boolean): boolean {
@@ -63,6 +68,20 @@ const isC = (z: number) => z >= Zone.ComLow && z <= Zone.ComLeisure;
 const isI = (z: number) => z >= Zone.IndGeneral && z <= Zone.IndTech;
 
 let sawFast = false;
+/** best population seen during the "grow" step and the day it was reached (a full small town also completes it) */
+let growBest = 0;
+let growDay = 0;
+
+/** Citizens arrived: the target, or a small town whose homes have filled up (no growth for a month). */
+function grown(): boolean {
+  const pop = ui.population.value;
+  const day = ui.day.value;
+  if (pop > growBest || day < growDay) {
+    growBest = pop;
+    growDay = day;
+  }
+  return pop >= GROW_TARGET || (pop >= GROW_MIN && day - growDay >= GROW_STALL_DAYS);
+}
 
 const STEPS: Step[] = [
   {
@@ -128,8 +147,12 @@ const STEPS: Step[] = [
     title: 'Watch it grow',
     body: 'Moving vans are on their way. Watch the first citizens arrive — the top bar counts every one of them.',
     short: 'Waiting for your first citizens…',
-    check: () => ui.population.value >= GROW_TARGET,
+    check: grown,
     progress: () => [Math.min(GROW_TARGET, ui.population.value), GROW_TARGET],
+    live: () => {
+      const pop = Math.floor(ui.population.value);
+      return pop > 0 ? `Citizens moving in: ${pop} / ${GROW_TARGET}` : null;
+    },
   },
   {
     id: 'goals',
@@ -170,6 +193,8 @@ function finish(skipped: boolean): void {
 
 function start(step = 0): void {
   sawFast = false;
+  growBest = 0;
+  growDay = 0;
   const s = { step, done: false };
   store(s);
   active.value = s;
@@ -296,7 +321,7 @@ export function Tutorial() {
         <span class="tu-pill-icon">
           <Icon name={step.icon} size={15} />
         </span>
-        <span class="tu-pill-text">{step.short}</span>
+        <span class="tu-pill-text">{step.live?.() ?? step.short}</span>
         <button type="button" class="tu-pill-skip" aria-label="Skip tutorial" onClick={() => finish(true)}>
           <Icon name="close" size={14} />
         </button>
