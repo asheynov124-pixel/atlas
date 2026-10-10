@@ -29,15 +29,48 @@ export async function until(page, fn, { timeout = 30000, poll = 250, arg, what =
 /** Game debug info. */
 export const info = (page) => page.evaluate(() => window.__cosmo.debugInfo());
 
+/** The informative part of a Playwright action error: the timeout line plus the last distinct call-log lines. */
+function callLog(e) {
+  const lines = e.message.split('\n').map((l) => l.replace(/\x1b\[[0-9;]*m/g, '').trim()).filter(Boolean);
+  const head = lines[0];
+  const tail = [...new Set(lines.slice(1).filter((l) => !/^Call log:?$/i.test(l)))].slice(-6);
+  return [head, ...tail].join(' | ');
+}
+
+/**
+ * Wait until an element has stopped moving (sheets slide in slowly while the main thread renders thumbnails on
+ * SwiftShader) and sits inside the viewport; scroll it into view only once it is at rest, so a scroll never fights
+ * an opening transition.
+ */
+async function settle(page, loc, timeout) {
+  const t0 = Date.now();
+  const vp = page.viewportSize() ?? { width: 9999, height: 9999 };
+  let prev = null;
+  let scrolled = false;
+  while (Date.now() - t0 < timeout) {
+    const b = await loc.boundingBox().catch(() => null);
+    if (b && prev && Math.abs(prev.x - b.x) < 0.5 && Math.abs(prev.y - b.y) < 0.5 && Math.abs(prev.height - b.height) < 0.5) {
+      const cx = b.x + b.width / 2, cy = b.y + b.height / 2;
+      if (cx >= 0 && cy >= 0 && cx <= vp.width && cy <= vp.height) return;
+      if (!scrolled) {
+        await loc.scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {});
+        scrolled = true;
+      }
+    }
+    prev = b;
+    await page.waitForTimeout(150);
+  }
+}
+
 /** Tap a visible element matched by a Playwright locator (CSS / text= / role=). */
 export async function tap(page, selector, { timeout = 15000, nth = 0, force = false } = {}) {
   const loc = page.locator(selector).nth(nth);
   try {
     await loc.waitFor({ state: 'visible', timeout });
-    await loc.scrollIntoViewIfNeeded({ timeout: 5000 }).catch(() => {});
+    await settle(page, loc, timeout);
     await loc.tap({ timeout, force });
   } catch (e) {
-    throw new Error(`could not tap "${selector}": ${e.message.split('\n').filter((l) => /intercept|not stable|not visible|Timeout|waiting for|retrying/i.test(l)).slice(-4).join(' | ')}`);
+    throw new Error(`could not tap "${selector}": ${callLog(e)}`);
   }
 }
 
@@ -47,9 +80,10 @@ export async function tapButton(page, name, opts = {}) {
   const loc = page.getByRole(opts.role ?? 'button', { name, exact }).nth(opts.nth ?? 0);
   try {
     await loc.waitFor({ state: 'visible', timeout: opts.timeout ?? 15000 });
+    await settle(page, loc, opts.timeout ?? 15000);
     await loc.tap({ timeout: opts.timeout ?? 15000, force: opts.force ?? false });
   } catch (e) {
-    throw new Error(`could not tap button "${name}": ${e.message.split('\n').filter((l) => /intercept|not stable|not visible|Timeout|waiting for|retrying/i.test(l)).slice(-4).join(' | ')}`);
+    throw new Error(`could not tap button "${name}": ${callLog(e)}`);
   }
 }
 

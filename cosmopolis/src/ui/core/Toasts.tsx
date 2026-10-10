@@ -2,7 +2,7 @@
  * OWNER: ui-core.
  * ToastStack — renders `ui.toasts` (posted with `notify()` from ui/store) as glass pills under the top bar.
  * Auto-dismiss (longer for warnings / milestones), swipe up or tap to dismiss; toasts with a `tile` fly the
- * camera there when tapped.
+ * camera there when tapped. Hidden together with the rest of the chrome (ui=0, Hide interface, photo mode).
  */
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Notification } from '../../core/types';
@@ -13,6 +13,8 @@ import { uiSound } from './env';
 
 const KIND_ICON: Record<string, string> = { info: 'info', good: 'check', warn: 'alert', bad: 'alert', milestone: 'trophy' };
 const KIND_MS: Record<string, number> = { info: 4200, good: 4200, warn: 6000, bad: 6500, milestone: 7000 };
+/** A toast older than this has already left the screen (or was posted while the chrome was hidden). */
+const STALE_MS = 9000;
 
 function Toast({ t, depth }: { t: Notification; depth: number }) {
   const [leaving, setLeaving] = useState(false);
@@ -91,7 +93,12 @@ function Toast({ t, depth }: { t: Notification; depth: number }) {
  * of news never buries the city. Dismissing the front card brings the next one forward.
  */
 export function ToastStack() {
-  const list = ui.toasts.value.slice(-3);
+  const all = ui.toasts.value;
+  // a clean screen (ui=0, "Hide interface", photo mode) shows no notifications at all; toasts posted meanwhile
+  // are not replayed when the chrome comes back (anything older than the longest display time is stale)
+  if (ui.chromeHidden.value || ui.photo.value) return <div class="cz-toasts" aria-live="polite" />;
+  const now = Date.now();
+  const list = all.filter((t) => now - t.time < STALE_MS).slice(-3);
   const n = list.length;
   return (
     <div class="cz-toasts" aria-live="polite">
