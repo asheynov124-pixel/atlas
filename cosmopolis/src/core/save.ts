@@ -4,6 +4,7 @@
  * A save file = { v, meta, empire } where empire.planets holds every colony's PlanetSave.
  */
 import type { EmpireState } from '../game/Empire';
+import { b64ToBytes, bytesToB64 } from './b64';
 
 export interface SaveMeta {
   slot: string;
@@ -208,15 +209,47 @@ export async function exportSave(slot: string): Promise<Blob | null> {
   return typeof z === 'string' ? new Blob([z], { type: 'application/json' }) : z;
 }
 
-export async function importSave(file: Blob): Promise<SaveFile> {
+/**
+ * JSON envelope around the .cosmo bytes, for places that only accept a few file types (the claude.ai artifact
+ * viewer saves .json but not .cosmo): { "format": "cosmopolis-save", "v": 1, "data": "<base64 of the .cosmo bytes>" }.
+ */
+export const SAVE_WRAPPER_FORMAT = 'cosmopolis-save';
+
+export async function wrapSaveJson(cosmo: Blob): Promise<Blob> {
+  const bytes = new Uint8Array(await cosmo.arrayBuffer());
+  return new Blob([JSON.stringify({ format: SAVE_WRAPPER_FORMAT, v: 1, data: bytesToB64(bytes) })], { type: 'application/json' });
+}
+
+/** The .cosmo bytes inside a wrapper's text, or null when the text is not a wrapper. */
+export function unwrapSaveJson(text: string): Uint8Array | null {
+  let o: unknown;
+  try {
+    o = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  const w = o as { format?: unknown; data?: unknown } | null;
+  if (!w || w.format !== SAVE_WRAPPER_FORMAT || typeof w.data !== 'string') return null;
+  return b64ToBytes(w.data);
+}
+
+/** Decode any accepted export (.cosmo gzip JSON, plain JSON, or the JSON wrapper) into a save file. */
+export async function decodeSaveFile(file: Blob, depth = 0): Promise<SaveFile> {
   let text: string;
   try {
     text = await gunzip(file);
   } catch {
     text = await file.text();
   }
+  const inner = depth === 0 ? unwrapSaveJson(text) : null;
+  if (inner) return decodeSaveFile(new Blob([inner as BlobPart]), depth + 1);
   const parsed = JSON.parse(text) as SaveFile;
   if (!parsed?.empire || !parsed.meta) throw new Error('Not a Cosmopolis save');
+  return parsed;
+}
+
+export async function importSave(file: Blob): Promise<SaveFile> {
+  const parsed = await decodeSaveFile(file);
   parsed.meta.slot = 'import-' + Date.now();
   await writeSave(parsed);
   return parsed;

@@ -7,12 +7,13 @@
  *   Time      local time-of-day scrubber (switches the sun to the "cycle" mode and freezes time) + golden-hour presets
  *   Camera    field of view, map labels, cinematic tour (game.camera.startTour)
  *   Shutter   game.engine.capture(view, 2) → flash + camera sound + 'photo:capture' → a postcard with Share (iOS share
- *             sheet with a File) and Save (download)
+ *             sheet with a File) and Save (download) — both through core/download offerFile (artifact viewer aware)
  * Leaving restores the post-processing params, day/night mode, clock speed, FOV and chrome exactly as they were;
  * the last look is remembered for the next photo session. Esc / P / the close button exit.
  */
 import { effect } from '@preact/signals';
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { offerFile } from '../../core/download';
 import { bus } from '../../core/events';
 import { setSettings, settings, type DayNightMode } from '../../core/settings';
 import { game } from '../../game/instance';
@@ -198,27 +199,13 @@ async function capture(): Promise<Shot | null> {
 }
 
 async function shareShot(s: Shot): Promise<void> {
-  const file = new File([s.blob], s.name, { type: 'image/png' });
-  try {
-    const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
-    if (nav.share && nav.canShare?.({ files: [file] })) {
-      await nav.share({ files: [file], title: ui.cityName.value, text: `${ui.cityName.value} — built in Cosmopolis` });
-      return;
-    }
-  } catch (e) {
-    if ((e as DOMException)?.name === 'AbortError') return;
-  }
-  downloadShot(s);
+  const r = await offerFile(s.name, s.blob, { title: ui.cityName.value, text: `${ui.cityName.value} — built in Cosmopolis`, notify });
+  if (r === 'saved') notify({ title: 'Photo saved', body: s.name, kind: 'good', icon: 'photo' });
 }
 
-function downloadShot(s: Shot): void {
-  const a = document.createElement('a');
-  a.href = s.url;
-  a.download = s.name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  notify({ title: 'Photo saved', body: s.name, kind: 'good', icon: 'photo' });
+async function downloadShot(s: Shot): Promise<void> {
+  const r = await offerFile(s.name, s.blob, { share: false, notify });
+  if (r === 'saved') notify({ title: 'Photo saved', body: s.name, kind: 'good', icon: 'photo' });
 }
 
 // ───────────────────────────────────────────── UI
@@ -541,7 +528,7 @@ export function PhotoMode() {
               <button type="button" class="ph-pc-btn is-primary" onClick={() => void shareShot(shot)}>
                 <Icon name="share" size={17} /> Share
               </button>
-              <button type="button" class="ph-pc-btn" onClick={() => downloadShot(shot)}>
+              <button type="button" class="ph-pc-btn" onClick={() => void downloadShot(shot)}>
                 <Icon name="download" size={17} /> Save
               </button>
               <button

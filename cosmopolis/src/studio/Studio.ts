@@ -31,6 +31,7 @@
  * CONTRACT: open(editId?), close(), isOpen, loadFromEmpire(), customDefs()
  */
 import { clearGeometryCache, getItem, registerItems, unregisterItem, type ItemDef } from '../content/catalog';
+import { offerFile } from '../core/download';
 import { bus } from '../core/events';
 import type { Game } from '../game/Game';
 import type { System } from '../game/System';
@@ -381,22 +382,10 @@ export class Studio implements System {
       const blob = await this.game.engine.capture(v, 2);
       if (!blob) throw new Error('capture failed');
       const name = (d.name || 'design').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').toLowerCase() || 'design';
-      const file = new File([blob], `${name}.png`, { type: 'image/png' });
-      const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean };
-      if (nav.canShare?.({ files: [file] }) && typeof nav.share === 'function') {
-        await nav.share({ files: [file], title: d.name, text: `${d.icon} ${d.name} — designed in the Cosmopolis Architect Studio` });
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = file.name;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 4000);
-        notify({ title: 'Snapshot saved', body: file.name, kind: 'good', icon: 'camera' });
-      }
-      this.sfx('camera');
+      const file = `${name}.png`;
+      const r = await offerFile(file, blob, { title: d.name, text: `${d.icon} ${d.name} — designed in the Cosmopolis Architect Studio`, notify });
+      if (r === 'saved') notify({ title: 'Snapshot saved', body: file, kind: 'good', icon: 'camera' });
+      if (r === 'saved' || r === 'shared') this.sfx('camera');
     } catch (e) {
       if ((e as Error)?.name === 'AbortError') return;
       console.warn('[studio] snapshot failed', e);

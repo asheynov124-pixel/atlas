@@ -2,13 +2,15 @@
  * OWNER: ui-panels.
  * Saves panel ('saves') — save slots with thumbnails (a small JPEG of the current view), quick save into the slot
  * you are playing, "Save as" with your own name, load (with a confirm when a city is open), overwrite, delete
- * (confirm), export as a .cosmo file (navigator.share with a File on iOS, download elsewhere) and import from a file.
+ * (confirm), export as a .cosmo file (core/download offerFile: share sheet on iOS, download elsewhere, a .json envelope
+ * through the downloads capability inside the claude.ai artifact viewer) and import from a file (.cosmo or .json).
  * Works from the main menu (load / import / export / delete only).
  */
 import { effect } from '@preact/signals';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { bus } from '../../core/events';
-import { deleteSave, exportSave, importSave, listSaves, writeSave, type SaveMeta } from '../../core/save';
+import { inArtifactViewer, offerFile } from '../../core/download';
+import { deleteSave, exportSave, importSave, listSaves, wrapSaveJson, writeSave, type SaveMeta } from '../../core/save';
 import { game } from '../../game/instance';
 import { Button, Chip, EmptyState, Icon, IconButton, Spinner, TextInput } from '../core';
 import { closePanel, nextPaint, uiSound } from '../core/env';
@@ -84,26 +86,12 @@ async function share(meta: SaveMeta): Promise<void> {
     notify({ title: 'Nothing to export', kind: 'warn', icon: 'alert' });
     return;
   }
-  const name = `${slug(meta.name)}.cosmo`;
-  const file = new File([blob], name, { type: 'application/octet-stream' });
-  try {
-    const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
-    if (nav.share && nav.canShare?.({ files: [file] })) {
-      await nav.share({ files: [file], title: meta.name, text: `${meta.name} — a Cosmopolis city` });
-      return;
-    }
-  } catch (e) {
-    if ((e as DOMException)?.name === 'AbortError') return;
-  }
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
-  notify({ title: 'City exported', body: name, kind: 'good', icon: 'download' });
+  // the artifact viewer only accepts a few file types: wrap the .cosmo bytes in a .json envelope (import reads both)
+  const viewer = inArtifactViewer();
+  const name = `${slug(meta.name)}.${viewer ? 'json' : 'cosmo'}`;
+  const data = viewer ? await wrapSaveJson(blob) : new Blob([blob], { type: 'application/octet-stream' });
+  const r = await offerFile(name, data, { title: meta.name, text: `${meta.name} — a Cosmopolis city`, notify });
+  if (r === 'saved') notify({ title: 'City exported', body: name, kind: 'good', icon: 'download' });
 }
 
 function SaveRow({ s, inGame, busy, onLoad, onOverwrite, onDelete, onShare }: { s: SaveMeta; inGame: boolean; busy: boolean; onLoad: () => void; onOverwrite: () => void; onDelete: () => void; onShare: () => void }) {

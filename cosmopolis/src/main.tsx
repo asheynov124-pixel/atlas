@@ -13,6 +13,10 @@ import { Game } from './game/Game';
 import { App } from './ui/App';
 import { installDebug } from './dev/debug';
 import { registerServiceWorker } from './dev/pwa';
+import { prepareDownloads } from './core/download';
+
+// claude.ai artifact viewer: resolve the downloads capability now, so a later tap on Save is still a user gesture
+prepareDownloads();
 
 const root = document.getElementById('app')!;
 const game = new Game(document.body);
