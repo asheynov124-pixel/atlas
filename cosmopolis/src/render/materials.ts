@@ -254,17 +254,23 @@ if ( uEnvIntensity > 0.0 ) {
 #endif
 `;
 
-/** Patch any MeshStandardMaterial so it understands kit attributes. Idempotent. */
-export function patchBuildingMaterial<T extends MeshStandardMaterial>(mat: T, key = 'cosmo-building'): T {
+/**
+ * Patch any MeshStandardMaterial so it understands kit attributes. Idempotent.
+ * `merged`: geometry baked from many instances (InstancePool far chunks) carries each instance's origin in the
+ * `aOrigin` attribute, so per-building seeds (lit windows, sway phase) match the instanced look.
+ */
+export function patchBuildingMaterial<T extends MeshStandardMaterial>(mat: T, key = 'cosmo-building', opts: { merged?: boolean } = {}): T {
   mat.vertexColors = true;
   const prev = mat.onBeforeCompile;
+  const pars = opts.merged ? VERT_PARS + '\nattribute vec3 aOrigin;\n' : VERT_PARS;
+  const begin = opts.merged ? VERT_BEGIN.replace('vec3 cInstPos = vec3( modelMatrix[3].xyz );', 'vec3 cInstPos = aOrigin;') : VERT_BEGIN;
   mat.onBeforeCompile = (shader: WebGLProgramParametersWithUniforms, renderer) => {
     prev?.call(mat, shader, renderer);
     Object.assign(shader.uniforms, shared);
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\n' + VERT_PARS)
+      .replace('#include <common>', '#include <common>\n' + pars)
       .replace('#include <color_vertex>', VERT_COLOR)
-      .replace('#include <begin_vertex>', VERT_BEGIN);
+      .replace('#include <begin_vertex>', begin);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', '#include <common>\n' + FRAG_PARS)
       .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\n' + FRAG_MAIN)
@@ -283,6 +289,16 @@ export function getBuildingMaterial(): MeshStandardMaterial {
     buildingMat.name = 'building';
   }
   return buildingMat;
+}
+
+let mergedMat: MeshStandardMaterial | null = null;
+/** The building material for baked far chunks (InstancePool `merge`): same look, reads the `aOrigin` attribute. */
+export function getMergedBuildingMaterial(): MeshStandardMaterial {
+  if (!mergedMat) {
+    mergedMat = patchBuildingMaterial(new MeshStandardMaterial({ roughness: 0.78, metalness: 0.04 }), 'cosmo-building-merged', { merged: true });
+    mergedMat.name = 'building-merged';
+  }
+  return mergedMat;
 }
 
 /** Translucent variant for tool previews / ghosts. */

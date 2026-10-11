@@ -10,7 +10,7 @@ import { tileMatrix } from '../world/geo';
 import type { BuildingInstance } from '../world/planet';
 import { InstancePool } from './InstancePool';
 import { game } from '../game/instance';
-import { InstState, getBuildingMaterial } from './materials';
+import { InstState, getBuildingMaterial, getMergedBuildingMaterial } from './materials';
 import type { PlanetView } from './PlanetView';
 
 interface KeyInfo {
@@ -42,6 +42,8 @@ export class BuildingRenderer {
       name: 'buildings',
       castShadow: true,
       receiveShadow: true,
+      // seen from orbit a city is hundreds of distinct keys: bake far planet chunks into one mesh each
+      merge: { material: getMergedBuildingMaterial() },
     });
     const p = view.planet;
     for (const b of p.buildings.values()) this.add(b, false);
