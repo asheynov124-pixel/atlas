@@ -175,9 +175,23 @@ export default async ({ page, shot }) => {
     await sleep(page, 1500);
     const defId = await page.evaluate(() => window.__cosmo.game.tools.current?.itemId);
     expect(String(defId).length > 0, 'design armed for placement');
-    const spots = await landNearCamera(page, 10, 30);
     // the Instant City core is solid buildings and roads: only empty lots can take the design
-    const free = await page.evaluate((tiles) => tiles.filter((t) => window.__cosmo.game.planet.building[t] < 0 && !window.__cosmo.game.planet.road[t]), spots.tiles);
+    const freeOf = (tiles) => page.evaluate((tiles) => tiles.filter((t) => window.__cosmo.game.planet.building[t] < 0 && !window.__cosmo.game.planet.road[t]), tiles);
+    let free = await freeOf((await landNearCamera(page, 10, 30)).tiles);
+    if (!free.length) {
+      // the camera sits over the solid core (Rewind glides back to the catastrophe): scroll to the nearest empty lot
+      const lot = await page.evaluate(() => {
+        const g = window.__cosmo.game, p = g.planet, c = g.camera.targetTile();
+        for (let r = 1; r <= 30; r++) for (const t of p.grid.ring(c, r)) if (!p.isWater(t) && p.building[t] < 0 && !p.road[t]) return t;
+        return -1;
+      });
+      step(`no empty lot on screen — scrolling to tile ${lot}`);
+      if (lot >= 0) {
+        await page.evaluate((t) => window.__cosmo.game.camera.flyTo(t, { duration: 0.6 }), lot);
+        await sleep(page, 2500);
+        free = await freeOf((await landNearCamera(page, 10, 30)).tiles);
+      }
+    }
     step(`${free.length} free lots on screen for the design`);
     let placed = false;
     for (const t of free) {
