@@ -35,7 +35,7 @@ import { bus } from '../../core/events';
 import { getGeometry, getItem } from '../../content/catalog';
 import { REF_PLANET_RADIUS, RING_RADIUS } from '../../content/meshes/landmarks/orbital';
 import { game } from '../../game/instance';
-import type { OrbitalInstance } from '../../world/planet';
+import { MIN_ORBIT, type OrbitalInstance } from '../../world/planet';
 import { InstState, SHADER_COMMON, shared } from '../materials';
 import type { PlanetView } from '../PlanetView';
 import { KitBatch, Particles, SpriteBatch, linHex } from './batch';
@@ -267,7 +267,7 @@ export class OrbitalRenderer {
 
   private place(o: OrbitalInstance, orb: Orb): void {
     this.basis(o);
-    const rad = this.R * o.orbit;
+    const rad = this.R * Math.max(MIN_ORBIT, o.orbit);
     const cu = Math.cos(orb.u), su = Math.sin(orb.u);
     orb.pos.copy(_N).multiplyScalar(cu * rad).addScaledVector(_M, su * rad);
     const sgn = o.speed >= 0 ? 1 : -1;
@@ -292,7 +292,7 @@ export class OrbitalRenderer {
       const inst = this.view.planet.orbitals.get(o.id);
       if (!inst) continue;
       this.basis(inst);
-      const rad = this.R * inst.orbit;
+      const rad = this.R * Math.max(MIN_ORBIT, inst.orbit);
       const c = new Float32Array(3);
       if (inst.tint !== undefined) linHex(inst.tint, c);
       else linHex(0x7fd8ff, c);
@@ -379,7 +379,7 @@ export class OrbitalRenderer {
 
   /** Orbit tool hook: fly a rocket from `from` into the orbit described by params, then call done(). */
   launch(defId: string, from: Vector3, params: { orbit: number; inclination: number; node: number; phase: number }, done: () => void): void {
-    const alt = this.R * (params.orbit - 1);
+    const alt = this.R * (Math.max(MIN_ORBIT, params.orbit) - 1);
     this.launches.push({ defId, from: from.clone(), params: { ...params }, done, t: 0, dur: 3.2 + Math.min(2.5, alt / 40), pos: from.clone(), dir: from.clone().normalize(), fired: false });
   }
 
@@ -590,7 +590,7 @@ export class OrbitalRenderer {
       _N.set(cO, 0, sO);
       _n.set(-sO * sI, cI, cO * sI);
       _M.crossVectors(_n, _N);
-      const rad = R * p.orbit;
+      const rad = R * Math.max(MIN_ORBIT, p.orbit);
       _b.copy(_N).multiplyScalar(Math.cos(p.phase) * rad).addScaledVector(_M, Math.sin(p.phase) * rad);
       // velocity direction at insertion
       _e.copy(_N).multiplyScalar(-Math.sin(p.phase)).addScaledVector(_M, Math.cos(p.phase));

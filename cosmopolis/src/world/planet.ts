@@ -59,10 +59,16 @@ export interface PropInstance {
   tint?: number;
 }
 
+/**
+ * Lowest orbit (× planet radius) a free-flying orbital is drawn at: clear of the tallest skylines (wonders and Dyson
+ * receivers reach ~0.4 R) and of close / horizon cameras. Renderers clamp to it, so older saves stay clear too.
+ */
+export const MIN_ORBIT = 1.45;
+
 export interface OrbitalInstance {
   id: number;
   defId: string;
-  /** orbit radius as multiple of planet radius */
+  /** orbit radius as multiple of planet radius (drawn at ≥ MIN_ORBIT, except planet-centred megastructures) */
   orbit: number;
   inclination: number;
   /** longitude of ascending node */

@@ -15,13 +15,15 @@ import { Tool, type PointerInfo } from './Tool';
 import type { PickResult } from '../world/geo';
 import type { ToolOption, ToolState } from '../ui/store';
 import { getItem, type ItemDef } from '../content/catalog';
-import type { OrbitalInstance } from '../world/planet';
+import { MIN_ORBIT, type OrbitalInstance } from '../world/planet';
 import { money } from './util';
 import { TOOL_COLORS } from './visuals';
 
 type Alt = 'low' | 'mid' | 'high';
 type Inc = 'equatorial' | 'inclined' | 'polar';
-const ALT: Record<Alt, number> = { low: 0.82, mid: 1, high: 1.4 };
+/** altitude multipliers (applied to the altitude above the surface, never below MIN_ORBIT — 0.82 × the radius used to
+ *  put a 1.25 R satellite at 1.03 R, among the tower tops) */
+const ALT: Record<Alt, number> = { low: 0.7, mid: 1, high: 1.6 };
 const INC: Record<Inc, number> = { equatorial: 0.04, inclined: 0.55, polar: 1.5 };
 const Y = new Vector3(0, 1, 0);
 
@@ -128,7 +130,8 @@ export class OrbitTool extends Tool {
   }
 
   private orbitMul(): number {
-    return (this.def?.orbit?.radius ?? 1.6) * ALT[this.alt];
+    const r = this.def?.orbit?.radius ?? 1.6;
+    return Math.max(Math.min(r, MIN_ORBIT), 1 + (r - 1) * ALT[this.alt]);
   }
 
   private clear(): void {
