@@ -18,7 +18,7 @@ Each file has ONE owner. Only edit files you own. Foundation files are shared co
 
 | Path | Owner | What |
 |---|---|---|
-| `src/core/*` | foundation | types, events (bus), rng/noise, settings, save, b64 |
+| `src/core/*` | foundation | types, events (bus), rng/noise, settings, save, b64, download (offerFile) |
 | `src/world/hexsphere.ts, planet.ts, geo.ts, ops.ts` | foundation | grid, planet model, tile↔world, mutation API |
 | `src/world/planetgen.ts` | **terrain** | procedural planet generation |
 | `src/content/kit.ts, catalog.ts, styles.ts, planetTypes.ts, zones.ts, index.ts, items/zoneBrushes.ts` | foundation | mesh kit, item registry, palettes |
@@ -112,7 +112,13 @@ settings:changed · quality:changed · photo:capture`. Always unsubscribe in `di
   BuildingRenderer derives it from tile flags / building state; `forceState(id, s)` overrides.
 * **InstancePool**: `add(key, matrix, color, radius, state) → handle`, `setMatrix/setColor/setState/setVisible/setKey/
   remove`, `update(camera, planetRadius)` — horizon + frustum culling and LOD every time the camera moves. Use it for
-  anything numerous (trees, props, cars). `frustumCulled = false` is handled for you.
+  anything numerous (trees, props, cars). `frustumCulled = false` is handled for you. Opt-in `merge` (buildings use
+  it): planet chunks wholly beyond the LOD distance are baked into one static mesh each (LOD1, `aOrigin` attribute
+  for per-instance seeds), so an orbit view of a city costs ~10 draw calls instead of one per distinct key.
+* **Files for the player** (photos, city exports, Studio snapshots) go through `core/download.ts` `offerFile()` only:
+  inside the claude.ai artifact viewer it uses the runtime's `downloads` capability (`window.claude.use('downloads')`,
+  resolved at startup; city exports become a `.json` envelope `{format:'cosmopolis-save', v:1, data:<base64>}` that
+  Import also reads), elsewhere the share sheet (iOS) or `<a download>`. Never create `<a download>` directly.
 * PlanetView composition (see the file header): `root` (planet-fixed group) · `env` · `surface` · `roads` · `props` ·
   `buildings` · `life` · `orbitals` · `fx` · `toolLayer`. `view.sunDir` is the planet→sun unit vector.
 * Coordinates: planet centre = origin, axis = +Y. Camera is driven by `game.camera` (CameraRig).
