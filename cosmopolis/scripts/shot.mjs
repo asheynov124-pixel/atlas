@@ -76,7 +76,7 @@ page.on('console', (m) => {
 let n = 0;
 const shot = async (name) => {
   const file = path.join(outDir, `${prefix}-${String(n++).padStart(2, '0')}-${name || 'view'}.png`);
-  await page.screenshot({ path: file });
+  await page.screenshot({ path: file, timeout: 120000 }); // SwiftShader frames can take seconds each
   console.log('screenshot:', file);
   return file;
 };

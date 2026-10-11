@@ -30,8 +30,8 @@ export default async ({ page, shot }) => {
           const R = g.planet.radius;
           cam.flyTo(cam.target, { distance: v.distanceR ? R * v.distanceR : v.distance, tilt: v.tilt, duration: 0.01 });
           cam.snap?.();
-          // settle LOD / culling / time-sliced rebuilds
-          window.__cosmo.step(1.5, 20);
+          // settle LOD / culling / time-sliced rebuilds (few frames: each one is a full SwiftShader render)
+          window.__cosmo.step(1, 6);
           const info = g.engine.info();
           // breakdown: visible drawables per PlanetView layer (before frustum culling)
           const layers = {};

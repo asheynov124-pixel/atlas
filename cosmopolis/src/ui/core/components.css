@@ -1512,6 +1512,10 @@
 .app.on-menu .cz-toasts {
   top: calc(var(--safe-top) + 14px);
 }
+/* star map / Architect Studio keep a second row under the top bar (breadcrumb, design stats): drop below it */
+.app.off-planet .cz-toasts {
+  top: calc(var(--hud-top) + 62px);
+}
 /* phones in portrait: toasts sit between the left and right rails so they never cover rail buttons */
 @media (max-width: 599px) {
   .app:not(.on-menu) .cz-toasts {

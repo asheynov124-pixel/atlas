@@ -118,7 +118,7 @@ export function App() {
   const scaled = Math.abs(scale - 1) > 0.01;
   const style = scaled ? { zoom: String(scale), width: `calc(100vw / ${scale})`, height: `calc(100dvh / ${scale})` } : undefined;
   return (
-    <div class={'app' + (screen === 'menu' ? ' on-menu' : '') + (scaled ? ' scaled' : '')} style={style}>
+    <div class={'app' + (screen === 'menu' ? ' on-menu' : '') + (screen === 'game' && ui.view.value !== 'planet' ? ' off-planet' : '') + (scaled ? ' scaled' : '')} style={style}>
       {screen === 'menu' && <MainMenu />}
       {screen === 'game' && <Hud />}
       {overlays.map((o) => (
