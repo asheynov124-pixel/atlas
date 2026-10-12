@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", "Avenir Next", "Segoe UI", sans-serif;
+  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-oak: var(--oak);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-good: #8fa98a;
+  --color-hmm: #d9a85c;
+  --color-stop: #c96a5a;
+  --radius-card: 1.25rem;
+}
+
+:root {
+  --bg: #12100e; --surface: #1c1916; --raised: #262220; --fg: #f6f1ea; --muted: #a89f94; --line: #3a342e; --oak: #e0b07a; --paper: #f3ece3; --ink: #12100e;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --bg: #f4efe6; --surface: #faf6ef; --raised: #ece4d8; --fg: #1c1916; --muted: #6f655b; --line: #d9cfc1; --oak: #9a6f3a; --paper: #1c1916; --ink: #f4efe6;
+  color-scheme: light;
+}
+
+@layer base {
+  html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-sans); }
+  button:not(:disabled), [role=button]:not(:disabled) { cursor: pointer; }
+  input, button, textarea, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
+  ::selection { background: var(--oak); color: var(--ink); }
+  h1, h2, h3 { text-wrap: balance; }
+  p { text-wrap: pretty; }
+  input[type=number] { -moz-appearance: textfield; }
+  input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  select { background: var(--raised); border-radius: 0.75rem; padding: 0.5rem 0.75rem; min-height: 2.75rem; }
+  select option { background: var(--surface); }
+}
+
+.pb-safe { padding-bottom: max(.35rem, env(safe-area-inset-bottom)); }
+.scroll-row { scrollbar-width: none; gap: .5rem; padding-bottom: .25rem; display: flex; overflow-x: auto; }
+.scroll-row::-webkit-scrollbar { display: none; }
+.field { background: var(--raised); border-radius: .75rem; padding: .55rem .75rem; min-height: 2.75rem; width: 100%; }
+.field::placeholder { color: var(--muted); }
+.card { background: var(--surface); border-radius: var(--radius-card); }
+.kicker { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: var(--oak); font-weight: 500; }
+.display { font-family: var(--font-display); }
+
+@keyframes ken { 0% { transform: scale(1) } to { transform: scale(1.045) } }
+.kenburns { animation: 18s ease-in-out infinite alternate ken; }
+@media (prefers-reduced-motion: reduce) { .kenburns { animation: none; } }
+
+input[type=range] { accent-color: var(--oak); }
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; color: #000; }
+  .card { border: 1px solid #ccc; }
+  :root { --bg: #fff; --surface: #fff; --raised: #f3f3f3; --fg: #000; --muted: #444; --line: #ccc; --oak: #7a5a2a; }
+}
