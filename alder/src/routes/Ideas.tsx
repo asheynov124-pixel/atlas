@@ -57,7 +57,21 @@ function compose(seed: number, picks: Picks, notes: string[], colors: { id: stri
   const mp = PAINTS.find((x) => x.id === main.id);
   const lightNote = light === 'North day' ? 'North light is cool and steady, so the wall needs a yellow-pink undertone or the room goes gray by afternoon.' : light === 'South day' ? 'South light is already warm. You can go a step more mineral without the room turning yellow.' : light === 'Late afternoon' ? 'Late light rakes texture. Limewash and flutes earn their cost in this hour.' : 'Evening lamps at 2700K will make a cool gray look tired. Stay warm, and put a shade at seated height.';
   const colorNote = mp ? `${main.name} carries a ${mp.undertone} undertone at LRV ${mp.lrv}. ${mp.note}` : `${main.name} is yours. Put it on the largest surface, and let the other colors happen once.`;
-  const essay = [notes.join(' '), `${roomName(room)} in a ${mood.toLowerCase()} mood starts with ${main.name} on the walls.`, lightNote, colorNote, `Floor in ${floor.name.toLowerCase()}. ${floor.note}`, `Framing: ${frame.name}. ${frame.note}`, `Metal: ${metal.name}. ${metal.note}`, `Texture is ${texture}.`, addition, `On ${/^[aeiou]/i.test(budget) ? 'an' : 'a'} ${budget.toLowerCase()} budget, ${spend}`].filter(Boolean).join(' ');
+  const rn = roomName(room), ml = mood.toLowerCase();
+  const opener = pick(r, [
+    `${rn} in a ${ml} mood starts with ${main.name} on the walls.`,
+    `Start the ${rn.toLowerCase()} with the walls: ${main.name}, everywhere, including the inside of the door.`,
+    `A ${ml} ${rn.toLowerCase()}. The first decision is ${main.name} on every wall, and the rest follows from it.`,
+    `Paint first. ${main.name} on the walls makes this ${rn.toLowerCase()} ${ml} before a single thing is bought.`,
+  ]);
+  const floorLine = pick(r, [`Floor in ${floor.name.toLowerCase()}. ${floor.note}`, `Underfoot, ${floor.name.toLowerCase()}. ${floor.note}`, `The floor is ${floor.name.toLowerCase()}, and it decides the paint more than the paint decides it. ${floor.note}`]);
+  const frameLine = pick(r, [`Framing: ${frame.name}. ${frame.note}`, `At the doors and windows, ${frame.name.toLowerCase()}. ${frame.note}`, `${frame.name} casing. ${frame.note}`]);
+  const metalLine = pick(r, [`Metal: ${metal.name}. ${metal.note}`, `One metal in each view: ${metal.name.toLowerCase()}. ${metal.note}`, `${metal.name} for everything you touch. ${metal.note}`]);
+  const textureLine = pick(r, [`Texture is ${texture}.`, `For texture, ${texture}. Nothing patterned until those three are in.`, `Three textures, one pattern at most: ${texture}.`]);
+  const budgetLine = pick(r, [`On ${/^[aeiou]/i.test(budget) ? 'an' : 'a'} ${budget.toLowerCase()} budget, ${spend}`, `Money: ${spend}`, `${spend} That is the ${budget.toLowerCase()} version of this room.`]);
+  const middle = [floorLine, frameLine, metalLine, textureLine];
+  if (r() > 0.5) { const t = middle[1]; middle[1] = middle[2]; middle[2] = t; }
+  const essay = [notes.join(' '), opener, lightNote, colorNote, ...middle, addition, budgetLine].filter(Boolean).join(' ');
   const pool = CATALOG.filter((c) => c.rooms.includes(room));
   const src = pool.length ? pool : CATALOG;
   const ids: string[] = []; const seen = new Set<number>();

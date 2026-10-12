@@ -5,6 +5,7 @@ import { catalogItem } from '../data/catalog';
 import { useStore } from '../lib/store';
 import { Button, Kicker, Img, Chip } from '../components/ui';
 import { fmtRange } from '../lib/takeoff';
+import { parseIdea } from '../lib/parse';
 
 export default function LessonPage() {
   const { lessonId = '' } = useParams();
@@ -14,6 +15,10 @@ export default function LessonPage() {
   const patchStudio = useStore((s) => s.patchStudio);
   const saveItem = useStore((s) => s.saveItem);
   const setQuizScore = useStore((s) => s.setQuizScore);
+  const customs = useStore((s) => s.customs);
+  const studio = useStore((s) => s.studio);
+  const ownWall = customs.find((c) => c.kind === 'color' && c.id === studio.wall);
+  const ownPieces = customs.filter((c) => c.kind !== 'color').flatMap((c) => parseIdea(c.text).pieces ?? []);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   useEffect(() => { if (l) markLesson(l.id); setAnswers({}); }, [l?.id]);
   if (!l) return <p className="p-6 text-muted">No such lesson.</p>;
@@ -34,7 +39,8 @@ export default function LessonPage() {
       {l.sections.map((s) => <section key={s.heading} className="mt-6"><h2 className="display text-2xl">{s.heading}</h2><p className="mt-2 leading-relaxed">{s.body}</p></section>)}
       {l.try && (
         <section className="mt-8"><h3 className="kicker">Try it in the studio</h3>
-          <div className="mt-3 flex flex-wrap gap-2">{l.try.map((t) => <Button key={t.label} kind="ghost" onClick={() => { patchStudio(t.studio); nav('/studio'); }}>{t.label}</Button>)}</div>
+          <div className="mt-3 flex flex-wrap gap-2">{l.try.map((t) => <Button key={t.label} kind="ghost" onClick={() => { const pieces = t.studio.pieces ? [...new Set([...t.studio.pieces, ...ownPieces])] : undefined; patchStudio({ ...t.studio, ...(pieces ? { pieces } : {}) }); nav('/studio'); }}>{t.label}</Button>)}</div>
+          {(ownWall || ownPieces.length > 0) && <p className="mt-2 text-xs text-muted">Your notes come along: {[ownWall ? `${ownWall.text} stays on the walls` : '', ownPieces.length ? `${[...new Set(ownPieces)].join(', ')} stay in the room` : ''].filter(Boolean).join('; ')}.</p>}
         </section>
       )}
       {l.quiz && (

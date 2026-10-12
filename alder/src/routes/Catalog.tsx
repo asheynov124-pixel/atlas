@@ -7,6 +7,8 @@ import { Button, Chip, Kicker, Sheet, Img, Money } from '../components/ui';
 import { ShopLinks } from '../components/ShopLinks';
 import { fmtRange } from '../lib/takeoff';
 import { CATEGORY_LABEL } from '../lib/budget';
+import { notesToCatalog, notesToPaints } from '../lib/notes';
+import { paint as paintOf } from '../data/palette';
 
 export default function Catalog() {
   const [params, setParams] = useSearchParams();
@@ -31,6 +33,7 @@ export default function Catalog() {
       <Kicker>Catalog</Kicker>
       <h1 className="mt-2 display text-4xl italic">The pieces</h1>
       <p className="mt-2 max-w-xl text-muted">{CATALOG.length} things worth knowing about, with what they cost, why they work, and where to hunt. Add any of them to a real room.</p>
+      <ForYourNotes />
       <div className="mt-5 flex flex-col gap-3">
         <input className="field max-w-md" placeholder="Search: brass, rug, limestone…" value={q} onChange={(e) => setQ(e.target.value)} />
         <div className="scroll-row">{CATEGORIES.map((c) => <Chip key={c} on={cat === c} onClick={() => setCat(c)}>{c}</Chip>)}</div>
@@ -61,6 +64,30 @@ export default function Catalog() {
   );
 }
 
+function ForYourNotes() {
+  const customs = useStore((s) => s.customs);
+  const [, setParams] = useSearchParams();
+  const items = useMemo(() => notesToCatalog(customs), [customs]);
+  const paints = useMemo(() => notesToPaints(customs), [customs]);
+  if (!items.length && !paints.length) return null;
+  const because = [...new Set(items.map((i) => i.because))].slice(0, 3).map((t) => `“${t}”`).join(', ');
+  return (
+    <section className="card mt-5 p-4">
+      <h2 className="kicker">Because you wrote {because || 'a color'}</h2>
+      <div className="scroll-row mt-3">
+        {items.map(({ item }) => (
+          <button type="button" key={item.id} onClick={() => setParams({ piece: item.id })} className="w-36 shrink-0 text-left">
+            <Img src={item.image} className="aspect-square rounded-2xl" kind={item.rooms[0]} />
+            <p className="mt-1 text-sm font-medium leading-tight">{item.name}</p>
+            <p className="text-xs text-oak">{fmtRange(item.price)}</p>
+          </button>
+        ))}
+      </div>
+      {paints.length > 0 && <div className="mt-3 flex flex-wrap gap-2 text-sm">{paints.map(({ paint: p, because: b }) => <Link key={p.id} to="/studio" className="inline-flex items-center gap-2 rounded-full bg-raised py-1 pr-3 pl-1"><span className="size-7 rounded-full" style={{ background: p.hex }} />“{b}” is near <span className="font-medium">{p.name}</span> <span className="text-muted">· {paintOf(p.id).near[0]}</span></Link>)}</div>}
+    </section>
+  );
+}
+
 export function PieceSheet({ item: c, onClose }: { item: CatalogItem; onClose: () => void }) {
   const nav = useNavigate();
   const rooms = useStore((s) => s.house.rooms);
@@ -87,7 +114,7 @@ export function PieceSheet({ item: c, onClose }: { item: CatalogItem; onClose: (
         <div className="mt-4 grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
           <Cell k="Typical price" v={`${fmtRange(c.price)} / ${c.unit}`} />
           <Cell k="Materials" v={c.materials.join(', ')} />
-          <Cell k="Lead time" v={c.lead ? `${c.lead} weeks` : 'In stock, usually'} />
+          <Cell k="Lead time" v={c.lead ? `${c.lead} weeks` : 'Short, usually'} />
           <Cell k="Buy" v={c.hunt === 'used' ? 'Worth hunting used' : c.hunt === 'new' ? 'New, with a return path' : 'New or used'} />
           {c.dims && <Cell k="Typical size" v={`${c.dims[0]}″ W × ${c.dims[1]}″ D × ${c.dims[2]}″ H`} />}
           <Cell k="Rooms" v={c.rooms.map(roomName).join(', ')} />
@@ -111,6 +138,7 @@ export function PieceSheet({ item: c, onClose }: { item: CatalogItem; onClose: (
         </section>
 
         <div className="mt-4 flex flex-wrap gap-2">
+          {c.piece && <Button onClick={() => { const st = useStore.getState(); if (!st.studio.pieces.includes(c.piece!)) st.togglePiece(c.piece!); nav('/studio'); }}>Place it in the studio</Button>}
           <Button kind="ghost" onClick={() => { saveItem({ kind: 'piece', title: c.name, subtitle: c.category, body: c.why, image: c.image, catalogId: c.id }); setSaved(true); }}>{saved ? 'Saved' : 'Save to a board'}</Button>
         </div>
         <h3 className="mt-8 display text-2xl">Hunt it</h3>

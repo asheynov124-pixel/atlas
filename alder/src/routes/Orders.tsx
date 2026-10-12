@@ -79,7 +79,7 @@ export default function Orders() {
                 return (
                   <li key={i.id} className="card flex flex-wrap items-center gap-3 p-3 text-sm">
                     <span className="grid size-8 place-items-center rounded-full bg-raised text-xs">{n + 1}</span>
-                    <span className="min-w-0 flex-1"><span className="block font-medium">{i.name}</span><span className="text-xs text-muted">{roomName(i.roomId)} · {CATEGORY_LABEL[i.category]} · {i.lead ? `${i.lead}-week lead` : 'usually in stock'}{orderBy ? ` · order by ${orderBy.toLocaleDateString()}` : ''}</span></span>
+                    <span className="min-w-0 flex-1"><span className="block font-medium">{i.name}</span><span className="text-xs text-muted">{roomName(i.roomId)} · {CATEGORY_LABEL[i.category]} · {i.lead ? `${i.lead}-week lead` : 'no stated lead time'}{orderBy ? ` · order by ${orderBy.toLocaleDateString()}` : ''}</span></span>
                     <span className="tabular-nums">{fmtMoney(lineBest(i))}</span>
                     {i.status !== 'ordered' && <Button kind="ghost" className="min-h-9 px-3 text-xs" onClick={() => setItemStatus(i.id, 'ordered')}>Mark ordered</Button>}
                   </li>

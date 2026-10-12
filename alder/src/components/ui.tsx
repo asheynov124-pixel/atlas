@@ -11,7 +11,7 @@ export function Button({ kind = 'solid', className = '', ...rest }: ButtonHTMLAt
 }
 
 export function Chip({ on, className = '', ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { on?: boolean }) {
-  return <button type="button" aria-pressed={on} className={`min-h-10 shrink-0 rounded-full px-3 text-sm ${on ? 'bg-oak text-ink' : 'bg-raised text-fg'} ${className}`} {...rest} />;
+  return <button type="button" aria-pressed={on} className={`min-h-11 shrink-0 rounded-full px-3 text-sm ${on ? 'bg-oak text-ink' : 'bg-raised text-fg'} ${className}`} {...rest} />;
 }
 
 export function Kicker({ children, className = '' }: { children: ReactNode; className?: string }) {

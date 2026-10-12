@@ -6,11 +6,14 @@ import { parseIdea } from '../lib/parse';
 import type { Custom } from '../lib/types';
 import { Button } from './ui';
 
+/** A hex, a picked color, or a short color name is a color. Anything the room can build is an option. The rest is an idea. */
 function classify(text: string, picked?: string): Custom['kind'] {
   const t = text.trim();
-  if (picked || normalizeHex(t) || namedColor(t)) return 'color';
+  if (picked || normalizeHex(t)) return 'color';
   const p = parseIdea(t);
-  return Object.keys(p).length ? 'option' : 'idea';
+  if (Object.keys(p).length) return 'option';
+  if (namedColor(t) && t.split(/\s+/).length <= 3) return 'color';
+  return 'idea';
 }
 
 export function AddOwn({ onAdded, placeholder = 'A color, a thing to include, or an idea' }: { onAdded?: (c: Custom) => void; placeholder?: string }) {
@@ -51,7 +54,7 @@ export function AddOwn({ onAdded, placeholder = 'A color, a thing to include, or
             <span key={c.id} className="inline-flex items-center gap-2 rounded-full bg-raised py-1 pr-1 pl-2 text-xs">
               {c.hex && <span className="size-4 rounded-full border border-line" style={{ background: c.hex }} />}
               <span className="max-w-40 truncate">{c.text}</span>
-              <button type="button" aria-label="Remove" className="grid size-6 place-items-center rounded-full hover:bg-surface" onClick={() => removeCustom(c.id)}><X className="size-3" /></button>
+              <button type="button" aria-label="Remove" className="-my-2 grid size-11 place-items-center rounded-full hover:bg-surface" onClick={() => removeCustom(c.id)}><X className="size-3" /></button>
             </span>
           ))}
         </div>

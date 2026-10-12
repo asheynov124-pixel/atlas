@@ -57,7 +57,7 @@ export default function App() {
 
       <div className="flex min-h-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-line px-4 py-2 md:hidden">
-          <NavLink to="/" className="display text-2xl italic">Alder</NavLink>
+          <NavLink to="/" className="flex min-h-11 items-center display text-2xl italic">Alder</NavLink>
           <div className="flex items-center gap-1">
             <button type="button" aria-label="Theme" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="grid size-11 place-items-center text-muted">{theme === 'dark' ? <Sun className="size-5" /> : <Moon className="size-5" />}</button>
             <NavLink to="/learn" aria-label="Learn" className="grid size-11 place-items-center text-muted"><BookOpen className="size-5" /></NavLink>
