@@ -42,7 +42,7 @@ export function LotEditor({ lot, envelope, selected, flagged, onSelect, onMoveHo
   const start = (id: string, cur: { x: number; y: number }) => (e: React.PointerEvent) => { e.stopPropagation(); onSelect(id); const { x, y } = toLot(e); setDrag({ id, dx: x - cur.x, dy: y - cur.y }); (e.target as Element).setPointerCapture?.(e.pointerId); };
 
   return (
-    <svg ref={svg} viewBox={`${-PAD} ${-PAD} ${W + PAD * 2} ${D + PAD * 2}`} className="h-full w-full touch-none select-none rounded-[1.25rem] bg-surface" onPointerDown={(e) => { if (e.target === svg.current) onSelect(null); }}>
+    <svg ref={svg} viewBox={`${-PAD} ${-PAD} ${W + PAD * 2} ${D + PAD * 2}`} className="h-full w-full touch-none select-none rounded-xl bg-surface" onPointerDown={(e) => { if (e.target === svg.current) onSelect(null); }}>
       <defs><pattern id="setback" width="4" height="4" patternUnits="userSpaceOnUse"><path d="M-1 3 L3 -1 M0 4 L4 0" stroke="var(--muted)" strokeWidth="0.3" opacity="0.5" /></pattern></defs>
       <rect x={0} y={0} width={W} height={D} fill="#7f9a6c" opacity="0.35" />
       {/* setbacks hatched */}

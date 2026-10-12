@@ -32,7 +32,7 @@ export default function Decisions() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 md:px-10 md:py-8">
       <Kicker>Decisions</Kicker>
-      <h1 className="mt-2 display text-4xl italic">Everyone in the room</h1>
+      <h1 className="mt-2 display text-4xl">Everyone in the room</h1>
       <p className="mt-2 max-w-xl text-muted">Every choice that is still open, who owns it, and when it is due. Give each person a seat, vote love, pass, or live with it, and let the mediator name the objection to answer first.</p>
 
       <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -47,7 +47,7 @@ export default function Decisions() {
           <h2 className="kicker">Voting as</h2>
           <button type="button" className="text-sm text-oak" onClick={() => setShowSeats(!showSeats)}>{showSeats ? 'Done with seats' : 'Seats'}</button>
         </div>
-        <div className="mt-2 flex flex-wrap gap-2">{seats.map((s) => <Chip key={s.id} on={seatId === s.id} onClick={() => setSeat(s.id)}><span className="mr-1 inline-grid size-6 place-items-center rounded-full bg-ink text-xs text-oak">{s.name.slice(0, 1).toUpperCase()}</span>{s.name}<span className="ml-1 text-xs opacity-70">· {s.role}</span></Chip>)}</div>
+        <div className="mt-2 flex flex-wrap gap-2">{seats.map((s) => <Chip key={s.id} on={seatId === s.id} onClick={() => setSeat(s.id)}><span className="mr-1 inline-grid size-6 place-items-center rounded-full bg-fg text-xs text-bg">{s.name.slice(0, 1).toUpperCase()}</span>{s.name}<span className="ml-1 text-xs opacity-70">· {s.role}</span></Chip>)}</div>
         {showSeats && <Seats />}
       </section>
 
@@ -160,7 +160,7 @@ export function DecisionCard({ d, roomName, compact }: { d: Decision; roomName: 
             <li key={o.id} className="rounded-xl bg-raised p-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="min-w-0"><span className="block font-medium">{o.label}{o.cost ? <span className="ml-2 text-xs text-muted">{fmtMoney(o.cost)}</span> : null}</span>{o.note && <span className="block text-xs text-muted">{o.note}</span>}</span>
-                <span className="flex gap-1">{(['love', 'ok', 'pass'] as Vote[]).map((v) => <button key={v} type="button" aria-pressed={mine === v} className={`min-h-9 rounded-full px-3 text-xs ${mine === v ? (v === 'love' ? 'bg-good text-ink' : v === 'pass' ? 'bg-stop text-ink' : 'bg-oak text-ink') : 'bg-surface text-fg'}`} onClick={() => vote(d.id, o.id, mine === v ? null : v)}>{v === 'love' ? 'Love' : v === 'ok' ? 'Can live with it' : 'Pass'}</button>)}</span>
+                <span className="flex gap-1">{(['love', 'ok', 'pass'] as Vote[]).map((v) => <button key={v} type="button" aria-pressed={mine === v} className={`min-h-9 rounded-full px-3 text-xs ${mine === v ? (v === 'love' ? 'bg-good text-ink' : v === 'pass' ? 'bg-stop text-ink' : 'bg-oak text-oakfg') : 'bg-surface text-fg'}`} onClick={() => vote(d.id, o.id, mine === v ? null : v)}>{v === 'love' ? 'Love' : v === 'ok' ? 'Can live with it' : 'Pass'}</button>)}</span>
               </div>
               {(loves.length + oks.length + passes.length > 0) && <p className="mt-1 text-xs text-muted">{loves.length ? `love: ${loves.map((s) => s.name).join(', ')}` : ''}{oks.length ? `${loves.length ? ' · ' : ''}ok: ${oks.map((s) => s.name).join(', ')}` : ''}{passes.length ? `${loves.length || oks.length ? ' · ' : ''}pass: ${passes.map((s) => s.name).join(', ')}` : ''}</p>}
               {d.status !== 'decided' && <button type="button" className="mt-1 text-xs text-oak" onClick={() => decide(d.id, o.id)}>Call it for {o.label}</button>}

@@ -22,7 +22,7 @@ export default function Boards() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 md:px-10 md:py-8">
       <Kicker>Boards</Kicker>
-      <h1 className="mt-2 display text-4xl italic">Saved</h1>
+      <h1 className="mt-2 display text-4xl">Saved</h1>
       <p className="mt-2 max-w-xl text-muted">Looks, ideas, rooms and pieces you kept. Sort them onto boards: one per room, or one per argument you are having with yourself.</p>
       <div className="scroll-row mt-5">
         <Chip on={board === 'all'} onClick={() => setBoard('all')}>Everything</Chip>

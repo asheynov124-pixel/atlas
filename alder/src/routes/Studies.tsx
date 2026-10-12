@@ -36,7 +36,7 @@ export default function Studies() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 md:px-10 md:py-8">
       <Kicker>Discover</Kicker>
-      <h1 className="mt-2 display text-4xl italic">Studies</h1>
+      <h1 className="mt-2 display text-4xl">Studies</h1>
       <p className="mt-2 max-w-xl text-muted">Rooms to read slowly. Color, frame, texture, the hard numbers, and the thing you add last. The ones marked Live move.</p>
       <div className="scroll-row mt-5">
         {ROOMS.map((r) => <Chip key={r} on={room === r} onClick={() => setParams(r === 'all' ? {} : { room: r })}>{r === 'all' ? 'All rooms' : roomName(r)}</Chip>)}
@@ -45,9 +45,9 @@ export default function Studies() {
         {looks.map((l) => (
           <article key={l.id} className="mb-8 break-inside-avoid">
             <button type="button" onClick={() => setOpen(l)} className="block w-full text-left">
-              <div className="relative aspect-[3/4] overflow-hidden rounded-[1.25rem] bg-raised">
+              <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-raised">
                 <Img src={l.image} className="h-full w-full" palette={l.palette.map((x) => paint(x).hex)} kind={l.room} />
-                {l.live && <span className="absolute top-3 left-3 rounded-full bg-ink px-3 py-1 text-xs text-oak">Live</span>}
+                {l.live && <span className="absolute top-3 left-3 rounded-full bg-ink px-3 py-1 text-xs text-paper">Live</span>}
               </div>
               <p className="mt-3 kicker">{l.kicker}</p>
               <h2 className="mt-1 display text-2xl">{l.title}</h2>
@@ -85,13 +85,13 @@ export function StudySheet({ look: l, onClose }: { look: Look; onClose: () => vo
 
   return (
     <Sheet open onClose={onClose} title={roomName(l.room)}>
-      <div className="relative aspect-[3/4] bg-raised md:mx-4 md:aspect-[16/10] md:overflow-hidden md:rounded-[1.25rem]">
+      <div className="relative aspect-[3/4] bg-raised md:mx-4 md:aspect-[16/10] md:overflow-hidden md:rounded-xl">
         <Img src={l.live ? undefined : l.image} className="absolute inset-0" palette={l.palette.map((x) => paint(x).hex)} kind={l.room} />
         {l.live && <video src={l.live} poster={l.image} className="relative h-full w-full object-cover" autoPlay muted loop playsInline onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
-        {l.live && <span className="absolute bottom-3 left-3 rounded-full bg-ink px-3 py-1 text-xs text-oak">Live photo</span>}
+        {l.live && <span className="absolute bottom-3 left-3 rounded-full bg-ink px-3 py-1 text-xs text-paper">Live photo</span>}
       </div>
       <div className="px-4 pt-5">
-        <h2 className="display text-4xl italic">{l.title}</h2>
+        <h2 className="display text-4xl">{l.title}</h2>
         <p className="mt-2 text-muted">{l.dek}</p>
         <div className="mt-4 flex flex-wrap gap-2">{l.palette.map((p) => { const c = paint(p); return <Pill key={p} hex={c.hex}>{c.name}<span className="text-xs text-muted">· LRV {c.lrv}</span></Pill>; })}</div>
         <Block title="Framing" body={l.framing} />
@@ -113,7 +113,7 @@ export function StudySheet({ look: l, onClose }: { look: Look; onClose: () => vo
         </div>
         <div className="mt-3 flex flex-col gap-3">
           {items.map((c) => (
-            <Link key={c.id} to={`/catalog?piece=${c.id}`} className="flex gap-3 rounded-[1.25rem] bg-surface p-2">
+            <Link key={c.id} to={`/catalog?piece=${c.id}`} className="flex gap-3 rounded-xl bg-surface p-2">
               <Img src={c.image} className="size-20 rounded-xl" palette={l.palette.map((x) => paint(x).hex)} kind={c.rooms[0]} />
               <span className="min-w-0 flex-1">
                 <span className="block font-medium">{c.name}</span>

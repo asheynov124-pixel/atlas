@@ -10,7 +10,7 @@ export default function Learn() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 md:px-10 md:py-8">
       <Kicker>Learn</Kicker>
-      <h1 className="mt-2 display text-4xl italic">Short lessons</h1>
+      <h1 className="mt-2 display text-4xl">Short lessons</h1>
       <p className="mt-2 max-w-xl text-muted">Enough to argue with a contractor. Each one ends with something you can try in the studio.</p>
       <div className="mt-4 flex items-center gap-3">
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-raised"><div className="h-full bg-oak transition-all" style={{ width: `${(done / LESSONS.length) * 100}%` }} /></div>

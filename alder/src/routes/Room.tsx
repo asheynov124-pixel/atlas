@@ -5,7 +5,7 @@ function useRoomItems(roomId: string) {
   return useMemo(() => all.filter((i) => i.roomId === roomId), [all, roomId]);
 }
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Trash2, RotateCw, Copy, Plus, Box, Grid2x2, RotateCcw, Camera } from 'lucide-react';
+import { Trash2, RotateCw, Copy, Plus, Box, Grid2x2, RotateCcw, Camera, ArrowLeft, Palette, Lamp, ListChecks, History, CheckCircle2, Users } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { ROOM_TYPES, roomType } from '../data/rooms';
 import { PAINTS, paint } from '../data/palette';
@@ -20,7 +20,7 @@ import { RoomStage, type StageHandle } from '../stage/RoomStage';
 import { houseSpec } from '../stage/spec';
 import { PlanEditor } from '../components/PlanEditor';
 import { ShopLinks } from '../components/ShopLinks';
-import { Button, Chip, Section, Swatch, OptionCard, Note, Field, Stat, Img, Confirm, ExportSheet } from '../components/ui';
+import { Button, Chip, Section, Swatch, OptionCard, Note, Field, Stat, Img, Confirm, ExportSheet, TabRail, IconButton } from '../components/ui';
 import { ITEM_CATEGORIES, ITEM_STATUSES, STATUS_LABEL, PHASE_LABEL, type HouseItem, type ItemStatus, type SurfaceKey, type StudioState, type Opening } from '../lib/types';
 import { DecideTab, ScenesTab, VersionsTab, BriefButton } from './RoomExtras';
 import { Wifi } from 'lucide-react';
@@ -40,19 +40,19 @@ export default function Room() {
   const stage = useRef<StageHandle>(null);
   const scene = room?.scenes?.find((x) => x.id === sceneId) ?? null;
   const spec = useMemo(() => (room ? houseSpec(room, selected ?? undefined, scene) : null), [room, selected, scene]);
-  if (!room || !spec) return <div className="p-6"><p className="text-muted">That room is gone.</p><Link to="/house" className="text-oak">Back to My House</Link></div>;
+  if (!room || !spec) return <div className="p-6"><p className="text-muted">That room is gone.</p><Link to="/" className="text-oak">Back to the Overview</Link></div>;
 
   return (
     <div className="flex h-full min-h-0 flex-col md:flex-row">
-      <div className="relative h-[44dvh] shrink-0 bg-ink md:h-full md:min-h-0 md:flex-1">
+      <div className="relative h-[44dvh] shrink-0 bg-canvas md:h-full md:min-h-0 md:flex-1">
         {view === '3d' ? <RoomStage ref={stage} spec={spec} /> : <div className="h-full w-full p-3"><PlanEditor room={room} selected={selected} overlays={overlays} onSelect={setSelected} onMove={(id, p) => useStore.getState().updatePlaced(room.id, id, p)} /></div>}
         {scene && <span className="pointer-events-none absolute top-3 left-3 rounded-full bg-oak px-3 py-1 text-xs text-ink">Scene · {scene.name}</span>}
         <div className="absolute top-3 right-3 flex gap-2">
-          <button type="button" aria-label="Plan" onClick={() => setView('2d')} className={`grid size-11 place-items-center rounded-full ${view === '2d' ? 'bg-oak text-ink' : 'bg-ink/80 text-paper'}`}><Grid2x2 className="size-4" /></button>
-          <button type="button" aria-label="3D" onClick={() => setView('3d')} className={`grid size-11 place-items-center rounded-full ${view === '3d' ? 'bg-oak text-ink' : 'bg-ink/80 text-paper'}`}><Box className="size-4" /></button>
-          {view === '2d' && <button type="button" aria-label="Coverage overlays" onClick={() => setOverlays(!overlays)} className={`grid size-11 place-items-center rounded-full ${overlays ? 'bg-oak text-ink' : 'bg-ink/80 text-paper'}`}><Wifi className="size-4" /></button>}
-          {view === '3d' && <button type="button" aria-label="Reset view" onClick={() => stage.current?.resetView()} className="grid size-11 place-items-center rounded-full bg-ink/80 text-paper"><RotateCcw className="size-4" /></button>}
-          {view === '3d' && <button type="button" aria-label="Snapshot" onClick={() => { const u = stage.current?.screenshot(); if (u) void saveFile(`${room.name.replace(/\s+/g, '-').toLowerCase()}.jpg`, dataUrlToBlob(u)); }} className="grid size-11 place-items-center rounded-full bg-ink/80 text-paper"><Camera className="size-4" /></button>}
+          <button type="button" aria-label="Plan" onClick={() => setView('2d')} className={`grid size-11 place-items-center rounded-full ${view === '2d' ? 'bg-fg text-bg shadow-sm' : 'border border-line bg-surface text-fg shadow-sm'}`}><Grid2x2 className="size-4" /></button>
+          <button type="button" aria-label="3D" onClick={() => setView('3d')} className={`grid size-11 place-items-center rounded-full ${view === '3d' ? 'bg-fg text-bg shadow-sm' : 'border border-line bg-surface text-fg shadow-sm'}`}><Box className="size-4" /></button>
+          {view === '2d' && <button type="button" aria-label="Coverage overlays" onClick={() => setOverlays(!overlays)} className={`grid size-11 place-items-center rounded-full ${overlays ? 'bg-fg text-bg shadow-sm' : 'border border-line bg-surface text-fg shadow-sm'}`}><Wifi className="size-4" /></button>}
+          {view === '3d' && <button type="button" aria-label="Reset view" onClick={() => stage.current?.resetView()} className="grid size-11 place-items-center rounded-full border border-line bg-surface text-fg shadow-sm"><RotateCcw className="size-4" /></button>}
+          {view === '3d' && <button type="button" aria-label="Snapshot" onClick={() => { const u = stage.current?.screenshot(); if (u) void saveFile(`${room.name.replace(/\s+/g, '-').toLowerCase()}.jpg`, dataUrlToBlob(u)); }} className="grid size-11 place-items-center rounded-full border border-line bg-surface text-fg shadow-sm"><Camera className="size-4" /></button>}
         </div>
         <span className="pointer-events-none absolute bottom-3 left-3 rounded-full bg-ink/80 px-3 py-1 text-xs text-paper">{view === '2d' ? 'Drag pieces. Tap one to edit it. One square is one foot.' : 'Drag to turn. Pinch or scroll to come closer.'}</span>
       </div>
@@ -85,19 +85,29 @@ function Header({ room, tab, setTab }: { room: R; tab: Tab; setTab: (t: Tab) => 
   const openDec = useStore((s) => s.decisions.filter((d) => d.roomId === room.id && d.status !== 'decided').length);
   return (
     <div className="mb-5">
-      <Link to="/house" className="inline-flex min-h-11 items-center text-sm text-oak">← My House</Link>
-      <div className="mt-1 flex items-center gap-2">
-        <input className="min-w-0 flex-1 bg-transparent display text-3xl italic outline-none" value={room.name} onChange={(e) => updateRoom(room.id, { name: e.target.value })} aria-label="Room name" />
-        <BriefButton room={room} />
-        <button type="button" aria-label="Duplicate" className="grid size-11 place-items-center rounded-full text-muted hover:text-fg" onClick={() => nav(`/house/${duplicateRoom(room.id)}`)}><Copy className="size-4" /></button>
-        <Confirm label="" icon={<Trash2 className="size-4" />} confirmLabel="Delete room and list" className="min-h-11 px-2" onConfirm={() => { removeRoom(room.id); nav('/house'); }} />
+      <Link to="/" className="inline-flex min-h-11 items-center gap-1 text-sm text-muted hover:text-fg"><ArrowLeft className="size-4" />Overview</Link>
+      <div className="flex items-center justify-between gap-3">
+        <input className="w-full min-w-0 flex-1 bg-transparent display text-2xl outline-none md:text-3xl" value={room.name} onChange={(e) => updateRoom(room.id, { name: e.target.value })} aria-label="Room name" />
+        <div className="flex shrink-0 items-center gap-1.5">
+          <BriefButton room={room} />
+          <IconButton label="Duplicate room" onClick={() => nav(`/house/${duplicateRoom(room.id)}`)}><Copy className="size-4" /></IconButton>
+          <Confirm label="" icon={<Trash2 className="size-4" />} confirmLabel="Delete room and list" className="min-h-11 px-2!" onConfirm={() => { removeRoom(room.id); nav('/'); }} />
+        </div>
       </div>
-      <p className="text-sm text-muted">{roomType(room.type).name} · {ftIn(room.length)} × {ftIn(room.width)} · {ftIn(room.height)} ceiling · {Math.round(room.length * room.width)} sq ft · <span className="text-oak">{PHASE_LABEL[room.phase ?? 'concept']}</span></p>
+      <p className="mt-1 text-sm text-muted">{roomType(room.type).name} · {ftIn(room.length)} × {ftIn(room.width)} · {ftIn(room.height)} ceiling · {Math.round(room.length * room.width)} sq ft · <span className="font-medium text-fg">{PHASE_LABEL[room.phase ?? 'concept']}</span></p>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Stat label="At the door" value={fmtMoney(roll.total + (roll.hasShellLines ? 0 : roll.shellMid * (1 + settings.taxRate)))} sub={roll.hasShellLines ? `${roll.count} lines` : `${roll.count} lines + shell est.`} />
-        <Stat label="Room budget" value={room.budget ? fmtMoney(room.budget) : '—'} sub={room.budget ? (roll.total > room.budget ? <span className="text-stop">over by {fmtMoney(roll.total - room.budget)}</span> : `${fmtMoney(room.budget - roll.total)} left`) : <input type="number" className="w-24 bg-transparent text-oak outline-none" placeholder="set one" aria-label="Room budget" onBlur={(e) => { if (e.target.value) updateRoom(room.id, { budget: Number(e.target.value) || undefined }); }} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />} />
+        <Stat label="Room budget" value={room.budget ? fmtMoney(room.budget) : '—'} sub={room.budget ? (roll.total > room.budget ? <span className="text-stop">over by {fmtMoney(roll.total - room.budget)}</span> : `${fmtMoney(room.budget - roll.total)} left`) : <input type="number" className="w-28 border-b border-line bg-transparent text-xs outline-none placeholder:text-muted" placeholder="Set one" aria-label="Room budget" onBlur={(e) => { const v = Number(e.target.value); if (v > 0) updateRoom(room.id, { budget: v }); }} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />} />
       </div>
-      <div className="scroll-row mt-4 md:flex-wrap">{(['plan', 'shell', 'list', 'decide', 'scenes', 'versions', 'read'] as Tab[]).map((t) => <Chip key={t} on={tab === t} onClick={() => setTab(t)}>{t === 'plan' ? 'Plan' : t === 'shell' ? 'Shell' : t === 'list' ? `List (${items.length})` : t === 'decide' ? `Decide${openDec ? ` (${openDec})` : ''}` : t === 'scenes' ? 'Scenes' : t === 'versions' ? 'Versions' : `Read it${bad ? ` (${bad})` : ''}`}</Chip>)}</div>
+      <TabRail<Tab> className="mt-4" value={tab} onChange={setTab} tabs={[
+        { id: 'plan', label: 'Plan', icon: Grid2x2, hint: 'Place the pieces to scale' },
+        { id: 'shell', label: 'Finishes', icon: Palette, hint: 'Walls, floor, trim, tile, counters, quantities' },
+        { id: 'scenes', label: 'Light', icon: Lamp, hint: 'Scenes by hour; the dimmer plan' },
+        { id: 'list', label: 'List', icon: ListChecks, badge: items.length, hint: 'Everything this room needs, priced' },
+        { id: 'decide', label: 'Decisions', icon: Users, badge: openDec, hint: 'Phase and open choices' },
+        { id: 'versions', label: 'Versions', icon: History, hint: 'As found, as is, as planned' },
+        { id: 'read', label: 'Review', icon: CheckCircle2, badge: bad, hint: 'Clearances and color checks' },
+      ]} />
     </div>
   );
 }
@@ -359,7 +369,7 @@ function ListTab({ room }: { room: R }) {
         <Stat label="+ tax, delivery" value={fmtMoney(roll.tax + roll.shipping)} />
         <Stat label="At the door" value={fmtMoney(roll.total)} sub={`${Math.round(settings.contingency * 100)}% contingency in`} />
       </div>
-      {!roll.hasShellLines && <p className="text-xs text-muted">The shell (floor, walls, trim) is not on this list yet; it is estimated at {fmtMoney(roll.shellMid)}. Put it on from the Shell tab.</p>}
+      {!roll.hasShellLines && <p className="text-xs text-muted">The shell (floor, walls, trim) is not on this list yet; it is estimated at {fmtMoney(roll.shellMid)}. Put it on from the Finishes tab.</p>}
       <div className="flex flex-wrap gap-2">
         <Button onClick={() => { setAdding(!adding); setCatalogPick(false); }}><Plus className="size-4" />Add a line</Button>
         <Button kind="ghost" onClick={() => { setCatalogPick(!catalogPick); setAdding(false); }}>From the catalog</Button>
@@ -378,7 +388,7 @@ function ListTab({ room }: { room: R }) {
         </div>
       )}
       <div className="scroll-row"><Chip on={filter === 'all'} onClick={() => setFilter('all')}>All</Chip>{ITEM_STATUSES.map((s) => items.some((i) => i.status === s) && <Chip key={s} on={filter === s} onClick={() => setFilter(s)}>{STATUS_LABEL[s]}</Chip>)}</div>
-      {list.length === 0 && <p className="text-sm text-muted">Nothing on the list. Put the shell on from the Shell tab, add pieces from the plan, or pick from the catalog.</p>}
+      {list.length === 0 && <p className="text-sm text-muted">Nothing on the list. Put the shell on from the Finishes tab, add pieces from the plan, or pick from the catalog.</p>}
       <div className="flex flex-col gap-2">
         {list.map((i) => (
           <div key={i.id} className={`card p-3 ${i.status === 'returned' ? 'opacity-50' : ''}`}>

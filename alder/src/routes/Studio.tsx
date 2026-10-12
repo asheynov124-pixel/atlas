@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Columns2, RotateCcw, Camera, ArrowLeftRight, ChevronUp, ChevronDown, X } from 'lucide-react';
+import { Columns2, RotateCcw, Camera, ArrowLeftRight, ChevronUp, ChevronDown, X, Palette, Layers, Armchair, LayoutTemplate, Sun, StickyNote, CheckCircle2 } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { PAINTS, paint } from '../data/palette';
 import { FLOORS, FINISHES, FRAMES, METALS, CLOTHS, CEILINGS, opt } from '../data/materials';
@@ -12,16 +12,21 @@ import { harmonize, lrv, undertone, textOn } from '../lib/color';
 import { noteStatus, statusLine, suggestLesson } from '../lib/notes';
 import { RoomStage, type StageHandle } from '../stage/RoomStage';
 import { studioSpec, colorOf } from '../stage/spec';
-import { Button, Chip, Section, Swatch, OptionCard, Note, Pill } from '../components/ui';
+import { Button, Chip, Section, Swatch, OptionCard, Note, Pill, TabRail, type TabDef } from '../components/ui';
 import { AddOwn } from '../components/AddOwn';
 import type { StudioState } from '../lib/types';
 import { saveFile, dataUrlToBlob } from '../lib/export';
 
 const HOURS = [['Dawn', 7], ['Morning', 10], ['Noon', 13], ['Afternoon', 16], ['Dusk', 18], ['Evening', 21]] as const;
 type Tab = 'color' | 'surfaces' | 'cloth' | 'light' | 'pieces' | 'notes' | 'read';
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'color', label: 'Color' }, { id: 'cloth', label: 'Cloth & metal' }, { id: 'pieces', label: 'Pieces' }, { id: 'surfaces', label: 'Floor & trim' },
-  { id: 'light', label: 'Light' }, { id: 'notes', label: 'Your notes' }, { id: 'read', label: 'Read it' },
+const TABS: TabDef<Tab>[] = [
+  { id: 'color', label: 'Color', icon: Palette, hint: 'Walls, accent, the palette' },
+  { id: 'cloth', label: 'Textiles & metal', icon: Layers, hint: 'Sofa cloth, the one metal' },
+  { id: 'pieces', label: 'Pieces', icon: Armchair, hint: 'What is in the room' },
+  { id: 'surfaces', label: 'Floor & trim', icon: LayoutTemplate, hint: 'Floor, finish, trim, ceiling' },
+  { id: 'light', label: 'Light', icon: Sun, hint: 'Hour of day and lamp warmth' },
+  { id: 'notes', label: 'Notes', icon: StickyNote, hint: 'Your own ideas and colors' },
+  { id: 'read', label: 'Review', icon: CheckCircle2, hint: 'What works and what to fix' },
 ];
 
 export default function Studio() {
@@ -38,23 +43,23 @@ export default function Studio() {
 
   return (
     <div className="flex h-full min-h-0 flex-col md:flex-row">
-      <div className={`relative shrink-0 bg-ink transition-[height] md:h-full md:min-h-0 md:flex-1 ${small ? 'h-[26dvh]' : 'h-[46dvh]'} ${specB ? 'grid grid-cols-1 grid-rows-2 md:grid-cols-2 md:grid-rows-1' : ''}`}>
+      <div className={`relative shrink-0 bg-canvas transition-[height] md:h-full md:min-h-0 md:flex-1 ${small ? 'h-[26dvh]' : 'h-[46dvh]'} ${specB ? 'grid grid-cols-1 grid-rows-2 md:grid-cols-2 md:grid-rows-1' : ''}`}>
         <div className="relative h-full min-h-0">
           <RoomStage ref={stage} spec={spec} />
-          {specB && <span className="pointer-events-none absolute top-3 left-3 rounded-full bg-ink/80 px-3 py-1 text-xs text-oak">A · {paint(studio.wall).name}</span>}
+          {specB && <span className="pointer-events-none absolute top-3 left-3 rounded-full bg-ink/80 px-3 py-1 text-xs text-paper">A · {paint(studio.wall).name}</span>}
         </div>
         {specB && (
           <div className="relative h-full min-h-0 border-t border-line md:border-t-0 md:border-l">
             <RoomStage ref={stageB} spec={specB} />
-            <span className="pointer-events-none absolute top-3 left-3 rounded-full bg-ink/80 px-3 py-1 text-xs text-oak">B · {paint(compare!.wall).name}</span>
+            <span className="pointer-events-none absolute top-3 left-3 rounded-full bg-ink/80 px-3 py-1 text-xs text-paper">B · {paint(compare!.wall).name}</span>
           </div>
         )}
         <span className="pointer-events-none absolute bottom-3 left-3 hidden rounded-full bg-ink/80 px-3 py-1 text-xs text-paper md:block">Drag to turn. Scroll to come closer.</span>
         <div className="absolute top-3 right-3 flex gap-2">
-          <button type="button" aria-label="Reset view" onClick={() => { stage.current?.resetView(); stageB.current?.resetView(); }} className="grid size-11 place-items-center rounded-full bg-ink/80 text-paper"><RotateCcw className="size-4" /></button>
-          <button type="button" aria-label={specB ? 'Close compare' : 'Compare'} onClick={() => setCompare(specB ? null : { ...studio })} className={`grid size-11 place-items-center rounded-full ${specB ? 'bg-oak text-ink' : 'bg-ink/80 text-paper'}`}><Columns2 className="size-4" /></button>
-          {specB && <button type="button" aria-label="Swap A and B" onClick={swapCompare} className="grid size-11 place-items-center rounded-full bg-ink/80 text-paper"><ArrowLeftRight className="size-4" /></button>}
-          <button type="button" aria-label={small ? 'Larger model' : 'Smaller model'} onClick={() => setSmall(!small)} className="grid size-11 place-items-center rounded-full bg-ink/80 text-paper md:hidden">{small ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}</button>
+          <button type="button" aria-label="Reset view" onClick={() => { stage.current?.resetView(); stageB.current?.resetView(); }} className="grid size-11 place-items-center rounded-full border border-line bg-surface text-fg shadow-sm"><RotateCcw className="size-4" /></button>
+          <button type="button" aria-label={specB ? 'Close compare' : 'Compare'} onClick={() => setCompare(specB ? null : { ...studio })} className={`grid size-11 place-items-center rounded-full ${specB ? 'bg-fg text-bg shadow-sm' : 'border border-line bg-surface text-fg shadow-sm'}`}><Columns2 className="size-4" /></button>
+          {specB && <button type="button" aria-label="Swap A and B" onClick={swapCompare} className="grid size-11 place-items-center rounded-full border border-line bg-surface text-fg shadow-sm"><ArrowLeftRight className="size-4" /></button>}
+          <button type="button" aria-label={small ? 'Larger model' : 'Smaller model'} onClick={() => setSmall(!small)} className="grid size-11 place-items-center rounded-full border border-line bg-surface text-fg shadow-sm md:hidden">{small ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}</button>
         </div>
       </div>
       <div className="flex min-h-0 flex-1 flex-col border-t border-line md:w-[26rem] md:flex-none md:border-t-0 md:border-l">
@@ -111,12 +116,10 @@ function Controls({ stage }: { stage: React.RefObject<StageHandle | null> }) {
     <>
       <div className="shrink-0 border-b border-line px-4 pt-3 pb-2">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="min-w-0 truncate display text-2xl italic">{roomName(studio.room)} <span className="not-italic text-base text-muted">· {wallName}</span></h1>
+          <h1 className="min-w-0 truncate display text-2xl">{roomName(studio.room)} <span className="not-italic text-base text-muted">· {wallName}</span></h1>
           <label className="shrink-0 text-xs text-muted"><span className="sr-only">Starting room</span><select value={studio.room} onChange={(e) => loadRoom(e.target.value)} className="min-h-11 py-1 text-sm">{STUDIO_ROOMS.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select></label>
         </div>
-        <div className="scroll-row mt-2">
-          {TABS.map((t) => <Chip key={t.id} on={tab === t.id} onClick={() => setTab(t.id)}>{t.label}{t.id === 'read' && issues ? ` (${issues})` : ''}{t.id === 'notes' && customs.length ? ` (${customs.length})` : ''}</Chip>)}
-        </div>
+        <TabRail<Tab> className="mt-2" value={tab} onChange={setTab} tabs={TABS.map((t) => ({ ...t, badge: t.id === 'read' ? issues : t.id === 'notes' ? customs.length : undefined }))} />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         <div className="flex flex-col gap-6 pb-10">

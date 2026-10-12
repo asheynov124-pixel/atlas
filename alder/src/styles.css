@@ -1,55 +1,73 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Outfit", "Avenir Next", "Segoe UI", sans-serif;
+  --font-sans: "Inter", "SF Pro Text", "Segoe UI", system-ui, sans-serif;
   --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-raised: var(--raised);
+  --color-canvas: var(--canvas);
   --color-fg: var(--fg);
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-oak: var(--oak);
+  --color-oakfg: var(--oakfg);
   --color-paper: var(--paper);
   --color-ink: var(--ink);
-  --color-good: #8fa98a;
-  --color-hmm: #d9a85c;
-  --color-stop: #c96a5a;
-  --radius-card: 1.25rem;
+  --color-good: var(--good);
+  --color-hmm: var(--hmm);
+  --color-stop: var(--stop);
+  --radius-card: 0.875rem;
 }
 
+/* Paper, the default. Ink on white, one bronze accent, a quiet grey canvas behind the models. */
 :root {
-  --bg: #12100e; --surface: #1c1916; --raised: #262220; --fg: #f6f1ea; --muted: #a89f94; --line: #3a342e; --oak: #e0b07a; --paper: #f3ece3; --ink: #12100e;
-  color-scheme: dark;
-}
-:root[data-theme="light"] {
-  --bg: #f4efe6; --surface: #faf6ef; --raised: #ece4d8; --fg: #1c1916; --muted: #6f655b; --line: #d9cfc1; --oak: #9a6f3a; --paper: #1c1916; --ink: #f4efe6;
+  --bg: #f4f2ee; --surface: #ffffff; --raised: #ebe7e0; --canvas: #e4e0d8;
+  --fg: #1b1917; --muted: #5d5750; --line: #dcd7cf;
+  --oak: #8a5a2b; --oakfg: #ffffff; --paper: #ffffff; --ink: #1b1917;
+  --good: #2f6f43; --hmm: #9a600e; --stop: #b0372b;
   color-scheme: light;
+}
+/* Night, if she wants it. Same contrast rules, inverted. */
+:root[data-theme="dark"] {
+  --bg: #151412; --surface: #1e1c19; --raised: #2a2723; --canvas: #0e0d0b;
+  --fg: #f3efe9; --muted: #b0a89d; --line: #38332d;
+  --oak: #dcab6f; --oakfg: #151412; --paper: #f3efe9; --ink: #151412;
+  --good: #8fc39b; --hmm: #e4b66e; --stop: #ec8a7b;
+  color-scheme: dark;
 }
 
 @layer base {
-  html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-  body { background: var(--bg); color: var(--fg); font-family: var(--font-sans); }
+  html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; font-size: 16px; }
+  @media (min-width: 768px) { html { font-size: 17px; } }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-sans); line-height: 1.5; font-feature-settings: "cv11", "ss01", "tnum"; }
   button:not(:disabled), [role=button]:not(:disabled) { cursor: pointer; }
   input, button, textarea, select { font: inherit; color: inherit; }
   :focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
-  ::selection { background: var(--oak); color: var(--ink); }
+  ::selection { background: var(--oak); color: var(--oakfg); }
   h1, h2, h3 { text-wrap: balance; }
   p { text-wrap: pretty; }
   input[type=number] { -moz-appearance: textfield; }
   input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
-  select { background: var(--raised); border-radius: 0.75rem; padding: 0.5rem 0.75rem; min-height: 2.75rem; }
+  select { background: var(--surface); border: 1px solid var(--line); border-radius: 0.625rem; padding: 0.5rem 0.75rem; min-height: 2.75rem; }
   select option { background: var(--surface); }
+  a { text-underline-offset: 3px; }
 }
 
 .pb-safe { padding-bottom: max(.35rem, env(safe-area-inset-bottom)); }
 .scroll-row { scrollbar-width: none; gap: .5rem; padding-bottom: .25rem; display: flex; overflow-x: auto; }
 .scroll-row::-webkit-scrollbar { display: none; }
-.field { background: var(--raised); border-radius: .75rem; padding: .55rem .75rem; min-height: 2.75rem; width: 100%; }
-.field::placeholder { color: var(--muted); }
-.card { background: var(--surface); border-radius: var(--radius-card); }
-.kicker { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: var(--oak); font-weight: 500; }
-.display { font-family: var(--font-display); }
+
+.field { background: var(--surface); border: 1px solid var(--line); border-radius: .625rem; padding: .55rem .75rem; min-height: 2.75rem; width: 100%; transition: border-color .12s; }
+.field:focus { border-color: var(--fg); outline: none; }
+.field::placeholder { color: color-mix(in srgb, var(--muted) 75%, transparent); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: 0 1px 2px rgb(0 0 0 / 0.03); }
+:root[data-theme="dark"] .card { box-shadow: none; }
+
+.kicker { font-size: .72rem; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.display { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.012em; line-height: 1.12; font-variation-settings: "opsz" 72; }
+.lede { font-size: 1rem; color: var(--muted); max-width: 40rem; }
 
 @keyframes ken { 0% { transform: scale(1) } to { transform: scale(1.045) } }
 .kenburns { animation: 18s ease-in-out infinite alternate ken; }
@@ -60,6 +78,6 @@ input[type=range] { accent-color: var(--oak); }
 @media print {
   .no-print { display: none !important; }
   body { background: #fff; color: #000; }
-  .card { border: 1px solid #ccc; }
+  .card { border: 1px solid #ccc; box-shadow: none; }
   :root { --bg: #fff; --surface: #fff; --raised: #f3f3f3; --fg: #000; --muted: #444; --line: #ccc; --oak: #7a5a2a; }
 }

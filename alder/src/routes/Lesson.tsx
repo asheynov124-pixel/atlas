@@ -32,9 +32,9 @@ export default function LessonPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:px-10 md:py-8">
       <Link to="/learn" className="text-sm text-oak">← All lessons</Link>
-      <Img src={l.image} className="mt-4 aspect-[16/9] rounded-[1.25rem]" kind={l.id === "kitchen" || l.id === "bath" ? l.id : "living"} />
+      <Img src={l.image} className="mt-4 aspect-[16/9] rounded-xl" kind={l.id === "kitchen" || l.id === "bath" ? l.id : "living"} />
       <Kicker className="mt-5">{l.kicker} · {l.minutes} min</Kicker>
-      <h1 className="mt-2 display text-4xl italic">{l.title}</h1>
+      <h1 className="mt-2 display text-4xl">{l.title}</h1>
       <p className="mt-3 text-lg text-muted">{l.lede}</p>
       {l.sections.map((s) => <section key={s.heading} className="mt-6"><h2 className="display text-2xl">{s.heading}</h2><p className="mt-2 leading-relaxed">{s.body}</p></section>)}
       {l.try && (
@@ -57,7 +57,7 @@ export default function LessonPage() {
       )}
       {related.length > 0 && (
         <section className="mt-8"><h3 className="kicker">Pieces this lesson talks about</h3>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">{related.map((c) => <Link key={c.id} to={`/catalog?piece=${c.id}`} className="flex gap-3 rounded-[1.25rem] bg-surface p-2"><Img src={c.image} className="size-16 rounded-xl" kind={c.rooms[0]} /><span><span className="block font-medium">{c.name}</span><span className="text-sm text-muted">{fmtRange(c.price)}</span></span></Link>)}</div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">{related.map((c) => <Link key={c.id} to={`/catalog?piece=${c.id}`} className="flex gap-3 rounded-xl bg-surface p-2"><Img src={c.image} className="size-16 rounded-xl" kind={c.rooms[0]} /><span><span className="block font-medium">{c.name}</span><span className="text-sm text-muted">{fmtRange(c.price)}</span></span></Link>)}</div>
         </section>
       )}
       <div className="mt-8 flex flex-wrap gap-2">

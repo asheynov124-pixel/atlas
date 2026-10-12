@@ -12,6 +12,8 @@ export type Theme = 'dark' | 'light';
 
 interface State {
   theme: Theme;
+  /** Bumped when the design changes enough that stored preferences should reset. */
+  uiVersion?: number;
   studio: StudioState;
   /** A second studio for side-by-side comparison. */
   compare: StudioState | null;
@@ -137,7 +139,8 @@ export function sanitizeCustoms(list: unknown): Custom[] {
 export const useStore = create<State>()(
   persist(
     (set, get) => ({
-      theme: 'dark',
+      theme: 'light',
+      uiVersion: 3,
       studio: STUDIO_TEMPLATES.living,
       compare: null,
       saves: [],
@@ -276,7 +279,8 @@ export const useStore = create<State>()(
         const p = (persisted ?? {}) as Partial<State>;
         return {
           ...current,
-          theme: p.theme === 'light' ? 'light' : 'dark',
+          theme: p.uiVersion === 3 && p.theme === 'dark' ? 'dark' : 'light',
+          uiVersion: 3,
           studio: { ...current.studio, ...(p.studio ?? {}) },
           compare: p.compare ?? null,
           saves: Array.isArray(p.saves) ? p.saves : [],

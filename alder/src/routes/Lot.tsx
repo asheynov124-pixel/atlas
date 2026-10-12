@@ -39,7 +39,7 @@ export default function LotPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col md:flex-row">
-      <div className="relative h-[46dvh] shrink-0 bg-ink p-3 md:h-full md:min-h-0 md:flex-1">
+      <div className="relative h-[46dvh] shrink-0 bg-canvas p-3 md:h-full md:min-h-0 md:flex-1">
         <LotEditor lot={lot} envelope={check.envelope} selected={selected} flagged={flagged} onSelect={setSelected} onMoveHouse={(p) => setLot({ house: { ...lot.house, ...p } })} onMoveFeature={updateLotFeature} />
         <span className="pointer-events-none absolute bottom-5 left-5 hidden rounded-full bg-ink/80 px-3 py-1 text-xs text-paper md:block">Drag the house or anything on the lot. One square foot per unit; the street is the bottom edge.</span>
       </div>
@@ -47,7 +47,7 @@ export default function LotPage() {
         <div className="flex flex-col gap-6 pb-10">
           <div>
             <Kicker>Outside</Kicker>
-            <h1 className="mt-1 display text-3xl italic">Draw the lot</h1>
+            <h1 className="mt-1 display text-3xl">Draw the lot</h1>
             <p className="mt-2 text-sm text-muted">Your survey's numbers, the setbacks from the zoning table, and the deck, patio and plantings you are thinking about. The warnings move when the rules do.</p>
           </div>
           <div className="grid grid-cols-3 gap-2">

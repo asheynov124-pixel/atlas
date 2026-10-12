@@ -2,7 +2,9 @@
 
 A design atelier for the house you are building: color, framing, texture, light, the pieces that finish a room, and now the real rooms themselves, with a plan, a budget, and an order sheet.
 
-Built with Vite, React 19, TypeScript, Tailwind 4, zustand and three.js. Everything is stored in the browser (localStorage); use **My House → Back up the house** to export a JSON file.
+Built with Vite, React 19, TypeScript, Tailwind 4, zustand and three.js. Everything is stored in the browser (localStorage); use **Overview → Back up** to export a JSON file.
+
+**Design.** Paper first: ink on white, one bronze accent, Inter for the interface and Fraunces for titles, a quiet grey stage behind the models. Navigation is grouped into Your house, Explore and Learn; the Overview is the front door. A night theme is one click away and keeps the same contrast.
 
 ```sh
 npm install
@@ -17,7 +19,8 @@ npm run build    # static site in dist/
 - **Ideas** – a composer that rolls a room from mood, light, budget, must-haves and your own notes and colors.
 - **Learn** – 16 short lessons with quizzes: color and LRV, texture, framing, light, scale, metals, contrast, measuring, budgeting, order of operations, kitchens, baths, windows, rugs, and a glossary.
 - **Studio** – a live three.js model: 25 paints with undertone/LRV/near-equivalents, 7 wall finishes, 8 floors, 6 trim profiles, 6 metals, 9 cloths, ceilings, hour-of-day daylight and lamp warmth, 40+ pieces, side-by-side compare, a rules-based critique ("Read it"), snapshot, palette harmonizer.
-- **My House** – real rooms with dimensions, facing, doors and windows; a drag-and-drop 2D plan to scale with a 3D walkthrough of the same room; surfaces that compute quantities (paint gallons, flooring with waste, trim linear feet, curtain panels, tile, counters, rug size, lumens) and installed-cost ranges; an item list with quantities, unit prices, retailer, SKU, lead time, priority and a status pipeline from idea to installed; clearance and overlap checks.
+- **Overview** – the front door: every room with its finishes and cost, what needs you (open decisions, approved items to order, lot warnings, care dates), and a way into everything else.
+- **Rooms** – real rooms with dimensions, facing, doors and windows; a drag-and-drop 2D plan to scale with a 3D walkthrough of the same room; surfaces that compute quantities (paint gallons, flooring with waste, trim linear feet, curtain panels, tile, counters, rug size, lumens) and installed-cost ranges; an item list with quantities, unit prices, retailer, SKU, lead time, priority and a status pipeline from idea to installed; clearance and overlap checks.
 - **Rooms, deeper** – every real room also has **Decide** (phase from concept to done, the open decisions for that room), **Scenes** (Morning, Daylight, Dinner, Cinema, Wind-down, Away: hour, warmth, overall level and which lamps are off, shown live in 3D and printed as a dimmer plan), **Versions** (snapshots of the room as found, as it is, as planned; open any state), **Smart** pieces (mesh node, presence sensor, corner camera, speakers, thermostat, leak sensor) with a coverage overlay on the plan, care and warranty dates on each item, and a plain-text **Contractor brief** for the whole room.
 - **Outside** – draw the lot from the survey: width, depth, the house footprint, front, rear and side setbacks, maximum coverage and the low-deck rule; add decks, patios, a pool or spa, shed, driveway, paths, plantings and trees; the page flags anything in a setback, over the line, over coverage, or too close to the house, costs the outside work and puts it on a list.
 - **Decisions** – everyone in the room: one seat per person with what they lean toward, decisions with options, an owner, a due date and what they block, love / can live with it / pass votes, split-vs-aligned badges, a mediator that names the objection to answer first, holds and watches, and a history of who called what.

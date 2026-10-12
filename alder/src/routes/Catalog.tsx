@@ -31,7 +31,7 @@ export default function Catalog() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 md:px-10 md:py-8">
       <Kicker>Catalog</Kicker>
-      <h1 className="mt-2 display text-4xl italic">The pieces</h1>
+      <h1 className="mt-2 display text-4xl">The pieces</h1>
       <p className="mt-2 max-w-xl text-muted">{CATALOG.length} things worth knowing about, with what they cost, why they work, and where to hunt. Add any of them to a real room.</p>
       <ForYourNotes />
       <div className="mt-5 flex flex-col gap-3">
@@ -51,7 +51,7 @@ export default function Catalog() {
       <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
         {list.map((c) => (
           <button type="button" key={c.id} onClick={() => setParams({ piece: c.id })} className="text-left">
-            <Img src={c.image} className="aspect-square rounded-[1.25rem]" kind={c.rooms[0]} />
+            <Img src={c.image} className="aspect-square rounded-xl" kind={c.rooms[0]} />
             <p className="mt-2 text-xs text-muted">{c.category}{c.hunt === 'used' && ' · hunt used'}</p>
             <p className="font-medium leading-tight">{c.name}</p>
             <p className="mt-1 text-sm text-oak">{fmtRange(c.price)} <span className="text-muted">/ {c.unit}</span></p>
@@ -107,9 +107,9 @@ export function PieceSheet({ item: c, onClose }: { item: CatalogItem; onClose: (
 
   return (
     <Sheet open onClose={onClose} title={c.category}>
-      <div className="md:mx-4"><Img src={c.image} className="aspect-[4/3] md:rounded-[1.25rem]" kind={c.rooms[0]} /></div>
+      <div className="md:mx-4"><Img src={c.image} className="aspect-[4/3] md:rounded-xl" kind={c.rooms[0]} /></div>
       <div className="px-4 pt-5">
-        <h2 className="display text-4xl italic">{c.name}</h2>
+        <h2 className="display text-4xl">{c.name}</h2>
         <p className="mt-2 text-muted">{c.blurb}</p>
         <div className="mt-4 grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
           <Cell k="Typical price" v={`${fmtRange(c.price)} / ${c.unit}`} />
@@ -125,7 +125,7 @@ export function PieceSheet({ item: c, onClose }: { item: CatalogItem; onClose: (
         <section className="card mt-6 p-4">
           <h3 className="kicker">Add to a real room</h3>
           {rooms.length === 0 ? (
-            <p className="mt-2 text-sm text-muted">You have no rooms yet. <Link to="/house" className="text-oak">Add one in My House</Link> and this piece can go on its list and its budget.</p>
+            <p className="mt-2 text-sm text-muted">You have no rooms yet. <Link to="/" className="text-oak">Add one on the Overview</Link> and this piece can go on its list and its budget.</p>
           ) : (
             <div className="mt-3 grid gap-2 md:grid-cols-[1fr_6rem_8rem_auto]">
               <select value={roomId} onChange={(e) => setRoomId(e.target.value)}>{rooms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select>

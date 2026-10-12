@@ -24,7 +24,7 @@ export default function Budget() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 md:px-10 md:py-8">
       <Kicker>Budget</Kicker>
-      <h1 className="mt-2 display text-4xl italic">The number, honestly</h1>
+      <h1 className="mt-2 display text-4xl">The number, honestly</h1>
       <p className="mt-2 max-w-xl text-muted">Every list in every room, plus tax, delivery and a contingency you should not delete. Rooms without shell lines are estimated from their surfaces.</p>
 
       <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -55,12 +55,12 @@ export default function Budget() {
       </section>
 
       {house.rooms.length === 0 ? (
-        <div className="mt-6"><Empty title="Nothing to add up yet" body="Add a room in My House. Its surfaces alone will put a number here." action={<Link to="/house" className="text-sm text-oak">Go to My House</Link>} /></div>
+        <div className="mt-6"><Empty title="Nothing to add up yet" body="Add a room on the Overview. Its surfaces alone will put a number here." action={<Link to="/house" className="text-sm text-oak">Go to My House</Link>} /></div>
       ) : (<>
         <h2 className="mt-8 display text-2xl">By room</h2>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[640px] text-sm">
-            <thead><tr className="text-left text-xs text-muted"><th className="py-2">Room</th><th>Items</th><th>Shell</th><th>Subtotal</th><th>At the door</th><th>Room budget</th><th></th></tr></thead>
+            <thead><tr className="text-left text-xs text-muted"><th className="py-2">Room</th><th>Items</th><th>Finishes</th><th>Subtotal</th><th>At the door</th><th>Room budget</th><th></th></tr></thead>
             <tbody>
               {rooms.map(({ r, roll }) => {
                 const atDoor = roll.total + (roll.hasShellLines ? 0 : roll.shellMid * (1 + s.taxRate) * (1 + s.contingency));

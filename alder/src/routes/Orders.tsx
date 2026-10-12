@@ -26,14 +26,14 @@ export default function Orders() {
   const weeksLeft = moveIn ? Math.round((moveIn.getTime() - Date.now()) / (7 * 86400000)) : null;
 
   if (house.items.length === 0) return (
-    <div className="mx-auto max-w-6xl px-4 py-6 md:px-10 md:py-8"><Kicker>Orders</Kicker><h1 className="mt-2 display text-4xl italic">Nothing to order</h1>
+    <div className="mx-auto max-w-6xl px-4 py-6 md:px-10 md:py-8"><Kicker>Orders</Kicker><h1 className="mt-2 display text-4xl">Nothing to order</h1>
       <div className="mt-6"><Empty title="Lists are empty" body="Add pieces to a room from the catalog or from the room's own list. They show up here as a pipeline from idea to installed." action={<Link to="/catalog" className="text-sm text-oak">Open the catalog</Link>} /></div></div>
   );
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 md:px-10 md:py-8">
       <Kicker>Orders</Kicker>
-      <h1 className="mt-2 display text-4xl italic">From idea to installed</h1>
+      <h1 className="mt-2 display text-4xl">From idea to installed</h1>
       <p className="mt-2 max-w-xl text-muted">Every item, by where it is in the pipeline. Move things along as you decide, order, and sign for them. {weeksLeft != null && (weeksLeft > 0 ? `${weeksLeft} weeks to move-in.` : 'Move-in has passed; the list is what it is.')}</p>
       <div className="mt-4 flex flex-wrap gap-2 no-print">
         {(['board', 'plan', 'sheet'] as const).map((v) => <Chip key={v} on={view === v} onClick={() => setView(v)}>{v === 'board' ? 'Pipeline' : v === 'plan' ? 'What to order first' : 'Order sheet'}</Chip>)}

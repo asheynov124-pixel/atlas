@@ -102,7 +102,7 @@ export default function Ideas() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:px-10 md:py-8">
       <Kicker>Ideas</Kicker>
-      <h1 className="mt-2 display text-4xl italic">Compose a room</h1>
+      <h1 className="mt-2 display text-4xl">Compose a room</h1>
       <p className="mt-2 text-muted">Pin what you know, or type an idea, a color, or something the room has to include. Another roll keeps what you added.</p>
       <div className="mt-6 flex flex-col gap-4">
         <Row label="Room"><Chip on={picks.room === 'surprise'} onClick={() => setPicks({ ...picks, room: 'surprise' })}>Surprise</Chip>{ROOM_TYPES.map((r) => <Chip key={r.id} on={picks.room === r.id} onClick={() => setPicks({ ...picks, room: r.id })}>{r.name}</Chip>)}</Row>
@@ -118,7 +118,7 @@ export default function Ideas() {
         <Img src={idea.image} className="aspect-[3/4] w-full md:aspect-[16/9]" palette={idea.palette.map((x) => x.hex)} kind={idea.room} />
         <div className="p-4 md:p-6">
           <p className="kicker">{roomName(idea.room)} · {idea.mood} · {idea.light}</p>
-          <h2 className="mt-2 display text-3xl italic">{idea.title}</h2>
+          <h2 className="mt-2 display text-3xl">{idea.title}</h2>
           <div className="mt-4 flex flex-wrap gap-2">{idea.palette.map((p) => <Pill key={p.id} hex={p.hex}>{p.role}: {p.name}</Pill>)}</div>
           <p className="mt-4 leading-relaxed">{idea.essay}</p>
           <div className="mt-4 grid gap-2 text-sm">

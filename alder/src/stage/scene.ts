@@ -490,7 +490,9 @@ export class RoomScene {
     for (const l of this.lamps) { const off = s.off?.includes(l.userData.placedId as string); l.intensity = off ? 0 : (12 + warm * 10) * level; (l as THREE.PointLight).color.set(lampColor); }
     this.room.traverse((o) => { const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined; if (m && m.emissive && m.color.getHexString() === 'f1e9d8') m.emissiveIntensity = 0.9 * level; });
     if (!day && level < 0.15) this.ambient.intensity = 0.05;
-    this.scene.background = new THREE.Color(mix('#0f0e0c', '#1c1916', 0.5));
+    // The backdrop follows the theme: a quiet studio grey on paper, near-black at night.
+    const canvas = (typeof getComputedStyle === 'function' ? getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim() : '') || '#e4e0d8';
+    this.scene.background = new THREE.Color(day ? canvas : mix(canvas, '#0f0e0c', 0.55));
     this.renderer.toneMappingExposure = day ? 0.95 : 0.85;
   }
 

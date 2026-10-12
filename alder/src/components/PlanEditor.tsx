@@ -50,7 +50,7 @@ export function PlanEditor({ room, selected, onSelect, onMove, overlays }: Props
   const ordered = [...room.placed].sort((a, b) => (piece(a.pieceId)?.shape === 'rug' ? -1 : 0) - (piece(b.pieceId)?.shape === 'rug' ? -1 : 0) || ((piece(a.pieceId)?.ceiling ? 1 : 0) - (piece(b.pieceId)?.ceiling ? 1 : 0)));
 
   return (
-    <svg ref={svg} viewBox={vb} className="h-full w-full touch-none select-none rounded-[1.25rem] bg-surface" onPointerDown={(e) => { if (e.target === svg.current) onSelect(null); }}>
+    <svg ref={svg} viewBox={vb} className="h-full w-full touch-none select-none rounded-xl bg-surface" onPointerDown={(e) => { if (e.target === svg.current) onSelect(null); }}>
       <defs>
         <pattern id="grid" width="1" height="1" patternUnits="userSpaceOnUse"><path d="M 1 0 L 0 0 0 1" fill="none" stroke="rgba(128,128,128,0.18)" strokeWidth="0.02" /></pattern>
       </defs>
