@@ -5,7 +5,7 @@ function useRoomItems(roomId: string) {
   return useMemo(() => all.filter((i) => i.roomId === roomId), [all, roomId]);
 }
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Trash2, RotateCw, Copy, Plus, Box, Grid2x2, RotateCcw, Camera, ArrowLeft, Palette, Lamp, ListChecks, History, CheckCircle2, Users } from 'lucide-react';
+import { Trash2, RotateCw, Copy, Plus, Box, Grid2x2, RotateCcw, Camera, ArrowLeft, ChevronUp, ChevronDown, Palette, Lamp, ListChecks, History, CheckCircle2, Users } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { ROOM_TYPES, roomType } from '../data/rooms';
 import { PAINTS, paint } from '../data/palette';
@@ -34,6 +34,9 @@ export default function Room() {
   const room = useStore((s) => s.house.rooms.find((r) => r.id === roomId));
   const [tab, setTab] = useState<Tab>('plan');
   const [view, setView] = useState<'2d' | '3d'>('2d');
+  const [big, setBig] = useState(false);
+  /** The view follows the work: the plan for placing, the room itself for finishes and light. The buttons still override. */
+  function pickTab(t: Tab) { setTab(t); if (t === 'plan') setView('2d'); else if (t === 'shell' || t === 'scenes' || t === 'read' || t === 'versions') setView('3d'); }
   const [selected, setSelected] = useState<string | null>(null);
   const [overlays, setOverlays] = useState(false);
   const [sceneId, setSceneId] = useState<string | null>(null);
@@ -44,7 +47,7 @@ export default function Room() {
 
   return (
     <div className="flex h-full min-h-0 flex-col md:flex-row">
-      <div className="relative h-[44dvh] shrink-0 bg-canvas md:h-full md:min-h-0 md:flex-1">
+      <div className={`relative shrink-0 bg-canvas transition-[height] md:h-full md:min-h-0 md:flex-1 ${big ? 'h-[68dvh]' : 'h-[44dvh]'}`}>
         {view === '3d' ? <RoomStage ref={stage} spec={spec} /> : <div className="h-full w-full p-3"><PlanEditor room={room} selected={selected} overlays={overlays} onSelect={setSelected} onMove={(id, p) => useStore.getState().updatePlaced(room.id, id, p)} /></div>}
         {scene && <span className="pointer-events-none absolute top-3 left-3 rounded-full bg-oak px-3 py-1 text-xs text-ink">Scene · {scene.name}</span>}
         <div className="absolute top-3 right-3 flex gap-2">
@@ -53,11 +56,12 @@ export default function Room() {
           {view === '2d' && <button type="button" aria-label="Coverage overlays" onClick={() => setOverlays(!overlays)} className={`grid size-11 place-items-center rounded-full ${overlays ? 'bg-fg text-bg shadow-sm' : 'border border-line bg-surface text-fg shadow-sm'}`}><Wifi className="size-4" /></button>}
           {view === '3d' && <button type="button" aria-label="Reset view" onClick={() => stage.current?.resetView()} className="grid size-11 place-items-center rounded-full border border-line bg-surface text-fg shadow-sm"><RotateCcw className="size-4" /></button>}
           {view === '3d' && <button type="button" aria-label="Snapshot" onClick={() => { const u = stage.current?.screenshot(); if (u) void saveFile(`${room.name.replace(/\s+/g, '-').toLowerCase()}.jpg`, dataUrlToBlob(u)); }} className="grid size-11 place-items-center rounded-full border border-line bg-surface text-fg shadow-sm"><Camera className="size-4" /></button>}
+          <button type="button" aria-label={big ? 'Smaller model' : 'Larger model'} onClick={() => setBig(!big)} className="grid size-11 place-items-center rounded-full border border-line bg-surface text-fg shadow-sm md:hidden">{big ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}</button>
         </div>
         <span className="pointer-events-none absolute bottom-3 left-3 rounded-full bg-ink/80 px-3 py-1 text-xs text-paper">{view === '2d' ? 'Drag pieces. Tap one to edit it. One square is one foot.' : 'Drag to turn. Pinch or scroll to come closer.'}</span>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto border-t border-line px-4 py-5 md:w-[28rem] md:flex-none md:border-t-0 md:border-l">
-        <Header room={room} tab={tab} setTab={setTab} />
+        <Header room={room} tab={tab} setTab={pickTab} />
         {tab === 'plan' && <PlanTab room={room} selected={selected} setSelected={setSelected} />}
         {tab === 'shell' && <ShellTab room={room} />}
         {tab === 'list' && <ListTab room={room} />}
