@@ -14,6 +14,7 @@ import { studioSpec, colorOf } from '../stage/spec';
 import { Button, Chip, Section, Swatch, OptionCard, Note, Pill } from '../components/ui';
 import { AddOwn } from '../components/AddOwn';
 import type { StudioState } from '../lib/types';
+import { saveFile, dataUrlToBlob } from '../lib/export';
 
 const HOURS = [['Dawn', 7], ['Morning', 10], ['Noon', 13], ['Afternoon', 16], ['Dusk', 18], ['Evening', 21]] as const;
 
@@ -184,7 +185,7 @@ function Controls({ stage }: { stage: React.RefObject<StageHandle | null> }) {
       <div className="flex flex-wrap gap-2">
         <Button onClick={() => { saveItem({ kind: 'room', title: `${roomName(studio.room)} room`, subtitle: wallName, body: 'A studio model. Open it to keep editing.', studio, image: stage.current?.screenshot() }); setSaved(true); }}>{saved ? 'Saved to boards' : 'Save this room'}</Button>
         <Button kind="ghost" onClick={makeReal}>Make it a real room</Button>
-        <Button kind="ghost" onClick={() => { const url = stage.current?.screenshot(); if (url) { const a = document.createElement('a'); a.href = url; a.download = 'alder-room.jpg'; a.click(); } }}><Camera className="size-4" />Snapshot</Button>
+        <Button kind="ghost" onClick={() => { const url = stage.current?.screenshot(); if (url) void saveFile('alder-room.jpg', dataUrlToBlob(url)); }}><Camera className="size-4" />Snapshot</Button>
         <Button kind="quiet" onClick={() => { resetRoom(); setSaved(false); }}>Reset this room</Button>
       </div>
       <Link to={`/?room=${studio.room}`} className="text-sm text-oak">See photoreal studies of this kind of room</Link>

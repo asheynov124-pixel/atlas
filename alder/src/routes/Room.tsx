@@ -15,7 +15,7 @@ import { CATALOG, catalogForPiece, catalogItem, midPrice } from '../data/catalog
 import { takeoff, ftIn, fmtMoney, fmtRange } from '../lib/takeoff';
 import { critique, critiquePlan } from '../lib/critique';
 import { roomRollup, lineBest, CATEGORY_LABEL } from '../lib/budget';
-import { itemsCsv } from '../lib/export';
+import { itemsCsv, saveFile, dataUrlToBlob } from '../lib/export';
 import { RoomStage, type StageHandle } from '../stage/RoomStage';
 import { houseSpec } from '../stage/spec';
 import { PlanEditor } from '../components/PlanEditor';
@@ -44,7 +44,7 @@ export default function Room() {
           <button type="button" aria-label="Plan" onClick={() => setView('2d')} className={`grid size-10 place-items-center rounded-full ${view === '2d' ? 'bg-oak text-ink' : 'bg-ink/80 text-paper'}`}><Grid2x2 className="size-4" /></button>
           <button type="button" aria-label="3D" onClick={() => setView('3d')} className={`grid size-10 place-items-center rounded-full ${view === '3d' ? 'bg-oak text-ink' : 'bg-ink/80 text-paper'}`}><Box className="size-4" /></button>
           {view === '3d' && <button type="button" aria-label="Reset view" onClick={() => stage.current?.resetView()} className="grid size-10 place-items-center rounded-full bg-ink/80 text-paper"><RotateCcw className="size-4" /></button>}
-          {view === '3d' && <button type="button" aria-label="Snapshot" onClick={() => { const u = stage.current?.screenshot(); if (u) { const a = document.createElement('a'); a.href = u; a.download = `${room.name}.jpg`; a.click(); } }} className="grid size-10 place-items-center rounded-full bg-ink/80 text-paper"><Camera className="size-4" /></button>}
+          {view === '3d' && <button type="button" aria-label="Snapshot" onClick={() => { const u = stage.current?.screenshot(); if (u) void saveFile(`${room.name.replace(/\s+/g, '-').toLowerCase()}.jpg`, dataUrlToBlob(u)); }} className="grid size-10 place-items-center rounded-full bg-ink/80 text-paper"><Camera className="size-4" /></button>}
         </div>
         <span className="pointer-events-none absolute bottom-3 left-3 rounded-full bg-ink/80 px-3 py-1 text-xs text-paper">{view === '2d' ? 'Drag pieces. Tap one to edit it. One square is one foot.' : 'Drag to turn. Pinch or scroll to come closer.'}</span>
       </div>

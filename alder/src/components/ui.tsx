@@ -1,6 +1,7 @@
 import { type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes, useEffect, useState, useRef } from 'react';
 import { RoomIllustration } from './Illustration';
 import { mix as mixHex } from '../lib/color';
+import { saveFile } from '../lib/export';
 import { X } from 'lucide-react';
 import { textOn } from '../lib/color';
 
@@ -147,13 +148,11 @@ export function ExportSheet({ open, onClose, title, filename, content, type = 't
     try { await navigator.clipboard.writeText(content); setCopied(true); } catch { ref.current?.select(); document.execCommand?.('copy'); setCopied(true); }
     setTimeout(() => setCopied(false), 2000);
   }
-  function save() {
-    try { const blob = new Blob([content], { type }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); } catch { /* ignore */ }
-  }
+  function save() { void saveFile(filename, content, type); }
   return (
     <Sheet open onClose={onClose} title={title}>
       <div className="px-4">
-        <p className="text-sm text-muted">Copy this into a spreadsheet, a note, or an email to whoever is paying. The download works in a normal browser tab.</p>
+        <p className="text-sm text-muted">Copy this into a spreadsheet, a note, or an email to whoever is paying, or save it as a file.</p>
         <div className="mt-3 flex flex-wrap gap-2"><Button onClick={copy}>{copied ? 'Copied' : 'Copy to clipboard'}</Button><Button kind="ghost" onClick={save}>Download {filename}</Button></div>
         <textarea ref={ref} readOnly className="field mt-3 min-h-[50vh] font-mono text-xs" value={content} onFocus={(e) => e.currentTarget.select()} />
       </div>
