@@ -21,10 +21,13 @@ import { houseSpec } from '../stage/spec';
 import { PlanEditor } from '../components/PlanEditor';
 import { ShopLinks } from '../components/ShopLinks';
 import { Button, Chip, Section, Swatch, OptionCard, Note, Field, Stat, Img, Confirm, ExportSheet } from '../components/ui';
-import { ITEM_CATEGORIES, ITEM_STATUSES, STATUS_LABEL, type HouseItem, type ItemStatus, type SurfaceKey, type StudioState, type Opening } from '../lib/types';
+import { ITEM_CATEGORIES, ITEM_STATUSES, STATUS_LABEL, PHASE_LABEL, type HouseItem, type ItemStatus, type SurfaceKey, type StudioState, type Opening } from '../lib/types';
+import { DecideTab, ScenesTab, VersionsTab, BriefButton } from './RoomExtras';
+import { Wifi } from 'lucide-react';
+import { CARE_PRESETS } from '../lib/decide';
 
 const HOURS = [['Dawn', 7], ['Morning', 10], ['Noon', 13], ['Afternoon', 16], ['Dusk', 18], ['Evening', 21]] as const;
-type Tab = 'plan' | 'shell' | 'list' | 'read';
+type Tab = 'plan' | 'shell' | 'list' | 'decide' | 'scenes' | 'versions' | 'read';
 
 export default function Room() {
   const { roomId = '' } = useParams();
@@ -32,19 +35,24 @@ export default function Room() {
   const [tab, setTab] = useState<Tab>('plan');
   const [view, setView] = useState<'2d' | '3d'>('2d');
   const [selected, setSelected] = useState<string | null>(null);
+  const [overlays, setOverlays] = useState(false);
+  const [sceneId, setSceneId] = useState<string | null>(null);
   const stage = useRef<StageHandle>(null);
-  const spec = useMemo(() => (room ? houseSpec(room, selected ?? undefined) : null), [room, selected]);
+  const scene = room?.scenes?.find((x) => x.id === sceneId) ?? null;
+  const spec = useMemo(() => (room ? houseSpec(room, selected ?? undefined, scene) : null), [room, selected, scene]);
   if (!room || !spec) return <div className="p-6"><p className="text-muted">That room is gone.</p><Link to="/house" className="text-oak">Back to My House</Link></div>;
 
   return (
     <div className="flex h-full min-h-0 flex-col md:flex-row">
       <div className="relative h-[44dvh] shrink-0 bg-ink md:h-full md:min-h-0 md:flex-1">
-        {view === '3d' ? <RoomStage ref={stage} spec={spec} /> : <div className="h-full w-full p-3"><PlanEditor room={room} selected={selected} onSelect={setSelected} onMove={(id, p) => useStore.getState().updatePlaced(room.id, id, p)} /></div>}
+        {view === '3d' ? <RoomStage ref={stage} spec={spec} /> : <div className="h-full w-full p-3"><PlanEditor room={room} selected={selected} overlays={overlays} onSelect={setSelected} onMove={(id, p) => useStore.getState().updatePlaced(room.id, id, p)} /></div>}
+        {scene && <span className="pointer-events-none absolute top-3 left-3 rounded-full bg-oak px-3 py-1 text-xs text-ink">Scene · {scene.name}</span>}
         <div className="absolute top-3 right-3 flex gap-2">
-          <button type="button" aria-label="Plan" onClick={() => setView('2d')} className={`grid size-10 place-items-center rounded-full ${view === '2d' ? 'bg-oak text-ink' : 'bg-ink/80 text-paper'}`}><Grid2x2 className="size-4" /></button>
-          <button type="button" aria-label="3D" onClick={() => setView('3d')} className={`grid size-10 place-items-center rounded-full ${view === '3d' ? 'bg-oak text-ink' : 'bg-ink/80 text-paper'}`}><Box className="size-4" /></button>
-          {view === '3d' && <button type="button" aria-label="Reset view" onClick={() => stage.current?.resetView()} className="grid size-10 place-items-center rounded-full bg-ink/80 text-paper"><RotateCcw className="size-4" /></button>}
-          {view === '3d' && <button type="button" aria-label="Snapshot" onClick={() => { const u = stage.current?.screenshot(); if (u) void saveFile(`${room.name.replace(/\s+/g, '-').toLowerCase()}.jpg`, dataUrlToBlob(u)); }} className="grid size-10 place-items-center rounded-full bg-ink/80 text-paper"><Camera className="size-4" /></button>}
+          <button type="button" aria-label="Plan" onClick={() => setView('2d')} className={`grid size-11 place-items-center rounded-full ${view === '2d' ? 'bg-oak text-ink' : 'bg-ink/80 text-paper'}`}><Grid2x2 className="size-4" /></button>
+          <button type="button" aria-label="3D" onClick={() => setView('3d')} className={`grid size-11 place-items-center rounded-full ${view === '3d' ? 'bg-oak text-ink' : 'bg-ink/80 text-paper'}`}><Box className="size-4" /></button>
+          {view === '2d' && <button type="button" aria-label="Coverage overlays" onClick={() => setOverlays(!overlays)} className={`grid size-11 place-items-center rounded-full ${overlays ? 'bg-oak text-ink' : 'bg-ink/80 text-paper'}`}><Wifi className="size-4" /></button>}
+          {view === '3d' && <button type="button" aria-label="Reset view" onClick={() => stage.current?.resetView()} className="grid size-11 place-items-center rounded-full bg-ink/80 text-paper"><RotateCcw className="size-4" /></button>}
+          {view === '3d' && <button type="button" aria-label="Snapshot" onClick={() => { const u = stage.current?.screenshot(); if (u) void saveFile(`${room.name.replace(/\s+/g, '-').toLowerCase()}.jpg`, dataUrlToBlob(u)); }} className="grid size-11 place-items-center rounded-full bg-ink/80 text-paper"><Camera className="size-4" /></button>}
         </div>
         <span className="pointer-events-none absolute bottom-3 left-3 rounded-full bg-ink/80 px-3 py-1 text-xs text-paper">{view === '2d' ? 'Drag pieces. Tap one to edit it. One square is one foot.' : 'Drag to turn. Pinch or scroll to come closer.'}</span>
       </div>
@@ -53,6 +61,9 @@ export default function Room() {
         {tab === 'plan' && <PlanTab room={room} selected={selected} setSelected={setSelected} />}
         {tab === 'shell' && <ShellTab room={room} />}
         {tab === 'list' && <ListTab room={room} />}
+        {tab === 'decide' && <DecideTab room={room} />}
+        {tab === 'scenes' && <ScenesTab room={room} active={sceneId} setActive={(id) => { setSceneId(id); if (id) setView('3d'); }} />}
+        {tab === 'versions' && <VersionsTab room={room} />}
         {tab === 'read' && <ReadTab room={room} setSelected={(id) => { setSelected(id); setView('2d'); }} />}
       </div>
     </div>
@@ -71,20 +82,22 @@ function Header({ room, tab, setTab }: { room: R; tab: Tab; setTab: (t: Tab) => 
   const roll = roomRollup(room, items, settings);
   const plan = critiquePlan(room);
   const bad = plan.filter((n) => n.level !== 'good').length;
+  const openDec = useStore((s) => s.decisions.filter((d) => d.roomId === room.id && d.status !== 'decided').length);
   return (
     <div className="mb-5">
-      <Link to="/house" className="text-sm text-oak">← My House</Link>
+      <Link to="/house" className="inline-flex min-h-11 items-center text-sm text-oak">← My House</Link>
       <div className="mt-1 flex items-center gap-2">
         <input className="min-w-0 flex-1 bg-transparent display text-3xl italic outline-none" value={room.name} onChange={(e) => updateRoom(room.id, { name: e.target.value })} aria-label="Room name" />
-        <button type="button" aria-label="Duplicate" className="grid size-9 place-items-center rounded-full text-muted hover:text-fg" onClick={() => nav(`/house/${duplicateRoom(room.id)}`)}><Copy className="size-4" /></button>
-        <Confirm label="" icon={<Trash2 className="size-4" />} confirmLabel="Delete room and list" className="min-h-9 px-2" onConfirm={() => { removeRoom(room.id); nav('/house'); }} />
+        <BriefButton room={room} />
+        <button type="button" aria-label="Duplicate" className="grid size-11 place-items-center rounded-full text-muted hover:text-fg" onClick={() => nav(`/house/${duplicateRoom(room.id)}`)}><Copy className="size-4" /></button>
+        <Confirm label="" icon={<Trash2 className="size-4" />} confirmLabel="Delete room and list" className="min-h-11 px-2" onConfirm={() => { removeRoom(room.id); nav('/house'); }} />
       </div>
-      <p className="text-sm text-muted">{roomType(room.type).name} · {ftIn(room.length)} × {ftIn(room.width)} · {ftIn(room.height)} ceiling · {Math.round(room.length * room.width)} sq ft</p>
+      <p className="text-sm text-muted">{roomType(room.type).name} · {ftIn(room.length)} × {ftIn(room.width)} · {ftIn(room.height)} ceiling · {Math.round(room.length * room.width)} sq ft · <span className="text-oak">{PHASE_LABEL[room.phase ?? 'concept']}</span></p>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Stat label="At the door" value={fmtMoney(roll.total + (roll.hasShellLines ? 0 : roll.shellMid * (1 + settings.taxRate)))} sub={roll.hasShellLines ? `${roll.count} lines` : `${roll.count} lines + shell est.`} />
         <Stat label="Room budget" value={room.budget ? fmtMoney(room.budget) : '—'} sub={room.budget ? (roll.total > room.budget ? <span className="text-stop">over by {fmtMoney(roll.total - room.budget)}</span> : `${fmtMoney(room.budget - roll.total)} left`) : <input type="number" className="w-24 bg-transparent text-oak outline-none" placeholder="set one" aria-label="Room budget" onBlur={(e) => { if (e.target.value) updateRoom(room.id, { budget: Number(e.target.value) || undefined }); }} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />} />
       </div>
-      <div className="mt-4 flex gap-2">{(['plan', 'shell', 'list', 'read'] as Tab[]).map((t) => <Chip key={t} on={tab === t} onClick={() => setTab(t)}>{t === 'plan' ? 'Plan' : t === 'shell' ? 'Shell' : t === 'list' ? `List (${items.length})` : `Read it${bad ? ` (${bad})` : ''}`}</Chip>)}</div>
+      <div className="scroll-row mt-4 md:flex-wrap">{(['plan', 'shell', 'list', 'decide', 'scenes', 'versions', 'read'] as Tab[]).map((t) => <Chip key={t} on={tab === t} onClick={() => setTab(t)}>{t === 'plan' ? 'Plan' : t === 'shell' ? 'Shell' : t === 'list' ? `List (${items.length})` : t === 'decide' ? `Decide${openDec ? ` (${openDec})` : ''}` : t === 'scenes' ? 'Scenes' : t === 'versions' ? 'Versions' : `Read it${bad ? ` (${bad})` : ''}`}</Chip>)}</div>
     </div>
   );
 }
@@ -229,7 +242,7 @@ function ShellTab({ room }: { room: R }) {
               <Field label="Offset" type="number" step={0.25} value={o.offset} onChange={(e) => updateOpening(room.id, o.id, { offset: Number(e.target.value) })} className="text-xs" />
               <Field label="Width" type="number" step={0.25} value={o.width} onChange={(e) => updateOpening(room.id, o.id, { width: Number(e.target.value) })} className="text-xs" />
               <Field label={o.kind === 'window' ? 'Height / sill' : 'Height'} type="number" step={0.25} value={o.height} onChange={(e) => updateOpening(room.id, o.id, { height: Number(e.target.value) })} className="text-xs" />
-              <button type="button" aria-label="Remove" className="grid size-9 place-items-center text-muted hover:text-stop" onClick={() => removeOpening(room.id, o.id)}><Trash2 className="size-4" /></button>
+              <button type="button" aria-label="Remove" className="grid size-11 place-items-center text-muted hover:text-stop" onClick={() => removeOpening(room.id, o.id)}><Trash2 className="size-4" /></button>
               {o.kind === 'window' && <Field label="Sill height" type="number" step={0.25} value={o.sill ?? 2.5} onChange={(e) => updateOpening(room.id, o.id, { sill: Number(e.target.value) })} className="col-start-5 text-xs" />}
             </div>
           ))}
@@ -390,6 +403,10 @@ function ListTab({ room }: { room: R }) {
                 <Field label="Lead time" type="number" min={0} suffix="wk" value={it.lead ?? ''} onChange={(e) => updateItem(it.id, { lead: e.target.value ? Number(e.target.value) : undefined })} />
                 <Field label="Link" value={it.url ?? ''} placeholder="https://" onChange={(e) => updateItem(it.id, { url: e.target.value })} className="col-span-2" />
                 <Field label="Delivery, if known" type="number" min={0} value={it.shipping ?? ''} placeholder={`${Math.round(settings.shippingDefault * 100)}% default`} onChange={(e) => updateItem(it.id, { shipping: e.target.value ? Number(e.target.value) : undefined })} />
+                <Field label="Installed on" type="date" value={it.installedAt ?? ''} onChange={(e) => updateItem(it.id, { installedAt: e.target.value || undefined })} />
+                <Field label="Warranty" type="number" min={0} suffix="months" value={it.warrantyMonths ?? ''} placeholder={`${CARE_PRESETS[it.category]?.warranty ?? ''}`} onChange={(e) => updateItem(it.id, { warrantyMonths: e.target.value ? Number(e.target.value) : undefined })} />
+                <Field label="Care every" type="number" min={0} suffix="months" value={it.careEvery ?? ''} placeholder={`${CARE_PRESETS[it.category]?.every ?? ''}`} onChange={(e) => updateItem(it.id, { careEvery: e.target.value ? Number(e.target.value) : undefined })} />
+                <Field label="Care note" value={it.careNote ?? ''} placeholder={CARE_PRESETS[it.category]?.note} onChange={(e) => updateItem(it.id, { careNote: e.target.value || undefined })} className="col-span-2 md:col-span-3" />
                 <label className="col-span-2 flex flex-col gap-1 text-xs text-muted md:col-span-3">Notes<textarea className="field min-h-16" value={it.notes ?? ''} onChange={(e) => updateItem(it.id, { notes: e.target.value })} /></label>
                 <div className="col-span-2 flex flex-wrap items-center gap-2 md:col-span-3">
                   <label className="flex items-center gap-2 text-xs text-muted"><input type="checkbox" checked={it.taxable ?? it.category !== 'labor'} onChange={(e) => updateItem(it.id, { taxable: e.target.checked })} />Taxable</label>

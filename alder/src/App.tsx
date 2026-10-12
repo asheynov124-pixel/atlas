@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import { Compass, BookOpen, Lightbulb, LayoutGrid, Home, Bookmark, Sparkles, Sun, Moon, Wallet, ShoppingBag } from 'lucide-react';
+import { Compass, BookOpen, Lightbulb, LayoutGrid, Home, Bookmark, Sparkles, Sun, Moon, Wallet, ShoppingBag, Users, TreePine } from 'lucide-react';
 import { useStore } from './lib/store';
 
 const Studies = lazy(() => import('./routes/Studies'));
@@ -14,6 +14,8 @@ const House = lazy(() => import('./routes/House'));
 const Room = lazy(() => import('./routes/Room'));
 const Budget = lazy(() => import('./routes/Budget'));
 const Orders = lazy(() => import('./routes/Orders'));
+const Decisions = lazy(() => import('./routes/Decisions'));
+const LotPage = lazy(() => import('./routes/Lot'));
 
 const NAV = [
   { to: '/', label: 'Studies', icon: Compass, end: true },
@@ -22,10 +24,12 @@ const NAV = [
   { to: '/learn', label: 'Learn', icon: BookOpen },
   { to: '/studio', label: 'Studio', icon: Sparkles },
   { to: '/house', label: 'My House', icon: Home },
+  { to: '/lot', label: 'Outside', icon: TreePine },
+  { to: '/decisions', label: 'Decisions', icon: Users },
   { to: '/budget', label: 'Budget', icon: Wallet },
   { to: '/orders', label: 'Orders', icon: ShoppingBag },
 ];
-const MOBILE = ['/', '/catalog', '/studio', '/house', '/budget'];
+const MOBILE = ['/', '/studio', '/house', '/decisions', '/budget'];
 
 export default function App() {
   const theme = useStore((s) => s.theme);
@@ -33,7 +37,7 @@ export default function App() {
   const loc = useLocation();
   useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
   useEffect(() => { window.scrollTo({ top: 0 }); }, [loc.pathname]);
-  const full = loc.pathname === '/studio' || /^\/house\/[^/]+$/.test(loc.pathname);
+  const full = loc.pathname === '/studio' || loc.pathname === '/lot' || /^\/house\/[^/]+$/.test(loc.pathname);
 
   return (
     <div className="flex h-dvh flex-col md:flex-row">
@@ -55,18 +59,19 @@ export default function App() {
         </div>
       </aside>
 
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-line px-4 py-2 md:hidden">
           <NavLink to="/" className="flex min-h-11 items-center display text-2xl italic">Alder</NavLink>
           <div className="flex items-center gap-1">
             <button type="button" aria-label="Theme" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="grid size-11 place-items-center text-muted">{theme === 'dark' ? <Sun className="size-5" /> : <Moon className="size-5" />}</button>
+            <NavLink to="/catalog" aria-label="Catalog" className="grid size-11 place-items-center text-muted"><LayoutGrid className="size-5" /></NavLink>
             <NavLink to="/learn" aria-label="Learn" className="grid size-11 place-items-center text-muted"><BookOpen className="size-5" /></NavLink>
             <NavLink to="/ideas" aria-label="Ideas" className="grid size-11 place-items-center text-muted"><Lightbulb className="size-5" /></NavLink>
             <NavLink to="/boards" aria-label="Boards" className="grid size-11 place-items-center text-fg"><Bookmark className="size-5" /></NavLink>
           </div>
         </header>
 
-        <main className={`min-h-0 flex-1 ${full ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+        <main className={`min-h-0 min-w-0 flex-1 ${full ? 'overflow-hidden' : 'overflow-y-auto'}`}>
           <Suspense fallback={<p className="p-6 text-sm text-muted">Opening…</p>}>
             <Routes>
               <Route path="/" element={<Studies />} />
@@ -80,6 +85,8 @@ export default function App() {
               <Route path="/house/:roomId" element={<Room />} />
               <Route path="/budget" element={<Budget />} />
               <Route path="/orders" element={<Orders />} />
+              <Route path="/decisions" element={<Decisions />} />
+              <Route path="/lot" element={<LotPage />} />
               <Route path="*" element={<Studies />} />
             </Routes>
           </Suspense>

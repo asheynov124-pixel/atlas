@@ -79,6 +79,14 @@ export interface HouseItem {
   taxable?: boolean;
   shipping?: number;
   priority?: 'must' | 'want' | 'later';
+  /** Warranty length in months from install. */
+  warrantyMonths?: number;
+  /** ISO date installed. */
+  installedAt?: string;
+  /** Care interval in months, with what to do. */
+  careEvery?: number;
+  careNote?: string;
+  lastCare?: string;
   at: number;
 }
 
@@ -153,7 +161,100 @@ export interface HouseRoom {
   waste: number;
   warmth: number;
   hour: number;
+  phase?: RoomPhase;
+  versions?: RoomVersion[];
+  scenes?: Scene[];
   at: number;
+}
+
+export type RoomPhase = 'concept' | 'design' | 'permitting' | 'in-progress' | 'done';
+export const ROOM_PHASES: RoomPhase[] = ['concept', 'design', 'permitting', 'in-progress', 'done'];
+export const PHASE_LABEL: Record<RoomPhase, string> = { concept: 'Concept', design: 'Design', permitting: 'Permitting', 'in-progress': 'In progress', done: 'Done' };
+
+/** A recorded state of a room: as found, as it is, as it will be. */
+export interface RoomVersion {
+  id: string;
+  label: string;
+  kind: 'past' | 'current' | 'planned';
+  date: string;
+  note?: string;
+  snapshot: { length: number; width: number; height: number; surfaces: Surfaces; placed: Placed[]; openings: Opening[] };
+  at: number;
+}
+
+/** A lighting scene: which pieces are on, how warm, what hour. */
+export interface Scene {
+  id: string;
+  name: string;
+  hour: number;
+  warmth: number;
+  /** Overall lamp level 0–1. */
+  level: number;
+  /** Placed ids that are off in this scene. */
+  off: string[];
+  note?: string;
+}
+
+// ---------- Decisions, seats, votes ----------
+
+export type DecisionStatus = 'open' | 'decided' | 'hold' | 'watch';
+export const DECISION_STATUSES: DecisionStatus[] = ['open', 'decided', 'hold', 'watch'];
+export const DECISION_LABEL: Record<DecisionStatus, string> = { open: 'Open', decided: 'Decided', hold: 'Hold', watch: 'Watch' };
+export type Vote = 'love' | 'ok' | 'pass';
+
+export interface DecisionOption { id: string; label: string; note?: string; cost?: number }
+
+export interface Decision {
+  id: string;
+  roomId: string;
+  title: string;
+  options: DecisionOption[];
+  owner: string;
+  due?: string;
+  status: DecisionStatus;
+  chosen?: string;
+  /** seatId → optionId → vote */
+  votes: Record<string, Record<string, Vote>>;
+  /** Why it is on hold, or what it blocks. */
+  blocks?: string;
+  note?: string;
+  at: number;
+}
+
+export interface Seat { id: string; name: string; role: string; leans: string; note?: string }
+
+export interface HistoryEntry { id: string; at: number; seatId?: string; text: string; roomId?: string; decisionId?: string }
+
+// ---------- Lot ----------
+
+export type LotFeatureKind = 'deck' | 'patio' | 'pool' | 'spa' | 'shed' | 'planting' | 'tree' | 'path' | 'fence' | 'driveway';
+export interface LotFeature {
+  id: string;
+  kind: LotFeatureKind;
+  label?: string;
+  /** Feet from the lot's top-left (street is at the bottom). */
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Height above grade in feet, for decks, platforms and sheds. */
+  height?: number;
+  material?: string;
+  /** Unit cost override, USD per sq ft. */
+  cost?: number;
+}
+export interface Lot {
+  width: number;
+  depth: number;
+  house: { x: number; y: number; w: number; h: number };
+  setbacks: { front: number; rear: number; side: number };
+  /** Maximum lot coverage allowed, as a fraction. */
+  maxCoverage: number;
+  /** Decks under this height (ft) may enter the rear setback by half, a common borough rule. */
+  lowDeckHeight: number;
+  features: LotFeature[];
+  place?: string;
+  notes?: string;
 }
 
 export interface HouseSettings {

@@ -1,5 +1,5 @@
 import type { StageSpec, StagePlaced } from './scene';
-import type { StudioState, HouseRoom, Custom } from '../lib/types';
+import type { StudioState, HouseRoom, Custom, Scene } from '../lib/types';
 import { paint } from '../data/palette';
 import { FLOORS, METALS, CLOTHS, opt } from '../data/materials';
 import { makeRoom } from '../lib/store';
@@ -40,7 +40,7 @@ export function studioSpec(s: StudioState, customs: Custom[], highlight?: string
 }
 
 /** A stage spec from a real room in My House. */
-export function houseSpec(r: HouseRoom, highlight?: string): StageSpec {
+export function houseSpec(r: HouseRoom, highlight?: string, scene?: Scene | null): StageSpec {
   const s = r.surfaces;
   const floor = opt(FLOORS, s.floor);
   return {
@@ -49,6 +49,7 @@ export function houseSpec(r: HouseRoom, highlight?: string): StageSpec {
     metalHex: opt(METALS, s.metal).hex ?? '#b08d57', clothHex: opt(CLOTHS, s.cloth).hex ?? '#e7dcc8',
     ceilingHex: s.ceiling === 'same-as-wall' ? paint(s.wall).hex : paint(s.ceilingColor || 'chalk').hex,
     trimHex: paint(s.trimColor || 'chalk').hex,
-    warmth: r.warmth, hour: r.hour, openings: r.openings, placed: r.placed, highlight,
+    warmth: scene ? scene.warmth : r.warmth, hour: scene ? scene.hour : r.hour, openings: r.openings, placed: r.placed, highlight,
+    ...(scene ? { lampLevel: scene.level, off: scene.off } : {}),
   };
 }

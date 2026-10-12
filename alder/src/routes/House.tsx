@@ -9,7 +9,9 @@ import { rollup, roomRollup } from '../lib/budget';
 import { houseJson } from '../lib/export';
 import { ftIn, fmtMoney } from '../lib/takeoff';
 import { Button, Chip, Kicker, Empty, Stat, Confirm, ExportSheet } from '../components/ui';
-import { STATUS_LABEL } from '../lib/types';
+import { STATUS_LABEL, PHASE_LABEL } from '../lib/types';
+import { careSchedule } from '../lib/decide';
+import { splitOf } from '../lib/decide';
 
 export default function House() {
   const house = useStore((s) => s.house);
@@ -25,6 +27,13 @@ export default function House() {
   const [pasted, setPasted] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const total = rollup(house.items, house.settings);
+  const decisions = useStore((s) => s.decisions);
+  const seats = useStore((s) => s.seats);
+  const lot = useStore((s) => s.lot);
+  const history = useStore((s) => s.history);
+  const care = careSchedule(house.items).filter((c) => c.days > -30).slice(0, 6);
+  const openDec = decisions.filter((d) => d.status === 'open');
+  const holds = decisions.filter((d) => d.status === 'hold');
   const budget = house.settings.totalBudget;
 
   return (
@@ -41,6 +50,12 @@ export default function House() {
         <Stat label="Everything, at the door" value={fmtMoney(total.total)} sub={`incl. tax, delivery, ${Math.round(house.settings.contingency * 100)}% contingency`} />
         <Stat label="Committed" value={fmtMoney(total.committed)} sub={budget ? `of ${fmtMoney(budget)} budget` : <button type="button" className="text-oak" onClick={() => nav('/budget')}>Set a budget</button>} />
       </div>
+      {(openDec.length > 0 || holds.length > 0) && (
+        <section className="card mt-4 p-4">
+          <div className="flex items-baseline justify-between"><h2 className="kicker">Needs a decision</h2><Link to="/decisions" className="text-sm text-oak">All decisions</Link></div>
+          <ul className="mt-2 divide-y divide-line">{[...holds, ...openDec].slice(0, 6).map((d) => <li key={d.id}><Link to={`/decisions?room=${d.roomId}`} className="flex min-h-11 items-center justify-between gap-3 py-2 text-sm"><span><span className="block font-medium">{d.title}</span><span className="text-xs text-muted">{house.rooms.find((r) => r.id === d.roomId)?.name} · {d.owner}{d.due ? ` · due ${d.due}` : ''}</span></span><span className={`rounded-full px-2 py-0.5 text-xs ${d.status === 'hold' ? 'bg-stop/20 text-stop' : splitOf(d, seats) === 'split' ? 'bg-hmm/20 text-hmm' : 'bg-raised text-muted'}`}>{d.status === 'hold' ? 'Hold' : splitOf(d, seats) === 'split' ? 'Split' : 'Open'}</span></Link></li>)}</ul>
+        </section>
+      )}
 
       <section className="card mt-6 p-4">
         <h2 className="kicker">Add a room</h2>
@@ -68,7 +83,7 @@ export default function House() {
                   <div className="w-3" style={{ background: paint(r.surfaces.trimColor || 'chalk').hex }} />
                 </div>
                 <div className="p-4">
-                  <p className="kicker">{ROOM_TYPES.find((t) => t.id === r.type)?.name} · {ftIn(r.length)} × {ftIn(r.width)} · {ftIn(r.height)} ceiling</p>
+                  <p className="kicker">{ROOM_TYPES.find((t) => t.id === r.type)?.name} · {ftIn(r.length)} × {ftIn(r.width)} · {ftIn(r.height)} ceiling · {PHASE_LABEL[r.phase ?? 'concept']}</p>
                   <h2 className="mt-1 display text-2xl">{r.name}</h2>
                   <p className="mt-1 text-sm text-muted">{paint(r.surfaces.wall).name}, {opt(FLOORS, r.surfaces.floor).name.toLowerCase()}. {r.placed.length} pieces on the plan.</p>
                   <div className="mt-3 flex items-baseline justify-between text-sm">
@@ -83,13 +98,20 @@ export default function House() {
         </div>
       )}
 
+      {care.length > 0 && (
+        <section className="card mt-6 p-4">
+          <h2 className="kicker">Care and warranties coming up</h2>
+          <ul className="mt-2 divide-y divide-line text-sm">{care.map((c, i) => <li key={i} className="flex items-center justify-between gap-3 py-2"><span><span className="block font-medium">{c.text}</span><span className="text-xs text-muted">{c.item.name} · {house.rooms.find((r) => r.id === c.item.roomId)?.name} · {c.when.toLocaleDateString()}</span></span><span className={`text-xs ${c.days < 0 ? 'text-stop' : c.days < 30 ? 'text-hmm' : 'text-muted'}`}>{c.days < 0 ? 'Overdue' : c.days < 30 ? 'Soon' : `${Math.round(c.days / 30)} mo`}</span></li>)}</ul>
+          <p className="mt-2 text-xs text-muted">Set an install date, a warranty, and a care interval on any item in a room's list.</p>
+        </section>
+      )}
       <section className="mt-8 flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <Button kind="ghost" onClick={() => setBackup(true)}><Download className="size-4" />Back up the house</Button>
           <Button kind="ghost" onClick={() => setRestore(!restore)}><Upload className="size-4" />Restore a backup</Button>
         </div>
         <p className="text-xs text-muted">Everything lives in this browser. Back it up before you switch phones, and share the file with whoever is paying.</p>
-        <ExportSheet open={backup} onClose={() => setBackup(false)} title="House backup, JSON" filename={`${house.settings.name.replace(/\s+/g, '-').toLowerCase()}-alder.json`} content={houseJson(house)} type="application/json" />
+        <ExportSheet open={backup} onClose={() => setBackup(false)} title="House backup, JSON" filename={`${house.settings.name.replace(/\s+/g, '-').toLowerCase()}-alder.json`} content={houseJson(house, { decisions, seats, history, lot })} type="application/json" />
         {restore && (
           <div className="card flex flex-col gap-2 p-3">
             <p className="text-sm text-muted">Paste a backup here, or choose the file. Restoring replaces every room and list.</p>

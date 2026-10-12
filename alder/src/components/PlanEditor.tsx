@@ -6,6 +6,8 @@ import { FLOORS, opt } from '../data/materials';
 
 interface Props {
   room: HouseRoom;
+  /** Show mesh and sensor reach, and camera sightlines. */
+  overlays?: boolean;
   selected?: string | null;
   onSelect: (id: string | null) => void;
   onMove: (id: string, p: Partial<Placed>) => void;
@@ -14,7 +16,7 @@ interface Props {
 const SNAP = 0.25; // feet
 
 /** A top-down plan you can drag furniture around. One foot = one grid square. */
-export function PlanEditor({ room, selected, onSelect, onMove }: Props) {
+export function PlanEditor({ room, selected, onSelect, onMove, overlays }: Props) {
   const svg = useRef<SVGSVGElement>(null);
   const [drag, setDrag] = useState<{ id: string; dx: number; dz: number } | null>(null);
   const L = room.length, W = room.width;
@@ -73,6 +75,17 @@ export function PlanEditor({ room, selected, onSelect, onMove }: Props) {
       <text x={L / 2} y={-0.6} fontSize={0.4} textAnchor="middle" fill="var(--muted)">{L}′</text>
       <text x={-0.65} y={W / 2} fontSize={0.4} textAnchor="middle" fill="var(--muted)" transform={`rotate(-90 ${-0.65} ${W / 2})`}>{W}′</text>
       <text x={L - 0.1} y={W + 0.9} fontSize={0.3} textAnchor="end" fill="var(--muted)">N ↑ is the top wall</text>
+      {/* smart coverage, clipped to the room */}
+      <defs><clipPath id={`clip-${room.id}`}><rect x={0} y={0} width={L} height={W} /></clipPath></defs>
+      {overlays && <g clipPath={`url(#clip-${room.id})`}>{room.placed.map((p) => {
+        const def = piece(p.pieceId); if (!def || (!def.reach && !def.fov)) return null;
+        if (def.fov) {
+          const r = def.reach ?? 20, a = (-p.rot - 90) * Math.PI / 180, half = (def.fov / 2) * Math.PI / 180;
+          const x1 = p.x + Math.cos(a - half) * r, z1 = p.z + Math.sin(a - half) * r, x2 = p.x + Math.cos(a + half) * r, z2 = p.z + Math.sin(a + half) * r;
+          return <path key={`c-${p.id}`} d={`M ${p.x} ${p.z} L ${x1} ${z1} A ${r} ${r} 0 ${def.fov > 180 ? 1 : 0} 1 ${x2} ${z2} Z`} fill="var(--oak)" opacity="0.14" stroke="var(--oak)" strokeWidth="0.04" strokeDasharray="0.3 0.2" />;
+        }
+        return <circle key={`c-${p.id}`} cx={p.x} cy={p.z} r={def.reach} fill={def.id === 'mesh' ? 'var(--good)' : 'var(--oak)'} opacity="0.1" stroke={def.id === 'mesh' ? 'var(--good)' : 'var(--oak)'} strokeWidth="0.04" strokeDasharray="0.3 0.2" />;
+      })}</g>}
       {/* furniture */}
       {ordered.map((p) => {
         const def = piece(p.pieceId); if (!def) return null;

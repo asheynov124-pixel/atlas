@@ -15,6 +15,9 @@ export interface StageSpec {
   openings: Opening[];
   placed: StagePlaced[];
   highlight?: string;
+  /** Lamp level 0–1 override, and placed ids whose lamps are off. */
+  lampLevel?: number;
+  off?: string[];
 }
 
 const FT = 1; // one unit = one foot
@@ -437,7 +440,9 @@ export class RoomScene {
     for (const p of s.placed) {
       const def = piece(p.pieceId); if (!def) continue;
       const w = (p.w ?? def.w) / 12, d = (p.d ?? def.d) / 12, h = (p.h ?? def.h) / 12;
+      const before = ctx.lights.length;
       const g = buildPiece(def.shape, w, d, h, ctx);
+      for (let i = before; i < ctx.lights.length; i++) ctx.lights[i].userData.placedId = p.id;
       g.position.set(p.x, def.ceiling ? H : def.shape === 'art' || def.shape === 'mirror' ? 4.9 - h / 2 + (h > 3 ? 0.6 : 0) : def.shape === 'sconce' ? 5.4 : def.shape === 'shelves' ? 4.5 : 0, p.z);
       g.rotation.y = -THREE.MathUtils.degToRad(p.rot);
       if (p.id === s.highlight) { const ring = new THREE.Mesh(new THREE.RingGeometry(Math.max(w, d) * 0.6, Math.max(w, d) * 0.6 + 0.08, 48), new THREE.MeshBasicMaterial({ color: '#e0b07a', side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.02; g.add(ring); }
@@ -479,10 +484,12 @@ export class RoomScene {
     this.ambient.color.set(mix('#c8d4e4', '#f4e2c8', warm));
     this.ambient.groundColor.set(s.floorHex);
     this.ambient.intensity = day ? 0.35 + t * 0.55 : 0.12;
-    const lampOn = !day || t < 0.45 || warm > 0.7;
+    const auto = !day || t < 0.45 || warm > 0.7;
+    const level = s.lampLevel != null ? s.lampLevel : auto ? 1 : 0;
     const lampColor = warm > 0.8 ? '#ffc98a' : warm > 0.5 ? '#ffd9a8' : '#fff0dc';
-    for (const l of this.lamps) { l.intensity = lampOn ? 12 + warm * 10 : 0; (l as THREE.PointLight).color.set(lampColor); }
-    this.room.traverse((o) => { const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined; if (m && m.emissive && m.color.getHexString() === 'f1e9d8') m.emissiveIntensity = lampOn ? 0.9 : 0; });
+    for (const l of this.lamps) { const off = s.off?.includes(l.userData.placedId as string); l.intensity = off ? 0 : (12 + warm * 10) * level; (l as THREE.PointLight).color.set(lampColor); }
+    this.room.traverse((o) => { const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined; if (m && m.emissive && m.color.getHexString() === 'f1e9d8') m.emissiveIntensity = 0.9 * level; });
+    if (!day && level < 0.15) this.ambient.intensity = 0.05;
     this.scene.background = new THREE.Color(mix('#0f0e0c', '#1c1916', 0.5));
     this.renderer.toneMappingExposure = day ? 0.95 : 0.85;
   }

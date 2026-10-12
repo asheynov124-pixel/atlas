@@ -53,6 +53,6 @@ export function dataUrlToBlob(url: string): Blob {
   return new Blob([arr], { type: mime });
 }
 
-export function houseJson(house: { rooms: HouseRoom[]; items: HouseItem[]; settings: HouseSettings }) {
-  return JSON.stringify({ version: 2, exported: new Date().toISOString(), ...house }, null, 2);
+export function houseJson(house: { rooms: HouseRoom[]; items: HouseItem[]; settings: HouseSettings }, extra: Record<string, unknown> = {}) {
+  return JSON.stringify({ version: 3, exported: new Date().toISOString(), ...house, ...extra }, null, 2);
 }

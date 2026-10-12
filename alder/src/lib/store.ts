@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { StudioState, SaveItem, Custom, HouseRoom, HouseItem, HouseSettings, Board, Placed, Opening, Surfaces, ItemStatus } from './types';
+import type { StudioState, SaveItem, Custom, HouseRoom, HouseItem, HouseSettings, Board, Placed, Opening, Surfaces, ItemStatus, Decision, Seat, HistoryEntry, Lot, RoomVersion, Scene, Vote } from './types';
 import { STUDIO_TEMPLATES, roomType } from '../data/rooms';
 import { piece } from '../data/pieces';
 import { normalizeHex } from './color';
@@ -21,6 +21,12 @@ interface State {
   quizScores: Record<string, number>;
   customs: Custom[];
   house: { rooms: HouseRoom[]; items: HouseItem[]; settings: HouseSettings };
+  decisions: Decision[];
+  seats: Seat[];
+  history: HistoryEntry[];
+  /** Which seat is voting right now. */
+  seatId: string;
+  lot: Lot;
 
   setTheme: (t: Theme) => void;
   patchStudio: (p: Partial<StudioState>) => void;
@@ -59,7 +65,33 @@ interface State {
   setItemStatus: (id: string, s: ItemStatus) => void;
   updateSettings: (p: Partial<HouseSettings>) => void;
   importHouse: (h: State['house']) => void;
+
+  addDecision: (d: Omit<Decision, 'id' | 'at' | 'votes' | 'status'> & Partial<Pick<Decision, 'status' | 'votes'>>) => string;
+  updateDecision: (id: string, p: Partial<Decision>) => void;
+  removeDecision: (id: string) => void;
+  vote: (decisionId: string, optionId: string, v: Vote | null) => void;
+  decide: (decisionId: string, optionId: string) => void;
+  addSeat: (s: Omit<Seat, 'id'>) => string;
+  updateSeat: (id: string, p: Partial<Seat>) => void;
+  removeSeat: (id: string) => void;
+  setSeat: (id: string) => void;
+  log: (text: string, extra?: Partial<HistoryEntry>) => void;
+  setLot: (p: Partial<Lot>) => void;
+  addLotFeature: (f: Omit<Lot['features'][number], 'id'>) => string;
+  updateLotFeature: (id: string, p: Partial<Lot['features'][number]>) => void;
+  removeLotFeature: (id: string) => void;
+  snapshotRoom: (roomId: string, label: string, kind: RoomVersion['kind'], date?: string, note?: string) => string;
+  restoreVersion: (roomId: string, versionId: string) => void;
+  removeVersion: (roomId: string, versionId: string) => void;
+  addScene: (roomId: string, sc: Omit<Scene, 'id'>) => string;
+  updateScene: (roomId: string, id: string, p: Partial<Scene>) => void;
+  removeScene: (roomId: string, id: string) => void;
 }
+
+export const DEFAULT_LOT: Lot = {
+  width: 75, depth: 110, house: { x: 20, y: 40, w: 36, h: 30 }, setbacks: { front: 30, rear: 25, side: 12 }, maxCoverage: 0.3, lowDeckHeight: 2.5, features: [], place: '',
+};
+export const DEFAULT_SEAT: Seat = { id: 'me', name: 'Me', role: 'Host', leans: 'the whole picture' };
 
 const DEFAULT_SETTINGS: HouseSettings = { name: 'Our house', taxRate: 0.06625, contingency: 0.12, shippingDefault: 0.06, currency: 'USD' };
 
@@ -114,6 +146,11 @@ export const useStore = create<State>()(
       quizScores: {},
       customs: [],
       house: { rooms: [], items: [], settings: DEFAULT_SETTINGS },
+      decisions: [],
+      seats: [DEFAULT_SEAT],
+      history: [],
+      seatId: 'me',
+      lot: DEFAULT_LOT,
 
       setTheme: (theme) => set({ theme }),
       patchStudio: (p) => set({ studio: { ...get().studio, ...p } }),
@@ -159,7 +196,18 @@ export const useStore = create<State>()(
       addPlaced: (roomId, pieceId, at) => {
         const r = get().house.rooms.find((x) => x.id === roomId); const d = piece(pieceId); if (!r || !d) return '';
         const id = uid();
-        const p: Placed = { id, pieceId, x: at?.x ?? Math.min(r.length - d.w / 24, r.length / 2), z: at?.z ?? Math.min(r.width - d.d / 24, r.width / 2), rot: 0 };
+        // Smart pieces go where they work: cameras in a corner looking in, mesh at a wall mid-point, sensors off the pendant's spot.
+        const spot = (): { x: number; z: number; rot: number } => {
+          const n = r.placed.filter((q) => q.pieceId === pieceId).length;
+          if (pieceId === 'camera') return [{ x: 0.4, z: 0.4, rot: 135 }, { x: r.length - 0.4, z: 0.4, rot: 225 }, { x: r.length - 0.4, z: r.width - 0.4, rot: 315 }, { x: 0.4, z: r.width - 0.4, rot: 45 }][n % 4];
+          if (pieceId === 'mesh' || pieceId === 'shelf-speaker') return { x: r.length / 2 + n * 2, z: 0.6, rot: 0 };
+          if (pieceId === 'presence' || pieceId === 'ceiling-speaker' || pieceId === 'recessed') return { x: r.length / 2 + (n % 2 ? 3 : -3), z: r.width / 2 + (n > 1 ? 3 : -3), rot: 0 };
+          if (pieceId === 'thermostat' || pieceId === 'smart-switch') return { x: 1 + n * 1.5, z: r.width - 0.2, rot: 0 };
+          if (pieceId === 'leak-sensor') return { x: r.length - 1.5, z: r.width - 1, rot: 0 };
+          return { x: Math.min(r.length - d.w / 24, r.length / 2), z: Math.min(r.width - d.d / 24, r.width / 2), rot: 0 };
+        };
+        const auto = spot();
+        const p: Placed = { id, pieceId, x: at?.x ?? auto.x, z: at?.z ?? auto.z, rot: at ? 0 : auto.rot };
         get().updateRoom(roomId, { placed: [...r.placed, p] });
         return id;
       },
@@ -174,7 +222,52 @@ export const useStore = create<State>()(
       removeItem: (id) => set({ house: { ...get().house, items: get().house.items.filter((i) => i.id !== id) } }),
       setItemStatus: (id, status) => set({ house: { ...get().house, items: get().house.items.map((i) => (i.id === id ? { ...i, status, orderedAt: status === 'ordered' && !i.orderedAt ? Date.now() : i.orderedAt } : i)) } }),
       updateSettings: (p) => set({ house: { ...get().house, settings: { ...get().house.settings, ...p } } }),
-      importHouse: (h) => set({ house: { rooms: Array.isArray(h.rooms) ? h.rooms : [], items: Array.isArray(h.items) ? h.items : [], settings: { ...DEFAULT_SETTINGS, ...(h.settings ?? {}) } } }),
+      importHouse: (h) => {
+        const x = h as State['house'] & Partial<Pick<State, 'decisions' | 'seats' | 'history' | 'lot'>>;
+        set({ house: { rooms: Array.isArray(h.rooms) ? h.rooms : [], items: Array.isArray(h.items) ? h.items : [], settings: { ...DEFAULT_SETTINGS, ...(h.settings ?? {}) } }, ...(Array.isArray(x.decisions) ? { decisions: x.decisions } : {}), ...(Array.isArray(x.seats) && x.seats.length ? { seats: x.seats } : {}), ...(Array.isArray(x.history) ? { history: x.history } : {}), ...(x.lot ? { lot: { ...DEFAULT_LOT, ...x.lot } } : {}) });
+      },
+
+      addDecision: (d) => { const id = uid(); set({ decisions: [{ status: 'open', votes: {}, ...d, id, at: Date.now() }, ...get().decisions] }); get().log(`Opened “${d.title}”`, { decisionId: id, roomId: d.roomId }); return id; },
+      updateDecision: (id, p) => set({ decisions: get().decisions.map((d) => (d.id === id ? { ...d, ...p } : d)) }),
+      removeDecision: (id) => set({ decisions: get().decisions.filter((d) => d.id !== id) }),
+      vote: (decisionId, optionId, v) => {
+        const seat = get().seatId;
+        set({ decisions: get().decisions.map((d) => { if (d.id !== decisionId) return d; const mine = { ...(d.votes[seat] ?? {}) }; if (v) mine[optionId] = v; else delete mine[optionId]; return { ...d, votes: { ...d.votes, [seat]: mine } }; }) });
+        const d = get().decisions.find((x) => x.id === decisionId); const o = d?.options.find((x) => x.id === optionId); const who = get().seats.find((x) => x.id === seat)?.name ?? 'Someone';
+        if (d && o && v) get().log(`${who} ${v === 'love' ? 'loves' : v === 'pass' ? 'passed on' : 'can live with'} ${o.label} for ${d.title}`, { seatId: seat, decisionId, roomId: d.roomId });
+      },
+      decide: (decisionId, optionId) => {
+        const d = get().decisions.find((x) => x.id === decisionId); if (!d) return;
+        get().updateDecision(decisionId, { status: 'decided', chosen: optionId });
+        get().log(`Decided ${d.title}: ${d.options.find((o) => o.id === optionId)?.label ?? ''}`, { decisionId, roomId: d.roomId, seatId: get().seatId });
+      },
+      addSeat: (st) => { const id = uid(); set({ seats: [...get().seats, { ...st, id }] }); return id; },
+      updateSeat: (id, p) => set({ seats: get().seats.map((x) => (x.id === id ? { ...x, ...p } : x)) }),
+      removeSeat: (id) => set({ seats: get().seats.filter((x) => x.id !== id), seatId: get().seatId === id ? get().seats[0]?.id ?? 'me' : get().seatId }),
+      setSeat: (seatId) => set({ seatId }),
+      log: (text, extra) => set({ history: [{ id: uid(), at: Date.now(), text, ...extra }, ...get().history].slice(0, 300) }),
+      setLot: (p) => set({ lot: { ...get().lot, ...p } }),
+      addLotFeature: (f) => { const id = uid(); set({ lot: { ...get().lot, features: [...get().lot.features, { ...f, id }] } }); return id; },
+      updateLotFeature: (id, p) => set({ lot: { ...get().lot, features: get().lot.features.map((f) => (f.id === id ? { ...f, ...p } : f)) } }),
+      removeLotFeature: (id) => set({ lot: { ...get().lot, features: get().lot.features.filter((f) => f.id !== id) } }),
+      snapshotRoom: (roomId, label, kind, date, note) => {
+        const r = get().house.rooms.find((x) => x.id === roomId); if (!r) return '';
+        const id = uid();
+        const v: RoomVersion = { id, label, kind, date: date ?? new Date().toISOString().slice(0, 10), note, at: Date.now(), snapshot: { length: r.length, width: r.width, height: r.height, surfaces: { ...r.surfaces }, placed: r.placed.map((p) => ({ ...p })), openings: r.openings.map((o) => ({ ...o })) } };
+        const versions = (r.versions ?? []).map((x) => (kind === 'current' && x.kind === 'current' ? { ...x, kind: 'past' as const } : x));
+        get().updateRoom(roomId, { versions: [...versions, v] });
+        get().log(`Recorded ${r.name} as “${label}”`, { roomId });
+        return id;
+      },
+      restoreVersion: (roomId, versionId) => {
+        const r = get().house.rooms.find((x) => x.id === roomId); const v = r?.versions?.find((x) => x.id === versionId); if (!r || !v) return;
+        get().updateRoom(roomId, { ...v.snapshot, surfaces: { ...v.snapshot.surfaces }, placed: v.snapshot.placed.map((p) => ({ ...p })), openings: v.snapshot.openings.map((o) => ({ ...o })) });
+        get().log(`Opened ${r.name} as “${v.label}”`, { roomId });
+      },
+      removeVersion: (roomId, versionId) => { const r = get().house.rooms.find((x) => x.id === roomId); if (!r) return; get().updateRoom(roomId, { versions: (r.versions ?? []).filter((v) => v.id !== versionId) }); },
+      addScene: (roomId, sc) => { const r = get().house.rooms.find((x) => x.id === roomId); if (!r) return ''; const id = uid(); get().updateRoom(roomId, { scenes: [...(r.scenes ?? []), { ...sc, id }] }); return id; },
+      updateScene: (roomId, id, p) => { const r = get().house.rooms.find((x) => x.id === roomId); if (!r) return; get().updateRoom(roomId, { scenes: (r.scenes ?? []).map((x) => (x.id === id ? { ...x, ...p } : x)) }); },
+      removeScene: (roomId, id) => { const r = get().house.rooms.find((x) => x.id === roomId); if (!r) return; get().updateRoom(roomId, { scenes: (r.scenes ?? []).filter((x) => x.id !== id) }); },
     }),
     {
       name: 'alder-atelier-v2',
@@ -196,6 +289,11 @@ export const useStore = create<State>()(
             items: Array.isArray(p.house?.items) ? p.house!.items : [],
             settings: { ...DEFAULT_SETTINGS, ...(p.house?.settings ?? {}) },
           },
+          decisions: Array.isArray(p.decisions) ? p.decisions : [],
+          seats: Array.isArray(p.seats) && p.seats.length ? p.seats : [DEFAULT_SEAT],
+          history: Array.isArray(p.history) ? p.history : [],
+          seatId: typeof p.seatId === 'string' ? p.seatId : 'me',
+          lot: { ...DEFAULT_LOT, ...(p.lot ?? {}), features: Array.isArray(p.lot?.features) ? p.lot!.features : [] },
         };
       },
     },
