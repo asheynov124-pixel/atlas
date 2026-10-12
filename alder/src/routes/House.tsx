@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Download, Upload, ArrowRight, Sparkles, Compass, LayoutGrid, Lightbulb, BookOpen, TreePine } from 'lucide-react';
 import { useStore } from '../lib/store';
@@ -34,6 +34,8 @@ export default function House() {
   const [type, setType] = useState('living');
   const [name, setName] = useState('');
   const [adding, setAdding] = useState(false);
+  const panel = useRef<HTMLFormElement>(null);
+  const nameInput = useRef<HTMLInputElement>(null);
   const file = useRef<HTMLInputElement>(null);
   const [backup, setBackup] = useState(false);
   const [restore, setRestore] = useState(false);
@@ -48,9 +50,10 @@ export default function House() {
   const lotStops = lotCheck.issues.filter((i) => i.level === 'stop').length;
   const budget = house.settings.totalBudget;
   const empty = house.rooms.length === 0;
-  const showAdd = adding || empty;
 
-  function add() { nav(`/house/${addRoom(type, name.trim() || undefined)}`); }
+  function add() { const id = addRoom(type, name.trim() || undefined); setName(''); setAdding(false); nav(`/house/${id}`); }
+  function openAdd() { setAdding(true); setTimeout(() => { panel.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); nameInput.current?.focus({ preventScroll: true }); }, 50); }
+  useEffect(() => { if (adding) nameInput.current?.focus({ preventScroll: true }); }, [adding]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 md:px-10 md:py-8">
@@ -58,7 +61,7 @@ export default function House() {
         eyebrow="Overview"
         title={<input className="w-full min-w-0 bg-transparent outline-none placeholder:text-muted/60" value={house.settings.name} onChange={(e) => updateSettings({ name: e.target.value })} aria-label="House name" placeholder="Name the house" />}
         lede="Every room with real measurements, what it costs, and what needs you next. Open a room to plan it, pick finishes, light it, and build its list."
-        actions={<><Button kind="ghost" onClick={() => setBackup(true)}><Download className="size-4" />Back up</Button><Button onClick={() => setAdding(true)}><Plus className="size-4" />Add a room</Button></>}
+        actions={<><Button kind="ghost" onClick={() => setBackup(true)}><Download className="size-4" />Back up</Button><Button onClick={openAdd}><Plus className="size-4" />Add a room</Button></>}
       />
 
       <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -68,8 +71,8 @@ export default function House() {
         <Stat label="Committed" value={fmtMoney(total.committed)} sub={budget ? `of ${fmtMoney(budget)} budget` : <Link to="/budget" className="text-oak">Set a budget</Link>} />
       </div>
 
-      {showAdd && (
-        <section className="card mt-6 p-4 md:p-5">
+
+      {empty && <div className="mt-6">        <form ref={panel} className="card p-4 md:p-5" onSubmit={(e) => { e.preventDefault(); add(); }}>
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="text-sm font-semibold">{empty ? 'Start with one room' : 'Add a room'}</h2>
             {!empty && <Button kind="quiet" size="sm" onClick={() => setAdding(false)}>Close</Button>}
@@ -77,17 +80,30 @@ export default function House() {
           <p className="mt-1 text-sm text-muted">{empty ? 'Add the one you are arguing about first. It starts with typical dimensions and a sensible set of pieces; change everything once you have measured.' : 'Pick the kind, name it, and it opens ready to measure.'}</p>
           <div className="scroll-row mt-4">{ROOM_TYPES.map((r) => <Chip key={r.id} on={type === r.id} onClick={() => setType(r.id)}>{r.name}</Chip>)}</div>
           <div className="mt-3 flex max-w-xl gap-2">
-            <input className="field" placeholder={`Name it: ${ROOM_TYPES.find((r) => r.id === type)?.name ?? 'Room'}, Upstairs bath, Nora's room…`} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') add(); }} autoFocus={!empty} />
-            <Button onClick={add}><Plus className="size-4" />Add</Button>
+            <input ref={nameInput} className="field" placeholder={`Name it: ${ROOM_TYPES.find((r) => r.id === type)?.name ?? 'Room'}, Upstairs bath, Nora's room…`} value={name} onChange={(e) => setName(e.target.value)} enterKeyHint="go" />
+            <Button type="submit"><Plus className="size-4" />Add</Button>
           </div>
           {empty && <p className="mt-3 text-xs text-muted">Not sure how to measure? <Link to="/learn/measure" className="text-oak">The lesson takes four minutes.</Link></p>}
-        </section>
-      )}
+        </form>
+</div>}
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_20rem]">
         <div className="min-w-0">
           {!empty && (
             <Section label="Rooms" hint={`${house.rooms.length} ${house.rooms.length === 1 ? 'room' : 'rooms'}`}>
+              {adding && <form ref={panel} className="card p-4 md:p-5" onSubmit={(e) => { e.preventDefault(); add(); }}>
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="text-sm font-semibold">{empty ? 'Start with one room' : 'Add a room'}</h2>
+            {!empty && <Button kind="quiet" size="sm" onClick={() => setAdding(false)}>Close</Button>}
+          </div>
+          <p className="mt-1 text-sm text-muted">{empty ? 'Add the one you are arguing about first. It starts with typical dimensions and a sensible set of pieces; change everything once you have measured.' : 'Pick the kind, name it, and it opens ready to measure.'}</p>
+          <div className="scroll-row mt-4">{ROOM_TYPES.map((r) => <Chip key={r.id} on={type === r.id} onClick={() => setType(r.id)}>{r.name}</Chip>)}</div>
+          <div className="mt-3 flex max-w-xl gap-2">
+            <input ref={nameInput} className="field" placeholder={`Name it: ${ROOM_TYPES.find((r) => r.id === type)?.name ?? 'Room'}, Upstairs bath, Nora's room…`} value={name} onChange={(e) => setName(e.target.value)} enterKeyHint="go" />
+            <Button type="submit"><Plus className="size-4" />Add</Button>
+          </div>
+          {empty && <p className="mt-3 text-xs text-muted">Not sure how to measure? <Link to="/learn/measure" className="text-oak">The lesson takes four minutes.</Link></p>}
+        </form>}
               <div className="grid gap-4 sm:grid-cols-2">
                 {house.rooms.map((r) => {
                   const rr = roomRollup(r, house.items, house.settings);
@@ -119,7 +135,7 @@ export default function House() {
                   );
                 })}
                 {!adding && (
-                  <button type="button" onClick={() => setAdding(true)} className="card flex min-h-40 flex-col items-center justify-center gap-2 border-dashed text-muted hover:bg-raised hover:text-fg">
+                  <button type="button" onClick={openAdd} className="card flex min-h-40 flex-col items-center justify-center gap-2 border-dashed text-muted hover:bg-raised hover:text-fg">
                     <Plus className="size-5" /><span className="text-sm">Add a room</span>
                   </button>
                 )}

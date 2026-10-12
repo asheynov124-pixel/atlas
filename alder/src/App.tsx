@@ -3,6 +3,7 @@ import { NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { Compass, BookOpen, Lightbulb, LayoutGrid, Home, Bookmark, Sparkles, Sun, Moon, Wallet, ShoppingBag, Users, TreePine, Menu, type LucideIcon } from 'lucide-react';
 import { useStore } from './lib/store';
 import { Sheet } from './components/ui';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const Studies = lazy(() => import('./routes/Studies'));
 const Catalog = lazy(() => import('./routes/Catalog'));
@@ -93,6 +94,7 @@ export default function App() {
         </header>
 
         <main className={`min-h-0 min-w-0 flex-1 ${full ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+          <ErrorBoundary resetKey={loc.pathname}>
           <Suspense fallback={<p className="p-6 text-sm text-muted">Opening…</p>}>
             <Routes>
               <Route path="/" element={<House />} />
@@ -112,6 +114,7 @@ export default function App() {
               <Route path="*" element={<House />} />
             </Routes>
           </Suspense>
+          </ErrorBoundary>
         </main>
 
         <nav className="pb-safe no-print flex shrink-0 border-t border-line bg-bg md:hidden">
