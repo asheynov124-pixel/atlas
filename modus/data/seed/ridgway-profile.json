@@ -112,5 +112,45 @@
     "victims": 47,
     "usFemaleClearance": 76.9,
     "source": "MAP SHR 1980–2014"
+  },
+  "recordStatus": "Record current to Sept 2024 · 49 counts verified against the Second Amended Information",
+  "caughtTitle": "The evidence was in the freezer for fourteen years",
+  "caughtDek": "Ridgway was a suspect within a year of the first bodies. What closed the case was not a new lead but a new lab method run on a sample taken in 1987.",
+  "caughtCallout": {
+    "big": "14 yrs",
+    "text": "between the 1987 saliva swab and the September 2001 match. At least one of the counts he later admitted, Patricia Yellowrobe (found 1998), falls inside that window."
+  },
+  "mapLensText": "MAP groups killings by county, victim sex and weapon, and says Ridgway’s victims show up under weapon “other or unknown.” In the 1980s that King County group was almost never solved.",
+  "tiles": [
+    {
+      "v": "49",
+      "u": "",
+      "l": "Murders established by guilty plea: 48 in 2003, one more in 2011"
+    },
+    {
+      "v": "5",
+      "u": "of 49",
+      "l": "Counts with physical evidence: DNA on three, factory paint on two"
+    },
+    {
+      "v": "14",
+      "u": "yrs",
+      "l": "From the 1987 saliva sample to the 2001 DNA match"
+    },
+    {
+      "v": "19",
+      "u": "yrs",
+      "l": "From the first body in the Green River to his arrest"
+    },
+    {
+      "v": "4",
+      "u": "",
+      "l": "Victims pleaded as Jane Does, all identified 2012–2024"
+    }
+  ],
+  "basisNote": "Count XLVII (Patricia Yellowrobe): the medical examiner had ruled the death an overdose, and hair DNA excluded Ridgway. The conviction rests on the confession alone.",
+  "imageSlot": {
+    "caption": "Booking photograph\nKing County Sheriff, Nov 30, 2001",
+    "note": "Image slot · public-record source and credit line required"
   }
 }

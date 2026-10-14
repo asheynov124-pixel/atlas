@@ -9,10 +9,13 @@
     "lint": "eslint",
     "db:push": "drizzle-kit push",
     "db:views": "tsx scripts/apply-views.mts",
-    "db:seed": "tsx scripts/seed.mts",
+    "db:seed": "tsx scripts/seed.mts && tsx scripts/verify.mts",
     "db:reset": "npm run db:push && npm run db:views && npm run db:seed",
     "test": "vitest run",
-    "seed:gen": "node scripts/gen-seed.mjs"
+    "seed:gen": "node scripts/gen-seed.mjs",
+    "case:import": "tsx scripts/import-case.mts",
+    "case:verify": "tsx scripts/verify.mts",
+    "map:build": "node scripts/build-map.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
@@ -35,6 +38,7 @@
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
+    "playwright-core": "^1.64.1",
     "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.0.4"

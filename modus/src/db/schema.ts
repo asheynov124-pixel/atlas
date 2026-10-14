@@ -48,6 +48,7 @@ export const offenders = pgTable('offenders', {
   id: serial('id').primaryKey(),
   slug: text('slug').notNull().unique(),
   name: text('name').notNull(),
+  shortName: text('short_name'),       // for tight chart rows; null = use name
   alias: text('alias'),
   legalStatus: legalStatusEnum('legal_status').notNull(),
   caption: text('caption'),
@@ -185,3 +186,19 @@ export const reviewQueue = pgTable('review_queue', {
   status: reviewStatusEnum('status').notNull().default('open'),
   resolvedAt: timestamp('resolved_at', { withTimezone: true }),
 });
+
+/** Second-pass verification verdicts, written by the verifier skill (never by the researcher). */
+export const verdictEnum = pgEnum('verdict', ['confirmed', 'mismatch', 'unverifiable']);
+export const verifications = pgTable('verifications', {
+  id: serial('id').primaryKey(),
+  subjectType: text('subject_type').notNull(),   // 'proceeding' | 'count' | 'attribution' | 'claim'
+  subjectId: text('subject_id').notNull(),       // proceedings.id is text; others are numeric ids as text
+  field: text('field'),
+  verdict: verdictEnum('verdict').notNull(),
+  expected: text('expected'),
+  found: text('found'),
+  sourceId: text('source_id').references(() => sources.id),
+  note: text('note'),
+  verifier: text('verifier').notNull(),
+  verifiedAt: timestamp('verified_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [index('verifications_subject_idx').on(t.subjectType, t.subjectId)]);

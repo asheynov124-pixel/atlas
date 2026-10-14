@@ -31,3 +31,18 @@ Logged choices the owner did not have to make. Newest last.
 11. **Local dev DB.** `postgres://modus:modus@localhost:5432/modus` (role created in this container only).
 12. **Design CSS, not Tailwind.** The artboards define a complete token set and type system (Archivo,
     Newsreader, JetBrains Mono); the app ports that CSS directly.
+13. **`drizzle-kit push` drops the views.** Any schema push must be followed by `npm run db:views`; `npm run db:reset`
+    does push → views → seed in order. The tests fail loudly if the views are missing.
+14. **Auth is a single HMAC cookie.** `proxy.ts` (Next 16's middleware) redirects everything but `/login`, `/api/auth`,
+    the manifest, icon, service worker and `/offline`. The cookie stores an HMAC of the password with `APP_SECRET`,
+    never the password. With no `APP_PASSWORD` set the app is open (local dev only).
+15. **Offline = app shell + last 25 dossiers.** `public/sw.js` caches `/case/*` navigations network-first and trims
+    the cache to the 25 most recently refreshed dossiers (their count sub-pages ride along). Index and atlas are not
+    cached: they are live data.
+16. **Dossier name vs chart name.** `offenders.name` is the full legal name (dossier heading); `short_name` is for
+    chart rows and link lists, falling back to `name`.
+17. **Research and verification are two skills.** `skills/modus-research` writes a case file and imports it;
+    `skills/modus-verify` records verdicts from the cited documents and never edits a fact. The importer refuses
+    files that break the tier rules, reconciliation or the privacy rules, so the rules live in one place.
+18. **The automated verifier re-derives the review queue** (missing citations, unsourced attributions, source
+    conflicts, reconciliation, living-never-charged, street-address recovery sites) and only adds what is missing.

@@ -1,0 +1,344 @@
+{
+ "Wayne|MI": {
+  "fips": "26163",
+  "name": "Wayne",
+  "x": 709.43,
+  "y": 208.91
+ },
+ "Fulton|GA": {
+  "fips": "13121",
+  "name": "Fulton",
+  "x": 713.33,
+  "y": 404.45
+ },
+ "King|WA": {
+  "fips": "53033",
+  "name": "King",
+  "x": 104.71,
+  "y": 51.07
+ },
+ "St. Louis city|MO": {
+  "fips": "29510",
+  "name": "St. Louis",
+  "x": 598.98,
+  "y": 303.41
+ },
+ "Prince George's|MD": {
+  "fips": "24033",
+  "name": "Prince George's",
+  "x": 831.07,
+  "y": 268.4
+ },
+ "Jackson|MO": {
+  "fips": "29095",
+  "name": "Jackson",
+  "x": 526.88,
+  "y": 297.75
+ },
+ "District of Columbia|DC": {
+  "fips": "11001",
+  "name": "District of Columbia",
+  "x": 827.81,
+  "y": 267.34
+ },
+ "Suffolk|NY": {
+  "fips": "36103",
+  "name": "Suffolk",
+  "x": 888.03,
+  "y": 207.64
+ },
+ "Dade|FL": {
+  "fips": "12086",
+  "name": "Miami-Dade",
+  "x": 815.77,
+  "y": 577.04
+ },
+ "Orleans|LA": {
+  "fips": "22071",
+  "name": "Orleans",
+  "x": 617.05,
+  "y": 498.44
+ },
+ "Nassau|NY": {
+  "fips": "36059",
+  "name": "Nassau",
+  "x": 876.55,
+  "y": 213.54
+ },
+ "Marion|FL": {
+  "fips": "12083",
+  "name": "Marion",
+  "x": 773.34,
+  "y": 501.52
+ },
+ "Hidalgo|TX": {
+  "fips": "48215",
+  "name": "Hidalgo",
+  "x": 453.36,
+  "y": 584.85
+ },
+ "Broward|FL": {
+  "fips": "12011",
+  "name": "Broward",
+  "x": 815.29,
+  "y": 564.88
+ },
+ "St. Lucie|FL": {
+  "fips": "12111",
+  "name": "St. Lucie",
+  "x": 811.14,
+  "y": 537.58
+ },
+ "Anchorage|AK": {
+  "fips": "02020",
+  "name": "Anchorage",
+  "x": 115.29,
+  "y": 544.66
+ },
+ "Hartford|CT": {
+  "fips": "09003",
+  "name": "Hartford",
+  "x": 884.72,
+  "y": 186.35
+ },
+ "Galveston|TX": {
+  "fips": "48167",
+  "name": "Galveston",
+  "x": 518.61,
+  "y": 517.54
+ },
+ "Lake|IN": {
+  "fips": "18089",
+  "name": "Lake",
+  "x": 643.31,
+  "y": 236.27
+ },
+ "Fort Bend|TX": {
+  "fips": "48157",
+  "name": "Fort Bend",
+  "x": 502.57,
+  "y": 514.54
+ },
+ "Collier|FL": {
+  "fips": "12021",
+  "name": "Collier",
+  "x": 797.98,
+  "y": 568.6
+ },
+ "St. Clair|IL": {
+  "fips": "17163",
+  "name": "St. Clair",
+  "x": 604.76,
+  "y": 306.89
+ },
+ "Putnam|FL": {
+  "fips": "12107",
+  "name": "Putnam",
+  "x": 778.13,
+  "y": 491.66
+ },
+ "Salt Lake|UT": {
+  "fips": "49035",
+  "name": "Salt Lake",
+  "x": 227.6,
+  "y": 237.26
+ },
+ "Richmond|VA": {
+  "fips": "51159",
+  "name": "Richmond",
+  "x": 837.14,
+  "y": 287.85
+ },
+ "Snohomish|WA": {
+  "fips": "53061",
+  "name": "Snohomish",
+  "x": 109.71,
+  "y": 39.38
+ },
+ "Genesee|MI": {
+  "fips": "26049",
+  "name": "Genesee",
+  "x": 700.26,
+  "y": 193.06
+ },
+ "Clark|OH": {
+  "fips": "39023",
+  "name": "Clark",
+  "x": 708.1,
+  "y": 263.64
+ },
+ "McLennan|TX": {
+  "fips": "48309",
+  "name": "McLennan",
+  "x": 474.87,
+  "y": 468.36
+ },
+ "Pinal|AZ": {
+  "fips": "04021",
+  "name": "Pinal",
+  "x": 208.78,
+  "y": 414.26
+ },
+ "Washington|OR": {
+  "fips": "41067",
+  "name": "Washington",
+  "x": 73.26,
+  "y": 87.47
+ },
+ "Montgomery|OH": {
+  "fips": "39113",
+  "name": "Montgomery",
+  "x": 699.88,
+  "y": 268.44
+ },
+ "Atlantic|NJ": {
+  "fips": "34001",
+  "name": "Atlantic",
+  "x": 865.16,
+  "y": 245.84
+ },
+ "Frederick|MD": {
+  "fips": "24021",
+  "name": "Frederick",
+  "x": 818.73,
+  "y": 255.82
+ },
+ "San Mateo|CA": {
+  "fips": "06081",
+  "name": "San Mateo",
+  "x": 34.16,
+  "y": 269.66
+ },
+ "Worcester|MA": {
+  "fips": "25027",
+  "name": "Worcester",
+  "x": 895.09,
+  "y": 170.88
+ },
+ "Berrien|MI": {
+  "fips": "26021",
+  "name": "Berrien",
+  "x": 658.34,
+  "y": 222.44
+ },
+ "Racine|WI": {
+  "fips": "55101",
+  "name": "Racine",
+  "x": 629.35,
+  "y": 206.94
+ },
+ "Kaufman|TX": {
+  "fips": "48257",
+  "name": "Kaufman",
+  "x": 492.54,
+  "y": 444.64
+ },
+ "Plymouth|MA": {
+  "fips": "25023",
+  "name": "Plymouth",
+  "x": 915.04,
+  "y": 174.93
+ },
+ "Pulaski|MO": {
+  "fips": "29169",
+  "name": "Pulaski",
+  "x": 565.31,
+  "y": 323.75
+ },
+ "Polk|FL": {
+  "fips": "12105",
+  "name": "Polk",
+  "x": 784.68,
+  "y": 528.72
+ },
+ "De Kalb|GA": {
+  "fips": "13089",
+  "name": "DeKalb",
+  "x": 717.93,
+  "y": 404.28
+ },
+ "Glynn|GA": {
+  "fips": "13127",
+  "name": "Glynn",
+  "x": 776.54,
+  "y": 454.57
+ },
+ "Oldham|KY": {
+  "fips": "21185",
+  "name": "Oldham",
+  "x": 683.44,
+  "y": 301.66
+ },
+ "Edgecombe|NC": {
+  "fips": "37065",
+  "name": "Edgecombe",
+  "x": 831.03,
+  "y": 336.54
+ },
+ "Clark|WA": {
+  "fips": "53011",
+  "name": "Clark",
+  "x": 84.03,
+  "y": 85.39
+ },
+ "Humboldt|CA": {
+  "fips": "06023",
+  "name": "Humboldt",
+  "x": 29.37,
+  "y": 190.07
+ },
+ "Floyd|GA": {
+  "fips": "13115",
+  "name": "Floyd",
+  "x": 698.25,
+  "y": 395.25
+ },
+ "Harford|MD": {
+  "fips": "24025",
+  "name": "Harford",
+  "x": 836.67,
+  "y": 250.07
+ },
+ "Vance|NC": {
+  "fips": "37181",
+  "name": "Vance",
+  "x": 814.61,
+  "y": 329.13
+ },
+ "Knox|TN": {
+  "fips": "47093",
+  "name": "Knox",
+  "x": 716.85,
+  "y": 353.11
+ },
+ "New York County|NY": {
+  "fips": "36061",
+  "name": "New York",
+  "x": 869.98,
+  "y": 214.26
+ },
+ "Dallas|TX": {
+  "fips": "48113",
+  "name": "Dallas",
+  "x": 483.27,
+  "y": 440.77
+ },
+ "Cook|IL": {
+  "fips": "17031",
+  "name": "Cook",
+  "x": 635.19,
+  "y": 227.24
+ },
+ "Hillsborough|FL": {
+  "fips": "12057",
+  "name": "Hillsborough",
+  "x": 772.57,
+  "y": 530.94
+ },
+ "Milwaukee|WI": {
+  "fips": "55079",
+  "name": "Milwaukee",
+  "x": 630.4,
+  "y": 200.94
+ }
+}

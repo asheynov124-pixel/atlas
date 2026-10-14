@@ -17,3 +17,11 @@ declare global { var __modusDb: ReturnType<typeof make> | undefined; }
 export const db = globalThis.__modusDb ?? make();
 if (process.env.NODE_ENV !== 'production') globalThis.__modusDb = db;
 export { schema };
+
+import type { SQL } from 'drizzle-orm';
+/** Driver-agnostic raw query: postgres.js returns an array, neon-http returns { rows }. */
+export async function raw<T = Record<string, unknown>>(q: SQL): Promise<T[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const r: any = await (db as any).execute(q);
+  return (Array.isArray(r) ? r : r.rows) as T[];
+}
