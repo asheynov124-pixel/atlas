@@ -8,8 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "db:push": "drizzle-kit push",
-    "db:views": "tsx scripts/apply-views.ts",
-    "db:seed": "tsx scripts/seed.ts",
+    "db:views": "tsx scripts/apply-views.mts",
+    "db:seed": "tsx scripts/seed.mts",
     "db:reset": "npm run db:push && npm run db:views && npm run db:seed",
     "test": "vitest run",
     "seed:gen": "node scripts/gen-seed.mjs"
@@ -17,6 +17,7 @@
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
     "d3-geo": "^3.1.1",
+    "dotenv": "^18.0.8",
     "drizzle-orm": "^0.45.4",
     "next": "16.4.0",
     "postgres": "^3.4.9",
@@ -26,11 +27,16 @@
     "us-atlas": "^3.0.1"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@types/d3-geo": "^3.1.1",
+    "@types/node": "^22.20.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/topojson-client": "^3.1.5",
+    "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
-    "typescript": "^5"
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.0.4"
   }
 }
