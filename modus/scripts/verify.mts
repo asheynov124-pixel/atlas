@@ -36,8 +36,11 @@ for (const w of want) if (!have.has(key(w))) { await db.insert(s.reviewQueue).va
 const file = process.argv[2]; let verdicts = 0, mismatches = 0;
 if (file) {
   const v = JSON.parse(readFileSync(file, 'utf8'));
+  const known = new Set((await db.select({ id: s.sources.id }).from(s.sources)).map((r) => r.id));
   for (const item of v.items ?? []) {
-    await db.insert(s.verifications).values({ subjectType: item.subjectType, subjectId: String(item.subjectId), field: item.field ?? null, verdict: item.verdict, expected: item.expected ?? null, found: item.found ?? null, sourceId: item.sourceId ?? null, note: item.note ?? null, verifier: v.verifier ?? 'verifier' });
+    const sid = item.sourceId && known.has(item.sourceId) ? item.sourceId : null;
+    if (item.sourceId && !sid) problems.push(`verdict on ${item.subjectType} ${item.subjectId}: unknown sourceId ${item.sourceId}`);
+    await db.insert(s.verifications).values({ subjectType: item.subjectType, subjectId: String(item.subjectId), field: item.field ?? null, verdict: item.verdict, expected: item.expected ?? null, found: item.found ?? null, sourceId: sid, note: item.note ?? null, verifier: v.verifier ?? 'verifier' });
     verdicts++;
     if (item.verdict !== 'confirmed') { mismatches++; await db.insert(s.reviewQueue).values({ subjectType: item.subjectType, subjectId: /^\d+$/.test(String(item.subjectId)) ? Number(item.subjectId) : null, subjectLabel: item.label ?? String(item.subjectId), kind: item.verdict === 'mismatch' ? 'unverified_count' : 'unverifiable', message: `${item.field ?? 'record'}: expected ${item.expected ?? '?'}, found ${item.found ?? 'nothing'}${item.note ? ` · ${item.note}` : ''}` }); }
   }

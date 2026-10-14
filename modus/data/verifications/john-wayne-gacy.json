@@ -1,0 +1,5 @@
+{ "verifier": "modus-verify · 2026-10-14 · Claude (second pass, read the opinion text on CourtListener, not the researcher's notes)", "slug": "john-wayne-gacy", "items": [
+  { "subjectType": "proceeding", "subjectId": "gacy-cook-county-trial", "field": "counts", "verdict": "confirmed", "expected": "33", "found": "“charged with 33 counts of murder … found guilty on all of the other counts”", "sourceId": "ill-sup-ct-gacy-1984", "note": "Opening paragraph, Goldenhersh, J." },
+  { "subjectType": "proceeding", "subjectId": "gacy-cook-county-trial", "field": "outcome", "verdict": "confirmed", "expected": "conviction", "found": "jury verdict of guilty; death on 12 counts, natural life on the remaining murder counts", "sourceId": "ill-sup-ct-gacy-1984" },
+  { "subjectType": "proceeding", "subjectId": "gacy-cook-county-trial", "field": "date", "verdict": "unverifiable", "expected": "verdict date", "found": "not stated in the opinion", "sourceId": "ill-sup-ct-gacy-1984", "note": "Needs the circuit court judgment or a dated contemporaneous record." }
+] }

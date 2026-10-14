@@ -6,7 +6,7 @@ import { config } from 'dotenv'; config({ path: '.env.local' });
 import { readFileSync } from 'node:fs';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, and, or, inArray } from 'drizzle-orm';
 import * as s from '../src/db/schema.ts';
 
 const file = process.argv[2]; if (!file) { console.error('usage: tsx scripts/import-case.mts data/cases/<slug>.json'); process.exit(2); }
@@ -58,9 +58,15 @@ await db.transaction(async (tx) => {
     homeBaseCounty: o.homeBaseCounty ?? null, homeBaseState: o.homeBaseState ?? null, vitals: o.vitals ?? [], chain: o.chain ?? [], notes: o.notes ?? {}, updatedAt: new Date() };
   const [row] = await tx.insert(s.offenders).values(values).onConflictDoUpdate({ target: s.offenders.slug, set: values }).returning({ id: s.offenders.id });
   const oid = row.id;
+  const oldProcIds = (await tx.select({ id: s.proceedings.id }).from(s.proceedings).where(eq(s.proceedings.offenderId, oid))).map((r) => r.id);
+  const oldCountIds = (await tx.select({ id: s.counts.id }).from(s.counts).where(eq(s.counts.offenderId, oid))).map((r) => r.id);
+  const labels = [...new Set([...oldProcIds, ...procs.map((p) => String(p.id))])];
+  await tx.delete(s.reviewQueue).where(and(eq(s.reviewQueue.status, 'open'), or(
+    and(eq(s.reviewQueue.subjectType, 'offender'), eq(s.reviewQueue.subjectId, oid)),
+    labels.length ? and(eq(s.reviewQueue.subjectType, 'proceeding'), inArray(s.reviewQueue.subjectLabel, labels)) : sql`false`,
+    oldCountIds.length ? and(eq(s.reviewQueue.subjectType, 'count'), inArray(s.reviewQueue.subjectId, oldCountIds)) : sql`false`)));
+  await tx.delete(s.claims).where(or(and(eq(s.claims.subjectType, 'offender'), eq(s.claims.subjectId, oid)), oldCountIds.length ? and(eq(s.claims.subjectType, 'count'), inArray(s.claims.subjectId, oldCountIds)) : sql`false`));
   for (const t of [s.documents, s.events, s.attributions, s.counts, s.proceedings]) await tx.delete(t).where(eq((t as any).offenderId, oid));
-  await tx.delete(s.claims).where(sql`(subject_type = 'offender' AND subject_id = ${oid}) OR (subject_type = 'count' AND subject_id IN (SELECT id FROM counts WHERE offender_id = ${oid}))`);
-  await tx.delete(s.reviewQueue).where(sql`status = 'open' AND ((subject_type = 'offender' AND subject_id = ${oid}) OR (subject_type = 'proceeding' AND subject_label = ANY(${procs.map((p) => p.id)})))`);
   for (const p of procs) {
     await tx.insert(s.proceedings).values({ id: p.id, offenderId: oid, label: p.label, court: p.court ?? null, caseNumber: p.caseNumber ?? null, date: p.date ?? null, outcome: p.outcome, counts: p.counts, tier: p.tier, sourceId: p.sourceId ?? null, note: [p.note, p.pinpoint ? `Pinpoint: ${p.pinpoint}` : null].filter(Boolean).join(' · ') || null });
     if (!p.sourceId) review.push({ subjectType: 'proceeding', subjectLabel: p.id, kind: 'missing_citation', message: `Cite the record for "${p.label}".` });

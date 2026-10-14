@@ -1,0 +1,40 @@
+{
+  "offender": {
+    "slug": "john-wayne-gacy", "name": "John Wayne Gacy", "shortName": null, "alias": null,
+    "legalStatus": "convicted", "living": false,
+    "caption": "People v. Gacy, 103 Ill. 2d 1 (1984) · Circuit Court of Cook County", "caseNumber": null, "court": "Circuit Court of Cook County",
+    "lede": null, "firstKillingYear": 1972, "lastKillingYear": 1978, "caughtYear": 1978, "diedYear": null,
+    "states": ["IL"], "statesNote": null, "methods": ["strangulation"], "victimology": "Teenage boys and young men",
+    "howCaught": "investigation", "howCaughtText": "Missing-person case of Robert Piest", "mobility": null,
+    "homeBaseCounty": null, "homeBaseState": null,
+    "vitals": [
+      { "k": "Charged", "v": "33 counts of murder, one count of deviate sexual assault, one count of indecent liberties with a child, one count of aggravated kidnaping (dismissed at trial)", "sourceId": "ill-sup-ct-gacy-1984" },
+      { "k": "Verdict", "v": "Guilty on all murder counts after a single jury trial in Cook County", "sourceId": "ill-sup-ct-gacy-1984" },
+      { "k": "Sentence", "v": "Death on 12 counts (murders after the 1977 death-penalty statute); natural life on each of the remaining 21", "sourceId": "ill-sup-ct-gacy-1984" },
+      { "k": "Remains", "v": "29 bodies recovered from the crawl space and grounds of 8213 W. Summerdale; four from the Des Plaines and Illinois rivers", "sourceId": "ill-sup-ct-gacy-1984" }
+    ]
+  },
+  "sources": [
+    { "id": "ill-sup-ct-gacy-1984", "kind": "opinion", "title": "People v. Gacy, 103 Ill. 2d 1, 468 N.E.2d 1171", "publisher": "Supreme Court of Illinois (Goldenhersh, J.)", "date": "1984-06-06",
+      "url": "https://www.courtlistener.com/opinion/2234277/people-v-gacy/", "archiveUrl": null, "note": "Direct appeal; affirms the convictions and sentences. Opening paragraph recites the counts, verdict and sentences." }
+  ],
+  "proceedings": [
+    { "id": "gacy-cook-county-trial", "label": "Convicted on 33 counts of murder", "court": "Circuit Court of Cook County", "caseNumber": null, "date": null,
+      "outcome": "conviction", "counts": 33, "tier": "convicted_at_trial", "sourceId": "ill-sup-ct-gacy-1984", "pinpoint": "103 Ill. 2d 1, opening paragraph of the opinion",
+      "note": "Verdict date is not stated in the opinion; the opinion affirming was filed 1984-06-06." }
+  ],
+  "counts": [],
+  "attributions": [
+    { "totalCount": 33, "tier": "convicted_at_trial", "sourceId": "ill-sup-ct-gacy-1984", "note": "The court record and the attributed total coincide: 33 bodies recovered, 33 counts." }
+  ],
+  "claims": [
+    { "subject": "offender", "field": "admitted_killings", "value": "approximately 30", "tier": "confessed_uncharged", "sourceId": "ill-sup-ct-gacy-1984", "note": "Admission during the investigation, as recited by the court." }
+  ],
+  "events": [
+    { "date": "1978-12-11", "lane": "investigation", "text": "Robert Piest, 15, leaves the Nisson Pharmacy in Des Plaines to meet a building contractor about a summer job and is never seen alive again. Gacy’s truck is seen outside the pharmacy.", "sourceId": "ill-sup-ct-gacy-1984" },
+    { "date": "1978-12-13", "lane": "investigation", "text": "Search warrant issued for Gacy, his home at 8213 W. Summerdale and three PDM vehicles.", "sourceId": "ill-sup-ct-gacy-1984" },
+    { "date": "1978-12", "lane": "forensics", "text": "Excavation of the crawl space and grounds recovers 29 bodies; four more are recovered from the Des Plaines and Illinois rivers.", "sourceId": "ill-sup-ct-gacy-1984" },
+    { "date": "1984-06-06", "lane": "court", "text": "Illinois Supreme Court affirms the convictions and the death sentences on direct appeal.", "sourceId": "ill-sup-ct-gacy-1984" }
+  ],
+  "documents": ["ill-sup-ct-gacy-1984"]
+}
