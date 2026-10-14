@@ -1,0 +1,997 @@
+<title>Steelman Arena</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a broadcast stage. One centered column; the motion sits in a scoreboard band;
+   speeches alternate Affirmative-left / Negative-right; the ballot is a judge's flow pad. */
+:root{
+  --bg:#f1f3f5; --surface:#ffffff; --surface-2:#e9edf0; --fg:#14181c; --muted:#5a656e; --line:#d3d9de;
+  --pro:#176b85; --pro-soft:#e0eef3; --pro-ink:#0f5168;
+  --con:#a3393c; --con-soft:#f5e4e4; --con-ink:#7f2a2d;
+  --brass:#8a6a1e; --brass-soft:#f2ecdc; --brass-ink:#5f4810;
+  --good:#2f7d4f; --warn:#b2691b; --bad:#b03a3a;
+  --font-display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --font-body:"Source Serif 4","Iowan Old Style",Georgia,"Times New Roman",serif;
+  --font-mono:"IBM Plex Mono","SFMono-Regular",Menlo,Consolas,monospace;
+  --radius:6px; --shadow:0 1px 2px rgba(20,24,28,.06),0 6px 18px rgba(20,24,28,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1317; --surface:#171c21; --surface-2:#1f262c; --fg:#e7eaed; --muted:#98a3ac; --line:#2a3239;
+    --pro:#62b4cf; --pro-soft:#13303a; --pro-ink:#9fd6e8;
+    --con:#e07e80; --con-soft:#3a1c1d; --con-ink:#f0b0b1;
+    --brass:#d2b25e; --brass-soft:#2f2914; --brass-ink:#ead49a;
+    --good:#6fc48f; --warn:#e0a35a; --bad:#e26b6b;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1317; --surface:#171c21; --surface-2:#1f262c; --fg:#e7eaed; --muted:#98a3ac; --line:#2a3239;
+  --pro:#62b4cf; --pro-soft:#13303a; --pro-ink:#9fd6e8;
+  --con:#e07e80; --con-soft:#3a1c1d; --con-ink:#f0b0b1;
+  --brass:#d2b25e; --brass-soft:#2f2914; --brass-ink:#ead49a;
+  --good:#6fc48f; --warn:#e0a35a; --bad:#e26b6b;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:17px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3,h4{font-family:var(--font-display);margin:0;text-wrap:balance;line-height:1.1}
+p{margin:0}
+.wrap{max-width:1080px;margin:0 auto}
+.eyebrow{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--pro)}
+
+/* Top bar */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:18px 0 10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.brand h1{font-size:26px;font-weight:800;letter-spacing:-.01em}
+.brand .tag{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.status{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.dot.ok{background:var(--good)} .dot.bad{background:var(--bad)} .dot.wait{background:var(--warn)}
+
+/* Panels */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.setup{margin-top:20px;padding:18px 20px 20px;display:grid;gap:18px}
+.setup h2{font-size:18px;font-weight:700}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:5px 11px;font-family:var(--font-display);font-size:13.5px;font-weight:500;cursor:pointer;color:var(--fg)}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chip:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--pro);outline-offset:2px}
+.motions{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.motion-btn{text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius);padding:10px 12px;cursor:pointer;font-family:var(--font-body);font-size:15px;line-height:1.35;min-width:0}
+.motion-btn[aria-pressed="true"]{border-color:var(--fg);background:var(--surface-2);box-shadow:inset 3px 0 0 var(--fg)}
+.custom{display:grid;gap:8px}
+.custom textarea{width:100%;min-height:64px;resize:vertical;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);font-family:var(--font-body);font-size:16px}
+.field{display:grid;gap:4px;min-width:0}
+.field label{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--muted)}
+select{padding:7px 10px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);font-family:var(--font-display);font-size:14px;max-width:100%}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.btn{font-family:var(--font-display);font-weight:700;font-size:15px;padding:10px 18px;border-radius:var(--radius);border:1px solid var(--line);background:var(--surface-2);cursor:pointer}
+.btn.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.btn.primary:disabled{opacity:.5;cursor:not-allowed}
+.btn.small{font-size:13px;padding:6px 11px;font-weight:600}
+.btn.danger{color:var(--bad)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.toggle{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);font-size:14px;cursor:pointer}
+.toggle input{width:18px;height:18px;accent-color:var(--pro)}
+.hint{font-size:13.5px;color:var(--muted);font-family:var(--font-display)}
+.notice{padding:10px 14px;border-radius:var(--radius);font-family:var(--font-display);font-size:14px;border:1px solid var(--line);background:var(--surface-2)}
+.notice.bad{border-color:var(--bad);color:var(--bad)}
+
+/* Stage */
+.stage{margin-top:20px;display:grid;gap:16px}
+.board{padding:18px 20px;display:grid;gap:10px;background:var(--fg);color:var(--bg);border-radius:var(--radius)}
+.board .eyebrow{color:color-mix(in srgb,var(--bg) 70%,transparent)}
+.board h2{font-size:clamp(20px,3vw,30px);font-weight:800;letter-spacing:-.01em;color:var(--bg)}
+.board .framing{font-family:var(--font-body);font-size:15.5px;color:color-mix(in srgb,var(--bg) 85%,transparent);max-width:70ch}
+.defs{display:flex;flex-wrap:wrap;gap:6px 14px;font-family:var(--font-mono);font-size:12.5px;color:color-mix(in srgb,var(--bg) 80%,transparent)}
+.defs b{color:var(--bg);font-weight:500}
+.burdens{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;font-family:var(--font-display);font-size:13.5px}
+.burdens div{padding:8px 10px;border-radius:4px;background:color-mix(in srgb,var(--bg) 10%,transparent)}
+.burdens .pro-l{color:#9fd6e8} .burdens .con-l{color:#f0b0b1}
+.burdens span{display:block;font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px}
+
+.podiums{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.podiums{grid-template-columns:1fr}}
+.podium{padding:14px 16px;display:grid;gap:10px;min-width:0}
+.podium.pro{border-top:4px solid var(--pro)} .podium.con{border-top:4px solid var(--con)}
+.side-label{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase}
+.pro .side-label{color:var(--pro)} .con .side-label{color:var(--con)}
+.speaker{display:flex;gap:10px;align-items:center;min-width:0}
+.avatar{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-display);font-weight:800;font-size:16px;flex:none;color:#fff}
+.pro .avatar,.avatar.pro{background:var(--pro)} .con .avatar,.avatar.con{background:var(--con)} .avatar.judge{background:var(--brass)} .avatar.mod{background:var(--muted)}
+.speaker .name{font-family:var(--font-display);font-weight:700;font-size:15.5px;line-height:1.2}
+.speaker .title{font-family:var(--font-display);font-size:12.5px;color:var(--muted)}
+.speaker select{margin-left:auto;max-width:46%}
+
+/* Transcript */
+.feed{display:grid;gap:12px}
+.round-mark{display:flex;align-items:center;gap:12px;color:var(--muted);font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;margin-top:6px}
+.round-mark::before,.round-mark::after{content:"";flex:1;height:1px;background:var(--line)}
+.turn{display:grid;gap:8px;padding:14px 16px 12px;max-width:min(100%,780px);min-width:0}
+.turn.pro{justify-self:start;border-left:1px solid var(--line)} .turn.con{justify-self:end;border-right:1px solid var(--line)}
+.turn.mod{justify-self:center;background:var(--surface-2);max-width:min(100%,820px)}
+.turn-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.turn-head .avatar{width:30px;height:30px;font-size:13px}
+.turn-head .who{font-family:var(--font-display);font-weight:700;font-size:14.5px}
+.pro .turn-head .who{color:var(--pro-ink)} .con .turn-head .who{color:var(--con-ink)}
+.turn-head .what{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.turn-head .tools{margin-left:auto;display:flex;gap:4px}
+.icon-btn{border:1px solid var(--line);background:var(--surface);border-radius:4px;width:30px;height:30px;display:grid;place-items:center;cursor:pointer;color:var(--muted);padding:0}
+.icon-btn[aria-pressed="true"]{color:var(--fg);border-color:var(--fg)}
+.icon-btn svg{width:16px;height:16px}
+.speech{font-size:16.5px;line-height:1.6;display:grid;gap:10px;max-width:68ch;min-width:0;overflow-wrap:anywhere}
+.speech.thinking{color:var(--muted);font-style:italic}
+.speech.thinking::after{content:"";display:inline-block;width:.6em;height:1em;vertical-align:-.15em;margin-left:2px;background:currentColor;animation:blink 1s steps(2,start) infinite}
+@keyframes blink{to{visibility:hidden}}
+@media (prefers-reduced-motion:reduce){.speech.thinking::after{animation:none}}
+.turn-foot{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
+.empty{padding:22px 20px;display:grid;gap:10px;color:var(--muted);font-family:var(--font-display);font-size:15px}
+.empty ol{margin:0;padding-left:20px;display:grid;gap:4px}
+.empty b{color:var(--fg)}
+
+/* Controls strip */
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:12px 16px}
+.controls .spacer{flex:1}
+.progress{font-family:var(--font-mono);font-size:12.5px;color:var(--muted)}
+
+/* Judges */
+.bench{display:grid;gap:12px}
+.bench h2{font-size:20px;font-weight:800}
+.verdict{padding:18px 20px;display:grid;gap:8px;border:2px solid var(--brass);background:var(--brass-soft)}
+.verdict .eyebrow{color:var(--brass-ink)}
+.verdict h3{font-size:clamp(20px,3vw,28px);font-weight:800}
+.verdict .pro-t{color:var(--pro-ink)} .verdict .con-t{color:var(--con-ink)}
+.verdict .line{font-family:var(--font-display);font-size:15px;color:var(--fg)}
+.scoreline{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;font-family:var(--font-mono);font-size:13px}
+.scoreline .num{font-size:30px;font-weight:500;font-family:var(--font-display)}
+.scoreline .l{text-align:right;color:var(--pro-ink)} .scoreline .r{color:var(--con-ink)}
+.tally{display:grid;gap:6px}
+.crit{display:grid;grid-template-columns:minmax(96px,150px) 1fr 72px 1fr;align-items:center;gap:8px;font-family:var(--font-display);font-size:13px}
+.crit .bar{height:10px;border-radius:2px;background:var(--surface-2);position:relative;overflow:hidden}
+.crit .bar i{position:absolute;top:0;bottom:0;display:block}
+.crit .bar.l i{right:0;background:var(--pro)} .crit .bar.r i{left:0;background:var(--con)}
+.crit .mid{text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--muted);white-space:nowrap}
+.crit .cname{color:var(--muted);text-align:right}
+.ballots{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.ballot{padding:14px 16px;display:grid;gap:10px;min-width:0}
+.ballot .win{font-family:var(--font-display);font-weight:700;font-size:14px;padding:3px 9px;border-radius:999px;display:inline-block}
+.win.pro{background:var(--pro-soft);color:var(--pro-ink)} .win.con{background:var(--con-soft);color:var(--con-ink)}
+.ballot table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+.ballot td,.ballot th{padding:3px 4px;border-bottom:1px solid var(--line);text-align:right}
+.ballot th:first-child,.ballot td:first-child{text-align:left;font-family:var(--font-display);font-weight:500;color:var(--muted)}
+.ballot th{color:var(--muted);font-weight:500}
+.ballot .pro-c{color:var(--pro-ink)} .ballot .con-c{color:var(--con-ink)}
+.ballot p{font-size:15px}
+.ballot .moment{padding:8px 10px;background:var(--surface-2);border-radius:4px;font-size:14px;display:grid;gap:3px}
+.ballot .moment .eyebrow{font-size:10.5px}
+.ballot .moment q{font-style:italic}
+.ballot ul{margin:0;padding-left:18px;font-size:14px;display:grid;gap:3px}
+.ballot .pending{color:var(--muted);font-family:var(--font-display);font-size:14px}
+.ballot .pending .eyebrow{display:block;margin-bottom:4px}
+details.flow summary{cursor:pointer;font-family:var(--font-display);font-weight:600;font-size:14px}
+
+/* Audience */
+.audience{padding:14px 16px;display:grid;gap:10px}
+.audience h3{font-size:16px;font-weight:700}
+.votes{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.vote{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;font-family:var(--font-display);font-weight:600;font-size:14px;cursor:pointer}
+.vote[aria-pressed="true"].p{background:var(--pro);color:#fff;border-color:var(--pro)}
+.vote[aria-pressed="true"].c{background:var(--con);color:#fff;border-color:var(--con)}
+.vote[aria-pressed="true"].u{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.mindchange{font-family:var(--font-display);font-size:14px;color:var(--muted)}
+
+.foot{margin-top:28px;font-family:var(--font-display);font-size:12.5px;color:var(--muted);display:grid;gap:4px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+
+<div class="wrap">
+  <header class="topbar">
+    <div class="brand">
+      <h1>Steelman Arena</h1>
+      <span class="tag">AI debaters · AI judges · your verdict</span>
+    </div>
+    <div class="status" id="status"><span class="dot wait"></span><span id="statusText">Connecting…</span></div>
+  </header>
+
+  <section class="panel setup" id="setup" aria-label="Set up the debate">
+    <div>
+      <h2>Pick a fight</h2>
+      <p class="hint">Choose a motion, or write your own. The Affirmative argues for it, the Negative against.</p>
+    </div>
+
+    <div class="chips" id="cats" role="group" aria-label="Topic categories"></div>
+    <div class="motions" id="motions" role="group" aria-label="Motions"></div>
+
+    <div class="custom">
+      <label class="eyebrow" for="customMotion">Or write your own question or claim</label>
+      <textarea id="customMotion" placeholder="e.g. Should juries be told when a defendant is facing a mandatory minimum? Or: Ambition is a trap."></textarea>
+      <div class="row">
+        <button class="btn small" id="useCustom">Use this as the motion</button>
+        <button class="btn small" id="sharpen">Sharpen it into a debatable motion</button>
+        <span class="hint" id="customHint"></span>
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="field"><label for="format">Format</label>
+        <select id="format">
+          <option value="full">Full: opening, rebuttal, cross-examination, closing</option>
+          <option value="standard">Standard: opening, rebuttal, closing</option>
+          <option value="quick">Quick: opening and closing</option>
+        </select></div>
+      <div class="field"><label for="team">Teams</label>
+        <select id="team"><option value="1">1 vs 1</option><option value="2">2 vs 2</option></select></div>
+      <div class="field"><label for="length">Speech length</label>
+        <select id="length"><option value="short">Short (about 150 words)</option><option value="medium" selected>Medium (about 250 words)</option><option value="long">Long (about 400 words)</option></select></div>
+      <div class="field"><label for="judgeCount">Bench</label>
+        <select id="judgeCount"><option value="3">3 judges</option><option value="5">5 judges</option></select></div>
+      <div class="field"><label for="tier">Model depth</label>
+        <select id="tier"><option value="quick">Quick (fast, no deliberation)</option><option value="default" selected>Balanced</option><option value="complex">Deep (slowest, strongest)</option></select></div>
+      <div class="field"><label for="voiceOn">Audio</label>
+        <label class="toggle"><input type="checkbox" id="voiceOn"> Read speeches aloud as they finish</label></div>
+    </div>
+
+    <div class="podiums" id="setupPodiums"></div>
+
+    <div class="row">
+      <button class="btn primary" id="start">Start the debate</button>
+      <button class="btn" id="shuffle">Shuffle debaters</button>
+      <span class="hint" id="startHint"></span>
+    </div>
+    <div class="notice bad" id="setupNotice" hidden></div>
+  </section>
+
+  <section class="stage" id="stage" hidden aria-live="polite">
+    <div class="board" id="board"></div>
+    <div class="podiums" id="podiums"></div>
+    <div class="panel controls">
+      <span class="progress" id="progress">Ready.</span>
+      <span class="spacer"></span>
+      <button class="btn small" id="speakAll" hidden>Play whole debate</button>
+      <button class="btn small" id="stopAudio" hidden>Stop audio</button>
+      <button class="btn small danger" id="stop" hidden>Stop</button>
+      <button class="btn small" id="copy" hidden>Copy transcript</button>
+      <button class="btn small" id="save" hidden>Save transcript</button>
+      <button class="btn small" id="rematch" hidden>Rematch, sides swapped</button>
+      <button class="btn small" id="newDebate">New debate</button>
+    </div>
+    <div class="panel audience" id="audience">
+      <h3>Where do you stand?</h3>
+      <div class="votes"><span class="eyebrow">Before</span>
+        <button class="vote p" data-when="before" data-v="pro">Affirmative</button>
+        <button class="vote u" data-when="before" data-v="undecided">Undecided</button>
+        <button class="vote c" data-when="before" data-v="con">Negative</button></div>
+      <div class="votes" id="afterVotes" hidden><span class="eyebrow">After</span>
+        <button class="vote p" data-when="after" data-v="pro">Affirmative</button>
+        <button class="vote u" data-when="after" data-v="undecided">Undecided</button>
+        <button class="vote c" data-when="after" data-v="con">Negative</button></div>
+      <div class="mindchange" id="mindchange"></div>
+    </div>
+    <div class="feed" id="feed"></div>
+    <div class="notice bad" id="stageNotice" hidden></div>
+    <div class="bench" id="bench" hidden>
+      <h2>The bench</h2>
+      <div id="verdict"></div>
+      <div class="ballots" id="ballots"></div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>Debaters argue assigned sides; the judges score the debate as debated, not the truth of the motion. Facts cited by the debaters are AI-generated and should be checked before you rely on them.</span>
+    <span id="modeFoot"></span>
+  </footer>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- Data: personas, judges, criteria, topics ---------- */
+const PERSONAS = [
+  {id:'okafor', name:'Dr. Ada Okafor', title:'The Empiricist', bio:'An epidemiologist turned public-policy analyst who trusts base rates over anecdotes.', style:'Calm, precise, evidence-first. Says "the data suggests" and names the limits of what we know. Dry humor.', voice:{pref:['Google UK English Female','Samantha','Karen','Moira','Microsoft Libby','Female'],pitch:1.0,rate:1.0}},
+  {id:'vale', name:'Marcus Vale', title:'The Litigator', bio:'A trial lawyer who thinks in burdens of proof and cross-examines everything, including his own side.', style:'Courtroom cadence. Short declarative sentences. Frames every issue as who bears the burden and whether it was carried. Loves a well-placed rhetorical question.', voice:{pref:['Google UK English Male','Daniel','Microsoft Ryan','Alex','Male'],pitch:0.9,rate:1.0}},
+  {id:'reyes', name:'Imani Reyes', title:'The Ethicist', bio:'A moral philosopher who teaches undergraduates to argue the side they hate.', style:'Warm but exacting. Distinguishes consequences from duties, asks what we owe each other, and names the moral cost of every position, including her own.', voice:{pref:['Google US English','Microsoft Aria','Victoria','Samantha','Female'],pitch:1.05,rate:0.97}},
+  {id:'lindqvist', name:'Theo Lindqvist', title:'The Historian', bio:'A diplomatic historian who believes most new ideas are old ideas wearing a new coat.', style:'Patient, narrative, fond of the phrase "we have been here before." Reasons from precedents and from how things actually played out.', voice:{pref:['Google UK English Male','Daniel','Microsoft George','Fred','Male'],pitch:0.85,rate:0.95}},
+  {id:'park', name:'Jun Park', title:'The Pragmatist', bio:'A former city operations chief who has watched good intentions meet real budgets.', style:'Plain-spoken, impatient with abstractions. Talks about incentives, implementation, second-order effects, and who actually pays. Occasionally blunt.', voice:{pref:['Google US English','Microsoft Guy','Alex','Tom','Male'],pitch:1.0,rate:1.08}},
+  {id:'achebe', name:'Rosalind Achebe', title:'The Firebrand', bio:'A former organizer and columnist who believes a debate without stakes is a seminar.', style:'Vivid, rhythmic, morally urgent. Uses metaphor and concrete human stories. Punchy closers. Never cruel, never vague.', voice:{pref:['Microsoft Aria','Google US English','Victoria','Tessa','Female'],pitch:1.1,rate:1.05}},
+  {id:'brandt', name:'Elias Brandt', title:'The Stoic', bio:'A systems engineer who reads the Stoics on the train and distrusts his own enthusiasm.', style:'Unhurried, first-principles, Socratic. Dismantles a position by finding the one assumption it cannot do without. Understated wit.', voice:{pref:['Daniel','Google UK English Male','Microsoft Ryan','Male'],pitch:0.8,rate:0.92}},
+  {id:'natarajan', name:'Priya Natarajan', title:'The Economist', bio:'A development economist who has seen both markets and governments fail in the same village.', style:'Sharp, numerate, fond of opportunity cost and "compared to what?" Points to the unseen effects everyone else ignores.', voice:{pref:['Google UK English Female','Microsoft Sonia','Karen','Moira','Female'],pitch:1.0,rate:1.05}},
+  {id:'delgado', name:'Sam Delgado', title:'The Psychologist', bio:'A clinical psychologist who studies why people believe what they believe.', style:'Curious, humane, a little mischievous. Explains behavior through motivation, bias, and what people are actually afraid of. Gentle with people, hard on ideas.', voice:{pref:['Google US English','Alex','Microsoft Guy','Samantha','Male'],pitch:1.0,rate:1.0}},
+  {id:'farouk', name:'Nadia Farouk', title:'The Strategist', bio:'A retired colonel and war-college lecturer who thinks about power the way engineers think about load.', style:'Direct, unsentimental, realist. Asks what the other side will do next and who can enforce anything. Respects courage, distrusts slogans.', voice:{pref:['Microsoft Libby','Google UK English Female','Moira','Karen','Female'],pitch:0.9,rate:1.0}},
+];
+
+const JUDGES = [
+  {id:'lowell', name:'Judge Harriet Lowell', title:'The Logician', lens:'You care most about the validity and structure of arguments: whether conclusions follow, whether key claims were ever supported, which arguments were dropped without answer, and any fallacies. You keep a strict flow sheet.'},
+  {id:'vieira', name:'Judge Tomas Vieira', title:'The Empiricist', lens:'You care most about evidence: whether claims are accurate, specific, and calibrated; whether examples actually support the point; and whether a debater overstated what the evidence shows. You penalize invented or implausible facts hard.'},
+  {id:'sinclair', name:'Judge Amara Sinclair', title:'The Rhetorician', lens:'You care most about persuasion and craft: clarity, organization, memorable framing, emotional truth without manipulation, and whether a thoughtful lay audience would be moved. You still require that the persuasion be built on real argument.'},
+  {id:'oyelaran', name:'Judge Kwame Oyelaran', title:'The Steelman', lens:'You care most about intellectual honesty: whether each side engaged the strongest version of the opposing case, conceded what deserved conceding, avoided straw men and motte-and-bailey moves, and was candid about trade-offs.'},
+  {id:'haddad', name:'Judge Leila Haddad', title:'The Everyperson', lens:'You judge as an intelligent, open-minded member of the public who came in undecided. You care about which side actually changed how you see the question, which examples stuck, and who respected your intelligence.'},
+];
+
+const CRITERIA = [
+  {id:'argumentation', name:'Argumentation', desc:'Logical structure; conclusions follow from premises; the case hangs together.'},
+  {id:'evidence', name:'Evidence', desc:'Accuracy, specificity, and calibration of facts and examples; no invented support.'},
+  {id:'responsiveness', name:'Responsiveness', desc:'Direct clash: answered the opponent\'s actual arguments and did not drop important ones.'},
+  {id:'clarity', name:'Clarity', desc:'Organization and plain language; a listener could restate the case.'},
+  {id:'persuasion', name:'Persuasion', desc:'Rhetorical force, memorable framing, delivery; would a fair-minded audience be moved.'},
+  {id:'honesty', name:'Honesty', desc:'Steelmanned the other side, conceded fairly, acknowledged trade-offs; no straw men.'},
+];
+
+const TOPICS = {
+  'Politics':[
+    'The United States should adopt a universal basic income.',
+    'Social media platforms should be legally liable for content their algorithms amplify.',
+    'Voting should be mandatory.',
+    'The Electoral College should be abolished.',
+    'Supreme Court justices should serve fixed eighteen-year terms.',
+    'Nuclear power is the best path to decarbonization.',
+    'Immigration restrictions do more harm than good.',
+  ],
+  'Law & Justice':[
+    'Plea bargaining does more harm than good.',
+    'Complex civil cases should be tried to a panel of professional judges, not a jury.',
+    'Punitive damages should be capped by statute.',
+    'Judges should be elected, not appointed.',
+    'Cameras should be allowed in every courtroom, including the Supreme Court.',
+    'The attorney-client privilege should yield whenever it conceals ongoing fraud.',
+    'Mandatory minimum sentences should be abolished.',
+  ],
+  'War & Peace':[
+    'Nuclear deterrence has made the world safer.',
+    'Preemptive war can be justified.',
+    'Economic sanctions are a moral alternative to war.',
+    'Drone warfare is more ethical than conventional warfare.',
+    'Civilians share moral responsibility for the wars their governments fight.',
+    'Pacifism is a morally serious position in a world with tyrants.',
+    'A nation may break a treaty to protect its own citizens.',
+  ],
+  'Philosophy':[
+    'Free will is an illusion.',
+    'Morality is objective.',
+    'It is wrong to bring children into a world that contains so much suffering.',
+    'A life lived inside a perfect simulation can be as meaningful as a real one.',
+    'We owe strong moral duties to people who will live centuries from now.',
+    'Death is what gives life its meaning.',
+    'It is better to be a dissatisfied Socrates than a satisfied pig.',
+  ],
+  'Psychology':[
+    'Happiness is mostly a choice.',
+    'Trauma shapes who we become more than genes do.',
+    'Social media is damaging a generation\'s mental health.',
+    'Willpower is a myth.',
+    'Therapy culture has made us more fragile.',
+    'Humans are fundamentally good.',
+    'Intelligence is mostly inherited.',
+  ],
+  'Life & Meaning':[
+    'Ambition is a trap.',
+    'You should follow your passion.',
+    'Marriage is an outdated institution.',
+    'Having children is the most meaningful thing a person can do.',
+    'Comfort is the enemy of growth.',
+    'Love is a choice, not a feeling.',
+    'Men and women cannot be just friends.',
+  ],
+  'Economics':[
+    'Billionaires should not exist.',
+    'Rent control helps the people it is meant to help.',
+    'Free trade has been good for the average worker.',
+    'The federal minimum wage should be twenty dollars an hour.',
+    'Economic growth should no longer be a policy goal in rich countries.',
+    'Student debt should be cancelled.',
+  ],
+  'Technology & Science':[
+    'AI will do more good than harm this century.',
+    'Humans should colonize Mars.',
+    'Editing the genes of embryos should be permitted.',
+    'Privacy is dead, and we are better for it.',
+    'Lab-grown meat should replace farmed meat.',
+    'Children under sixteen should be banned from social media.',
+  ],
+  'Culture & Religion':[
+    'Religion does more good than harm.',
+    'Cancel culture is just accountability.',
+    'Art should be judged separately from the artist.',
+    'Standardized testing should be abolished.',
+    'Monogamy is natural.',
+    'Western civilization is worth defending as an idea.',
+  ],
+};
+
+const FORMATS = {
+  full:['open','rebut','cross','close'],
+  standard:['open','rebut','close'],
+  quick:['open','close'],
+};
+const ROUND_NAMES = {open:'Opening statements', rebut:'Rebuttals', cross:'Cross-examination', close:'Closing statements'};
+const TURN_NAMES = {open:'Opening', rebut:'Rebuttal', crossq:'Cross-examines', crossa:'Answers', close:'Closing'};
+const WORDS = {
+  short:{open:150, rebut:150, crossq:70, crossa:140, close:130},
+  medium:{open:250, rebut:250, crossq:90, crossa:200, close:200},
+  long:{open:400, rebut:400, crossq:110, crossa:300, close:300},
+};
+const SIDE_NAME = {pro:'Affirmative', con:'Negative'};
+
+/* ---------- State ---------- */
+const state = {
+  category:'Politics', motion:TOPICS['Politics'][0], customMotion:false,
+  format:'full', team:1, length:'medium', judgeCount:3, tier:'default', voiceOn:false,
+  sides:{pro:[], con:[]}, judges:[],
+  framing:null, turns:[], ballots:[], tally:null,
+  running:false, ctl:null, vote:{before:null, after:null},
+};
+let backend = {mode:'none'};
+let downloadsCap = null;
+
+/* ---------- Helpers ---------- */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pick = (arr, n, exclude=[]) => { const pool = arr.filter(x => !exclude.includes(x)); const out=[]; while(out.length<n && pool.length){ out.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]); } return out; };
+const persona = (id) => PERSONAS.find(p => p.id===id);
+const judge = (id) => JUDGES.find(j => j.id===id);
+const initials = (name) => name.replace(/^(Dr\.|Judge)\s+/,'').split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+const words = (s) => (s.trim().match(/\S+/g)||[]).length;
+function renderSpeech(text){
+  const paras = String(text).trim().split(/\n\s*\n/).map(p => p.replace(/\n/g,' ').trim()).filter(Boolean);
+  return paras.map(p => {
+    let h = esc(p);
+    h = h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/(^|[^*])\*([^*\n]+?)\*/g,'$1<em>$2</em>');
+    return `<p>${h}</p>`;
+  }).join('');
+}
+function parseJSONish(s){
+  const t = String(s).trim();
+  try { return JSON.parse(t); } catch {}
+  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fence) { try { return JSON.parse(fence[1]); } catch {} }
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if (a >= 0 && b > a) { try { return JSON.parse(t.slice(a, b+1)); } catch {} }
+  throw {code:'invalid_json', message:'The reply held no JSON object.', text:t};
+}
+function save(){ try{ localStorage.setItem('arena.settings', JSON.stringify({format:state.format, team:state.team, length:state.length, judgeCount:state.judgeCount, tier:state.tier, voiceOn:state.voiceOn})); }catch{} }
+function load(){ try{ const s = JSON.parse(localStorage.getItem('arena.settings')||'null'); if(s) Object.assign(state, s); }catch{} }
+function copyFor(code){
+  switch(code){
+    case 'not_granted': return 'Claude was not allowed for this page. Allow it from the artifact\'s permissions menu and try again.';
+    case 'sampling_disabled': return 'Claude is not available on this account.';
+    case 'rate_limited': return 'Too many requests for now. Wait a minute and try again.';
+    case 'session_expired': return 'Your session expired. Sign in again and reload.';
+    case 'refused': return 'Claude declined to write this turn. Try a different motion or wording.';
+    case 'prompt_too_large': return 'The transcript got too long for one call. Try shorter speeches or a shorter format.';
+    case 'invalid_json': return 'A judge\'s ballot came back malformed. Try the judging again.';
+    case 'empty_completion': return 'Claude produced no text. Try again.';
+    case 'auth': return 'The server has no working API key. Set ANTHROPIC_API_KEY in arena/.env and restart.';
+    case 'cancelled': return 'Stopped.';
+    default: return 'Something went wrong talking to Claude. Try again.';
+  }
+}
+
+/* ---------- Backend adapters ---------- */
+async function localComplete({system, prompt, json, onText, signal, tier, effort, maxTokens}){
+  let res;
+  try {
+    res = await fetch('/api/complete', {method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({system, prompt, tier, effort, maxTokens}), signal});
+  } catch (e) {
+    if (e && e.name === 'AbortError') throw {code:'cancelled', message:'aborted'};
+    throw {code:'upstream_error', message:String(e)};
+  }
+  if (!res.ok) {
+    const msg = await res.text().catch(()=> '');
+    throw {code: res.status===429 ? 'rate_limited' : res.status===401 ? 'auth' : 'upstream_error', message: msg || res.statusText};
+  }
+  const reader = res.body.getReader(); const dec = new TextDecoder();
+  let buf = '', text = '', meta = null;
+  try {
+    for(;;){
+      const {value, done} = await reader.read(); if (done) break;
+      buf += dec.decode(value, {stream:true});
+      let i;
+      while ((i = buf.indexOf('\n\n')) >= 0){
+        const chunk = buf.slice(0, i); buf = buf.slice(i+2);
+        const line = chunk.split('\n').find(l => l.startsWith('data:')); if (!line) continue;
+        let ev; try { ev = JSON.parse(line.slice(5)); } catch { continue; }
+        if (ev.delta){ text += ev.delta; if (onText) onText({text, delta:ev.delta}); }
+        else if (ev.error){ throw {code: ev.code || 'upstream_error', message: ev.error, text}; }
+        else if (ev.done){ meta = ev; }
+      }
+    }
+  } catch (e) {
+    if (e && e.name === 'AbortError') throw {code:'cancelled', message:'aborted', text};
+    throw e;
+  }
+  if (!text.trim()) throw {code:'empty_completion', message:'No text'};
+  if (json) return parseJSONish(text);
+  return text;
+}
+
+async function initBackend(){
+  if (window.claude && typeof window.claude.use === 'function'){
+    setStatus('wait', 'Connecting to Claude…');
+    const sample = await window.claude.use('sample');
+    if (sample){
+      downloadsCap = await window.claude.use('downloads').catch(()=>null);
+      backend = {
+        mode:'artifact',
+        async complete({system, prompt, json, onText, signal, tier}){
+          const input = system ? `${system}\n\n----\n\n${prompt}` : prompt;
+          const opts = {onText, signal, modelTier: tier || 'default', cache:false};
+          if (json) return await sample.json(input, opts);
+          const r = await sample(input, opts);
+          return r.text;
+        },
+      };
+      setStatus('ok', 'Claude, on your account');
+      $('modeFoot').textContent = 'Running inside claude.ai: each turn uses your own Claude usage. The first turn asks you to allow it.';
+      return;
+    }
+    backend = {mode:'none'};
+    setStatus('bad', 'Claude unavailable in this view');
+    showSetupNotice('This page needs to be opened inside claude.ai to ask Claude, or run from the local server in the arena folder.');
+    return;
+  }
+  try {
+    const h = await fetch('/api/health').then(r => r.json());
+    if (h && h.ok){
+      backend = {mode:'local', complete: localComplete, model: h.model};
+      setStatus('ok', `Local server · ${h.model}`);
+      $('modeFoot').textContent = `Running on the local server with model ${h.model} (quick tier: ${h.quick}).`;
+      return;
+    }
+  } catch {}
+  backend = {mode:'none'};
+  setStatus('bad', 'No backend');
+  showSetupNotice('No backend found. Run "npm start" in the arena folder and open the printed address, or open this page as a claude.ai artifact.');
+}
+function setStatus(kind, text){ const d = $('status').querySelector('.dot'); d.className = 'dot ' + kind; $('statusText').textContent = text; }
+function showSetupNotice(msg){ const n = $('setupNotice'); n.textContent = msg; n.hidden = !msg; }
+function showStageNotice(msg){ const n = $('stageNotice'); n.textContent = msg; n.hidden = !msg; }
+
+/* ---------- Prompts ---------- */
+function transcriptText(upTo){
+  const lines = [];
+  if (state.framing){
+    lines.push(`[Moderator] ${state.framing.framing}`);
+    if (state.framing.crux) lines.push(`[Moderator] The debate most likely turns on: ${state.framing.crux}`);
+  }
+  for (const t of (upTo ?? state.turns)){
+    if (!t.text) continue;
+    lines.push(`[${SIDE_NAME[t.side]} — ${t.speaker.name}, ${TURN_NAMES[t.type]}${t.target ? ' ' + t.target.name : ''}]\n${t.text.trim()}`);
+  }
+  return lines.join('\n\n');
+}
+function framingBlock(){
+  const f = state.framing; if (!f) return '';
+  const defs = (f.definitions||[]).map(d => `${d.term}: ${d.meaning}`).join('; ');
+  return `MODERATOR'S FRAMING: ${f.framing}${defs ? `\nWorking definitions: ${defs}.` : ''}\nThe Affirmative must show: ${f.proMustShow}\nThe Negative must show: ${f.conMustShow}${f.crux ? `\nThe likely crux: ${f.crux}` : ''}`;
+}
+function houseRules(n){
+  return `RULES OF THE HOUSE
+- Speak in the first person, in your own voice, as if standing at a podium. Plain English, concrete examples, a touch of wit where it fits. No "as an AI".
+- Use real evidence when you can, with calibrated confidence. Never invent statistics, studies, quotations, or cases. If you are unsure of a number, give the direction and rough magnitude, not false precision.
+- Engage the strongest version of the other side; never a straw man. Concede what deserves conceding and explain why you still win.
+- This is spoken: no headings, no bullet lists, no markdown beyond an occasional **bold** phrase. Two to five short paragraphs.
+- Do not announce your structure ("In this speech I will…"). Just argue.
+- Stay under about ${n} words. Write only the speech.`;
+}
+function debaterSystem(p, side){
+  return `You are ${p.name}, known as "${p.title}". ${p.bio}\nSpeaking style: ${p.style}\n\nYou are competing in a formal public debate before a panel of judges and an intelligent lay audience. You have been ASSIGNED the ${SIDE_NAME[side]} side of the motion, and you must argue it as persuasively and honestly as you can, whatever your private view. The judges score argumentation, evidence, responsiveness, clarity, persuasion, and intellectual honesty.`;
+}
+function turnInstruction(t){
+  const opp = SIDE_NAME[t.side==='pro'?'con':'pro'];
+  switch (t.type){
+    case 'open': {
+      const first = !state.turns.some(x => x.text && x.type==='open' && x.side !== t.side);
+      return `Deliver your opening statement for the ${SIDE_NAME[t.side]}. Define any contested term the way your case needs it, then make your two or three strongest independent arguments, each anchored in a concrete example or piece of evidence. Finish with one sentence telling the judges what question this debate really turns on.${first ? '' : ` The ${opp} has already opened; you may briefly signal where you will disagree, but save detailed rebuttal for the rebuttal round.`}`;
+    }
+    case 'rebut':
+      return `Deliver your rebuttal. Take the ${opp}'s specific arguments in turn (name each briefly, quoting a phrase where useful), show why each fails or proves less than claimed, and defend your own case against what they said. Do not repeat your opening; extend it. If a teammate has spoken, build on them rather than restating them.`;
+    case 'crossq':
+      return `You are now cross-examining ${t.target.name} of the ${opp}. Ask exactly two pointed questions designed to expose a weakness, a hidden assumption, or an inconsistency in their case so far. Each question may have one sentence of setup. Number them 1 and 2. Do not answer them yourself and do not make a speech.`;
+    case 'crossa':
+      return `${t.target.name} of the ${opp} has just put two questions to you (the last entry in the transcript). Answer each directly and honestly: a straight answer first, then your reasoning, in a few sentences each. Do not dodge. After both answers you may land one short counterpoint of your own.`;
+    case 'close':
+      return `Deliver your closing statement. Crystallize the debate: name the two or three real points of clash, say who won each and why, being fair about what your side lost, and then tell the judges why your side wins on the points that matter most. No new arguments. End on one line they will remember.`;
+  }
+}
+function debaterPrompt(t){
+  const n = WORDS[state.length][t.type];
+  return `MOTION: "${state.motion}"\n\n${framingBlock()}\n\n${houseRules(n)}\n\nTRANSCRIPT SO FAR:\n${transcriptText() || '(No one has spoken yet.)'}\n\nYOUR TASK NOW (${TURN_NAMES[t.type]}): ${turnInstruction(t)}`;
+}
+function framingPrompt(){
+  return `You are the moderator of a formal public debate.\nMOTION: "${state.motion}"\nTopic area: ${state.category}.\n\nFrame the motion for the debaters and the audience. Be neutral and precise. Reply with only a JSON object of this exact shape:\n{"framing": "two or three sentences on why this question matters and what is genuinely hard about it", "definitions": [{"term": "...", "meaning": "how this debate will read the term"}], "proMustShow": "one sentence stating what the Affirmative must establish to win", "conMustShow": "one sentence stating what the Negative must establish to win", "crux": "the single question the debate most likely turns on, as one sentence"}\nInclude zero to three definitions, only for terms that are genuinely contestable.`;
+}
+function judgePrompt(j){
+  const crit = CRITERIA.map(c => `- ${c.id}: ${c.desc}`).join('\n');
+  return `You are ${j.name}, "${j.title}", a judge in a formal public debate. ${j.lens}\n\nMOTION: "${state.motion}"\n${framingBlock()}\n\nFULL TRANSCRIPT:\n${transcriptText()}\n\nJUDGING INSTRUCTIONS\nJudge the debate as debated, not the truth of the motion: the better debating wins even if you privately disagree with it. Your lens should shape how you weigh the criteria when choosing a winner, but score every criterion honestly for both sides. Scores are integers from 1 to 10, where 10 is world class, 7 is a strong professional, 5 is adequate, and 3 is weak. Quote actual words from the transcript for the moments you cite. Be specific and a little demanding; vague praise helps no one.\n\nCriteria:\n${crit}\n\nReply with only a JSON object of this exact shape:\n{"scores": {"pro": {"argumentation": 7, "evidence": 7, "responsiveness": 7, "clarity": 7, "persuasion": 7, "honesty": 7}, "con": {"argumentation": 7, "evidence": 7, "responsiveness": 7, "clarity": 7, "persuasion": 7, "honesty": 7}}, "winner": "pro" or "con", "margin": "narrow" or "clear" or "decisive", "oneLine": "your verdict in one sentence", "reasoning": "three to six sentences explaining the decision through your lens, naming the decisive clash", "bestMoment": {"side": "pro" or "con", "quote": "a short exact quote", "why": "one sentence"}, "weakestMoment": {"side": "pro" or "con", "quote": "a short exact quote", "why": "one sentence"}, "dropped": [{"side": "pro" or "con", "argument": "an argument this side never adequately answered"}], "fallacies": [{"side": "pro" or "con", "name": "the fallacy or weak move", "where": "a short quote or description"}], "advice": {"pro": "one sentence of coaching for the Affirmative", "con": "one sentence of coaching for the Negative"}}\n"dropped" and "fallacies" may be empty arrays. Use the side keys "pro" for the Affirmative and "con" for the Negative.`;
+}
+function sharpenPrompt(text){
+  return `Turn the following question or claim into a single, crisp, debatable motion for a formal debate: a declarative statement that one side can affirm and the other deny, with no "should we consider" hedging, under 20 words, no quotation marks. Also classify it into exactly one of these categories: ${Object.keys(TOPICS).join(', ')}.\n\nInput: ${text}\n\nReply with only a JSON object: {"motion": "...", "category": "..."}`;
+}
+
+/* ---------- Schedule ---------- */
+function buildSchedule(){
+  const rounds = FORMATS[state.format]; const T = state.team; const turns = [];
+  const sp = (side, i) => persona(state.sides[side][i % T]);
+  let r = 0;
+  for (const round of rounds){
+    if (round === 'open'){
+      for (let i=0;i<T;i++){ turns.push({round, type:'open', side:'pro', speaker:sp('pro',i)}); turns.push({round, type:'open', side:'con', speaker:sp('con',i)}); }
+    } else if (round === 'rebut'){
+      for (let i=0;i<T;i++){ turns.push({round, type:'rebut', side:'pro', speaker:sp('pro',i)}); turns.push({round, type:'rebut', side:'con', speaker:sp('con',i)}); }
+    } else if (round === 'cross'){
+      const pi = T-1, ci = T-1;
+      const proAsker = sp('pro',pi), conAns = sp('con',0);
+      turns.push({round, type:'crossq', side:'pro', speaker:proAsker, target:conAns});
+      turns.push({round, type:'crossa', side:'con', speaker:conAns, target:proAsker});
+      const conAsker = sp('con',ci), proAns = sp('pro',0);
+      turns.push({round, type:'crossq', side:'con', speaker:conAsker, target:proAns});
+      turns.push({round, type:'crossa', side:'pro', speaker:proAns, target:conAsker});
+    } else if (round === 'close'){
+      // The side that opened first closes last.
+      turns.push({round, type:'close', side:'con', speaker:sp('con',T-1)});
+      turns.push({round, type:'close', side:'pro', speaker:sp('pro',T-1)});
+    }
+    r++;
+  }
+  return turns;
+}
+
+/* ---------- Rendering: setup ---------- */
+function renderCats(){
+  const el = $('cats'); el.innerHTML = '';
+  for (const c of Object.keys(TOPICS)){
+    const b = document.createElement('button'); b.className='chip'; b.type='button'; b.textContent=c; b.setAttribute('aria-pressed', String(c===state.category));
+    b.onclick = () => { state.category=c; state.motion = TOPICS[c][0]; state.customMotion=false; renderCats(); renderMotions(); };
+    el.appendChild(b);
+  }
+  const s = document.createElement('button'); s.className='chip'; s.type='button'; s.textContent='Surprise me';
+  s.onclick = () => { const cats=Object.keys(TOPICS); state.category=cats[Math.floor(Math.random()*cats.length)]; const m=TOPICS[state.category]; state.motion=m[Math.floor(Math.random()*m.length)]; state.customMotion=false; renderCats(); renderMotions(); };
+  el.appendChild(s);
+}
+function renderMotions(){
+  const el = $('motions'); el.innerHTML = '';
+  for (const m of TOPICS[state.category]){
+    const b = document.createElement('button'); b.className='motion-btn'; b.type='button'; b.textContent=m; b.setAttribute('aria-pressed', String(m===state.motion && !state.customMotion));
+    b.onclick = () => { state.motion=m; state.customMotion=false; renderMotions(); $('customHint').textContent=''; };
+    el.appendChild(b);
+  }
+  $('startHint').textContent = `Motion: ${state.motion}`;
+}
+function podiumHTML(side, editable){
+  const ids = state.sides[side];
+  return `<div class="panel podium ${side}">
+    <div class="side-label">${SIDE_NAME[side]} · argues ${side==='pro'?'for':'against'}</div>
+    ${ids.map((id, i) => { const p = persona(id); return `<div class="speaker">
+      <div class="avatar">${initials(p.name)}</div>
+      <div><div class="name">${esc(p.name)}</div><div class="title">${esc(p.title)}</div></div>
+      ${editable ? `<select aria-label="Choose ${SIDE_NAME[side]} debater ${i+1}" data-side="${side}" data-i="${i}">${PERSONAS.map(q => `<option value="${q.id}" ${q.id===id?'selected':''}>${esc(q.name)} · ${esc(q.title)}</option>`).join('')}</select>` : ''}
+    </div>`; }).join('')}
+  </div>`;
+}
+function renderSetupPodiums(){
+  const el = $('setupPodiums'); el.innerHTML = podiumHTML('pro', true) + podiumHTML('con', true);
+  el.querySelectorAll('select').forEach(s => s.onchange = () => {
+    const side = s.dataset.side, i = Number(s.dataset.i), v = s.value;
+    const used = [...state.sides.pro, ...state.sides.con].filter((x, k) => !(side==='pro' ? k===i : k===state.team+i));
+    if (used.includes(v)) { renderSetupPodiums(); return; }
+    state.sides[side][i] = v;
+  });
+}
+function assignTeams(){
+  const n = state.team; const all = PERSONAS.map(p=>p.id);
+  state.sides.pro = pick(all, n); state.sides.con = pick(all, n, state.sides.pro);
+  state.judges = pick(JUDGES.map(j=>j.id), state.judgeCount);
+  renderSetupPodiums();
+}
+function syncSettingsUI(){
+  $('format').value = state.format; $('team').value = String(state.team); $('length').value = state.length;
+  $('judgeCount').value = String(state.judgeCount); $('tier').value = state.tier; $('voiceOn').checked = !!state.voiceOn;
+}
+
+/* ---------- Rendering: stage ---------- */
+function renderBoard(){
+  const f = state.framing;
+  $('board').innerHTML = `<div class="eyebrow">The motion</div><h2>${esc(state.motion)}</h2>` +
+    (f ? `<p class="framing">${esc(f.framing)}</p>` +
+      ((f.definitions||[]).length ? `<div class="defs">${f.definitions.map(d=>`<span><b>${esc(d.term)}</b>: ${esc(d.meaning)}</span>`).join('')}</div>` : '') +
+      `<div class="burdens"><div class="pro-l"><span>Affirmative must show</span>${esc(f.proMustShow)}</div><div class="con-l"><span>Negative must show</span>${esc(f.conMustShow)}</div></div>` +
+      (f.crux ? `<p class="framing"><strong>Likely crux:</strong> ${esc(f.crux)}</p>` : '')
+    : `<p class="framing">The moderator will frame the motion, define contested terms, and set each side's burden before the first speech.</p>`);
+}
+function renderStagePodiums(){ $('podiums').innerHTML = podiumHTML('pro', false) + podiumHTML('con', false); }
+function renderEmptyFeed(){
+  const rounds = FORMATS[state.format].map(r => ROUND_NAMES[r]);
+  $('feed').innerHTML = `<div class="panel empty"><div class="eyebrow">What happens next</div>
+    <ol><li>The <b>moderator</b> frames the motion and sets each side's burden.</li>
+    ${rounds.map(r => `<li><b>${esc(r)}</b></li>`).join('')}
+    <li>The <b>bench</b> scores both sides on six criteria and names a winner.</li></ol>
+    <div>Speeches appear here as they are written. Each one can be read aloud.</div></div>`;
+}
+function roundMarker(round){ const d = document.createElement('div'); d.className='round-mark'; d.textContent = ROUND_NAMES[round]; return d; }
+function turnCard(t){
+  const card = document.createElement('article'); card.className = `panel turn ${t.side}`;
+  card.innerHTML = `<div class="turn-head"><div class="avatar ${t.side}">${initials(t.speaker.name)}</div>
+    <span class="who">${esc(t.speaker.name)}</span><span class="what">${SIDE_NAME[t.side]} · ${TURN_NAMES[t.type]}${t.target ? ' ' + esc(t.target.name.split(' ').pop()) : ''}</span>
+    <span class="tools"><button class="icon-btn" title="Read aloud" aria-label="Read aloud" data-act="speak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg></button></span></div>
+    <div class="speech thinking">${esc(t.speaker.name.split(' ')[0])} is thinking</div>
+    <div class="turn-foot"></div>`;
+  card.querySelector('[data-act="speak"]').onclick = () => { if (t.text) speakTurn(t, card); };
+  return card;
+}
+function setTurnText(card, t, text, final){
+  const sp = card.querySelector('.speech');
+  sp.classList.remove('thinking'); sp.innerHTML = renderSpeech(text);
+  if (final){ card.querySelector('.turn-foot').innerHTML = `<span>${words(text)} words</span>${t.secs ? `<span>${t.secs}s</span>` : ''}`; }
+}
+function progress(msg){ $('progress').textContent = msg; }
+
+/* ---------- Audio (Web Speech API) ---------- */
+const audio = {voices:[], queue:[], speaking:false, current:null};
+function loadVoices(){ try { audio.voices = window.speechSynthesis ? speechSynthesis.getVoices() : []; } catch { audio.voices = []; } }
+if (window.speechSynthesis){ loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
+function voiceFor(p){
+  const en = audio.voices.filter(v => /^en/i.test(v.lang));
+  const pool = en.length ? en : audio.voices;
+  if (!pool.length) return null;
+  for (const pref of p.voice.pref){ const v = pool.find(x => x.name.toLowerCase().includes(pref.toLowerCase())); if (v) return v; }
+  let h = 0; for (const ch of p.id) h = (h*31 + ch.charCodeAt(0)) >>> 0;
+  return pool[h % pool.length];
+}
+function sentences(text){
+  return String(text).replace(/\*\*/g,'').replace(/\*/g,'').split(/(?<=[.!?])\s+(?=[A-Z0-9"“(])|\n+/).map(s=>s.trim()).filter(Boolean);
+}
+function speakTurn(t, card){
+  if (!window.speechSynthesis){ showStageNotice('This browser has no speech voices.'); return; }
+  stopAudio();
+  enqueueTurn(t, card); pump();
+}
+function enqueueTurn(t, card){
+  const v = voiceFor(t.speaker);
+  const intro = `${t.speaker.name}, ${SIDE_NAME[t.side]}, ${TURN_NAMES[t.type].toLowerCase()}.`;
+  for (const s of [intro, ...sentences(t.text)]){
+    const u = new SpeechSynthesisUtterance(s);
+    if (v) u.voice = v; u.pitch = t.speaker.voice.pitch; u.rate = t.speaker.voice.rate; u.lang = (v && v.lang) || 'en-US';
+    audio.queue.push({u, card});
+  }
+}
+function pump(){
+  if (audio.speaking) return;
+  const next = audio.queue.shift();
+  if (!next){ audio.current && audio.current.querySelector('[data-act="speak"]').setAttribute('aria-pressed','false'); audio.current = null; $('stopAudio').hidden = true; return; }
+  if (audio.current !== next.card){ audio.current && audio.current.querySelector('[data-act="speak"]').setAttribute('aria-pressed','false'); audio.current = next.card; next.card.querySelector('[data-act="speak"]').setAttribute('aria-pressed','true'); }
+  $('stopAudio').hidden = false;
+  audio.speaking = true;
+  next.u.onend = next.u.onerror = () => { audio.speaking = false; pump(); };
+  try { speechSynthesis.speak(next.u); } catch { audio.speaking = false; pump(); }
+}
+function stopAudio(){
+  audio.queue = []; audio.speaking = false;
+  try { speechSynthesis.cancel(); } catch {}
+  if (audio.current){ audio.current.querySelector('[data-act="speak"]').setAttribute('aria-pressed','false'); audio.current = null; }
+  $('stopAudio').hidden = true;
+}
+
+/* ---------- The debate ---------- */
+async function runDebate(){
+  if (backend.mode === 'none'){ showSetupNotice('No backend is connected yet.'); return; }
+  state.running = true; state.ctl = new AbortController(); const signal = state.ctl.signal;
+  state.turns = []; state.ballots = []; state.tally = null; state.framing = null; state.vote = {before:null, after:null};
+  stopAudio();
+  $('setup').hidden = true; $('stage').hidden = false; $('bench').hidden = true; $('ballots').innerHTML=''; $('verdict').innerHTML='';
+  $('stop').hidden = false; $('copy').hidden = true; $('save').hidden = true; $('rematch').hidden = true; $('speakAll').hidden = true; $('afterVotes').hidden = true;
+  document.querySelectorAll('.vote').forEach(b => b.setAttribute('aria-pressed','false')); $('mindchange').textContent = '';
+  showStageNotice('');
+  renderBoard(); renderStagePodiums(); $('feed').innerHTML = '';
+  window.scrollTo({top:0, behavior:'smooth'});
+  const t0 = Date.now();
+  try {
+    progress('The moderator is framing the motion…');
+    const modCard = document.createElement('article'); modCard.className='panel turn mod';
+    modCard.innerHTML = `<div class="turn-head"><div class="avatar mod">M</div><span class="who">Moderator</span><span class="what">Framing</span></div><div class="speech thinking">Reading the motion</div>`;
+    $('feed').appendChild(modCard);
+    try {
+      state.framing = await backend.complete({prompt: framingPrompt(), json:true, signal, tier: state.tier==='complex' ? 'default' : state.tier, effort:'low'});
+    } catch (e) {
+      if (e.code === 'cancelled') throw e;
+      state.framing = {framing:'The moderator was unable to frame the motion; the debaters will define terms themselves.', definitions:[], proMustShow:'That the motion is more true than false.', conMustShow:'That the motion is more false than true.', crux:''};
+    }
+    renderBoard();
+    modCard.querySelector('.speech').classList.remove('thinking');
+    modCard.querySelector('.speech').innerHTML = renderSpeech(`${state.framing.framing}\n\n**Affirmative must show:** ${state.framing.proMustShow}\n\n**Negative must show:** ${state.framing.conMustShow}`);
+
+    const schedule = buildSchedule(); let lastRound = null; let n = 0;
+    for (const t of schedule){
+      n++;
+      if (t.round !== lastRound){ $('feed').appendChild(roundMarker(t.round)); lastRound = t.round; }
+      const card = turnCard(t); $('feed').appendChild(card); state.turns.push(t);
+      progress(`${n} of ${schedule.length}: ${t.speaker.name} (${SIDE_NAME[t.side]}) is thinking…`);
+      card.scrollIntoView({behavior:'smooth', block:'nearest'});
+      const ts = Date.now();
+      const text = await backend.complete({
+        system: debaterSystem(t.speaker, t.side), prompt: debaterPrompt(t), signal, tier: state.tier, effort: state.tier==='complex' ? 'high' : 'medium',
+        onText: ({text}) => { setTurnText(card, t, text, false); progress(`${n} of ${schedule.length}: ${t.speaker.name} is speaking…`); },
+      });
+      t.text = text.trim(); t.secs = Math.round((Date.now()-ts)/1000);
+      setTurnText(card, t, t.text, true);
+      if (state.voiceOn){ enqueueTurn(t, card); pump(); }
+    }
+
+    // Judges
+    $('bench').hidden = false; $('afterVotes').hidden = false;
+    progress('The bench is deliberating…');
+    const judges = state.judges.map(judge);
+    $('ballots').innerHTML = judges.map(j => `<div class="panel ballot" id="ballot-${j.id}"><div class="speaker"><div class="avatar judge">${initials(j.name)}</div><div><div class="name">${esc(j.name)}</div><div class="title">${esc(j.title)}</div></div></div><div class="pending"><span class="eyebrow">Deliberating</span>Reading the full transcript through this judge's lens…</div></div>`).join('');
+    $('bench').scrollIntoView({behavior:'smooth', block:'start'});
+    const results = await Promise.allSettled(judges.map(async (j) => {
+      const el = document.querySelector(`#ballot-${j.id} .pending`);
+      const b = await backend.complete({prompt: judgePrompt(j), json:true, signal, tier: state.tier, effort: 'high',
+        onText: ({text}) => { if (el) el.innerHTML = `<span class="eyebrow">Writing the ballot</span>${text.length.toLocaleString()} characters so far…`; }});
+      return {judge:j, ballot: normalizeBallot(b)};
+    }));
+    const okOnes = [];
+    results.forEach((r, i) => {
+      const j = judges[i];
+      if (r.status === 'fulfilled'){ okOnes.push(r.value); renderBallot(r.value); }
+      else { const code = r.reason && r.reason.code; if (code === 'cancelled') throw r.reason; const el = document.querySelector(`#ballot-${j.id} .pending`); if (el) el.innerHTML = `<span class="eyebrow">No ballot</span>${esc(copyFor(code))}`; }
+    });
+    state.ballots = okOnes;
+    if (okOnes.length){ state.tally = tally(okOnes); renderVerdict(); }
+    else showStageNotice('No judge returned a ballot. You can still read the debate and vote yourself.');
+    const mins = Math.round((Date.now()-t0)/600)/100;
+    progress(`Done in ${mins} minutes.`);
+  } catch (e) {
+    const code = (e && e.code) || 'upstream_error';
+    if (code === 'cancelled') progress('Stopped.');
+    else { progress('Stopped on an error.'); showStageNotice(copyFor(code) + (e && e.message && code !== 'refused' ? ` (${e.message})` : '')); console.error(e); }
+    const unfinished = state.turns.filter(t => !t.text); state.turns = state.turns.filter(t => t.text);
+    unfinished.forEach(() => { const last = $('feed').querySelector('.turn:last-of-type'); if (last && last.querySelector('.speech.thinking')) last.remove(); });
+  } finally {
+    state.running = false; state.ctl = null; $('stop').hidden = true;
+    if (state.turns.length){ $('copy').hidden = false; $('save').hidden = !(downloadsCap || backend.mode==='local'); $('rematch').hidden = false; $('speakAll').hidden = !window.speechSynthesis; }
+  }
+}
+
+function normalizeBallot(b){
+  const n = (v) => { v = Math.round(Number(v)); return Number.isFinite(v) ? Math.min(10, Math.max(1, v)) : 5; };
+  const sc = {pro:{}, con:{}};
+  for (const s of ['pro','con']) for (const c of CRITERIA) sc[s][c.id] = n(b && b.scores && b.scores[s] && b.scores[s][c.id]);
+  const tot = (s) => Object.values(sc[s]).reduce((a,x)=>a+x,0);
+  let winner = (b && (b.winner==='pro' || b.winner==='con')) ? b.winner : (tot('pro') >= tot('con') ? 'pro' : 'con');
+  const side = (v) => (v==='pro'||v==='con') ? v : null;
+  const moment = (m) => m && typeof m === 'object' ? {side: side(m.side), quote: String(m.quote||''), why: String(m.why||'')} : null;
+  return {
+    scores: sc, winner, margin: ['narrow','clear','decisive'].includes(b && b.margin) ? b.margin : 'narrow',
+    oneLine: String((b && b.oneLine) || ''), reasoning: String((b && b.reasoning) || ''),
+    bestMoment: moment(b && b.bestMoment), weakestMoment: moment(b && b.weakestMoment),
+    dropped: Array.isArray(b && b.dropped) ? b.dropped.filter(d => d && side(d.side) && d.argument).map(d => ({side:d.side, argument:String(d.argument)})) : [],
+    fallacies: Array.isArray(b && b.fallacies) ? b.fallacies.filter(f => f && side(f.side) && f.name).map(f => ({side:f.side, name:String(f.name), where:String(f.where||'')})) : [],
+    advice: {pro: String((b && b.advice && b.advice.pro) || ''), con: String((b && b.advice && b.advice.con) || '')},
+  };
+}
+function tally(ballots){
+  const avg = {pro:{}, con:{}}; const totals = {pro:0, con:0};
+  for (const s of ['pro','con']) for (const c of CRITERIA){ const v = ballots.reduce((a,b)=>a+b.ballot.scores[s][c.id],0)/ballots.length; avg[s][c.id] = v; totals[s] += v; }
+  const votes = {pro: ballots.filter(b=>b.ballot.winner==='pro').length, con: ballots.filter(b=>b.ballot.winner==='con').length};
+  let winner = votes.pro > votes.con ? 'pro' : votes.con > votes.pro ? 'con' : (totals.pro >= totals.con ? 'pro' : 'con');
+  return {avg, totals, votes, winner, split: votes.pro && votes.con};
+}
+function renderBallot({judge:j, ballot:b}){
+  const el = $(`ballot-${j.id}`); if (!el) return;
+  const row = (c) => `<tr><td>${esc(c.name)}</td><td class="pro-c">${b.scores.pro[c.id]}</td><td class="con-c">${b.scores.con[c.id]}</td></tr>`;
+  const tot = (s) => Object.values(b.scores[s]).reduce((a,x)=>a+x,0);
+  const mom = (label, m) => m && m.quote ? `<div class="moment"><span class="eyebrow">${label} · ${SIDE_NAME[m.side]||''}</span><q>${esc(m.quote)}</q><span>${esc(m.why)}</span></div>` : '';
+  el.innerHTML = `<div class="speaker"><div class="avatar judge">${initials(j.name)}</div><div><div class="name">${esc(j.name)}</div><div class="title">${esc(j.title)}</div></div></div>
+    <div><span class="win ${b.winner}">${SIDE_NAME[b.winner]} wins · ${esc(b.margin)}</span></div>
+    ${b.oneLine ? `<p><strong>${esc(b.oneLine)}</strong></p>` : ''}
+    <table><thead><tr><th>Criterion</th><th class="pro-c">Aff</th><th class="con-c">Neg</th></tr></thead><tbody>${CRITERIA.map(row).join('')}<tr><td><strong>Total</strong></td><td class="pro-c"><strong>${tot('pro')}</strong></td><td class="con-c"><strong>${tot('con')}</strong></td></tr></tbody></table>
+    ${b.reasoning ? `<p>${esc(b.reasoning)}</p>` : ''}
+    ${mom('Best moment', b.bestMoment)}${mom('Weakest moment', b.weakestMoment)}
+    ${b.dropped.length ? `<details class="flow"><summary>Dropped arguments (${b.dropped.length})</summary><ul>${b.dropped.map(d=>`<li><strong>${SIDE_NAME[d.side]}</strong> never answered: ${esc(d.argument)}</li>`).join('')}</ul></details>` : ''}
+    ${b.fallacies.length ? `<details class="flow"><summary>Weak moves and fallacies (${b.fallacies.length})</summary><ul>${b.fallacies.map(f=>`<li><strong>${SIDE_NAME[f.side]}</strong>, ${esc(f.name)}${f.where ? `: <q>${esc(f.where)}</q>` : ''}</li>`).join('')}</ul></details>` : ''}
+    ${(b.advice.pro || b.advice.con) ? `<details class="flow"><summary>Coaching notes</summary><ul>${b.advice.pro ? `<li><strong>Affirmative:</strong> ${esc(b.advice.pro)}</li>` : ''}${b.advice.con ? `<li><strong>Negative:</strong> ${esc(b.advice.con)}</li>` : ''}</ul></details>` : ''}`;
+}
+function renderVerdict(){
+  const t = state.tally; if (!t) return;
+  const w = t.winner; const n = state.ballots.length;
+  const names = state.sides[w].map(id => persona(id).name).join(' and ');
+  const bar = (c) => `<div class="crit"><span class="cname">${esc(c.name)}</span><div class="bar l"><i style="width:${t.avg.pro[c.id]*10}%"></i></div><span class="mid">${t.avg.pro[c.id].toFixed(1)} · ${t.avg.con[c.id].toFixed(1)}</span><div class="bar r"><i style="width:${t.avg.con[c.id]*10}%"></i></div></div>`;
+  $('verdict').innerHTML = `<div class="verdict"><div class="eyebrow">Decision of the bench</div>
+    <h3 class="${w}-t">${SIDE_NAME[w]} wins, ${t.votes[w]} to ${t.votes[w==='pro'?'con':'pro']}${t.split ? ', a split decision' : n>1 ? ', unanimous' : ''}</h3>
+    <div class="line">${esc(names)} carried the ${w==='pro'?'affirmative':'negative'} of "${esc(state.motion)}".</div>
+    <div class="scoreline"><div class="l"><div class="num">${t.totals.pro.toFixed(1)}</div>Affirmative · of 60</div><div class="mid">average ballot</div><div class="r"><div class="num">${t.totals.con.toFixed(1)}</div>Negative · of 60</div></div>
+    <div class="tally">${CRITERIA.map(bar).join('')}</div></div>`;
+}
+
+/* ---------- Export ---------- */
+function transcriptMarkdown(){
+  const lines = [`# ${state.motion}`, '', `*Steelman Arena · ${new Date().toLocaleString()}*`, ''];
+  lines.push(`**Affirmative:** ${state.sides.pro.map(id=>{const p=persona(id);return `${p.name} (${p.title})`}).join(', ')}`);
+  lines.push(`**Negative:** ${state.sides.con.map(id=>{const p=persona(id);return `${p.name} (${p.title})`}).join(', ')}`, '');
+  if (state.framing){ lines.push('## Moderator', '', state.framing.framing, '', `- Affirmative must show: ${state.framing.proMustShow}`, `- Negative must show: ${state.framing.conMustShow}`, state.framing.crux ? `- Likely crux: ${state.framing.crux}` : '', ''); }
+  let lastRound = null;
+  for (const t of state.turns){ if (t.round !== lastRound){ lines.push(`## ${ROUND_NAMES[t.round]}`, ''); lastRound = t.round; } lines.push(`### ${t.speaker.name} (${SIDE_NAME[t.side]}) · ${TURN_NAMES[t.type]}${t.target ? ' ' + t.target.name : ''}`, '', t.text, ''); }
+  if (state.ballots.length){
+    lines.push('## The bench', '');
+    if (state.tally){ const t = state.tally; lines.push(`**Decision:** ${SIDE_NAME[t.winner]} wins, ${t.votes[t.winner]} to ${t.votes[t.winner==='pro'?'con':'pro']}. Average ballot: Affirmative ${t.totals.pro.toFixed(1)}, Negative ${t.totals.con.toFixed(1)} (of 60).`, ''); }
+    for (const {judge:j, ballot:b} of state.ballots){
+      lines.push(`### ${j.name}, ${j.title}: ${SIDE_NAME[b.winner]} (${b.margin})`, '', b.oneLine, '', b.reasoning, '');
+      lines.push('| Criterion | Aff | Neg |', '|---|---|---|'); for (const c of CRITERIA) lines.push(`| ${c.name} | ${b.scores.pro[c.id]} | ${b.scores.con[c.id]} |`); lines.push('');
+      if (b.bestMoment && b.bestMoment.quote) lines.push(`- Best moment (${SIDE_NAME[b.bestMoment.side]}): "${b.bestMoment.quote}" — ${b.bestMoment.why}`);
+      if (b.weakestMoment && b.weakestMoment.quote) lines.push(`- Weakest moment (${SIDE_NAME[b.weakestMoment.side]}): "${b.weakestMoment.quote}" — ${b.weakestMoment.why}`);
+      for (const d of b.dropped) lines.push(`- Dropped by ${SIDE_NAME[d.side]}: ${d.argument}`);
+      for (const f of b.fallacies) lines.push(`- Weak move by ${SIDE_NAME[f.side]}: ${f.name}${f.where ? ` (${f.where})` : ''}`);
+      lines.push('');
+    }
+  }
+  if (state.vote.before || state.vote.after) lines.push(`## Your vote`, '', `Before: ${state.vote.before || 'none'} · After: ${state.vote.after || 'none'}`, '');
+  return lines.filter(l => l !== undefined).join('\n');
+}
+async function copyTranscript(){
+  const md = transcriptMarkdown();
+  try { await navigator.clipboard.writeText(md); progress('Transcript copied.'); }
+  catch {
+    const ta = document.createElement('textarea'); ta.value = md; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); progress('Transcript copied.'); } catch { progress('Select the text and copy it manually.'); }
+    ta.remove();
+  }
+}
+async function saveTranscript(){
+  const md = transcriptMarkdown(); const filename = `debate-${state.motion.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,60)}.md`;
+  if (downloadsCap){ try { await downloadsCap.save({filename, data: md}); progress('Saved.'); } catch (e) { progress(e && e.code === 'cancelled' ? 'Save cancelled.' : 'Could not save.'); } return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([md], {type:'text/markdown'})); a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ---------- Wiring ---------- */
+function wire(){
+  $('format').onchange = (e) => { state.format = e.target.value; save(); };
+  $('team').onchange = (e) => { state.team = Number(e.target.value); save(); assignTeams(); };
+  $('length').onchange = (e) => { state.length = e.target.value; save(); };
+  $('judgeCount').onchange = (e) => { state.judgeCount = Number(e.target.value); state.judges = pick(JUDGES.map(j=>j.id), state.judgeCount); save(); };
+  $('tier').onchange = (e) => { state.tier = e.target.value; save(); };
+  $('voiceOn').onchange = (e) => { state.voiceOn = e.target.checked; save(); if (state.voiceOn && window.speechSynthesis){ try { speechSynthesis.cancel(); } catch {} } };
+  $('shuffle').onclick = () => assignTeams();
+  $('useCustom').onclick = () => { const v = $('customMotion').value.trim(); if (!v) return; state.motion = v; state.customMotion = true; renderMotions(); $('customHint').textContent = 'Custom motion set.'; };
+  $('sharpen').onclick = async () => {
+    const v = $('customMotion').value.trim(); if (!v) return;
+    if (backend.mode === 'none'){ showSetupNotice('No backend is connected yet.'); return; }
+    $('sharpen').disabled = true; $('customHint').textContent = 'Sharpening…';
+    try {
+      const r = await backend.complete({prompt: sharpenPrompt(v), json:true, tier:'quick', effort:'low'});
+      if (r && r.motion){ $('customMotion').value = r.motion; state.motion = r.motion; state.customMotion = true; if (TOPICS[r.category]) state.category = r.category; renderCats(); renderMotions(); $('customHint').textContent = 'Sharpened and set as the motion.'; }
+    } catch (e) { $('customHint').textContent = copyFor(e && e.code); }
+    finally { $('sharpen').disabled = false; }
+  };
+  $('start').onclick = () => { if (!state.running) runDebate(); };
+  $('stop').onclick = () => { if (state.ctl) state.ctl.abort(); };
+  $('newDebate').onclick = () => { if (state.ctl) state.ctl.abort(); stopAudio(); $('stage').hidden = true; $('setup').hidden = false; window.scrollTo({top:0}); };
+  $('rematch').onclick = () => { const p = state.sides.pro; state.sides.pro = state.sides.con; state.sides.con = p; renderSetupPodiums(); runDebate(); };
+  $('copy').onclick = copyTranscript;
+  $('save').onclick = saveTranscript;
+  $('stopAudio').onclick = stopAudio;
+  $('speakAll').onclick = () => { stopAudio(); const cards = [...$('feed').querySelectorAll('.turn:not(.mod)')]; state.turns.forEach((t, i) => { if (t.text && cards[i]) enqueueTurn(t, cards[i]); }); pump(); };
+  document.querySelectorAll('.vote').forEach(b => b.onclick = () => {
+    const when = b.dataset.when, v = b.dataset.v; state.vote[when] = v;
+    document.querySelectorAll(`.vote[data-when="${when}"]`).forEach(x => x.setAttribute('aria-pressed', String(x===b)));
+    const {before, after} = state.vote;
+    if (before && after){
+      $('mindchange').textContent = before === after ? `You held your ground: ${SIDE_NAME[after] || 'undecided'} before and after.` :
+        after === 'undecided' ? `The debate unsettled you: from ${SIDE_NAME[before]} to undecided.` :
+        before === 'undecided' ? `The debate moved you off the fence to the ${SIDE_NAME[after]}.` :
+        `You changed your mind: from ${SIDE_NAME[before]} to ${SIDE_NAME[after]}.`;
+    }
+  });
+}
+
+load(); syncSettingsUI(); renderCats(); renderMotions(); assignTeams(); wire(); renderEmptyFeed();
+initBackend();
+})();
+</script>
