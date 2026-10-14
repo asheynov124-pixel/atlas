@@ -1,0 +1,556 @@
+{
+  "dataset": "Murder Accountability Project, Supplementary Homicide Report 1980–2014 (638,454 homicides)",
+  "method": "Female victims grouped by county and weapon; flagged when victims >= 6 and solved share <= 1/3; lens = full 35 years",
+  "thresholds": {
+    "minVictims": 6,
+    "maxSolvedShare": 0.3333
+  },
+  "totals": {
+    "femaleVictims": 143345,
+    "femaleUnsolved": 33076,
+    "flagged": 54,
+    "flaggedNoGun": 53
+  },
+  "clusters": [
+    {
+      "county": "Wayne",
+      "state": "MI",
+      "weapon": "Strangulation",
+      "victims": 179,
+      "solved": 58,
+      "firstYear": 1980,
+      "lastYear": 2003,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "Fulton",
+      "state": "GA",
+      "weapon": "Strangulation",
+      "victims": 115,
+      "solved": 27,
+      "firstYear": 1980,
+      "lastYear": 2014,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "King",
+      "state": "WA",
+      "weapon": "Other/unknown",
+      "victims": 95,
+      "solved": 22,
+      "firstYear": 1980,
+      "lastYear": 2014,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "St. Louis city",
+      "state": "MO",
+      "weapon": "Other/unknown",
+      "victims": 100,
+      "solved": 32,
+      "firstYear": 1980,
+      "lastYear": 2013,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Prince George's",
+      "state": "MD",
+      "weapon": "Other/unknown",
+      "victims": 70,
+      "solved": 23,
+      "firstYear": 1980,
+      "lastYear": 2012,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Jackson",
+      "state": "MO",
+      "weapon": "Strangulation",
+      "victims": 65,
+      "solved": 20,
+      "firstYear": 1980,
+      "lastYear": 2012,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "District of Columbia",
+      "state": "DC",
+      "weapon": "Strangulation",
+      "victims": 59,
+      "solved": 14,
+      "firstYear": 1980,
+      "lastYear": 2014,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "Suffolk",
+      "state": "NY",
+      "weapon": "Other/unknown",
+      "victims": 41,
+      "solved": 13,
+      "firstYear": 1980,
+      "lastYear": 2014,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Dade",
+      "state": "FL",
+      "weapon": "Strangulation",
+      "victims": 28,
+      "solved": 7,
+      "firstYear": 1980,
+      "lastYear": 1987,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "Orleans",
+      "state": "LA",
+      "weapon": "Strangulation",
+      "victims": 25,
+      "solved": 5,
+      "firstYear": 1980,
+      "lastYear": 2010,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "Nassau",
+      "state": "NY",
+      "weapon": "Other/unknown",
+      "victims": 28,
+      "solved": 9,
+      "firstYear": 1980,
+      "lastYear": 2014,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "District of Columbia",
+      "state": "DC",
+      "weapon": "Suffocation",
+      "victims": 23,
+      "solved": 7,
+      "firstYear": 1981,
+      "lastYear": 2014,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "Marion",
+      "state": "FL",
+      "weapon": "Other/unknown",
+      "victims": 22,
+      "solved": 7,
+      "firstYear": 1980,
+      "lastYear": 2014,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Hidalgo",
+      "state": "TX",
+      "weapon": "Other/unknown",
+      "victims": 22,
+      "solved": 7,
+      "firstYear": 1981,
+      "lastYear": 2012,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Broward",
+      "state": "FL",
+      "weapon": "Strangulation",
+      "victims": 19,
+      "solved": 4,
+      "firstYear": 1981,
+      "lastYear": 1987,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "St. Lucie",
+      "state": "FL",
+      "weapon": "Other/unknown",
+      "victims": 20,
+      "solved": 6,
+      "firstYear": 1980,
+      "lastYear": 2003,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Anchorage",
+      "state": "AK",
+      "weapon": "Other/unknown",
+      "victims": 18,
+      "solved": 5,
+      "firstYear": 1980,
+      "lastYear": 2013,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Hartford",
+      "state": "CT",
+      "weapon": "Strangulation",
+      "victims": 18,
+      "solved": 5,
+      "firstYear": 1982,
+      "lastYear": 2003,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "Galveston",
+      "state": "TX",
+      "weapon": "Other/unknown",
+      "victims": 17,
+      "solved": 4,
+      "firstYear": 1984,
+      "lastYear": 2009,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Lake",
+      "state": "IN",
+      "weapon": "Fire",
+      "victims": 17,
+      "solved": 5,
+      "firstYear": 1980,
+      "lastYear": 2012,
+      "weaponClass": "other_named"
+    },
+    {
+      "county": "Fort Bend",
+      "state": "TX",
+      "weapon": "Other/unknown",
+      "victims": 15,
+      "solved": 3,
+      "firstYear": 1983,
+      "lastYear": 2014,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Collier",
+      "state": "FL",
+      "weapon": "Other/unknown",
+      "victims": 16,
+      "solved": 5,
+      "firstYear": 1981,
+      "lastYear": 2006,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "St. Clair",
+      "state": "IL",
+      "weapon": "Other/unknown",
+      "victims": 14,
+      "solved": 4,
+      "firstYear": 1980,
+      "lastYear": 1991,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Fulton",
+      "state": "GA",
+      "weapon": "Suffocation",
+      "victims": 13,
+      "solved": 3,
+      "firstYear": 1981,
+      "lastYear": 2006,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "Putnam",
+      "state": "FL",
+      "weapon": "Other/unknown",
+      "victims": 13,
+      "solved": 4,
+      "firstYear": 1992,
+      "lastYear": 2007,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Salt Lake",
+      "state": "UT",
+      "weapon": "Strangulation",
+      "victims": 13,
+      "solved": 4,
+      "firstYear": 1980,
+      "lastYear": 2002,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "Richmond",
+      "state": "VA",
+      "weapon": "Strangulation",
+      "victims": 11,
+      "solved": 2,
+      "firstYear": 1981,
+      "lastYear": 1996,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "Snohomish",
+      "state": "WA",
+      "weapon": "Other/unknown",
+      "victims": 11,
+      "solved": 2,
+      "firstYear": 1980,
+      "lastYear": 2004,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Genesee",
+      "state": "MI",
+      "weapon": "Strangulation",
+      "victims": 11,
+      "solved": 3,
+      "firstYear": 1980,
+      "lastYear": 1999,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "Clark",
+      "state": "OH",
+      "weapon": "Other/unknown",
+      "victims": 11,
+      "solved": 3,
+      "firstYear": 1982,
+      "lastYear": 2013,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "McLennan",
+      "state": "TX",
+      "weapon": "Other/unknown",
+      "victims": 11,
+      "solved": 3,
+      "firstYear": 1982,
+      "lastYear": 2007,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Pinal",
+      "state": "AZ",
+      "weapon": "Other/unknown",
+      "victims": 10,
+      "solved": 2,
+      "firstYear": 1982,
+      "lastYear": 2013,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Washington",
+      "state": "OR",
+      "weapon": "Other/unknown",
+      "victims": 10,
+      "solved": 2,
+      "firstYear": 1985,
+      "lastYear": 2001,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Montgomery",
+      "state": "OH",
+      "weapon": "Strangulation",
+      "victims": 10,
+      "solved": 3,
+      "firstYear": 1981,
+      "lastYear": 2002,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "Atlantic",
+      "state": "NJ",
+      "weapon": "Other/unknown",
+      "victims": 9,
+      "solved": 2,
+      "firstYear": 1981,
+      "lastYear": 2014,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Frederick",
+      "state": "MD",
+      "weapon": "Other/unknown",
+      "victims": 8,
+      "solved": 1,
+      "firstYear": 1981,
+      "lastYear": 2007,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "San Mateo",
+      "state": "CA",
+      "weapon": "Fire",
+      "victims": 7,
+      "solved": 0,
+      "firstYear": 1997,
+      "lastYear": 1998,
+      "weaponClass": "other_named"
+    },
+    {
+      "county": "Worcester",
+      "state": "MA",
+      "weapon": "Strangulation",
+      "victims": 8,
+      "solved": 2,
+      "firstYear": 1980,
+      "lastYear": 1996,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "Berrien",
+      "state": "MI",
+      "weapon": "Other/unknown",
+      "victims": 8,
+      "solved": 2,
+      "firstYear": 1990,
+      "lastYear": 2010,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Racine",
+      "state": "WI",
+      "weapon": "Other/unknown",
+      "victims": 8,
+      "solved": 2,
+      "firstYear": 1983,
+      "lastYear": 2010,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Kaufman",
+      "state": "TX",
+      "weapon": "Other/unknown",
+      "victims": 7,
+      "solved": 1,
+      "firstYear": 1991,
+      "lastYear": 2014,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Plymouth",
+      "state": "MA",
+      "weapon": "Strangulation",
+      "victims": 6,
+      "solved": 0,
+      "firstYear": 1980,
+      "lastYear": 1993,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "Pulaski",
+      "state": "MO",
+      "weapon": "Other/unknown",
+      "victims": 6,
+      "solved": 0,
+      "firstYear": 2001,
+      "lastYear": 2014,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Polk",
+      "state": "FL",
+      "weapon": "Strangulation",
+      "victims": 7,
+      "solved": 2,
+      "firstYear": 1980,
+      "lastYear": 1987,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "De Kalb",
+      "state": "GA",
+      "weapon": "Suffocation",
+      "victims": 7,
+      "solved": 2,
+      "firstYear": 1989,
+      "lastYear": 2014,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "Glynn",
+      "state": "GA",
+      "weapon": "Other/unknown",
+      "victims": 7,
+      "solved": 2,
+      "firstYear": 1982,
+      "lastYear": 2014,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Oldham",
+      "state": "KY",
+      "weapon": "Firearm",
+      "victims": 7,
+      "solved": 2,
+      "firstYear": 1980,
+      "lastYear": 2007,
+      "weaponClass": "other_named"
+    },
+    {
+      "county": "Edgecombe",
+      "state": "NC",
+      "weapon": "Other/unknown",
+      "victims": 7,
+      "solved": 2,
+      "firstYear": 1991,
+      "lastYear": 2010,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Clark",
+      "state": "WA",
+      "weapon": "Strangulation",
+      "victims": 7,
+      "solved": 2,
+      "firstYear": 1982,
+      "lastYear": 1998,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "Humboldt",
+      "state": "CA",
+      "weapon": "Strangulation",
+      "victims": 6,
+      "solved": 1,
+      "firstYear": 1984,
+      "lastYear": 1998,
+      "weaponClass": "strangulation_or_suffocation"
+    },
+    {
+      "county": "Floyd",
+      "state": "GA",
+      "weapon": "Other/unknown",
+      "victims": 6,
+      "solved": 1,
+      "firstYear": 1985,
+      "lastYear": 2013,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Harford",
+      "state": "MD",
+      "weapon": "Other/unknown",
+      "victims": 6,
+      "solved": 1,
+      "firstYear": 1988,
+      "lastYear": 2007,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Vance",
+      "state": "NC",
+      "weapon": "Other/unknown",
+      "victims": 6,
+      "solved": 1,
+      "firstYear": 1998,
+      "lastYear": 2014,
+      "weaponClass": "other_unknown"
+    },
+    {
+      "county": "Knox",
+      "state": "TN",
+      "weapon": "Strangulation",
+      "victims": 6,
+      "solved": 1,
+      "firstYear": 1985,
+      "lastYear": 1999,
+      "weaponClass": "strangulation_or_suffocation"
+    }
+  ]
+}

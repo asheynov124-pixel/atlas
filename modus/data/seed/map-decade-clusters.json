@@ -1,0 +1,113 @@
+{
+  "lens": "by decade (top 12 by victims)",
+  "rows": [
+    {
+      "county": "New York County",
+      "state": "NY",
+      "weapon": "Other/unknown",
+      "decade": 1990,
+      "victims": 224,
+      "solved": 73,
+      "note": null
+    },
+    {
+      "county": "Dade",
+      "state": "FL",
+      "weapon": "Other/unknown",
+      "decade": 1980,
+      "victims": 80,
+      "solved": 16,
+      "note": null
+    },
+    {
+      "county": "Wayne",
+      "state": "MI",
+      "weapon": "Strangulation",
+      "decade": 1980,
+      "victims": 87,
+      "solved": 25,
+      "note": null
+    },
+    {
+      "county": "King",
+      "state": "WA",
+      "weapon": "Other/unknown",
+      "decade": 1980,
+      "victims": 47,
+      "solved": 6,
+      "note": "Green River years. MAP says Ridgway's victims were coded with weapon other/unknown."
+    },
+    {
+      "county": "Dallas",
+      "state": "TX",
+      "weapon": "Other/unknown",
+      "decade": 1980,
+      "victims": 56,
+      "solved": 16,
+      "note": null
+    },
+    {
+      "county": "Fulton",
+      "state": "GA",
+      "weapon": "Strangulation",
+      "decade": 1990,
+      "victims": 43,
+      "solved": 6,
+      "note": null
+    },
+    {
+      "county": "Cook",
+      "state": "IL",
+      "weapon": "Strangulation",
+      "decade": 2000,
+      "victims": 47,
+      "solved": 12,
+      "note": "Overlaps MAP's 2019 report of 51 strangled women in Chicago."
+    },
+    {
+      "county": "Fulton",
+      "state": "GA",
+      "weapon": "Strangulation",
+      "decade": 1980,
+      "victims": 45,
+      "solved": 10,
+      "note": null
+    },
+    {
+      "county": "Hillsborough",
+      "state": "FL",
+      "weapon": "Other/unknown",
+      "decade": 1980,
+      "victims": 39,
+      "solved": 4,
+      "note": null
+    },
+    {
+      "county": "St. Louis city",
+      "state": "MO",
+      "weapon": "Other/unknown",
+      "decade": 1990,
+      "victims": 47,
+      "solved": 15,
+      "note": null
+    },
+    {
+      "county": "Jackson",
+      "state": "MO",
+      "weapon": "Strangulation",
+      "decade": 1980,
+      "victims": 37,
+      "solved": 6,
+      "note": "Kansas City. Lorenzo Gilyard's convictions date to 1977–93."
+    },
+    {
+      "county": "Milwaukee",
+      "state": "WI",
+      "weapon": "Other/unknown",
+      "decade": 1990,
+      "victims": 35,
+      "solved": 8,
+      "note": null
+    }
+  ]
+}

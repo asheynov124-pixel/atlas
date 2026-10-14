@@ -1,0 +1,116 @@
+{
+  "slug": "gary-ridgway",
+  "name": "Gary Leon Ridgway",
+  "alias": "The Green River Killer",
+  "caption": "State of Washington v. Gary Leon Ridgway · King County Superior Court No. 01-1-10270-9 SEA",
+  "caseNumber": "01-1-10270-9 SEA",
+  "court": "King County Superior Court",
+  "lede": "A truck painter at the Kenworth plant for thirty years, Ridgway pleaded guilty in 2003 to 48 counts of aggravated first-degree murder and in 2011 to a 49th. His victims were women and girls, many of them last seen on Pacific Highway South. He was questioned in 1983 and passed a polygraph in 1984. A saliva sample taken from him in 1987 matched three victims in 2001, once the science caught up. The plea traded his cooperation for his life, and 40 of the 49 convictions rest on his own confession and knowledge of the sites.",
+  "vitals": [
+    {
+      "k": "Born",
+      "v": "February 18, 1949 · Salt Lake City, Utah"
+    },
+    {
+      "k": "Employer",
+      "v": "Kenworth Truck Co., painter, Aug 1971 – Nov 2001"
+    },
+    {
+      "k": "Arrested",
+      "v": "November 30, 2001, leaving the Renton plant"
+    },
+    {
+      "k": "Charged",
+      "v": "December 5, 2001 · four counts"
+    },
+    {
+      "k": "Pleaded",
+      "v": "November 5, 2003 (48) · February 18, 2011 (1)"
+    },
+    {
+      "k": "Sentence",
+      "v": "49 consecutive life terms without parole"
+    },
+    {
+      "k": "Judges",
+      "v": "Richard A. Jones (2003) · Mary E. Roberts (2011)"
+    },
+    {
+      "k": "Prosecutor",
+      "v": "Norm Maleng, King County"
+    },
+    {
+      "k": "Held at",
+      "v": "Washington State Penitentiary, Walla Walla"
+    }
+  ],
+  "chain": [
+    {
+      "y": "1983",
+      "h": "Questioned",
+      "t": "Des Moines police question him after Marie Malvar’s boyfriend identifies his truck. He denies contact.",
+      "key": false
+    },
+    {
+      "y": "1984",
+      "h": "Polygraph passed",
+      "t": "He contacts the task force himself, is interviewed, and passes a polygraph.",
+      "key": false
+    },
+    {
+      "y": "1987",
+      "h": "Sample taken",
+      "t": "April 8 search warrant on his home, locker and vehicles. A saliva sample is collected.",
+      "key": true
+    },
+    {
+      "y": "1988",
+      "h": "Science not ready",
+      "t": "A private lab cannot obtain DNA profiles from the victims’ evidence.",
+      "key": false
+    },
+    {
+      "y": "2001",
+      "h": "The match",
+      "t": "WSP Crime Lab STR typing ties him to Chapman, Mills and Christensen in September.",
+      "key": true
+    },
+    {
+      "y": "2001",
+      "h": "Arrest",
+      "t": "November 30, leaving the Kenworth plant in Renton. Charged with four counts.",
+      "key": false
+    },
+    {
+      "y": "2003",
+      "h": "Paint & plea",
+      "t": "Kenworth’s Imron paint found on two victims’ clothing. He trades cooperation for his life.",
+      "key": false
+    }
+  ],
+  "countNarratives": {
+    "I": {
+      "establishes": [
+        "Last seen July 8, 1982. Her body was found July 15, 1982 in the Green River near the Peck Bridge in Kent, the first of the series.",
+        "The ligature was a pair of jeans. In 2003 Microtrace (Skip Palenik) found sprayed DuPont Imron paint spheres on them.",
+        "Imron was the paint used at the Kenworth truck plant, where Ridgway worked as a painter from August 1971 until his arrest.",
+        "The paint finding came in March 2003, before the court's March 28 charging deadline. Counts for Coffield, Bonner and Estes were added on March 27, 2003.",
+        "He pleaded guilty to the count on November 5, 2003."
+      ]
+    },
+    "XLVII": {
+      "establishes": [
+        "The medical examiner had ruled the death an overdose, and hair DNA excluded Ridgway. The conviction rests on the confession alone."
+      ]
+    }
+  },
+  "mapNote": "Forty-seven of the 49 were recovered in King County or just over the line in Pierce County, most in the south-county corridor and along SR 18, SR 410 and I-90.",
+  "offMapNote": "2 victims (Bush, Sherrill). Ridgway moved their remains to Tigard, Oregon in spring 1984 to mislead the task force.",
+  "mapStat": {
+    "label": "King County · female · weapon \"other/unknown\" · 1980s",
+    "solved": 6,
+    "victims": 47,
+    "usFemaleClearance": 76.9,
+    "source": "MAP SHR 1980–2014"
+  }
+}

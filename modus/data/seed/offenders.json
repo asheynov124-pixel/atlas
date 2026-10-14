@@ -1,0 +1,770 @@
+[
+  {
+    "slug": "gary-ridgway",
+    "name": "Gary Ridgway",
+    "alias": "Green River Killer",
+    "legalStatus": "guilty_plea",
+    "courtProvenCount": 49,
+    "attributedCount": 71,
+    "firstKillingYear": 1982,
+    "lastKillingYear": 1998,
+    "caughtYear": 2001,
+    "states": [
+      "WA"
+    ],
+    "statesNote": null,
+    "methods": [
+      "strangulation"
+    ],
+    "victimology": "Sex workers and runaway girls and young women",
+    "howCaught": "forensic_science",
+    "howCaughtText": "DNA re-test of a 1987 saliva sample",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "ted-bundy",
+    "name": "Ted Bundy",
+    "alias": null,
+    "legalStatus": "convicted",
+    "courtProvenCount": 3,
+    "attributedCount": 30,
+    "firstKillingYear": 1974,
+    "lastKillingYear": 1978,
+    "caughtYear": 1978,
+    "states": [
+      "WA",
+      "OR",
+      "UT",
+      "CO",
+      "ID",
+      "FL"
+    ],
+    "statesNote": null,
+    "methods": [
+      "blunt force",
+      "strangulation"
+    ],
+    "victimology": "Young women and girls, mostly college-age",
+    "howCaught": "traffic_stop",
+    "howCaughtText": "Stopped in a stolen VW, Pensacola",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "john-wayne-gacy",
+    "name": "John Wayne Gacy",
+    "alias": null,
+    "legalStatus": "convicted",
+    "courtProvenCount": 33,
+    "attributedCount": 33,
+    "firstKillingYear": 1972,
+    "lastKillingYear": 1978,
+    "caughtYear": 1978,
+    "states": [
+      "IL"
+    ],
+    "statesNote": null,
+    "methods": [
+      "strangulation"
+    ],
+    "victimology": "Teenage boys and young men",
+    "howCaught": "investigation",
+    "howCaughtText": "Missing-person case of Robert Piest",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "jeffrey-dahmer",
+    "name": "Jeffrey Dahmer",
+    "alias": null,
+    "legalStatus": "convicted",
+    "courtProvenCount": 16,
+    "attributedCount": 17,
+    "firstKillingYear": 1978,
+    "lastKillingYear": 1991,
+    "caughtYear": 1991,
+    "states": [
+      "WI",
+      "OH"
+    ],
+    "statesNote": null,
+    "methods": [
+      "strangulation"
+    ],
+    "victimology": "Young men and boys",
+    "howCaught": "survivor_or_witness",
+    "howCaughtText": "Tracy Edwards escaped and flagged police",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "joseph-james-deangelo",
+    "name": "Joseph James DeAngelo",
+    "alias": "Golden State Killer",
+    "legalStatus": "guilty_plea",
+    "courtProvenCount": 13,
+    "attributedCount": 13,
+    "firstKillingYear": 1975,
+    "lastKillingYear": 1986,
+    "caughtYear": 2018,
+    "states": [
+      "CA"
+    ],
+    "statesNote": null,
+    "methods": [
+      "firearm",
+      "blunt force"
+    ],
+    "victimology": "Couples and women in suburban homes",
+    "howCaught": "forensic_science",
+    "howCaughtText": "Genetic genealogy (GEDmatch)",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "samuel-little",
+    "name": "Samuel Little",
+    "alias": null,
+    "legalStatus": "convicted",
+    "courtProvenCount": 8,
+    "attributedCount": 93,
+    "firstKillingYear": 1970,
+    "lastKillingYear": 2005,
+    "caughtYear": 2012,
+    "states": [],
+    "statesNote": "15 states",
+    "methods": [
+      "strangulation"
+    ],
+    "victimology": "Marginalized women",
+    "howCaught": "forensic_science",
+    "howCaughtText": "Drug-warrant arrest, DNA cold hit to LA murders",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "dennis-rader",
+    "name": "Dennis Rader",
+    "alias": "BTK",
+    "legalStatus": "guilty_plea",
+    "courtProvenCount": 10,
+    "attributedCount": 10,
+    "firstKillingYear": 1974,
+    "lastKillingYear": 1991,
+    "caughtYear": 2005,
+    "states": [
+      "KS"
+    ],
+    "statesNote": null,
+    "methods": [
+      "strangulation"
+    ],
+    "victimology": "Women and families in their homes",
+    "howCaught": "records",
+    "howCaughtText": "Floppy-disk metadata, familial DNA",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "edmund-kemper",
+    "name": "Edmund Kemper",
+    "alias": null,
+    "legalStatus": "convicted",
+    "courtProvenCount": 8,
+    "attributedCount": 10,
+    "firstKillingYear": 1964,
+    "lastKillingYear": 1973,
+    "caughtYear": 1973,
+    "states": [
+      "CA"
+    ],
+    "statesNote": null,
+    "methods": [
+      "mixed"
+    ],
+    "victimology": "Hitchhikers, college students, his mother",
+    "howCaught": "surrendered",
+    "howCaughtText": "Called police himself",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "robert-lee-yates-jr",
+    "name": "Robert Lee Yates Jr.",
+    "alias": null,
+    "legalStatus": "convicted",
+    "courtProvenCount": 15,
+    "attributedCount": 16,
+    "firstKillingYear": 1975,
+    "lastKillingYear": 1998,
+    "caughtYear": 2000,
+    "states": [
+      "WA"
+    ],
+    "statesNote": null,
+    "methods": [
+      "firearm"
+    ],
+    "victimology": "Women in street sex work",
+    "howCaught": "forensic_science",
+    "howCaughtText": "Victim blood and DNA in his former Corvette",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "lonnie-david-franklin-jr",
+    "name": "Lonnie David Franklin Jr.",
+    "alias": "Grim Sleeper",
+    "legalStatus": "convicted",
+    "courtProvenCount": 10,
+    "attributedCount": 14,
+    "firstKillingYear": 1985,
+    "lastKillingYear": 2007,
+    "caughtYear": 2010,
+    "states": [
+      "CA"
+    ],
+    "statesNote": null,
+    "methods": [
+      "firearm",
+      "strangulation"
+    ],
+    "victimology": "Black women in South LA",
+    "howCaught": "forensic_science",
+    "howCaughtText": "Familial DNA via his son",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "anthony-sowell",
+    "name": "Anthony Sowell",
+    "alias": null,
+    "legalStatus": "convicted",
+    "courtProvenCount": 11,
+    "attributedCount": 11,
+    "firstKillingYear": 2007,
+    "lastKillingYear": 2009,
+    "caughtYear": 2009,
+    "states": [
+      "OH"
+    ],
+    "statesNote": null,
+    "methods": [
+      "strangulation"
+    ],
+    "victimology": "Black women, many with addiction",
+    "howCaught": "survivor_or_witness",
+    "howCaughtText": "Survivor reported an assault",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "darren-deon-vann",
+    "name": "Darren Deon Vann",
+    "alias": null,
+    "legalStatus": "guilty_plea",
+    "courtProvenCount": 7,
+    "attributedCount": 18,
+    "firstKillingYear": 2013,
+    "lastKillingYear": 2014,
+    "caughtYear": 2014,
+    "states": [
+      "IN"
+    ],
+    "statesNote": null,
+    "methods": [
+      "strangulation"
+    ],
+    "victimology": "Women, many in sex work",
+    "howCaught": "records",
+    "howCaughtText": "Victim’s phone records",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "israel-keyes",
+    "name": "Israel Keyes",
+    "alias": null,
+    "legalStatus": "died_uncharged",
+    "courtProvenCount": null,
+    "attributedCount": 11,
+    "firstKillingYear": 2001,
+    "lastKillingYear": 2012,
+    "caughtYear": 2012,
+    "states": [
+      "AK",
+      "VT"
+    ],
+    "statesNote": "AK VT +",
+    "methods": [
+      "strangulation",
+      "firearm"
+    ],
+    "victimology": "Strangers chosen far from home",
+    "howCaught": "traffic_stop",
+    "howCaughtText": "Traced via a victim’s ATM card",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": 2012
+  },
+  {
+    "slug": "joel-rifkin",
+    "name": "Joel Rifkin",
+    "alias": null,
+    "legalStatus": "convicted",
+    "courtProvenCount": 9,
+    "attributedCount": 17,
+    "firstKillingYear": 1989,
+    "lastKillingYear": 1993,
+    "caughtYear": 1993,
+    "states": [
+      "NY"
+    ],
+    "statesNote": null,
+    "methods": [
+      "strangulation"
+    ],
+    "victimology": "Women in sex work",
+    "howCaught": "traffic_stop",
+    "howCaughtText": "Missing plate, body in his truck",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "richard-ramirez",
+    "name": "Richard Ramirez",
+    "alias": "Night Stalker",
+    "legalStatus": "convicted",
+    "courtProvenCount": 13,
+    "attributedCount": 15,
+    "firstKillingYear": 1984,
+    "lastKillingYear": 1985,
+    "caughtYear": 1985,
+    "states": [
+      "CA"
+    ],
+    "statesNote": null,
+    "methods": [
+      "mixed"
+    ],
+    "victimology": "Home-invasion victims, all ages",
+    "howCaught": "survivor_or_witness",
+    "howCaughtText": "Recognized and subdued by residents",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "aileen-wuornos",
+    "name": "Aileen Wuornos",
+    "alias": null,
+    "legalStatus": "convicted",
+    "courtProvenCount": 6,
+    "attributedCount": 7,
+    "firstKillingYear": 1989,
+    "lastKillingYear": 1990,
+    "caughtYear": 1991,
+    "states": [
+      "FL"
+    ],
+    "statesNote": null,
+    "methods": [
+      "firearm"
+    ],
+    "victimology": "Middle-aged male motorists",
+    "howCaught": "forensic_science",
+    "howCaughtText": "Fingerprint on a pawn receipt",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "juan-corona",
+    "name": "Juan Corona",
+    "alias": null,
+    "legalStatus": "convicted",
+    "courtProvenCount": 25,
+    "attributedCount": 25,
+    "firstKillingYear": 1971,
+    "lastKillingYear": 1971,
+    "caughtYear": 1971,
+    "states": [
+      "CA"
+    ],
+    "statesNote": null,
+    "methods": [
+      "knife",
+      "firearm"
+    ],
+    "victimology": "Migrant farmworkers",
+    "howCaught": "investigation",
+    "howCaughtText": "His receipts found in the graves",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "randy-kraft",
+    "name": "Randy Kraft",
+    "alias": "Scorecard Killer",
+    "legalStatus": "convicted",
+    "courtProvenCount": 16,
+    "attributedCount": 67,
+    "firstKillingYear": 1971,
+    "lastKillingYear": 1983,
+    "caughtYear": 1983,
+    "states": [
+      "CA",
+      "OR",
+      "MI"
+    ],
+    "statesNote": null,
+    "methods": [
+      "strangulation",
+      "blunt force"
+    ],
+    "victimology": "Young men, Marines, hitchhikers",
+    "howCaught": "traffic_stop",
+    "howCaughtText": "DUI stop with a victim in the car",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "lorenzo-gilyard",
+    "name": "Lorenzo Gilyard",
+    "alias": null,
+    "legalStatus": "convicted",
+    "courtProvenCount": 6,
+    "attributedCount": 13,
+    "firstKillingYear": 1977,
+    "lastKillingYear": 1993,
+    "caughtYear": 2004,
+    "states": [
+      "MO"
+    ],
+    "statesNote": null,
+    "methods": [
+      "strangulation"
+    ],
+    "victimology": "Women, mostly in sex work",
+    "howCaught": "forensic_science",
+    "howCaughtText": "DNA cold-case review",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "todd-kohlhepp",
+    "name": "Todd Kohlhepp",
+    "alias": null,
+    "legalStatus": "guilty_plea",
+    "courtProvenCount": 7,
+    "attributedCount": 7,
+    "firstKillingYear": 2003,
+    "lastKillingYear": 2016,
+    "caughtYear": 2016,
+    "states": [
+      "SC"
+    ],
+    "statesNote": null,
+    "methods": [
+      "firearm"
+    ],
+    "victimology": "Shop staff, a couple, a captive’s boyfriend",
+    "howCaught": "records",
+    "howCaughtText": "Captive found via phone records",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "rex-heuermann",
+    "name": "Rex Heuermann",
+    "alias": "Gilgo Beach",
+    "legalStatus": "guilty_plea",
+    "courtProvenCount": 7,
+    "attributedCount": 8,
+    "firstKillingYear": 1993,
+    "lastKillingYear": 2010,
+    "caughtYear": 2023,
+    "states": [
+      "NY"
+    ],
+    "statesNote": null,
+    "methods": [
+      "strangulation"
+    ],
+    "victimology": "Women working as escorts",
+    "howCaught": "records",
+    "howCaughtText": "Vehicle tip, burner phones, discarded-pizza DNA",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "rodney-alcala",
+    "name": "Rodney Alcala",
+    "alias": null,
+    "legalStatus": "convicted",
+    "courtProvenCount": 7,
+    "attributedCount": 9,
+    "firstKillingYear": 1971,
+    "lastKillingYear": 1979,
+    "caughtYear": 1979,
+    "states": [
+      "CA",
+      "NY"
+    ],
+    "statesNote": null,
+    "methods": [
+      "strangulation",
+      "blunt force"
+    ],
+    "victimology": "Young women and girls",
+    "howCaught": "survivor_or_witness",
+    "howCaughtText": "Parole officer recognized a sketch",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "william-bonin",
+    "name": "William Bonin",
+    "alias": "Freeway Killer",
+    "legalStatus": "convicted",
+    "courtProvenCount": 14,
+    "attributedCount": 21,
+    "firstKillingYear": 1979,
+    "lastKillingYear": 1980,
+    "caughtYear": 1980,
+    "states": [
+      "CA"
+    ],
+    "statesNote": null,
+    "methods": [
+      "strangulation",
+      "knife"
+    ],
+    "victimology": "Teenage boys, hitchhikers",
+    "howCaught": "investigation",
+    "howCaughtText": "Police surveillance",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "david-berkowitz",
+    "name": "David Berkowitz",
+    "alias": "Son of Sam",
+    "legalStatus": "guilty_plea",
+    "courtProvenCount": 6,
+    "attributedCount": 6,
+    "firstKillingYear": 1976,
+    "lastKillingYear": 1977,
+    "caughtYear": 1977,
+    "states": [
+      "NY"
+    ],
+    "statesNote": null,
+    "methods": [
+      "firearm"
+    ],
+    "victimology": "Young women and couples in cars",
+    "howCaught": "traffic_stop",
+    "howCaughtText": "A parking ticket",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "alan-wade-wilmer-sr",
+    "name": "Alan Wade Wilmer Sr.",
+    "alias": "Colonial Parkway",
+    "legalStatus": "died_uncharged",
+    "courtProvenCount": null,
+    "attributedCount": 6,
+    "firstKillingYear": 1986,
+    "lastKillingYear": 1989,
+    "caughtYear": null,
+    "states": [
+      "VA"
+    ],
+    "statesNote": null,
+    "methods": [
+      "firearm",
+      "strangulation",
+      "knife"
+    ],
+    "victimology": "Young couples on secluded roads",
+    "howCaught": "forensic_science",
+    "howCaughtText": "Posthumous DNA match, named 2026",
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": 2017
+  },
+  {
+    "slug": "zodiac",
+    "name": "Zodiac",
+    "alias": null,
+    "legalStatus": "unidentified",
+    "courtProvenCount": null,
+    "attributedCount": 5,
+    "firstKillingYear": 1968,
+    "lastKillingYear": 1969,
+    "caughtYear": null,
+    "states": [
+      "CA"
+    ],
+    "statesNote": null,
+    "methods": [
+      "firearm",
+      "knife"
+    ],
+    "victimology": "Couples at lovers’ lanes, a cab driver",
+    "howCaught": "still_open",
+    "howCaughtText": null,
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "i-70-killer",
+    "name": "I-70 Killer",
+    "alias": null,
+    "legalStatus": "unidentified",
+    "courtProvenCount": null,
+    "attributedCount": 6,
+    "firstKillingYear": 1992,
+    "lastKillingYear": 1992,
+    "caughtYear": null,
+    "states": [
+      "IN",
+      "KS",
+      "MO"
+    ],
+    "statesNote": null,
+    "methods": [
+      "firearm"
+    ],
+    "victimology": "Clerks in small shops near I-70",
+    "howCaught": "still_open",
+    "howCaughtText": null,
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "freeway-phantom",
+    "name": "Freeway Phantom",
+    "alias": null,
+    "legalStatus": "unidentified",
+    "courtProvenCount": null,
+    "attributedCount": 6,
+    "firstKillingYear": 1971,
+    "lastKillingYear": 1972,
+    "caughtYear": null,
+    "states": [
+      "DC",
+      "MD"
+    ],
+    "statesNote": null,
+    "methods": [
+      "strangulation"
+    ],
+    "victimology": "Black girls and young women, 10–18",
+    "howCaught": "still_open",
+    "howCaughtText": null,
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "new-bedford-highway-killer",
+    "name": "New Bedford Highway Killer",
+    "alias": null,
+    "legalStatus": "unidentified",
+    "courtProvenCount": null,
+    "attributedCount": 11,
+    "firstKillingYear": 1988,
+    "lastKillingYear": 1989,
+    "caughtYear": null,
+    "states": [
+      "MA"
+    ],
+    "statesNote": null,
+    "methods": [
+      "strangulation",
+      "blunt force"
+    ],
+    "victimology": "Women from the Weld Square area",
+    "howCaught": "still_open",
+    "howCaughtText": null,
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "cleveland-torso-murderer",
+    "name": "Cleveland Torso Murderer",
+    "alias": null,
+    "legalStatus": "unidentified",
+    "courtProvenCount": null,
+    "attributedCount": 12,
+    "firstKillingYear": 1935,
+    "lastKillingYear": 1938,
+    "caughtYear": null,
+    "states": [
+      "OH"
+    ],
+    "statesNote": null,
+    "methods": [
+      "knife"
+    ],
+    "victimology": "Transients and the working poor",
+    "howCaught": "still_open",
+    "howCaughtText": null,
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  },
+  {
+    "slug": "texarkana-phantom-killer",
+    "name": "Texarkana Phantom Killer",
+    "alias": null,
+    "legalStatus": "unidentified",
+    "courtProvenCount": null,
+    "attributedCount": 5,
+    "firstKillingYear": 1946,
+    "lastKillingYear": 1946,
+    "caughtYear": null,
+    "states": [
+      "TX",
+      "AR"
+    ],
+    "statesNote": null,
+    "methods": [
+      "firearm"
+    ],
+    "victimology": "Couples on lovers’ lanes",
+    "howCaught": "still_open",
+    "howCaughtText": null,
+    "mobility": null,
+    "homeBase": null,
+    "diedYear": null
+  }
+]

@@ -1,0 +1,64 @@
+{
+  "unsolvedFemaleByDecade": [
+    {
+      "decade": 1980,
+      "victims": 47023,
+      "unsolved": 12117
+    },
+    {
+      "decade": 1990,
+      "victims": 44945,
+      "unsolved": 11454
+    },
+    {
+      "decade": 2000,
+      "victims": 35459,
+      "unsolved": 6957
+    },
+    {
+      "decade": 2010,
+      "victims": 15918,
+      "unsolved": 2548
+    }
+  ],
+  "unsolvedFemaleByWeapon": [
+    {
+      "weapon": "Firearm",
+      "unsolved": 11966
+    },
+    {
+      "weapon": "Knife or cutting",
+      "unsolved": 5882
+    },
+    {
+      "weapon": "Blunt object",
+      "unsolved": 5701
+    },
+    {
+      "weapon": "Other or unknown",
+      "unsolved": 5371
+    },
+    {
+      "weapon": "Strangulation",
+      "unsolved": 2562
+    },
+    {
+      "weapon": "Fire",
+      "unsolved": 777
+    },
+    {
+      "weapon": "Suffocation",
+      "unsolved": 558
+    },
+    {
+      "weapon": "All other",
+      "unsolved": 259
+    }
+  ],
+  "usFemaleClearance1980to2014": 76.9,
+  "caveats": [
+    "Florida's rows stop around 1987.",
+    "Weapon \"other/unknown\" partly reflects agencies that report weapons poorly.",
+    "A flag is a reason to look, not a finding."
+  ]
+}

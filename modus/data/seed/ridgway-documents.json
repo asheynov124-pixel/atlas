@@ -1,0 +1,60 @@
+{
+  "offender": "gary-ridgway",
+  "documents": [
+    {
+      "id": "ridgway-prosecutor-summary-2003",
+      "kind": "evidence_summary",
+      "title": "Prosecutor's Summary of the Evidence",
+      "publisher": "King County Prosecuting Attorney",
+      "date": "2003-11-05",
+      "pages": 138,
+      "url": "http://seattletimes.nwsource.com/news/local/links/ridg_summary.pdf",
+      "archiveUrl": "https://web.archive.org/web/2005id_/http://seattletimes.nwsource.com/news/local/links/ridg_summary.pdf"
+    },
+    {
+      "id": "ridgway-second-amended-information-2003",
+      "kind": "charging_document",
+      "title": "Second Amended Information (48 counts)",
+      "publisher": "King County Superior Court No. 01-1-10270-9 SEA",
+      "date": "2003",
+      "url": "http://seattletimes.nwsource.com/news/local/links/second_amended_info.pdf",
+      "archiveUrl": "https://web.archive.org/web/20050308163920id_/http://seattletimes.nwsource.com:80/news/local/links/second_amended_info.pdf"
+    },
+    {
+      "id": "ridgway-plea-agreement-2003",
+      "kind": "plea",
+      "title": "Plea Agreement",
+      "publisher": "King County Superior Court",
+      "date": "2003-06-13",
+      "url": "http://seattletimes.nwsource.com/news/local/links/plea_agreement.pdf",
+      "archiveUrl": null
+    },
+    {
+      "id": "ridgway-statement-on-plea-2003",
+      "kind": "plea",
+      "title": "Statement of Defendant on Plea of Guilty",
+      "publisher": "King County Superior Court",
+      "date": "2003-11-05",
+      "url": "http://seattletimes.nwsource.com/news/local/links/statement_of_defendant.pdf",
+      "archiveUrl": null
+    },
+    {
+      "id": "kcso-green-river",
+      "kind": "agency",
+      "title": "Green River homicides investigation",
+      "publisher": "King County Sheriff's Office",
+      "date": null,
+      "url": "https://kingcounty.gov/en/dept/sheriff/courts-jails-legal-system/sheriff-services/investigations/green-river",
+      "archiveUrl": null
+    },
+    {
+      "id": "seattle-times-green-river-index",
+      "kind": "reporting_archive",
+      "title": "The Green River Killings: documents & maps",
+      "publisher": "The Seattle Times",
+      "date": null,
+      "url": "https://special.seattletimes.com/o/html/greenriverkillings/index.html",
+      "archiveUrl": null
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "name": "modus",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "db:push": "drizzle-kit push",
+    "db:views": "tsx scripts/apply-views.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:reset": "npm run db:push && npm run db:views && npm run db:seed",
+    "test": "vitest run",
+    "seed:gen": "node scripts/gen-seed.mjs"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
+    "d3-geo": "^3.1.1",
+    "drizzle-orm": "^0.45.4",
+    "next": "16.4.0",
+    "postgres": "^3.4.9",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "topojson-client": "^3.1.0",
+    "us-atlas": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.0",
+    "typescript": "^5"
+  }
+}

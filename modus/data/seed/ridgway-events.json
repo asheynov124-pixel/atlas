@@ -1,0 +1,191 @@
+{
+  "offender": "gary-ridgway",
+  "events": [
+    {
+      "seq": 1,
+      "date": "1982-08",
+      "lane": "investigation",
+      "text": "Port of Seattle officer finds Ridgway parked on a dead-end road near S 192nd St."
+    },
+    {
+      "seq": 2,
+      "date": "1982-08-16",
+      "lane": "investigation",
+      "text": "King County forms the multi-agency Green River Task Force."
+    },
+    {
+      "seq": 3,
+      "date": "1983-05-04",
+      "lane": "investigation",
+      "text": "Des Moines police question Ridgway after Marie Malvar’s boyfriend identifies his truck. He denies contact."
+    },
+    {
+      "seq": 4,
+      "date": "1984-02",
+      "lane": "investigation",
+      "text": "Ridgway mails a letter to a newspaper meant to mislead investigators."
+    },
+    {
+      "seq": 5,
+      "date": "1984-03",
+      "lane": "investigation",
+      "text": "Task Force expanded. That spring Ridgway moves the remains of Bush and Sherrill to Tigard, Oregon."
+    },
+    {
+      "seq": 6,
+      "date": "1984-05",
+      "lane": "investigation",
+      "text": "Ridgway contacts the Task Force, is interviewed and passes a polygraph."
+    },
+    {
+      "seq": 7,
+      "date": "1984-12",
+      "lane": "investigation",
+      "text": "A woman reports Ridgway choked her on Pacific Hwy S in 1982. He admits it when questioned."
+    },
+    {
+      "seq": 8,
+      "date": "1987-04-08",
+      "lane": "investigation",
+      "text": "Search warrant on his home, work locker and vehicles. Saliva sample taken."
+    },
+    {
+      "seq": 9,
+      "date": "1988",
+      "lane": "forensics",
+      "text": "Evidence sent to a private lab. No DNA profiles obtainable with existing methods."
+    },
+    {
+      "seq": 10,
+      "date": "1991-07",
+      "lane": "investigation",
+      "text": "Task Force reduced to one investigator, Det. Tom Jensen."
+    },
+    {
+      "seq": 11,
+      "date": "1999-11-02",
+      "lane": "forensics",
+      "text": "Remains found in 1986 identified as Tracy Winston by mitochondrial DNA."
+    },
+    {
+      "seq": 12,
+      "date": "2001-03",
+      "lane": "forensics",
+      "text": "Jensen submits victims’ evidence to the Washington State Patrol Crime Lab."
+    },
+    {
+      "seq": 13,
+      "date": "2001-09",
+      "lane": "forensics",
+      "text": "WSP lab STR typing matches Ridgway to Chapman, Mills and Christensen."
+    },
+    {
+      "seq": 14,
+      "date": "2001-11-16",
+      "lane": "investigation",
+      "text": "Arrested in a prostitution sting on Pacific Hwy S and released the same day."
+    },
+    {
+      "seq": 15,
+      "date": "2001-11-30",
+      "lane": "investigation",
+      "text": "Arrested for murder leaving the Kenworth plant in Renton."
+    },
+    {
+      "seq": 16,
+      "date": "2001-12-05",
+      "lane": "court",
+      "text": "Charged with four counts: Christensen, Hinds, Chapman, Mills."
+    },
+    {
+      "seq": 17,
+      "date": "2002-04-15",
+      "lane": "court",
+      "text": "Prosecutor gives notice of intent to seek the death penalty."
+    },
+    {
+      "seq": 18,
+      "date": "2003-03",
+      "lane": "forensics",
+      "text": "Microtrace finds DuPont Imron paint spheres on Coffield’s and Estes’s clothing."
+    },
+    {
+      "seq": 19,
+      "date": "2003-03-27",
+      "lane": "court",
+      "text": "Three counts added: Coffield, Bonner, Estes."
+    },
+    {
+      "seq": 20,
+      "date": "2003-06-13",
+      "lane": "court",
+      "text": "Plea agreement: cooperation and guilty pleas in exchange for no death penalty."
+    },
+    {
+      "seq": 21,
+      "date": "2003-08",
+      "lane": "forensics",
+      "text": "Ridgway leads investigators to remains of Avent, Buttram and Jane Doe B20."
+    },
+    {
+      "seq": 22,
+      "date": "2003-09-28",
+      "lane": "forensics",
+      "text": "Marie Malvar’s remains recovered in an Auburn ravine."
+    },
+    {
+      "seq": 23,
+      "date": "2003-11-05",
+      "lane": "court",
+      "text": "Pleads guilty to 48 counts of aggravated first-degree murder."
+    },
+    {
+      "seq": 24,
+      "date": "2003-12-18",
+      "lane": "court",
+      "text": "48 consecutive life terms without parole (Judge Richard A. Jones)."
+    },
+    {
+      "seq": 25,
+      "date": "2010-12-21",
+      "lane": "forensics",
+      "text": "Teenagers find Rebecca Marrero’s skull in an Auburn ravine."
+    },
+    {
+      "seq": 26,
+      "date": "2011-02-18",
+      "lane": "court",
+      "text": "Pleads guilty to the Marrero murder. 49th consecutive life term."
+    },
+    {
+      "seq": 27,
+      "date": "2012-06-18",
+      "lane": "forensics",
+      "text": "Jane Doe B16 identified as Sandra Major."
+    },
+    {
+      "seq": 28,
+      "date": "2021-01-25",
+      "lane": "forensics",
+      "text": "Jane Doe B10 identified as Wendy Stephens by genetic genealogy."
+    },
+    {
+      "seq": 29,
+      "date": "2023-12",
+      "lane": "forensics",
+      "text": "Jane Doe B17 identified as Lori Razpotnik by genetic genealogy."
+    },
+    {
+      "seq": 30,
+      "date": "2024-01-22",
+      "lane": "forensics",
+      "text": "Jane Doe B20 identified as Tammie Liles."
+    },
+    {
+      "seq": 31,
+      "date": "2024-09-09",
+      "lane": "investigation",
+      "text": "Moved to King County Jail to help search for remains. Returned to Walla Walla Sept 13."
+    }
+  ]
+}
