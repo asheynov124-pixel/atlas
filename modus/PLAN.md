@@ -32,18 +32,25 @@ Status key: ☐ todo · ◐ in progress · ☑ done
   cached dossiers served with the server stopped; uncached → /offline. Search: ILIKE over names, aliases,
   victims, sites, clusters (trigram ranking).
 
-## Phase 4 — Research skill, verifier, review queue ◐
+## Phase 4 — Research skill, verifier, review queue ☑
 - `skills/modus-research/SKILL.md` + import CLI; `skills/modus-verify/` second-pass check against court docs;
   `/review` page.
 - **Verify:** import one new case end to end; a deliberately wrong count is caught by the verifier and queued.
+  ☑ Run on Gacy: `data/cases/john-wayne-gacy.json` cites People v. Gacy, 103 Ill. 2d 1 (1984); the importer
+  replaced the uncited seed proceeding (33 counts) and cleared its review item; the verifier confirmed the count
+  and the outcome from the opinion text and queued the verdict date as unverifiable. The importer refuses files
+  that break tier rules, reconciliation or privacy rules (tested by hand with a bad tier and a street address).
 
-## Phase 5 — Deploy and full MAP file
+## Phase 5 — Deploy and full MAP file ☐ (waiting on the owner)
 - Vercel (personal scope unless told), Neon, env vars, domain. MAP 1976–2025 import (owner downloads the file).
 - **Verify:** preview URL; atlas re-derives the 54 clusters from the raw 1980–2014 file; new file loads.
 
 ## Needs the owner (only these)
-1. Vercel: personal scope is fine? (no teams on the account)
-2. The app password.
-3. A domain, if any.
-4. The MAP 1976–2025 file, if the download site stays blocked.
-5. Any borderline image.
+1. Vercel: the account `asheynov124-2433` (hobby plan, no teams) is the only scope. Confirm, or name another.
+2. A Neon `DATABASE_URL` (or say "provision one" and I will create a Postgres store through Vercel's marketplace
+   when you have approved it in the dashboard). I then run `db:reset` against it from here.
+3. The app password (and, optionally, a separate `APP_SECRET`).
+4. A domain, if any.
+5. The MAP 1976–2025 file: murderdata.org and its mirrors are blocked from this workspace. Download the SHR file
+   and drop it at `data/map/` (any filename); the atlas re-derives the clusters from it.
+6. Any borderline image.
