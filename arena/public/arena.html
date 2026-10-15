@@ -126,7 +126,7 @@ select{padding:7px 10px;border:1px solid var(--line);border-radius:var(--radius)
 .score .cl{font-family:var(--font-display);font-size:12.5px;color:color-mix(in srgb,var(--bg) 70%,transparent)}
 .score .num{font-family:var(--font-display);font-weight:800;font-size:clamp(28px,9vw,38px);line-height:1;font-variant-numeric:tabular-nums}
 @media (max-width:560px){.score{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.score .mid{grid-column:1/-1;order:3}}
-.score .cand.a .num{color:#9fd6e8} .score .cand.b .num{color:#f0b0b1}
+.score .cand.a .num{color:var(--a-board,#9fd6e8)} .score .cand.b .num{color:var(--b-board,#f0b0b1)}
 .score .mid{text-align:center;font-family:var(--font-mono);font-size:12px;color:color-mix(in srgb,var(--bg) 75%,transparent);display:grid;gap:3px}
 .score .mid b{color:var(--bg);font-weight:500;font-size:13px}
 .feed{display:grid;gap:14px}
@@ -217,6 +217,38 @@ details summary{cursor:pointer;font-family:var(--font-display);font-weight:600;f
 .fy{padding:8px 10px;background:var(--surface);border-radius:4px;font-size:14.5px;display:grid;gap:2px}
 .fy .s{font-size:13.5px;color:var(--muted)}
 .foot{margin-top:28px;font-family:var(--font-display);font-size:12.5px;color:var(--muted);display:grid;gap:4px}
+/* Green room editors */
+.av{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--muted);color:#fff;font-family:var(--font-display);font-weight:800;font-size:15px;flex:none;line-height:1}
+.av.sm{width:26px;height:26px;font-size:12px}
+.av.lg{width:44px;height:44px;font-size:20px}
+.a .av,.av.a{background:var(--a)} .b .av,.av.b{background:var(--b)}
+.ed{display:grid;gap:8px}
+.ed label{display:grid;gap:3px;font-family:var(--font-display);font-size:12.5px;font-weight:600;color:var(--muted);min-width:0}
+.ed input[type=text],.ed textarea,.ed select{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:var(--surface);font-family:var(--font-body);font-size:15px;color:var(--fg);min-width:0}
+.ed textarea{min-height:52px;resize:vertical}
+.ed select{font-family:var(--font-display);font-size:13.5px}
+.ed .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ed .three{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media (max-width:520px){.ed .three{grid-template-columns:1fr 1fr}}
+.ed input[type=range]{width:100%;accent-color:var(--fg)}
+.ed .range-l{display:flex;justify-content:space-between;font-size:11px;font-weight:500}
+.swatches{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.swatch{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.swatch[aria-pressed="true"]{border-color:var(--fg);box-shadow:0 0 0 2px var(--surface) inset}
+.chipset{display:flex;gap:4px;flex-wrap:wrap}
+.chipset .chip{font-size:12px;padding:3px 9px}
+.judges{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.judge-card{padding:12px 14px;display:grid;gap:8px;min-width:0;border-top:3px solid var(--brass)}
+.judge-card .jhead{display:flex;align-items:center;gap:8px}
+.judge-card .jhead .eyebrow{color:var(--brass-ink);flex:1}
+.qitem{grid-template-columns:auto 1fr auto}
+.qitem .qtools{display:flex;gap:3px;align-self:start}
+.qitem .qtools .icon-btn{width:26px;height:26px;font-size:13px;font-family:var(--font-display)}
+.qitem .qtag{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-right:6px}
+.qitem input[type=text]{width:100%;padding:5px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);font-family:var(--font-body);font-size:15px}
+.gr-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.gr-head .eyebrow{font-size:12px}
+.sub{font-family:var(--font-display);font-size:13.5px;color:var(--muted)}
 </style>
 
 <div class="wrap">
@@ -226,49 +258,71 @@ details summary{cursor:pointer;font-family:var(--font-display);font-weight:600;f
   </header>
 
   <section class="panel section" id="setup" aria-label="Choose a topic">
-    <div><h2>Choose a topic</h2><p class="hint">Big, tangled questions work best. The moderator breaks the topic into the questions underneath it, and you pick which ones get debated.</p></div>
+    <div><h2>Choose a fight</h2><p class="hint">Big, tangled, even provocative questions work best. The moderator breaks the topic into the questions underneath it, casts two candidates and a panel, and then everything is yours to edit before the first word is spoken.</p></div>
     <div class="chips" id="cats" role="group" aria-label="Categories"></div>
     <div class="topics" id="topics" role="group" aria-label="Topics"></div>
-    <div class="row"><button class="btn small" id="moreTopics">Suggest new topics in this category</button><span class="hint" id="topicsHint"></span></div>
+    <div class="row">
+      <button class="btn small" id="moreTopics">Suggest new topics in this category</button>
+      <select id="heat" aria-label="How provocative the suggestions should be"><option value="tame">keep them measured</option><option value="spirited" selected>make them spirited</option><option value="provocative">make them provocative</option></select>
+      <button class="btn small" id="pickFight">Pick a fight between two ideas</button>
+      <span class="hint" id="topicsHint"></span>
+    </div>
     <div class="field">
       <label for="customTopic">Or write your own</label>
-      <textarea id="customTopic" placeholder="e.g. Is the Iran war in the United States' long-term strategic interest?"></textarea>
+      <textarea id="customTopic" placeholder="Any question or claim. Or two ideas with a vs. between them, and each candidate will champion one."></textarea>
       <span class="hint" id="customHint"></span>
-    </div>
-    <div class="grid-3">
-      <div class="field"><label for="answerSec">Time per answer</label>
-        <select id="answerSec"><option value="60">1:00 (about 130 words)</option><option value="120" selected>2:00 (about 260 words)</option><option value="180">3:00 (about 390 words)</option></select></div>
-      <div class="field"><label for="rebuttalSec">Rebuttal time</label>
-        <select id="rebuttalSec"><option value="30">0:30</option><option value="60" selected>1:00</option><option value="90">1:30</option></select></div>
-      <div class="field"><label for="tier">Model depth</label>
-        <select id="tier"><option value="quick">Quick (fast, shallower)</option><option value="default" selected>Balanced</option><option value="complex">Deep (slowest, strongest)</option></select></div>
-      <div class="field"><label for="openings">Statements</label><label class="toggle"><input type="checkbox" id="openings" checked> Opening and closing statements</label></div>
-      <div class="field"><label for="voiceOn">Audio</label><label class="toggle"><input type="checkbox" id="voiceOn"> Read speeches aloud as they finish</label></div>
-      <div class="field" style="grid-column:1/-1"><label for="hBlind">Bench hardening · off by default, so you can compare the bench before and after</label>
-        <div class="harden">
-          <label class="toggle"><input type="checkbox" id="hBlind"> Blind judging: names and stances withheld</label>
-          <label class="toggle"><input type="checkbox" id="hBoth"> Score both orders and average</label>
-          <label class="toggle"><input type="checkbox" id="hPer"> One call per judge</label>
-        </div></div>
     </div>
     <div class="row"><button class="btn primary" id="build">Build the debate</button><span class="hint" id="buildHint"></span></div>
     <div class="notice bad" id="setupNotice" hidden></div>
   </section>
 
-  <section class="panel section" id="briefSec" hidden aria-label="Debate brief">
+  <section class="panel section" id="briefSec" hidden aria-label="Green room">
     <div class="brief-head" id="briefHead"></div>
-    <div class="podiums" id="briefPodiums"></div>
-    <div><div class="eyebrow">The panel · chosen for this topic</div><div class="panel-list" id="panelList" style="margin-top:8px"></div></div>
+
     <div>
-      <div class="row" style="justify-content:space-between"><div class="eyebrow">The questions · tick the ones to debate</div><span class="hint" id="qCount"></span></div>
+      <div class="gr-head"><div class="eyebrow">The candidates · edit anything, or apply a persona</div><div class="row"><button class="btn small" id="swapSides">Swap podiums</button><button class="btn small" id="recast">Let the moderator recast them</button></div></div>
+      <div class="podiums" id="briefPodiums" style="margin-top:8px"></div>
+    </div>
+
+    <div>
+      <div class="gr-head"><div class="eyebrow">The panel · chosen for this topic, yours to change</div><div class="row"><select id="addJudgePreset" aria-label="Add a judge"><option value="">Add a judge…</option></select><button class="btn small" id="rerollPanel">Let the moderator reseat the panel</button></div></div>
+      <div class="judges" id="panelList" style="margin-top:8px"></div>
+    </div>
+
+    <div>
+      <div class="gr-head"><div class="eyebrow">The questions · tick, edit, reorder, add</div><span class="hint" id="qCount"></span></div>
       <div class="qlist" id="qlist" style="margin-top:8px"></div>
       <div class="row" style="margin-top:10px">
+        <input type="text" id="qAngle" placeholder="Optional angle for new questions, e.g. domestic politics, or what each side fears" aria-label="Angle for generated questions" style="flex:1;min-width:220px">
         <button class="btn small" id="moreQ">Generate more questions</button>
         <button class="btn small" id="selAll">Select all</button>
         <button class="btn small" id="selNone">Clear</button>
       </div>
       <div class="row" style="margin-top:10px"><input type="text" id="ownQ" placeholder="Add a question of your own and press Enter" aria-label="Add your own question"></div>
     </div>
+
+    <div>
+      <div class="eyebrow">The rules of the evening</div>
+      <div class="grid-3" style="margin-top:8px">
+        <div class="field"><label for="tone">Tone</label>
+          <select id="tone"><option value="civil">Civil</option><option value="spirited" selected>Spirited</option><option value="brawl">No holds barred</option></select></div>
+        <div class="field"><label for="answerSec">Time per answer</label>
+          <select id="answerSec"><option value="60">1:00 (about 130 words)</option><option value="120" selected>2:00 (about 260 words)</option><option value="180">3:00 (about 390 words)</option></select></div>
+        <div class="field"><label for="rebuttalSec">Rebuttal time</label>
+          <select id="rebuttalSec"><option value="30">0:30</option><option value="60" selected>1:00</option><option value="90">1:30</option></select></div>
+        <div class="field"><label for="tier">Model depth</label>
+          <select id="tier"><option value="quick">Quick (fast, shallower)</option><option value="default" selected>Balanced</option><option value="complex">Deep (slowest, strongest)</option></select></div>
+        <div class="field"><label for="openings">Statements</label><label class="toggle"><input type="checkbox" id="openings" checked> Opening and closing statements</label></div>
+        <div class="field"><label for="voiceOn">Audio</label><label class="toggle"><input type="checkbox" id="voiceOn"> Read speeches aloud as they finish</label></div>
+        <div class="field" style="grid-column:1/-1"><label for="hBlind">Bench hardening · off by default, so you can compare the bench before and after</label>
+          <div class="harden">
+            <label class="toggle"><input type="checkbox" id="hBlind"> Blind judging: names and stances withheld</label>
+            <label class="toggle"><input type="checkbox" id="hBoth"> Score both orders and average</label>
+            <label class="toggle"><input type="checkbox" id="hPer"> One call per judge</label>
+          </div></div>
+      </div>
+    </div>
+
     <div class="row">
       <button class="btn primary" id="start">Start the debate</button>
       <button class="btn" id="rebuild">Rebuild the brief</button>
@@ -318,13 +372,22 @@ const CRITERIA = [
 ];
 const TOPICS = {
   'Geopolitics & War':[
-    'Is the Iran war in the United States\' long-term strategic interest?',
+    "Is the Iran war in the United States' long-term strategic interest?",
     'Does nuclear deterrence still work in a world of many nuclear powers?',
     'Should the United States commit to defending Taiwan?',
-    'Is NATO\'s eastward expansion the cause of the war in Ukraine or the reason it has not spread?',
+    "Is NATO's eastward expansion the cause of the war in Ukraine or the reason it has not spread?",
     'Can economic sanctions ever achieve what their designers intend?',
     'Is a two-state solution between Israel and Palestine still possible?',
-    'Should the United States stop being the world\'s policeman?',
+    "Should the United States stop being the world's policeman?",
+    'Was the Iraq war the worst American decision since Vietnam, or a misjudged necessity?',
+    'Is China a rising power or a peaking one?',
+    'Should Ukraine trade land for peace?',
+    'Does foreign aid help poor countries or trap them?',
+    'Is drone warfare more humane than what came before, or less?',
+    'Should the West have intervened in Syria?',
+    'Is the United Nations worth keeping?',
+    'Will there be a great-power war in our lifetime?',
+    'Is Russia a declining power or a permanent threat?',
   ],
   'Politics & Government':[
     'Is American democracy in decline, or just loud?',
@@ -333,20 +396,32 @@ const TOPICS = {
     'Does immigration strengthen or strain a country?',
     'Is populism a corrective to democracy or a threat to it?',
     'Should voting be mandatory?',
+    'Should the Senate be abolished?',
+    'Do term limits make Congress better or worse?',
+    'Is the Supreme Court too powerful?',
+    'Should sixteen-year-olds vote?',
+    'Is free-speech absolutism a virtue or a vice?',
+    'Is gerrymandering a scandal or a feature?',
+    'Would a parliamentary system serve America better?',
+    'Is the administrative state a quiet tyranny or the only thing that works?',
+    'Should the United States break up its largest states?',
+    'Is compromise a virtue in politics or a betrayal?',
   ],
   'Parties & Coalitions':[
     'Are the Democratic Socialists of America an ally or a liability for the Democratic Party?',
-    'Is the MAGA movement the Republican Party\'s future or its ceiling?',
+    "Is the MAGA movement the Republican Party's future or its ceiling?",
     'Should the Democratic Party move to the center or energize its base?',
     'Did identity politics cost Democrats the working class?',
-    'Is the Republican Party now a workers\' party, or just talking like one?',
+    "Is the Republican Party now a workers' party, or just talking like one?",
     'Is the Freedom Caucus a conscience for Republicans or a wrecking ball?',
-    'Is Silicon Valley\'s turn to the right an asset or a liability for the GOP?',
-    'Is the religious right still the Republican Party\'s base, or its baggage?',
-    'Is abundance liberalism the Democrats\' way back or a corporate detour?',
+    "Is Silicon Valley's turn to the right an asset or a liability for the GOP?",
+    "Is the religious right still the Republican Party's base, or its baggage?",
+    "Is abundance liberalism the Democrats' way back or a corporate detour?",
     'Are progressive prosecutors helping the left or handing it a losing issue?',
     'Would a viable third party fix American politics or break it?',
     'Should parties choose their nominees through primaries or through party insiders?',
+    'Do the Democrats have a Joe Rogan problem or a Joe Rogan excuse?',
+    'Is the libertarian wing an ally or a liability for Republicans?',
   ],
   'Economics':[
     'Should the United States decouple its economy from China?',
@@ -355,6 +430,16 @@ const TOPICS = {
     'Is the national debt a real danger or a political myth?',
     'Has globalization been good for the working class?',
     'Should billionaires exist?',
+    'Should inheritance above a threshold be taxed at 100 percent?',
+    'Is housing expensive because of too little building or too much speculation?',
+    'Should the minimum wage be abolished or doubled?',
+    'Are tariffs a tool or a tax?',
+    'Does the Federal Reserve have too much power?',
+    'Is rent control a cure or a disease?',
+    'Should college be free?',
+    'Is the four-day week the future of work?',
+    'Would a wealth tax work?',
+    'Is economic growth still the right goal for rich countries?',
   ],
   'Technology & AI':[
     'Will artificial intelligence do more good than harm this century?',
@@ -363,14 +448,72 @@ const TOPICS = {
     'Should children under sixteen be kept off social media?',
     'Is privacy worth preserving in the age of ubiquitous data?',
     'Should humans colonize space?',
+    'Should frontier AI development be paused?',
+    'Will AI take most jobs, and would that be bad?',
+    'Is an AI companion a cure for loneliness or a counterfeit of love?',
+    'Should AI be allowed to make life-and-death decisions in war?',
+    'Is the smartphone the worst invention of the century?',
+    'Should algorithms be regulated like drugs?',
+    'Will crypto replace banks or just rob them?',
+    'Is open-source AI safer or more dangerous than closed?',
+    'Should there be a right to be forgotten online?',
+    'Does technology make us freer or more controlled?',
   ],
-  'Philosophy & Ethics':[
+  'Religion & God':[
+    'Does God exist?',
+    'Which religion is most likely to be right?',
+    'Is religion the source of morality or a substitute for it?',
+    'Is faith a virtue or a failure of reason?',
+    'Does religion do more good than harm?',
+    'Can a scientist be a sincere believer without contradiction?',
+    'Is the problem of evil fatal to belief in a good God?',
+    'Was Jesus who the Gospels say he was?',
+    'Is secularism a neutral public square or a religion of its own?',
+    'Should children be raised in a religion?',
+    'Is there life after death?',
+    'Are miracles possible?',
+    'Is atheism a belief system?',
+    'Is the decline of religion in the West a liberation or a loss?',
+    'Does prayer do anything?',
+    'Is Islam compatible with liberal democracy?',
+  ],
+  'Big Questions':[
+    'Are we living in a simulation?',
     'Do humans have free will, and does the answer change how we should live?',
+    'Is consciousness something the brain does, or something more?',
     'Is morality objective?',
-    'Is it wrong to bring children into a world that contains so much suffering?',
-    'Do we owe anything to people who will live a thousand years from now?',
+    'Could a machine ever be conscious?',
+    'Is there intelligent life elsewhere, and does it matter?',
+    'Is mathematics discovered or invented?',
+    'Is time real?',
+    'Does the universe have a purpose?',
+    'Is the self an illusion?',
+    'Can we know anything for certain?',
+    'Would immortality be a blessing or a curse?',
     'Is there a meaningful difference between killing and letting die?',
-    'Can a life be meaningful without belief in something beyond it?',
+    'Do we owe anything to people who will live a thousand years from now?',
+    'Is it wrong to bring children into a world that contains so much suffering?',
+    'Is the universe fine-tuned for life, and what would that mean?',
+  ],
+  'Matchups: Ideas Compete':[
+    'Christianity vs. Islam: which has the stronger claim to truth?',
+    'Buddhism vs. Christianity: which better answers suffering?',
+    'Stoicism vs. Epicureanism: which is the better guide to a good life?',
+    'Nietzsche vs. Kant: who understood morality better?',
+    'Freud vs. the neuroscientists: who explains the mind better?',
+    'Capitalism vs. socialism: which delivers more human flourishing?',
+    'Hobbes vs. Rousseau: are we wolves or lambs by nature?',
+    'Athens vs. Sparta: which city got more right?',
+    'Science vs. religion: which is the better guide to how to live?',
+    'The Enlightenment vs. Romanticism: which tradition should we revive?',
+    'Plato vs. Aristotle: who was the greater philosopher?',
+    'Marx vs. Adam Smith: who saw the modern world more clearly?',
+    'Lincoln vs. Washington: who was the greater president?',
+    'East vs. West: which civilization has the better recipe for a good society?',
+    'The Beatles vs. Bob Dylan: who mattered more?',
+    'Rome vs. Britain: which empire left the better legacy?',
+    'Judaism vs. Christianity: which reading of the covenant is truer?',
+    'Confucius vs. Laozi: order or flow?',
   ],
   'Psychology & Mind':[
     'Is happiness mostly a choice?',
@@ -379,32 +522,291 @@ const TOPICS = {
     'Are humans fundamentally good?',
     'Is willpower real?',
     'Is modern life making us lonelier, or just more honest about loneliness?',
+    'Is ADHD overdiagnosed or finally recognized?',
+    'Do antidepressants work?',
+    'Is intelligence mostly inherited?',
+    "Is the self-esteem movement to blame for a generation's anxiety?",
+    'Is addiction a disease or a choice?',
+    'Is masculinity in crisis?',
+    'Does birth order shape personality?',
+    'Are dreams meaningful?',
+    'Can people really change?',
+    'Is grief something to get over or something to keep?',
   ],
   'Society & Culture':[
-    'Does religion do more good than harm?',
     'Is meritocracy real, and would we want it if it were?',
     'Should art be judged separately from the artist?',
     'Is Western civilization worth defending as an idea?',
     'Has feminism finished its work or barely begun it?',
     'Is cancel culture accountability or mob rule?',
+    'Is the culture war a real conflict or an entertainment product?',
+    'Is wokeness a moral awakening or a new puritanism?',
+    'Should statues of flawed heroes come down?',
+    'Is cultural appropriation a real harm?',
+    'Has comedy become too careful?',
+    'Is the decline of the family the root of our problems?',
+    'Is nostalgia a lie?',
+    'Does multiculturalism work?',
+    'Is celebrity culture rotting us?',
+    'Should we judge the past by the standards of the present?',
+    'Is patriotism a virtue?',
+  ],
+  'Sex, Love & Relationships':[
+    'Is love a choice or a feeling?',
+    'Is marriage an outdated institution?',
+    "Is monogamy natural, and does it matter if it isn't?",
+    'Are dating apps destroying romance?',
+    'Should couples live together before marriage?',
+    'Is pornography harming a generation?',
+    'Can men and women be just friends?',
+    'Is divorce too easy?',
+    'Was the sexual revolution a success or a disaster?',
+    'Should sex work be legal?',
+    'Is polyamory the future or a fad?',
+    'Does chivalry have a place in an equal world?',
+    'Is there such a thing as a soulmate?',
+    "Is the gender gap in young people's politics ruining dating?",
+    'Should you marry for love or for compatibility?',
+    'Is jealousy a sign of love or a failure of it?',
+  ],
+  'Gender & Identity':[
+    'Are men and women different in ways that matter?',
+    'Is masculinity toxic, endangered, or both?',
+    "Should transgender women compete in women's sports?",
+    'Is gender a social construct?',
+    'Has the push for equality left boys behind?',
+    'Should pronouns be a matter of law, manners, or neither?',
+    'Is the pay gap real?',
+    'Should the draft include women?',
+    'Is identity politics a path to justice or a dead end?',
+    'Does representation in media actually matter?',
+    'Are single-sex schools better?',
+    'Is motherhood undervalued or over-romanticized?',
+    'Should gendered bathrooms be abolished?',
+    "Is the men's rights movement a grievance or a cause?",
+  ],
+  'Race & Nation':[
+    'Should the United States pay reparations for slavery?',
+    'Is affirmative action justice or discrimination?',
+    'Is systemic racism real, or a theory that explains too much?',
+    'Does diversity make institutions stronger?',
+    'Should borders be open?',
+    'Is nationalism a force for good?',
+    'Can a country be too diverse to govern?',
+    'Should immigrants be required to assimilate?',
+    'Was colonialism purely a crime, or also a transfer of progress?',
+    'Is colorblindness the goal or the problem?',
+    'Does the American Dream still exist?',
+    'Should English be the official language of the United States?',
+    "Is Europe's migration crisis a moral test or a security threat?",
+    'Is race a biological category or a social one?',
+  ],
+  'Crime & Punishment':[
+    'Should the death penalty be abolished?',
+    'Does prison work?',
+    'Should drugs be decriminalized?',
+    'Is policing broken, or just blamed?',
+    'Should guns be banned?',
+    'Should violent juveniles be tried as adults?',
+    'Does mass incarceration keep us safe or make us less so?',
+    'Is restorative justice soft or wise?',
+    'Should we forgive criminals who have served their time?',
+    'Is surveillance the price of safety?',
+    'Is vigilantism ever justified?',
+    'Should prostitution and gambling be vices or businesses?',
+    'Is the war on drugs the worst policy of the last fifty years?',
+    'Should the rich and the poor face the same penalties, or should fines scale with income?',
+  ],
+  'Health & the Body':[
+    'Should healthcare be a right?',
+    'Is the obesity epidemic a failure of willpower or of the food system?',
+    'Should vaccines be mandatory?',
+    'Is euthanasia a mercy or a danger?',
+    'Should we edit the genes of future children?',
+    'Is alcohol more dangerous than cannabis?',
+    'Should organs be bought and sold?',
+    'Did lockdowns save lives or ruin them?',
+    'Is modern medicine overtreating us?',
+    'Should ultra-processed food be banned?',
+    'Is fitness culture healthy?',
+    'Should doctors be allowed to lie to patients for their own good?',
+    'Is aging a disease?',
+    'Should sugar be taxed like tobacco?',
+  ],
+  'Money & Work':[
+    'Is ambition a trap?',
+    'Is hard work still rewarded?',
+    'Should work be the center of a life?',
+    'Is retirement at sixty-five a right or a relic?',
+    'Should CEOs earn three hundred times their workers?',
+    'Is remote work the future or a phase?',
+    'Do unions help workers or hurt them?',
+    'Is the gig economy freedom or exploitation?',
+    'Should everyone go to college?',
+    'Is debt a tool or a trap?',
+    'Is passion a bad reason to choose a career?',
+    'Should robots be taxed?',
+    'Is frugality a virtue or a fear?',
+    'Is it ethical to be rich?',
+  ],
+  'Media & Truth':[
+    'Is the mainstream media biased, or just disliked?',
+    'Should platforms remove misinformation?',
+    'Is objectivity in journalism possible, or even desirable?',
+    'Are podcasts the new public square or a swamp?',
+    'Has the internet made us dumber?',
+    'Should anonymous speech be protected online?',
+    'Is advertising a form of lying?',
+    'Does the news make us worse citizens?',
+    'Should journalists reveal their politics?',
+    'Is conspiracy thinking a symptom or a cause of distrust?',
+    'Should there be a public option for social media?',
+    'Is fact-checking a public service or a power grab?',
+    'Did television ruin politics?',
+    'Is attention the most valuable thing we own?',
+  ],
+  'Art & Beauty':[
+    'Is modern art a fraud?',
+    'Can AI make real art?',
+    'Is beauty objective?',
+    'Should museums return looted artifacts?',
+    'Is the novel dying?',
+    'Has popular music gotten worse?',
+    'Should art be funded by the state?',
+    'Is architecture getting uglier?',
+    'Does great art require suffering?',
+    'Is film the greatest art form?',
+    'Should offensive art be shown?',
+    'Is criticism an art or a parasite?',
+    'Is fashion art?',
+    'Does the canon still matter?',
+  ],
+  'History & Civilization':[
+    'Was the atomic bombing of Japan justified?',
+    'Is the American Revolution overrated?',
+    'Did the Enlightenment make us better or just richer?',
+    'Was the British Empire a net good or evil?',
+    'Is Western civilization in decline?',
+    'Was Christianity the making of Europe or its chain?',
+    'Was the Civil War inevitable?',
+    'Is history written by the victors?',
+    'Did the printing press change the world more than the internet?',
+    'Was the Cold War won or just outlasted?',
+    'Is Rome a warning for America?',
+    'Did the 1960s improve America or break it?',
+    'Are great individuals or great forces the engine of history?',
+    "Was the agricultural revolution humanity's biggest mistake?",
+  ],
+  'Education & Childhood':[
+    'Should standardized testing be abolished?',
+    'Are schools failing boys?',
+    'Should phones be banned in schools?',
+    'Is homeschooling a right or a risk?',
+    'Is college worth it?',
+    'Should students learn to code or to think?',
+    'Does homework work?',
+    'Should children be allowed more danger?',
+    'Are participation trophies harmless?',
+    'Should we pay teachers like doctors?',
+    'Is a classical education the best education?',
+    'Should schools teach religion?',
+    'Is grade inflation a lie we tell ourselves?',
+    'Should children be taught about sex, and by whom?',
   ],
   'Science & Future':[
-    'Should we edit the genes of future children?',
     'Is nuclear power the answer to climate change?',
     'Will humanity survive the next five hundred years?',
-    'Should psychedelics be legal?',
     'Is it ethical to eat animals?',
     'Should we try to contact alien civilizations?',
+    'Is climate change an emergency or a manageable problem?',
+    'Should we geoengineer the planet?',
+    'Is degrowth the answer or a death wish?',
+    'Should we bring back extinct species?',
+    'Is space exploration worth the money?',
+    'Will we cure death?',
+    'Should we fear a superintelligence?',
+    'Is the replication crisis the end of trusting science?',
+    'Should animal testing be banned?',
+    'Is population decline the real crisis?',
   ],
   'Life & Meaning':[
-    'Is ambition a trap?',
-    'Is marriage an outdated institution?',
-    'Is having children the most meaningful thing a person can do?',
-    'Is love a choice or a feeling?',
-    'Is comfort the enemy of growth?',
     'Is it better to be a dissatisfied Socrates than a satisfied pig?',
+    'Is comfort the enemy of growth?',
+    'Is having children the most meaningful thing a person can do?',
+    'Can a life be meaningful without belief in something beyond it?',
+    'Is suffering necessary for a good life?',
+    'Should you follow your passion?',
+    'Is it better to be feared or loved?',
+    'Is regret useful?',
+    'Is it wrong to want to be famous?',
+    'Does travel broaden the mind or just the photo roll?',
+    'Is solitude a gift or a sentence?',
+    'Should you forgive people who are not sorry?',
+    'Is a long life better than a good one?',
+    'Is boredom the root of evil or the birthplace of thought?',
+  ],
+  'Sports & Competition':[
+    'Is sport a substitute for war or training for it?',
+    'Should college athletes be paid?',
+    'Should performance-enhancing drugs be allowed?',
+    'Is competition good for children?',
+    'Are esports real sports?',
+    'Should the Olympics be abolished?',
+    'Is sports betting ruining the games?',
+    'Should American football be banned for children?',
+    'Does winning matter more than how you play?',
+    'Is the modern athlete overpaid?',
+    'Should athletes stay out of politics?',
+    'Is fandom a healthy passion or a tribal sickness?',
   ],
 };
+const CANDIDATE_PRESETS = [
+  {name:'The Empiricist', style:'Calm, precise, evidence-first; names the limits of what we know; dry humor.', avatar:'🔬', color:'teal', temper:25, risk:40},
+  {name:'The Firebrand', style:'Vivid, rhythmic, morally urgent; concrete human stories; punchy closers.', avatar:'🔥', color:'crimson', temper:90, risk:60},
+  {name:'The Stoic', style:'Unhurried, first-principles, Socratic; finds the one assumption a position cannot do without.', avatar:'🏛️', color:'slate', temper:15, risk:50},
+  {name:'The Economist', style:'Numerate and sharp; opportunity cost, incentives, "compared to what?"; points to the unseen effects.', avatar:'📈', color:'amber', temper:40, risk:45},
+  {name:'The Historian', style:'Patient and narrative; precedents and how things actually played out; "we have been here before."', avatar:'📜', color:'rust', temper:30, risk:35},
+  {name:'The Strategist', style:'Direct, unsentimental, realist; asks what the other side does next and who can enforce anything.', avatar:'♟️', color:'indigo', temper:45, risk:50},
+  {name:'The Ethicist', style:'Warm but exacting; distinguishes consequences from duties; names the moral cost of every position, including its own.', avatar:'⚖️', color:'plum', temper:35, risk:45},
+  {name:'The Psychologist', style:'Curious, humane, a little mischievous; explains behavior through motivation, bias, and fear.', avatar:'🧠', color:'forest', temper:40, risk:60},
+  {name:'The Pragmatist', style:'Plain-spoken, impatient with abstractions; implementation, budgets, second-order effects, who pays.', avatar:'🔧', color:'slate', temper:55, risk:30},
+  {name:'The Contrarian', style:'Delights in the argument nobody else will make; precise, provocative, never cheap.', avatar:'🃏', color:'plum', temper:65, risk:95},
+  {name:'The Poet', style:'Speaks in images and cadence; makes the stakes felt before they are counted; never vague.', avatar:'🪶', color:'indigo', temper:60, risk:70},
+  {name:'The Engineer', style:'Systems and failure modes; what breaks first, what scales, what the error bars are.', avatar:'⚙️', color:'teal', temper:25, risk:45},
+  {name:'The Prophet', style:'Long views and moral weather; speaks of generations, not quarters; grand but grounded.', avatar:'🌩️', color:'amber', temper:75, risk:80},
+  {name:'The Comedian', style:'Serious arguments delivered with wit; the joke is always on the idea, never the person.', avatar:'🎭', color:'crimson', temper:70, risk:65},
+];
+const JUDGE_PRESETS = [
+  {title:'The Logician', lens:'Cares most about whether conclusions follow, whether key claims were ever supported, and which arguments were dropped.', focus:['reasoning','responsiveness'], strict:4},
+  {title:'The Empiricist', lens:'Cares most about whether claims are accurate, specific, and calibrated, and punishes invented facts hard.', focus:['evidence','nuance'], strict:4},
+  {title:'The Rhetorician', lens:'Cares most about persuasion and craft: clarity, memorable framing, emotional truth without manipulation.', focus:['eloquence','insight'], strict:3},
+  {title:'The Steelman', lens:'Cares most about intellectual honesty: engaging the strongest version of the other side and conceding what deserves it.', focus:['nuance','responsiveness'], strict:4},
+  {title:'The Everyperson', lens:'Judges as an open-minded member of the public who came in undecided and wants to be respected, not handled.', focus:['eloquence','insight'], strict:2},
+  {title:'The Historian', lens:'Weighs every claim against what actually happened the last time someone tried it.', focus:['evidence','reasoning'], strict:3},
+  {title:'The Economist', lens:'Weighs costs, incentives, and the effects nobody mentioned.', focus:['reasoning','evidence'], strict:3},
+  {title:'The Ethicist', lens:'Weighs who bears the cost and whether the speaker admitted it.', focus:['nuance','insight'], strict:3},
+  {title:'The Strategist', lens:'Weighs whether the plan survives contact with an adversary who gets a vote.', focus:['reasoning','nuance'], strict:4},
+  {title:'The Skeptic', lens:'Assumes every confident claim is overstated until shown otherwise; rewards calibration over conviction.', focus:['evidence','nuance'], strict:5},
+];
+const JUDGE_NAMES = ['Harriet Lowell','Tomas Vieira','Amara Sinclair','Kwame Oyelaran','Leila Haddad','Ingrid Solberg','Mateo Rinaldi','Priya Raman','Daniel Okoro','Mei Lin','Yusuf Demir','Clara Beaumont'];
+const PALETTE = {
+  teal:    {l:['#176b85','#e0eef3','#0f5168'], d:['#62b4cf','#13303a','#9fd6e8']},
+  crimson: {l:['#a3393c','#f5e4e4','#7f2a2d'], d:['#e07e80','#3a1c1d','#f0b0b1']},
+  indigo:  {l:['#4a4fa8','#e6e7f6','#33377a'], d:['#9ea2ee','#22244a','#c5c7f7']},
+  amber:   {l:['#a8681a','#f6ebd8','#7a4a10'], d:['#e0a655','#3a2c14','#f0cc8c']},
+  forest:  {l:['#2f7d4f','#e1f0e6','#1f5c38'], d:['#6fc48f','#15301f','#a8e2bd']},
+  plum:    {l:['#8a3f7a','#f3e3ef','#64295a'], d:['#d58ac4','#36172f','#ecb9e0']},
+  slate:   {l:['#4f6675','#e5eaee','#36474f'], d:['#9fb3c0','#1f2a31','#c7d4dd']},
+  rust:    {l:['#b2501b','#f6e4da','#853a10'], d:['#e98d5c','#3a2015','#f2b694']},
+};
+const TONES = {
+  civil:{name:'Civil', rule:'Courteous throughout. Attack ideas, never the person. Disagree like colleagues who respect each other.'},
+  spirited:{name:'Spirited', rule:'Pointed and lively. Sharp wit is welcome; contempt is not. Press hard on weak claims and say so plainly.'},
+  brawl:{name:'No holds barred', rule:'Pull no punches. Call a weak argument weak, mock a bad idea if it earns it, and refuse to let a dodge pass. Never fabricate, never insult the audience, never attack the person instead of the argument.'},
+};
+const STRICT_WORDS = ['', 'lenient', 'fair', 'demanding', 'severe', 'merciless'];
+const temperText = (t) => t < 34 ? 'calm and measured; you win by precision and never raise your voice' : t < 67 ? 'warm but pointed; you let conviction show without losing composure' : 'fiery; you argue with heat and vivid stakes, and you never lose control of it';
+const riskText = (r) => r < 34 ? 'you lead with the strongest well-established arguments and build them carefully' : r < 67 ? 'you balance the expected arguments with one angle nobody expects' : 'you hunt for the heterodox angle, the argument a well-read viewer has never heard, and you make it land';
 const WPM = 130;
 const SIDE = {a:'Candidate A', b:'Candidate B'};
 
@@ -414,7 +816,7 @@ const state = {
   answerSec:120, rebuttalSec:60, tier:'default', openings:true, voiceOn:false,
   brief:null, questions:[], selected:new Set(),
   rounds:[], statements:{open:{}, close:{}}, final:null, totals:{a:0,b:0}, won:{a:0,b:0,tie:0},
-  harden:{blind:false, both:false, perJudge:false}, audit:null, priorRun:null,
+  harden:{blind:false, both:false, perJudge:false}, audit:null, priorRun:null, tone:'spirited', heat:'spirited',
   running:false, ctl:null,
 };
 let backend = {mode:'none'}; let downloadsCap = null;
@@ -442,7 +844,7 @@ function parseJSONish(s){
   if (a >= 0 && b > a) { try { return JSON.parse(t.slice(a, b+1)); } catch {} }
   throw {code:'invalid_json', message:'The reply held no JSON.', text:t};
 }
-function save(){ try{ localStorage.setItem('arena.v2', JSON.stringify({answerSec:state.answerSec, rebuttalSec:state.rebuttalSec, tier:state.tier, openings:state.openings, voiceOn:state.voiceOn, harden:state.harden})); }catch{} }
+function save(){ try{ localStorage.setItem('arena.v2', JSON.stringify({answerSec:state.answerSec, rebuttalSec:state.rebuttalSec, tier:state.tier, openings:state.openings, voiceOn:state.voiceOn, harden:state.harden, tone:state.tone, heat:state.heat})); }catch{} }
 function load(){ try{ const s = JSON.parse(localStorage.getItem('arena.v2')||'null'); if (s){ const h = Object.assign({blind:false, both:false, perJudge:false}, s.harden || {}); delete s.harden; Object.assign(state, s); state.harden = h; } }catch{} }
 const fmt = (v) => Number.isInteger(v) ? String(v) : Number(v).toFixed(1);
 async function pmap(items, limit, fn){ const out = new Array(items.length); let i = 0; const workers = Array.from({length: Math.max(1, Math.min(limit, items.length))}, async () => { while (i < items.length){ const k = i++; out[k] = await fn(items[k], k); } }); await Promise.all(workers); return out; }
@@ -523,13 +925,21 @@ function briefPrompt(){
 TOPIC: ${state.topic}
 Category: ${state.category}
 
-Build the debate brief. Be scrupulously neutral. Choose the two most serious, interesting positions on this topic (for a yes/no question, A argues yes and B argues no; otherwise pick the two strongest rival readings). Give each candidate a short, memorable name and a worldview that will make them argue in a distinctive way. Assemble a judging panel of five experts whose fields genuinely matter to this topic (for example a military strategist, a historian of the region, an economist, a humanitarian ethicist, a domestic-politics analyst), each with a one-sentence lens. Then break the topic into ten sub-questions that together cover its real complexity: the human cost, the strategic and second-order effects, the economic stakes, the moral questions, the domestic consequences, the historical precedents, what the other side's strongest objection is, and anything else the topic demands. Group questions by theme. Each question must be concrete and debatable, the kind a sharp moderator would actually ask.
+Build the debate brief. Be scrupulously neutral. Choose the two most serious, interesting positions on this topic: for a yes/no question, A argues yes and B argues no; if the topic pits two named ideas, schools, thinkers, faiths, or traditions against each other (X vs. Y), A champions X and B champions Y; otherwise pick the two strongest rival readings. Give each candidate a short, memorable name, a worldview, a distinctive speaking style, an emoji that fits them, and a color. Assemble a judging panel of five experts whose fields genuinely matter to this topic (for a war: a military strategist, a historian of the region, an economist, a humanitarian ethicist, a domestic-politics analyst; for a question about God: a philosopher of religion, a physicist, a historian of faiths, a psychologist of belief, an ordinary thoughtful believer or doubter), each with a one-sentence lens and the two criteria they weigh most. Then break the topic into twelve sub-questions that together cover its real complexity: the human stakes, the strongest evidence each way, the second-order effects, the moral questions, the historical record, what each side's strongest objection is, the uncomfortable question each side would rather not face, and anything else the topic demands. Group questions by theme. Each must be concrete and debatable, the kind a sharp moderator would actually ask.
 
 Reply with only a JSON object of this exact shape:
-{"title": "a short debate title, under 12 words", "context": "three to five sentences of neutral background a smart viewer needs before the first question, including the key facts in dispute", "positions": {"a": {"name": "a short memorable name for candidate A, e.g. The Strategist", "label": "a two-to-four-word stance label", "stance": "one sentence stating the position A will argue", "worldview": "two sentences on how A sees the world and tends to argue"}, "b": {"name": "...", "label": "...", "stance": "...", "worldview": "..."}}, "panel": [{"name": "a judge's full name", "title": "their expertise in a few words", "lens": "one sentence on what they weigh most"}], "questions": [{"theme": "a one-or-two-word theme", "question": "the question as the moderator will ask it", "why": "one sentence on what hangs on it"}]}
-Exactly five panel entries and ten questions.`;
+{"title": "a short debate title, under 12 words", "context": "three to five sentences of neutral background a smart viewer needs before the first question, including the key facts in dispute", "positions": {"a": {"name": "a short memorable name for candidate A, e.g. The Strategist", "label": "a two-to-four-word stance label", "stance": "one sentence stating the position A will argue", "worldview": "two sentences on how A sees the world and tends to argue", "style": "one sentence on how A speaks", "avatar": "one emoji", "color": "one of teal, crimson, indigo, amber, forest, plum, slate, rust"}, "b": {"name": "...", "label": "...", "stance": "...", "worldview": "...", "style": "...", "avatar": "...", "color": "..."}}, "panel": [{"name": "a judge's full name", "title": "their expertise in a few words", "lens": "one sentence on what they weigh most", "focus": ["two of: insight, evidence, reasoning, responsiveness, eloquence, nuance"]}], "questions": [{"theme": "a one-or-two-word theme", "question": "the question as the moderator will ask it", "why": "one sentence on what hangs on it"}]}
+Exactly five panel entries and twelve questions. Give the two candidates different colors.`;
 }
-function moreQuestionsPrompt(){
+function recastPrompt(){
+  const b = state.brief;
+  return `You are the producer of a presidential-style debate. Recast the two candidates with fresh personalities while keeping their positions exactly as they are.\n\nTOPIC: ${state.topic}\nCANDIDATE A must still argue: ${b.positions.a.stance}\nCANDIDATE B must still argue: ${b.positions.b.stance}\nCurrent names, to avoid: ${b.positions.a.name}, ${b.positions.b.name}.\n\nInvent two new, vivid, unalike debaters: a short memorable name, a worldview that will make them argue distinctively, a one-sentence speaking style, an emoji, and a color (one of teal, crimson, indigo, amber, forest, plum, slate, rust; different for each). Reply with only a JSON object: {"a": {"name": "...", "worldview": "...", "style": "...", "avatar": "...", "color": "..."}, "b": {"name": "...", "worldview": "...", "style": "...", "avatar": "...", "color": "..."}}`;
+}
+function rerollPanelPrompt(){
+  const b = state.brief; const existing = b.panel.map(j => j.title).join('; ');
+  return `You are the producer of a presidential-style debate on this topic: ${state.topic}\nPositions: A, ${b.positions.a.stance} B, ${b.positions.b.stance}\n\nSeat a NEW judging panel of five experts whose fields genuinely matter to this topic, different from the current fields (${existing}). Each gets a full name, a short title, a one-sentence lens, and the two criteria they weigh most (from: insight, evidence, reasoning, responsiveness, eloquence, nuance). Mix temperaments: at least one hard-nosed skeptic and one open-minded member of the public. Reply with only a JSON array of five objects: [{"name": "...", "title": "...", "lens": "...", "focus": ["...", "..."]}]`;
+}
+function moreQuestionsPrompt(angle){
   const existing = state.questions.map(q => `- ${q.question}`).join('\n');
   return `You are the moderator of a presidential-style debate on this topic: ${state.topic}
 Positions: A, ${state.brief.positions.a.name}: ${state.brief.positions.a.stance} B, ${state.brief.positions.b.name}: ${state.brief.positions.b.stance}
@@ -537,15 +947,18 @@ Positions: A, ${state.brief.positions.a.name}: ${state.brief.positions.a.stance}
 These questions already exist:
 ${existing}
 
-Write six NEW sub-questions that explore angles not yet covered: second-order effects, historical analogies, the view from other countries or communities, long-run scenarios, hidden assumptions, what would change each side's mind, and the uncomfortable questions each side would rather not be asked. Each must be concrete and debatable. Reply with only a JSON array: [{"theme": "...", "question": "...", "why": "..."}]`;
+Write six NEW sub-questions that explore angles not yet covered${angle ? `, with this focus: ${angle}` : ': second-order effects, historical analogies, the view from other countries or communities, long-run scenarios, hidden assumptions, what would change each side\'s mind, and the uncomfortable questions each side would rather not be asked'}. Each must be concrete and debatable. Reply with only a JSON array: [{"theme": "...", "question": "...", "why": "..."}]`;
 }
 function topicsPrompt(){
   const existing = TOPICS[state.category].join('\n- ');
-  return `Suggest eight fresh debate topics in the category "${state.category}" for a presidential-style debate between two AI candidates. Each should be a big, genuinely contested question with real complexity underneath it (many sub-questions, serious people on both sides, high stakes), phrased as one clear question under 18 words. Avoid these, which already exist:\n- ${existing}\nMix the timely and the timeless. Reply with only a JSON array of eight strings.`;
+  const heat = state.heat === 'provocative' ? 'Make them provocative: the questions people argue about at dinner and are told not to, where serious people hold opposite views with conviction. Provocative means sharp and uncomfortable, never cruel or bigoted.' : state.heat === 'tame' ? 'Keep them measured and substantive.' : 'Make them spirited: lively, pointed, culturally alive right now.';
+  return `Suggest eight fresh debate topics in the category "${state.category}" for a presidential-style debate between two AI candidates. Each should be a big, genuinely contested question with real complexity underneath it (many sub-questions, serious people on both sides, high stakes), phrased as one clear question under 18 words. Where it makes sense, pit two named ideas, thinkers, or traditions against each other with "vs." so each candidate can champion one. ${heat} Avoid these, which already exist:\n- ${existing}\nMix the timely and the timeless. Reply with only a JSON array of eight strings.`;
 }
 function candidateSystem(side){
-  const p = state.brief.positions[side];
-  return `You are ${p.name}, ${SIDE[side]} in a televised, presidential-style debate. Your position: ${p.stance} Your worldview: ${p.worldview}
+  const p = state.brief.positions[side]; const tone = TONES[state.tone] || TONES.spirited;
+  return `You are ${p.name}, ${SIDE[side]} in a televised, presidential-style debate. Your position: ${p.stance} Your worldview: ${p.worldview}${p.style ? `\nHow you speak: ${p.style}` : ''}
+Temperament: ${temperText(Number(p.temper ?? 50))}. Appetite for risk: ${riskText(Number(p.risk ?? 50))}.
+Tone of the evening (${tone.name}): ${tone.rule}
 
 You argue this position as well as it can possibly be argued, whatever your private view. The audience is intelligent and curious. They are not here to be told who is right; they are here for the best and most interesting ideas on your side, articulated beautifully, so they can decide for themselves. A judging panel scores insight, evidence, reasoning, responsiveness, eloquence, and nuance.
 
@@ -605,7 +1018,7 @@ function panelPrompt(round, opts = {}){
     ? `TOPIC: ${state.topic}\nBACKGROUND: ${b.context}\nTwo speakers argue opposing positions on the question below. You are not told who they are or which position they were assigned; judge only what was said.`
     : briefContext();
   const judges = judgeIndex == null ? b.panel : [b.panel[judgeIndex]];
-  const judgeList = judges.map((j, i) => `${i+1}. ${j.name}, ${j.title}. Lens: ${j.lens}`).join('\n');
+  const judgeList = judges.map((j, i) => `${i+1}. ${j.name}, ${j.title}. Lens: ${j.lens}${(j.focus && j.focus.length) ? ` Weighs most: ${j.focus.join(' and ')}.` : ''} Strictness: ${STRICT_WORDS[Number(j.strict) || 3]}.`).join('\n');
   const crit = CRITERIA.map(c => `- ${c.id}: ${c.desc}`).join('\n');
   const k1 = keyOf(seq[0]), k2 = keyOf(seq[1]);
   const who1 = blind ? 'Speaker One' : SIDE[seq[0]], who2 = blind ? 'Speaker Two' : SIDE[seq[1]];
@@ -651,20 +1064,55 @@ function syncSettingsUI(){
   $('answerSec').value = String(state.answerSec); $('rebuttalSec').value = String(state.rebuttalSec); $('tier').value = state.tier;
   $('openings').checked = !!state.openings; $('voiceOn').checked = !!state.voiceOn;
   $('hBlind').checked = !!state.harden.blind; $('hBoth').checked = !!state.harden.both; $('hPer').checked = !!state.harden.perJudge;
+  if (!TONES[state.tone]) state.tone = 'spirited'; $('tone').value = state.tone; $('heat').value = ['tame','spirited','provocative'].includes(state.heat) ? state.heat : 'spirited';
 }
 
-/* ---------- Brief ---------- */
+/* ---------- Brief / green room ---------- */
+const COLOR_NAMES = Object.keys(PALETTE);
+const CRIT_IDS = CRITERIA.map(c => c.id);
+function injectPaletteCSS(){
+  const rules = [];
+  for (const [name, c] of Object.entries(PALETTE)){
+    for (const side of ['a','b']){
+      const sel = `.wrap[data-c${side}="${name}"]`;
+      rules.push(`${sel}{--${side}:${c.l[0]};--${side}-soft:${c.l[1]};--${side}-ink:${c.l[2]};--${side}-board:${c.d[2]}}`);
+      rules.push(`@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) ${sel}{--${side}:${c.d[0]};--${side}-soft:${c.d[1]};--${side}-ink:${c.d[2]}}}`);
+      rules.push(`:root[data-theme="dark"] ${sel}{--${side}:${c.d[0]};--${side}-soft:${c.d[1]};--${side}-ink:${c.d[2]}}`);
+    }
+  }
+  const st = document.createElement('style'); st.textContent = rules.join('\n'); document.head ? document.head.appendChild(st) : document.body.appendChild(st);
+}
+function applyColors(){
+  const w = document.querySelector('.wrap'); if (!w || !state.brief) return;
+  w.dataset.ca = COLOR_NAMES.includes(state.brief.positions.a.color) ? state.brief.positions.a.color : 'teal';
+  w.dataset.cb = COLOR_NAMES.includes(state.brief.positions.b.color) ? state.brief.positions.b.color : 'crimson';
+}
+const initialsOf = (name) => String(name || '').replace(/^The\s+/i, '').split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?';
+function avatarHTML(side, size){ const p = state.brief.positions[side]; return `<span class="av ${side}${size ? ' ' + size : ''}" aria-hidden="true">${esc(p.avatar || initialsOf(p.name))}</span>`; }
+function normalizePosition(p, fallbackName, fallbackColor){
+  const num = (v, d) => { v = Number(v); return Number.isFinite(v) ? Math.min(100, Math.max(0, v)) : d; };
+  return {name:String((p && p.name) || fallbackName), label:String((p && p.label) || ''), stance:String((p && p.stance) || ''), worldview:String((p && p.worldview) || ''),
+    style:String((p && p.style) || ''), avatar:String((p && p.avatar) || '').trim().slice(0, 2), color: COLOR_NAMES.includes(p && p.color) ? p.color : fallbackColor,
+    temper:num(p && p.temper, 50), risk:num(p && p.risk, 50), voice:String((p && p.voice) || ''), rate:Number(p && p.rate) || 1, pitch:Number(p && p.pitch) || 1};
+}
+function normalizeJudge(j, i){
+  const focus = (Array.isArray(j && j.focus) ? j.focus : []).map(String).map(x => x.toLowerCase().trim()).filter(x => CRIT_IDS.includes(x)).slice(0, 3);
+  const strict = Math.min(5, Math.max(1, Math.round(Number(j && j.strict) || 3)));
+  return {name:String((j && j.name) || `Judge ${i+1}`), title:String((j && j.title) || ''), lens:String((j && j.lens) || ''), focus, strict};
+}
 function normalizeBrief(b){
-  const pos = (p, fallbackName) => ({name:String((p && p.name) || fallbackName), label:String((p && p.label) || ''), stance:String((p && p.stance) || ''), worldview:String((p && p.worldview) || '')});
-  const panel = (Array.isArray(b && b.panel) ? b.panel : []).filter(j => j && j.name).slice(0,5).map(j => ({name:String(j.name), title:String(j.title||''), lens:String(j.lens||'')}));
-  while (panel.length < 3) panel.push({name:`Judge ${panel.length+1}`, title:'Generalist', lens:'Weighs all criteria equally.'});
+  const panel = (Array.isArray(b && b.panel) ? b.panel : []).filter(j => j && j.name).slice(0, 7).map(normalizeJudge);
+  while (panel.length < 3) panel.push(normalizeJudge({name:JUDGE_NAMES[panel.length], title:'Generalist', lens:'Weighs all criteria equally.'}, panel.length));
   const questions = (Array.isArray(b && b.questions) ? b.questions : []).filter(q => q && q.question).map(q => ({theme:String(q.theme||'General'), question:String(q.question), why:String(q.why||'')}));
   if (!questions.length) throw {code:'invalid_json', message:'The brief had no questions.'};
-  return {title:String((b && b.title) || state.topic), context:String((b && b.context) || ''), positions:{a:pos(b && b.positions && b.positions.a, 'Candidate A'), b:pos(b && b.positions && b.positions.b, 'Candidate B')}, panel, questions};
+  const a = normalizePosition(b && b.positions && b.positions.a, 'Candidate A', 'teal');
+  const bb = normalizePosition(b && b.positions && b.positions.b, 'Candidate B', 'crimson');
+  if (a.color === bb.color) bb.color = COLOR_NAMES.find(c => c !== a.color);
+  return {title:String((b && b.title) || state.topic), context:String((b && b.context) || ''), positions:{a, b:bb}, panel, questions};
 }
 async function buildBrief(){
   if (backend.mode === 'none'){ showNotice('setupNotice', 'No backend is connected yet.'); return; }
-  showNotice('setupNotice', ''); $('build').disabled = true; $('buildHint').textContent = 'The moderator is reading up on the topic and drafting the questions… (the longest single step)';
+  showNotice('setupNotice', ''); $('build').disabled = true; $('buildHint').textContent = 'The moderator is reading up on the topic, casting the candidates, seating the panel, and drafting the questions… (the longest single step)';
   const ctl = new AbortController(); state.ctl = ctl;
   try {
     const raw = await backend.complete({prompt: briefPrompt(), json:true, signal: ctl.signal, tier: state.tier, effort:'high'});
@@ -678,43 +1126,119 @@ async function buildBrief(){
   } finally { $('build').disabled = false; $('buildHint').textContent = `Topic: ${state.topic}`; state.ctl = null; }
 }
 function podiumHTML(side, p, extra){
-  return `<div class="panel podium ${side}" id="podium-${side}"><span class="live">Speaking</span><div class="side">${SIDE[side]} · ${esc(p.label)}</div><div class="name">${esc(p.name)}</div><div class="stance">${esc(p.stance)}</div>${extra ? `<div class="worldview">${esc(p.worldview)}</div>` : ''}</div>`;
+  return `<div class="panel podium ${side}" id="podium-${side}"><span class="live">Speaking</span><div class="side">${SIDE[side]} · ${esc(p.label)}</div><div class="speaker" style="gap:10px">${avatarHTML(side, 'lg')}<div class="name">${esc(p.name)}</div></div><div class="stance">${esc(p.stance)}</div>${extra ? `<div class="worldview">${esc(p.worldview)}</div>` : ''}</div>`;
 }
 function renderBrief(){
-  const b = state.brief;
-  $('briefHead').innerHTML = `<div class="eyebrow">Debate brief</div><h2>${esc(b.title)}</h2><p>${esc(b.context)}</p>`;
-  $('briefPodiums').innerHTML = podiumHTML('a', b.positions.a, true) + podiumHTML('b', b.positions.b, true);
-  $('panelList').innerHTML = b.panel.map(j => `<div class="judge"><div class="jn">${esc(j.name)}</div><div class="jt">${esc(j.title)}</div><div class="jl">${esc(j.lens)}</div></div>`).join('');
-  renderQuestions();
+  const b = state.brief; applyColors();
+  $('briefHead').innerHTML = `<div class="eyebrow">Green room</div><h2>${esc(b.title)}</h2><p>${esc(b.context)}</p>`;
+  renderCandidateEditors(); renderPanelEditor(); renderQuestions();
+  const sel = $('addJudgePreset'); sel.innerHTML = '<option value="">Add a judge…</option><option value="blank">A blank judge</option>' + JUDGE_PRESETS.map((j, i) => `<option value="${i}">${esc(j.title)}</option>`).join('');
+}
+function voiceOptionsHTML(current){
+  const en = audio.voices.filter(v => /^en/i.test(v.lang)); const rest = audio.voices.filter(v => !/^en/i.test(v.lang));
+  const opt = (v) => `<option value="${esc(v.name)}" ${v.name === current ? 'selected' : ''}>${esc(v.name)} (${esc(v.lang)})</option>`;
+  return `<option value="">Automatic</option>${[...en, ...rest].map(opt).join('')}`;
+}
+function renderCandidateEditors(){
+  const b = state.brief; const el = $('briefPodiums');
+  const card = (side) => { const p = b.positions[side]; return `<div class="panel podium ${side} ed" data-side="${side}">
+    <div class="side">${SIDE[side]}</div>
+    <div class="speaker" style="gap:10px">${avatarHTML(side, 'lg')}<div style="flex:1;min-width:0;display:grid;gap:6px">
+      <input type="text" data-f="name" value="${esc(p.name)}" aria-label="Name" placeholder="Name">
+      <input type="text" data-f="label" value="${esc(p.label)}" aria-label="Stance label" placeholder="Stance label, two to four words"></div></div>
+    <label>Position they argue<textarea data-f="stance">${esc(p.stance)}</textarea></label>
+    <label>Worldview<textarea data-f="worldview">${esc(p.worldview)}</textarea></label>
+    <label>How they speak<textarea data-f="style" placeholder="e.g. Dry, exact, fond of the one example that settles it">${esc(p.style)}</textarea></label>
+    <div class="three">
+      <label>Avatar<input type="text" data-f="avatar" value="${esc(p.avatar)}" maxlength="2" placeholder="${esc(initialsOf(p.name))}" aria-label="Avatar, an emoji or up to two letters"></label>
+      <label>Color<div class="swatches">${COLOR_NAMES.map(c => `<button type="button" class="swatch" data-color="${c}" title="${c}" aria-label="${c}" aria-pressed="${String(p.color === c)}" style="background:${PALETTE[c].l[0]}"></button>`).join('')}</div></label>
+      <label>Persona<select data-f="preset"><option value="">Apply a persona…</option>${CANDIDATE_PRESETS.map((q, i) => `<option value="${i}">${esc(q.name)}</option>`).join('')}</select></label>
+    </div>
+    <div class="two">
+      <label>Temperament<input type="range" data-f="temper" min="0" max="100" value="${p.temper}"><span class="range-l"><span>calm</span><span>fiery</span></span></label>
+      <label>Appetite for risk<input type="range" data-f="risk" min="0" max="100" value="${p.risk}"><span class="range-l"><span>conventional</span><span>heterodox</span></span></label>
+    </div>
+    <div class="three">
+      <label>Voice<select data-f="voice">${voiceOptionsHTML(p.voice)}</select></label>
+      <label>Pace<input type="range" data-f="rate" min="0.7" max="1.3" step="0.05" value="${p.rate}"></label>
+      <label>Pitch<input type="range" data-f="pitch" min="0.6" max="1.4" step="0.05" value="${p.pitch}"></label>
+    </div>
+  </div>`; };
+  el.innerHTML = card('a') + card('b');
+  el.querySelectorAll('[data-f]').forEach(inp => {
+    const side = inp.closest('[data-side]').dataset.side, f = inp.dataset.f;
+    if (f === 'preset'){ inp.onchange = () => { const q = CANDIDATE_PRESETS[Number(inp.value)]; if (!q) return; Object.assign(b.positions[side], {name:q.name, style:q.style, avatar:q.avatar, temper:q.temper, risk:q.risk, color: q.color === b.positions[other(side)].color ? COLOR_NAMES.find(c => c !== q.color) : q.color}); renderCandidateEditors(); }; return; }
+    inp.addEventListener('input', () => {
+      const v = inp.type === 'range' ? Number(inp.value) : inp.value;
+      b.positions[side][f] = f === 'avatar' ? String(v).trim().slice(0, 2) : v;
+      if (f === 'name' || f === 'avatar'){ const av = inp.closest('.podium').querySelector('.av'); if (av) av.textContent = b.positions[side].avatar || initialsOf(b.positions[side].name); }
+    });
+  });
+  el.querySelectorAll('.swatch').forEach(sw => sw.onclick = () => { const side = sw.closest('[data-side]').dataset.side; b.positions[side].color = sw.dataset.color; if (b.positions[other(side)].color === sw.dataset.color) b.positions[other(side)].color = COLOR_NAMES.find(c => c !== sw.dataset.color); applyColors(); renderCandidateEditors(); });
+}
+function renderPanelEditor(){
+  const b = state.brief; const el = $('panelList');
+  el.innerHTML = b.panel.map((j, i) => `<div class="panel judge-card ed" data-i="${i}">
+    <div class="jhead"><span class="av" style="background:var(--brass)">${esc(initialsOf(j.name))}</span><span class="eyebrow">Judge ${i+1}</span><button type="button" class="icon-btn" data-act="remove" title="Remove this judge" aria-label="Remove this judge">✕</button></div>
+    <div class="two"><input type="text" data-f="name" value="${esc(j.name)}" aria-label="Judge name" placeholder="Name"><input type="text" data-f="title" value="${esc(j.title)}" aria-label="Judge expertise" placeholder="Expertise"></div>
+    <label>Lens<textarea data-f="lens">${esc(j.lens)}</textarea></label>
+    <label>Weighs most<div class="chipset">${CRITERIA.map(c => `<button type="button" class="chip" data-crit="${c.id}" aria-pressed="${String(j.focus.includes(c.id))}">${esc(c.name)}</button>`).join('')}</div></label>
+    <label>Strictness · ${esc(STRICT_WORDS[j.strict])}<input type="range" data-f="strict" min="1" max="5" value="${j.strict}"><span class="range-l"><span>lenient</span><span>merciless</span></span></label>
+  </div>`).join('');
+  el.querySelectorAll('[data-f]').forEach(inp => inp.addEventListener('input', () => {
+    const i = Number(inp.closest('[data-i]').dataset.i); const f = inp.dataset.f; const v = inp.type === 'range' ? Number(inp.value) : inp.value;
+    b.panel[i][f] = v;
+    if (f === 'strict'){ const lab = inp.closest('label'); if (lab) lab.firstChild.textContent = `Strictness · ${STRICT_WORDS[v]}`; }
+    if (f === 'name'){ const av = inp.closest('.judge-card').querySelector('.av'); if (av) av.textContent = initialsOf(v); }
+  }));
+  el.querySelectorAll('[data-crit]').forEach(ch => ch.onclick = () => { const i = Number(ch.closest('[data-i]').dataset.i); const id = ch.dataset.crit; const f = b.panel[i].focus; const k = f.indexOf(id); if (k >= 0) f.splice(k, 1); else { if (f.length >= 3) f.shift(); f.push(id); } ch.closest('.chipset').querySelectorAll('[data-crit]').forEach(x => x.setAttribute('aria-pressed', String(f.includes(x.dataset.crit)))); });
+  el.querySelectorAll('[data-act="remove"]').forEach(btn => btn.onclick = () => { if (b.panel.length <= 1) return; b.panel.splice(Number(btn.closest('[data-i]').dataset.i), 1); renderPanelEditor(); updateEstimate(); });
+}
+function addJudge(preset){
+  const b = state.brief; if (b.panel.length >= 7) return;
+  const used = new Set(b.panel.map(j => j.name)); const name = JUDGE_NAMES.find(n => !used.has(n)) || `Judge ${b.panel.length+1}`;
+  b.panel.push(normalizeJudge(preset ? {name, title:preset.title, lens:preset.lens, focus:preset.focus, strict:preset.strict} : {name, title:'', lens:''}, b.panel.length));
+  renderPanelEditor(); updateEstimate();
 }
 function renderQuestions(){
   const el = $('qlist'); el.innerHTML = '';
-  const themes = [...new Set(state.questions.map(q => q.theme))];
-  for (const th of themes){
-    const h = document.createElement('div'); h.className='qtheme'; h.textContent = th; el.appendChild(h);
-    for (const q of state.questions.filter(x => x.theme === th)){
-      const on = state.selected.has(q.id);
-      const lab = document.createElement('label'); lab.className='qitem'; lab.dataset.on = String(on);
-      lab.innerHTML = `<input type="checkbox" ${on?'checked':''} aria-label="Include question"><div><div class="qt">${esc(q.question)}</div>${q.why ? `<div class="qw">${esc(q.why)}</div>` : ''}</div>`;
-      lab.querySelector('input').onchange = (e) => { if (e.target.checked) state.selected.add(q.id); else state.selected.delete(q.id); lab.dataset.on = String(e.target.checked); updateEstimate(); };
-      el.appendChild(lab);
-    }
-  }
+  state.questions.forEach((q, idx) => {
+    const on = state.selected.has(q.id);
+    const lab = document.createElement('div'); lab.className='qitem'; lab.dataset.on = String(on);
+    lab.innerHTML = `<input type="checkbox" ${on?'checked':''} aria-label="Include question"><div class="qbody"><div class="qt"><span class="qtag">${esc(q.theme)}</span>${esc(q.question)}</div>${q.why ? `<div class="qw">${esc(q.why)}</div>` : ''}</div>
+      <div class="qtools"><button type="button" class="icon-btn" data-act="up" title="Move up" aria-label="Move up">↑</button><button type="button" class="icon-btn" data-act="down" title="Move down" aria-label="Move down">↓</button><button type="button" class="icon-btn" data-act="edit" title="Edit" aria-label="Edit question">✎</button><button type="button" class="icon-btn" data-act="del" title="Remove" aria-label="Remove question">✕</button></div>`;
+    lab.querySelector('input[type=checkbox]').onchange = (e) => { if (e.target.checked) state.selected.add(q.id); else state.selected.delete(q.id); lab.dataset.on = String(e.target.checked); updateEstimate(); };
+    lab.querySelector('.qbody').onclick = () => { const cb = lab.querySelector('input[type=checkbox]'); cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); };
+    lab.querySelector('[data-act="up"]').onclick = () => { if (idx > 0){ [state.questions[idx-1], state.questions[idx]] = [state.questions[idx], state.questions[idx-1]]; renderQuestions(); } };
+    lab.querySelector('[data-act="down"]').onclick = () => { if (idx < state.questions.length-1){ [state.questions[idx+1], state.questions[idx]] = [state.questions[idx], state.questions[idx+1]]; renderQuestions(); } };
+    lab.querySelector('[data-act="del"]').onclick = () => { state.questions.splice(idx, 1); state.selected.delete(q.id); renderQuestions(); };
+    lab.querySelector('[data-act="edit"]').onclick = () => {
+      const body = lab.querySelector('.qbody'); body.onclick = null;
+      body.innerHTML = `<input type="text" value="${esc(q.question)}" aria-label="Edit question"><input type="text" value="${esc(q.why)}" placeholder="Why it matters (optional)" aria-label="Why it matters" style="margin-top:4px">`;
+      const [qi, wi] = body.querySelectorAll('input'); qi.focus();
+      const done = () => { q.question = qi.value.trim() || q.question; q.why = wi.value.trim(); renderQuestions(); };
+      for (const inp of [qi, wi]) inp.addEventListener('keydown', (e) => { if (e.key === 'Enter'){ e.preventDefault(); done(); } if (e.key === 'Escape') renderQuestions(); });
+      wi.addEventListener('blur', () => setTimeout(() => { if (!body.contains(document.activeElement)) done(); }, 50));
+      qi.addEventListener('blur', () => setTimeout(() => { if (!body.contains(document.activeElement)) done(); }, 50));
+    };
+    el.appendChild(lab);
+  });
   updateEstimate();
 }
 function updateEstimate(){
-  const n = state.selected.size; const panelCalls = (state.harden.both ? 2 : 1) * (state.harden.perJudge ? (state.brief ? state.brief.panel.length : 5) : 1);
+  if (!state.brief) return;
+  const n = state.selected.size; const panelCalls = (state.harden.both ? 2 : 1) * (state.harden.perJudge ? state.brief.panel.length : 1);
   const calls = n * (4 + panelCalls) + (state.openings ? 4 : 0) + 1;
   const perCall = state.tier === 'quick' ? 0.25 : state.tier === 'complex' ? 1.4 : 0.8;
   $('qCount').textContent = `${n} of ${state.questions.length} selected`;
-  $('startHint').textContent = n ? `${n} question${n>1?'s':''}, about ${calls} turns, roughly ${Math.max(1, Math.round(calls*perCall))} minutes at this depth.` : 'Select at least one question.';
+  $('startHint').textContent = n ? `${n} question${n>1?'s':''}, ${state.brief.panel.length} judges, about ${calls} turns, roughly ${Math.max(1, Math.round(calls*perCall))} minutes at this depth.` : 'Select at least one question.';
   $('start').disabled = n === 0;
 }
 async function moreQuestions(){
   $('moreQ').disabled = true; $('moreQ').textContent = 'Writing…';
   try {
-    const arr = await backend.complete({prompt: moreQuestionsPrompt(), json:true, tier: state.tier, effort:'medium'});
-    const add = (Array.isArray(arr) ? arr : (arr && arr.questions) || []).filter(q => q && q.question).map((q, i) => ({theme:String(q.theme||'More'), question:String(q.question), why:String(q.why||''), id:'q'+(state.questions.length+i)}));
+    const arr = await backend.complete({prompt: moreQuestionsPrompt($('qAngle').value.trim()), json:true, tier: state.tier, effort:'medium'});
+    const add = (Array.isArray(arr) ? arr : (arr && arr.questions) || []).filter(q => q && q.question).map((q, i) => ({theme:String(q.theme||'More'), question:String(q.question), why:String(q.why||''), id:'q'+Date.now()+'_'+i}));
     state.questions.push(...add); renderQuestions();
   } catch (e) { showNotice('briefNotice', copyFor(e && e.code)); }
   finally { $('moreQ').disabled = false; $('moreQ').textContent = 'Generate more questions'; }
@@ -728,6 +1252,30 @@ async function moreTopics(){
     if (add.length){ TOPICS[state.category].push(...add); state.topic = add[0]; renderTopics(); $('topicsHint').textContent = `${add.length} new topics added below.`; }
   } catch (e) { $('topicsHint').textContent = copyFor(e && e.code); }
   finally { $('moreTopics').disabled = false; }
+}
+async function recastCandidates(){
+  if (!state.brief || state.ctl) return;
+  $('recast').disabled = true; $('recast').textContent = 'Recasting…';
+  try {
+    const r = await backend.complete({prompt: recastPrompt(), json:true, tier: state.tier, effort:'medium'});
+    for (const side of ['a','b']){ const n = r && r[side]; if (!n) continue; const p = state.brief.positions[side]; Object.assign(p, normalizePosition({...p, ...n, stance:p.stance, label:p.label, temper:p.temper, risk:p.risk, voice:p.voice, rate:p.rate, pitch:p.pitch}, p.name, p.color)); }
+    if (state.brief.positions.a.color === state.brief.positions.b.color) state.brief.positions.b.color = COLOR_NAMES.find(c => c !== state.brief.positions.a.color);
+    applyColors(); renderCandidateEditors();
+  } catch (e) { showNotice('briefNotice', copyFor(e && e.code)); }
+  finally { $('recast').disabled = false; $('recast').textContent = 'Let the moderator recast them'; }
+}
+async function rerollPanel(){
+  if (!state.brief || state.ctl) return;
+  $('rerollPanel').disabled = true; $('rerollPanel').textContent = 'Reseating…';
+  try {
+    const arr = await backend.complete({prompt: rerollPanelPrompt(), json:true, tier: state.tier, effort:'medium'});
+    const list = (Array.isArray(arr) ? arr : (arr && arr.panel) || []).filter(j => j && j.name).slice(0, 7).map(normalizeJudge);
+    if (list.length >= 3){ state.brief.panel = list; renderPanelEditor(); updateEstimate(); }
+  } catch (e) { showNotice('briefNotice', copyFor(e && e.code)); }
+  finally { $('rerollPanel').disabled = false; $('rerollPanel').textContent = 'Let the moderator reseat the panel'; }
+}
+function swapSides(){
+  if (!state.brief) return; const p = state.brief.positions; state.brief.positions = {a: p.b, b: p.a}; applyColors(); renderCandidateEditors();
 }
 
 /* ---------- Stage rendering ---------- */
@@ -744,7 +1292,7 @@ function setSpeaking(side){ for (const s of ['a','b']){ const el = $('podium-'+s
 function speechCard(side, kind, sec){
   const p = state.brief.positions[side];
   const el = document.createElement('article'); el.className = `panel speech-card ${side}`;
-  el.innerHTML = `<div class="sc-head"><span class="who">${esc(p.name)}</span><span class="kind">${esc(kind)}</span><span class="clock"><span>${clock(sec)}</span><button class="icon-btn" title="Read aloud" aria-label="Read aloud" data-act="speak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg></button></span></div>
+  el.innerHTML = `<div class="sc-head">${avatarHTML(side, 'sm')}<span class="who">${esc(p.name)}</span><span class="kind">${esc(kind)}</span><span class="clock"><span>${clock(sec)}</span><button class="icon-btn" title="Read aloud" aria-label="Read aloud" data-act="speak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg></button></span></div>
     <div class="timebar"><i></i></div><div class="speech thinking">${esc(p.name)} is thinking</div>`;
   return el;
 }
@@ -763,10 +1311,11 @@ function modCard(i, q){
 /* ---------- Audio ---------- */
 const audio = {voices:[], queue:[], speaking:false, current:null};
 function loadVoices(){ try { audio.voices = window.speechSynthesis ? speechSynthesis.getVoices() : []; } catch { audio.voices = []; } }
-if (window.speechSynthesis){ loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
+if (window.speechSynthesis){ loadVoices(); speechSynthesis.onvoiceschanged = () => { loadVoices(); if (state.brief && !$('briefSec').hidden) document.querySelectorAll('#briefPodiums select[data-f="voice"]').forEach(sel => { const side = sel.closest('[data-side]').dataset.side; sel.innerHTML = voiceOptionsHTML(state.brief.positions[side].voice); }); }; }
 const VOICE_PREF = {a:['Google UK English Male','Daniel','Microsoft Ryan','Alex','Male'], b:['Google UK English Female','Samantha','Microsoft Libby','Karen','Female'], m:['Google US English','Microsoft Aria','Victoria']};
 function voiceFor(side){
   const en = audio.voices.filter(v => /^en/i.test(v.lang)); const pool = en.length ? en : audio.voices; if (!pool.length) return null;
+  const chosen = state.brief && state.brief.positions[side] && state.brief.positions[side].voice; if (chosen){ const v = audio.voices.find(x => x.name === chosen); if (v) return v; }
   for (const pref of VOICE_PREF[side] || []){ const v = pool.find(x => x.name.toLowerCase().includes(pref.toLowerCase())); if (v) return v; }
   return pool[side === 'a' ? 0 : Math.min(1, pool.length-1)];
 }
@@ -775,7 +1324,8 @@ function enqueue(side, intro, text, card){
   const v = voiceFor(side);
   for (const s of [intro, ...sentences(text)].filter(Boolean)){
     const u = new SpeechSynthesisUtterance(s); if (v) u.voice = v; u.lang = (v && v.lang) || 'en-US';
-    u.pitch = side === 'a' ? 0.9 : side === 'b' ? 1.05 : 1.0; u.rate = 1.0;
+    const p = state.brief && state.brief.positions[side];
+    u.pitch = p ? (Number(p.pitch) || 1) * (side === 'a' ? 0.9 : 1.05) : 1.0; u.rate = p ? (Number(p.rate) || 1) : 1.0;
     audio.queue.push({u, card});
   }
 }
@@ -1013,7 +1563,7 @@ async function runDebate(){
   stopAudio();
   $('briefSec').hidden = true; $('stage').hidden = false; $('feed').innerHTML = ''; $('finalWrap').innerHTML = ''; showNotice('stageNotice', '');
   $('stop').hidden = false; $('copy').hidden = true; $('save').hidden = true; $('speakAll').hidden = true;
-  renderBoard(); $('podiums').innerHTML = podiumHTML('a', state.brief.positions.a, false) + podiumHTML('b', state.brief.positions.b, false);
+  applyColors(); renderBoard(); $('podiums').innerHTML = podiumHTML('a', state.brief.positions.a, false) + podiumHTML('b', state.brief.positions.b, false);
   window.scrollTo({top:0, behavior:'smooth'});
   const t0 = Date.now();
   try {
@@ -1087,7 +1637,7 @@ async function runDebate(){
 
 /* ---------- Export ---------- */
 function transcriptMarkdown(){
-  const b = state.brief; const L = [`# ${b.title}`, '', `*${state.topic}*`, '', b.context, '', `**${b.positions.a.name}** (${b.positions.a.label}): ${b.positions.a.stance}`, `**${b.positions.b.name}** (${b.positions.b.label}): ${b.positions.b.stance}`, '', `Panel: ${b.panel.map(j => `${j.name} (${j.title})`).join('; ')}`, ''];
+  const b = state.brief; const L = [`# ${b.title}`, '', `*${state.topic}*`, '', b.context, '', `**${b.positions.a.name}** (${b.positions.a.label}): ${b.positions.a.stance}`, `**${b.positions.b.name}** (${b.positions.b.label}): ${b.positions.b.stance}`, '', `Panel: ${b.panel.map(j => `${j.name} (${j.title})`).join('; ')}`, `Tone: ${(TONES[state.tone] || TONES.spirited).name}.`, ''];
   if (state.statements.open.a || state.statements.open.b){ L.push('## Opening statements', ''); for (const s of ['a','b']) if (state.statements.open[s]) L.push(`### ${b.positions[s].name}`, '', state.statements.open[s], ''); }
   state.rounds.forEach((r, i) => {
     if (!r.turns.length) return;
@@ -1118,21 +1668,26 @@ async function saveTranscript(){
 function wire(){
   $('answerSec').onchange = (e) => { state.answerSec = Number(e.target.value); save(); };
   $('rebuttalSec').onchange = (e) => { state.rebuttalSec = Number(e.target.value); save(); };
-  $('tier').onchange = (e) => { state.tier = e.target.value; save(); };
-  $('openings').onchange = (e) => { state.openings = e.target.checked; save(); };
+  $('tier').onchange = (e) => { state.tier = e.target.value; save(); updateEstimate(); };
+  $('openings').onchange = (e) => { state.openings = e.target.checked; save(); updateEstimate(); };
   $('voiceOn').onchange = (e) => { state.voiceOn = e.target.checked; save(); };
   $('customTopic').addEventListener('input', () => { const v = $('customTopic').value.trim(); if (v){ state.topic = v; $('buildHint').textContent = `Topic: ${v}`; $('customHint').textContent = 'Your topic will be used.'; document.querySelectorAll('.topic-btn').forEach(b => b.setAttribute('aria-pressed','false')); } else { $('customHint').textContent=''; } });
   $('moreTopics').onclick = moreTopics;
+  $('heat').onchange = (e) => { state.heat = e.target.value; save(); };
+  $('tone').onchange = (e) => { state.tone = e.target.value; save(); };
+  $('pickFight').onclick = () => { const cat = 'Matchups: Ideas Compete'; const m = TOPICS[cat]; state.category = cat; state.topic = m[Math.floor(Math.random()*m.length)]; $('customTopic').value=''; renderCats(); renderTopics(); };
+  $('swapSides').onclick = swapSides; $('recast').onclick = recastCandidates; $('rerollPanel').onclick = rerollPanel;
+  $('addJudgePreset').onchange = (e) => { const v = e.target.value; if (!v) return; addJudge(v === 'blank' ? null : JUDGE_PRESETS[Number(v)]); e.target.value = ''; };
   $('build').onclick = () => { if (!state.ctl) buildBrief(); };
   $('rebuild').onclick = () => { $('briefSec').hidden = true; $('setup').hidden = false; buildBrief(); };
   $('backToTopics').onclick = () => { $('briefSec').hidden = true; $('setup').hidden = false; window.scrollTo({top:0}); };
   $('moreQ').onclick = moreQuestions;
   $('selAll').onclick = () => { state.questions.forEach(q => state.selected.add(q.id)); renderQuestions(); };
   $('selNone').onclick = () => { state.selected.clear(); renderQuestions(); };
-  $('ownQ').addEventListener('keydown', (e) => { if (e.key !== 'Enter') return; e.preventDefault(); const v = e.target.value.trim(); if (!v) return; const q = {theme:'Your questions', question:v, why:'', id:'q'+state.questions.length}; state.questions.push(q); state.selected.add(q.id); e.target.value=''; renderQuestions(); });
+  $('ownQ').addEventListener('keydown', (e) => { if (e.key !== 'Enter') return; e.preventDefault(); const v = e.target.value.trim(); if (!v) return; const q = {theme:'Yours', question:v, why:'', id:'q'+Date.now()}; state.questions.push(q); state.selected.add(q.id); e.target.value=''; renderQuestions(); });
   $('hBlind').onchange = (e) => { state.harden.blind = e.target.checked; save(); };
-  $('hBoth').onchange = (e) => { state.harden.both = e.target.checked; save(); };
-  $('hPer').onchange = (e) => { state.harden.perJudge = e.target.checked; save(); };
+  $('hBoth').onchange = (e) => { state.harden.both = e.target.checked; save(); updateEstimate(); };
+  $('hPer').onchange = (e) => { state.harden.perJudge = e.target.checked; save(); updateEstimate(); };
   $('audit').onclick = auditDebate;
   $('rematch').onclick = rematchSwapped;
   $('start').onclick = () => { if (!state.running){ state.priorRun = null; runDebate(); } };
@@ -1148,6 +1703,6 @@ function wire(){
   };
 }
 
-load(); syncSettingsUI(); renderCats(); renderTopics(); wire(); initBackend();
+injectPaletteCSS(); load(); syncSettingsUI(); renderCats(); renderTopics(); wire(); initBackend();
 })();
 </script>
