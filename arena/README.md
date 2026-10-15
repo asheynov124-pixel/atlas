@@ -23,6 +23,7 @@ Node 22.9 or newer. The server reads `.env` on start; alternatively run `ant aut
 |---|---|
 | `public/arena.html` | The whole app: topic library, prompts, the brief builder, the debate engine, scoring, speech, export. Written as an artifact page fragment (title and style first, no `<html>` wrapper). |
 | `server.mjs` | Serves the page wrapped in a document skeleton and exposes `POST /api/complete`, a server-sent-events stream of text deltas from Claude. |
+| `audit.mjs` | Batch bias audit of the bench; see Auditing the bench. |
 | `.env.example` | Settings: model, quick-tier model, port, refusal fallbacks. |
 
 ## How a debate runs
@@ -33,6 +34,29 @@ Node 22.9 or newer. The server reads `.env` on start; alternatively run `ant aut
 4. **Final.** The chief judge ranks the questions by how decisively they were won, pulls out the five ideas worth keeping on each side, and lists the open cruxes you now have to decide, with what would settle each. The scoreboard calls a winner only when the average margin is at least 2 points per question or the questions-won gap is at least 2; otherwise it is too close to call.
 
 Calls per question: five. A six-question debate with statements is about 35 turns.
+
+## Hardening the bench
+
+Three structural fixes sit behind checkboxes on the setup screen, all off by default so the plain bench can be compared with the hardened one:
+
+- **Blind judging.** The panel sees "Speaker One" and "Speaker Two", the topic and background, and the words. Names, stance labels, and the brief's positions are withheld; candidate names inside the speeches are scrubbed.
+- **Score both orders and average.** Every exchange is scored twice, once with each candidate presented first, and the two ballots are averaged per judge. Position bias cancels out.
+- **One call per judge.** Each judge scores in a separate call instead of five ballots coming out of one call. Costs five calls per scoring instead of one.
+
+The estimate on the brief screen updates with the choices.
+
+## Auditing the bench
+
+**In the page.** After any debate, "Audit the bench" re-scores every question three more ways: the same prompt again (the noise floor), blind, and blind with the order swapped. Each scorecard gets an audit box and the final card gets a summary: how far the margin moved under each test, whether the winner flipped, the hardened call (blind, both orders averaged) next to the original, and a verdict per question of solid, shaky, or even. "Rematch, positions swapped" reruns the same questions with the candidates' positions traded between podiums and reports whether the same position won from either podium or the win travelled with the podium. Three calls per question for the audit; a full rerun for the rematch.
+
+**In batch.** `audit.mjs` runs short debates on several topics straight against the API and re-scores every exchange several ways:
+
+```bash
+npm run audit -- --topics 6 --questions 3 --repeats 2 --per-judge --flaws
+npm run audit -- --topic "Is ambition a trap?" --topic "Should billionaires exist?" --quick
+```
+
+It writes `audit-out/audit-report.md` and `audit-out/audit-results.json`. The report covers the noise floor, order effects (labeled and blind, plus the average edge for whoever speaks first), label effects, the length correlation, a halo check across the six criteria, blind win rates by position family, each judge's tilt and agreement with the panel, panel independence (one call versus one call per judge, with `--per-judge`), and, with `--flaws`, whether a fabricated statistic planted in each candidate's answer is punished evenly. Cost is about 4 speech calls plus 4 to 11 scorings per exchange; `--quick` runs everything on the quick model for a cheap smoke test.
 
 ## Models
 

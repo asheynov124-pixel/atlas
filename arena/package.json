@@ -6,7 +6,8 @@
   "private": true,
   "scripts": {
     "start": "node --env-file-if-exists=.env server.mjs",
-    "check": "node --check server.mjs"
+    "check": "node --check server.mjs && node --check audit.mjs",
+    "audit": "node --env-file-if-exists=.env audit.mjs"
   },
   "engines": {
     "node": ">=22.9"
