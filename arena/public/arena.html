@@ -287,6 +287,7 @@ details summary{cursor:pointer;font-family:var(--font-display);font-weight:600;f
 .foryou{display:grid;gap:6px}
 .fy{padding:8px 10px;background:var(--surface);border-radius:4px;font-size:14.5px;display:grid;gap:2px}
 .fy .s{font-size:13.5px;color:var(--muted)}
+.fy.decide{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
 .foot{margin-top:28px;font-family:var(--font-display);font-size:12.5px;color:var(--muted);display:grid;gap:4px}
 /* Green room editors */
 .av{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--muted);color:#fff;font-family:var(--font-display);font-weight:800;font-size:15px;flex:none;line-height:1}
@@ -364,6 +365,33 @@ details.bg{font-size:14px;color:var(--muted)} details.bg summary{cursor:pointer;
 .yourcall .vb.a[aria-pressed="true"]{background:var(--a);color:#fff} .yourcall .vb.b[aria-pressed="true"]{background:var(--b);color:#fff}
 .yourcall input[type=text]{flex:1;min-width:160px;padding:6px 9px;border:1px solid var(--paper-line);border-radius:4px;background:var(--paper-2);color:var(--paper-ink);font-family:var(--font-serif);font-size:14px}
 .yourcall .verdict{font-family:var(--font-mono);font-size:11.5px;color:var(--paper-muted)}
+.bs-what{display:grid;gap:8px;padding:12px 14px;background:var(--paper-2);border:1px solid var(--paper-line)}
+.bs-what-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.bs-what-grid{grid-template-columns:1fr}}
+.bs-what .bw{display:grid;gap:3px;font-size:15px;line-height:1.45}
+.bs-what .bw .eyebrow{font-size:10.5px}
+.bs-what .bw.a .eyebrow{color:var(--a-ink)} .bs-what .bw.b .eyebrow{color:var(--b-ink)}
+.bs-what .bw-line{font-size:14.5px}
+.bs-what .bw-take{font-family:var(--font-display);font-size:18px;line-height:1.3;border-top:1px solid var(--paper-line);padding-top:8px}
+.claims{display:grid;gap:4px;border-top:1px solid var(--paper-line);padding-top:8px}
+.claims .eyebrow{color:var(--paper-muted)}
+.claims .bs-table td{white-space:normal;text-align:left;font-family:var(--font-serif);font-size:14px;padding:4px 6px 4px 0;vertical-align:top}
+.claims .bs-table td.st{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.claims .st.supported{color:var(--good)} .claims .st.contested{color:var(--warn)} .claims .st.wrong{color:var(--bad)}
+.claims .cnote{color:var(--paper-muted);font-size:13.5px}
+.claims .ac,.claims .bc{font-family:var(--font-mono);font-size:11px}
+.claims span.ac{color:var(--a-ink)} .claims span.bc{color:var(--b-ink)}
+.story{display:grid;gap:4px;border-top:1px solid var(--stage-line);padding-top:10px}
+.story .eyebrow{color:var(--gold)}
+.story .sl{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;font-size:14px;line-height:1.35}
+.story .sl .n{font-family:var(--font-mono);font-size:11px;color:var(--stage-muted)}
+.story .sl .w{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.story .sl .w.a{color:var(--a-board,#9fd6e8)} .story .sl .w.b{color:var(--b-board,#f0b0b1)} .story .sl .w.tie{color:var(--stage-muted)}
+/* Digest reading */
+.wrap[data-digest="1"] .speech-card:not(.open) .speech p:nth-child(n+2){display:none}
+.wrap[data-digest="1"] .speech-card:not(.open) .speech{gap:0}
+.speech-card .more{display:none;justify-self:start;border:0;background:transparent;color:var(--muted);font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;padding:2px 0;margin-top:2px}
+.wrap[data-digest="1"] .speech-card.done .more{display:inline-block}
 .bs-fact{display:flex;gap:10px;align-items:flex-start;padding:8px 12px;border:1px solid var(--bad);border-radius:4px;color:var(--paper-ink);font-size:14px;background:color-mix(in srgb,var(--bad) 7%,transparent)}
 .bs-fact .eyebrow{color:var(--bad);white-space:nowrap;padding-top:2px}
 .modline{padding:12px 18px;display:grid;gap:4px;background:var(--surface-2);border:0;box-shadow:none;border-left:3px solid var(--brass)}
@@ -484,9 +512,9 @@ details.bg{font-size:14px;color:var(--muted)} details.bg summary{cursor:pointer;
         <div class="field"><label for="tone">Tone</label>
           <select id="tone"><option value="civil">Civil</option><option value="spirited" selected>Spirited</option><option value="brawl">No holds barred</option></select></div>
         <div class="field debate-only"><label for="answerSec">Time per answer</label>
-          <select id="answerSec"><option value="60">1:00 (about 130 words)</option><option value="120" selected>2:00 (about 260 words)</option><option value="180">3:00 (about 390 words)</option></select></div>
+          <select id="answerSec"><option value="60">1:00 (about 130 words)</option><option value="90" selected>1:30 (about 195 words)</option><option value="120">2:00 (about 260 words)</option><option value="180">3:00 (about 390 words)</option></select></div>
         <div class="field debate-only"><label for="rebuttalSec">Rebuttal time</label>
-          <select id="rebuttalSec"><option value="30">0:30</option><option value="60" selected>1:00</option><option value="90">1:30</option></select></div>
+          <select id="rebuttalSec"><option value="30">0:30</option><option value="45" selected>0:45</option><option value="60">1:00</option><option value="90">1:30</option></select></div>
         <div class="field"><label for="tier">Model depth</label>
           <select id="tier"><option value="quick">Quick (fast, shallower)</option><option value="default" selected>Balanced</option><option value="complex">Deep (slowest, strongest)</option></select></div>
         <div class="field debate-only"><label for="openings">Statements</label><label class="toggle"><input type="checkbox" id="openings" checked> Opening and closing statements</label></div>
@@ -515,6 +543,7 @@ details.bg{font-size:14px;color:var(--muted)} details.bg summary{cursor:pointer;
     <div class="podiums" id="podiums"></div>
     <div class="panel controls">
       <span class="progress" id="progress">Ready.</span><span class="spacer"></span>
+      <button class="btn small" id="digest" aria-pressed="true">Reading: digest</button>
       <button class="btn small" id="speakAll" hidden>Play whole debate</button>
       <button class="btn small" id="stopAudio" hidden>Stop audio</button>
       <button class="btn small danger" id="stop" hidden>Stop</button>
@@ -1173,7 +1202,7 @@ const TAKE_WORDS = 110;
 /* ---------- State ---------- */
 const state = {
   category:'Geopolitics & War', topic:TOPICS['Geopolitics & War'][0],
-  answerSec:120, rebuttalSec:60, tier:'default', openings:true, voiceOn:false,
+  answerSec:90, rebuttalSec:45, tier:'default', openings:true, voiceOn:false, digest:true,
   brief:null, questions:[], selected:new Set(),
   rounds:[], statements:{open:{}, close:{}}, final:null, totals:{a:0,b:0}, won:{a:0,b:0,tie:0},
   harden:{blind:false, both:false, perJudge:false}, audit:null, priorRun:null, tone:'spirited', heat:'spirited',
@@ -1209,7 +1238,7 @@ function parseJSONish(s){
   if (a >= 0 && b > a) { try { return JSON.parse(t.slice(a, b+1)); } catch {} }
   throw {code:'invalid_json', message:'The reply held no JSON.', text:t};
 }
-function save(){ try{ localStorage.setItem('arena.v2', JSON.stringify({answerSec:state.answerSec, rebuttalSec:state.rebuttalSec, tier:state.tier, openings:state.openings, voiceOn:state.voiceOn, harden:state.harden, tone:state.tone, heat:state.heat, mode:state.mode, press:state.press, cross:state.cross})); }catch{} }
+function save(){ try{ localStorage.setItem('arena.v2', JSON.stringify({answerSec:state.answerSec, rebuttalSec:state.rebuttalSec, tier:state.tier, openings:state.openings, voiceOn:state.voiceOn, harden:state.harden, tone:state.tone, heat:state.heat, mode:state.mode, press:state.press, cross:state.cross, digest:state.digest})); }catch{} }
 function load(){ try{ const s = JSON.parse(localStorage.getItem('arena.v2')||'null'); if (s){ const h = Object.assign({blind:false, both:false, perJudge:false}, s.harden || {}); delete s.harden; Object.assign(state, s); state.harden = h; if (!['debate','lineup'].includes(state.mode)) state.mode = 'debate'; } }catch{}
   try{ const r = JSON.parse(localStorage.getItem('arena.records') || '[]'); state.records = Array.isArray(r) ? r : []; }catch{ state.records = []; }
   try{ const p = JSON.parse(localStorage.getItem('arena.portraits') || '{}'); state.portraits = p && typeof p === 'object' ? p : {}; }catch{ state.portraits = {}; } }
@@ -1365,8 +1394,7 @@ function answerPrompt(round, side, first){
   const n = wordsFor(state.answerSec);
   const ctx = earlierSummary();
   const opp = state.brief.positions[other(side)].name;
-  const prev = first ? '' : `\n${opp} answered first:\n"""${round.turns[0].text}"""\nYou may briefly note where you differ, but this is your answer, not your rebuttal; the rebuttal comes next.`;
-  return `${briefContext()}\n\n${ctx ? ctx + '\n\n' : ''}THE MODERATOR ASKS: ${round.q.question}\n(Why it matters: ${round.q.why})${prev}\n\nYou have ${clock(state.answerSec)}, about ${n} words. Answer the question directly in your first sentence or two, then develop your two most compelling ideas with specifics. End with a line the audience will remember. Write only your spoken answer.`;
+  return `${briefContext()}\n\n${ctx ? ctx + '\n\n' : ''}THE MODERATOR ASKS: ${round.q.question}\n(Why it matters: ${round.q.why})\n\nYou have ${clock(state.answerSec)}, about ${n} words. ${opp} is answering the same question at the same time; you have not heard them. Your first paragraph is ONE sentence, in **bold**, that answers the question outright: yes, no, or the specific position, with the reason in the same breath. Then at most three short paragraphs: your two most compelling ideas with concrete specifics, and a last line the audience will remember. Write only your spoken answer.`;
 }
 function rebuttalPrompt(round, side){
   const n = wordsFor(state.rebuttalSec);
@@ -1375,7 +1403,7 @@ function rebuttalPrompt(round, side){
   const theirs = round.turns.find(t => t.side!==side && t.kind==='answer').text;
   const theirRebuttal = round.turns.find(t => t.side!==side && t.kind==='rebuttal');
   const theirFollow = round.turns.find(t => t.side!==side && t.kind==='follow-up'); const myFollow = round.turns.find(t => t.side===side && t.kind==='follow-up');
-  return `${briefContext()}\n\nTHE MODERATOR ASKED: ${round.q.question}\n\nYour answer (${me}):\n"""${mine}"""${myFollow ? `\n\nYour reply when the moderator pressed you:\n"""${myFollow.text}"""` : ''}\n\n${opp}'s answer:\n"""${theirs}"""${theirFollow ? `\n\n${opp}'s reply when the moderator pressed them:\n"""${theirFollow.text}"""` : ''}${theirRebuttal ? `\n\n${opp}'s rebuttal of you:\n"""${theirRebuttal.text}"""` : ''}\n\nYou have ${clock(state.rebuttalSec)} for rebuttal, about ${n} words. Engage ${opp}'s specific claims: name the one or two that matter most, show exactly where they fail or prove less than claimed, concede anything that deserves it, and say why your answer still stands. No repetition of your own answer. Write only your spoken rebuttal.`;
+  return `${briefContext()}\n\nTHE MODERATOR ASKED: ${round.q.question}\n\nYour answer (${me}):\n"""${mine}"""${myFollow ? `\n\nYour reply when the moderator pressed you:\n"""${myFollow.text}"""` : ''}\n\n${opp}'s answer:\n"""${theirs}"""${theirFollow ? `\n\n${opp}'s reply when the moderator pressed them:\n"""${theirFollow.text}"""` : ''}${theirRebuttal ? `\n\n${opp}'s rebuttal of you:\n"""${theirRebuttal.text}"""` : ''}\n\nYou have ${clock(state.rebuttalSec)} for rebuttal, about ${n} words. Your first paragraph is ONE sentence, in **bold**, naming the claim of ${opp}'s you are attacking and why it fails. Then show exactly where it fails or proves less than claimed, concede anything that deserves it, and say why your answer still stands. No repetition of your own answer. Write only your spoken rebuttal.`;
 }
 function dodgePrompt(round){
   const b = state.brief;
@@ -1428,13 +1456,13 @@ function panelPrompt(round, opts = {}){
   const rub = b.rubric.map((c, i) => `- ${c.id} (weight ${Math.round(w[i]*100)}%): ${c.name}. ${c.desc}`).join('\n');
   const k1 = keyOf(seq[0]), k2 = keyOf(seq[1]);
   const who1 = blind ? 'Speaker One' : SIDE[seq[0]], who2 = blind ? 'Speaker Two' : SIDE[seq[1]];
+  const noun = blind ? 'speaker' : 'candidate';
   const sideShape = `{"insight": 7, "evidence": 7, "reasoning": 7, "responsiveness": 7, "eloquence": 7, "nuance": 7, "topic": {${b.rubric.map(c => `"${c.id}": 7`).join(', ')}}, "flags": {"incorrect": 0, "fallacies": 0, "why": "each flagged claim or fallacy in a few words, or empty"}}`;
   const shape = `"${k1}": ${sideShape}, "${k2}": ${sideShape}`;
-  const moves = `"moves": {"${k1}": {"answer": "a three-to-six-word chapter title for ${who1}'s answer, naming the move it made", "rebuttal": "the same for the rebuttal"}, "${k2}": {"answer": "...", "rebuttal": "..."}}`;
+  const moves = `"moves": {"${k1}": {"answer": "a three-to-six-word chapter title for ${who1}'s answer, naming the move it made", "rebuttal": "the same for the rebuttal"}, "${k2}": {"answer": "...", "rebuttal": "..."}}, "brief": {"${k1}": "one sentence: ${who1}'s answer to this question, as a neutral reporter would put it", "${k2}": "the same for ${who2}", "clash": "one sentence on where they actually disagreed, the real crux, not the rhetoric", "concession": "what either ${noun} conceded, or an empty string", "takeaway": "one sentence the audience should remember from this exchange"}, "claims": [{"who": "${k1}" or "${k2}", "claim": "the factual claim, in a few words", "status": "supported" or "contested" or "wrong", "note": "one short clause on why"}]`;
   const role = judges.length === 1 ? 'a judge' : 'the judging panel';
   const panelLine = judges.length === 1 ? `THE JUDGE (score independently, through your own lens, in your own voice):\n${judgeList}` : `THE PANEL (each judge scores independently, through their own lens, in their own voice):\n${judgeList}`;
-  const noun = blind ? 'speaker' : 'candidate';
-  return `You are ${role} of a presidential-style debate. Score ONE question's exchange.\n\n${context}\n\n${panelLine}\n\nTHE QUESTION: ${round.q.question}\n\nTHE EXCHANGE:\n${transcript}\n\nSCORING, for each ${noun}, three layers:\n1. The six universal criteria, integers 1 to 10 each (10 is world class, 7 a strong professional, 5 adequate, 3 weak), 60 points in all:\n${crit}\n2. The rubric written for this topic, integers 0 to 10 each, weighted as shown and scaled to 40 points:\n${rub}\n3. Penalties: count the factually incorrect claims and the major logical fallacies in that ${noun}'s two turns; each costs one point. Name them. Zero is the normal count; flag only what you could defend.\nThe total is out of 100.\n\nJudge the debating, not the truth of the topic: the ${noun} who argued better wins the question even if a judge privately disagrees. Reward ideas the audience has not heard before and penalize slogans, invented facts, and straw men. Each judge should let their lens shape how they weigh the criteria while scoring every criterion honestly for both ${noun}s. Quote actual words from the exchange. Be demanding and specific.\n\nReply with only a JSON object of this exact shape:\n{"ballots": [{"judge": "judge's name exactly as listed", ${shape}, "note": "two or three sentences in this judge's voice on what decided it for them, quoting the exchange"}], ${moves}, "bestIdea": {"${k1}": "the single most interesting idea ${who1} raised on this question, in one or two sentences", "${k2}": "the same for ${who2}"}, "unresolved": "one sentence on what this exchange left genuinely open for the audience to weigh"}\nOne ballot per judge, ${judges.length} in all, in the listed order. Use the keys "${k1}" for ${who1} and "${k2}" for ${who2}, and the rubric keys exactly as listed.`;
+  return `You are ${role} of a presidential-style debate. Score ONE question's exchange.\n\n${context}\n\n${panelLine}\n\nTHE QUESTION: ${round.q.question}\n\nTHE EXCHANGE:\n${transcript}\n\nSCORING, for each ${noun}, three layers:\n1. The six universal criteria, integers 1 to 10 each (10 is world class, 7 a strong professional, 5 adequate, 3 weak), 60 points in all:\n${crit}\n2. The rubric written for this topic, integers 0 to 10 each, weighted as shown and scaled to 40 points:\n${rub}\n3. Penalties: count the factually incorrect claims and the major logical fallacies in that ${noun}'s two turns; each costs one point. Name them. Zero is the normal count; flag only what you could defend.\nThe total is out of 100.\n\nJudge the debating, not the truth of the topic: the ${noun} who argued better wins the question even if a judge privately disagrees. Reward ideas the audience has not heard before and penalize slogans, invented facts, and straw men. Each judge should let their lens shape how they weigh the criteria while scoring every criterion honestly for both ${noun}s. Quote actual words from the exchange. Be demanding and specific.\n\nReply with only a JSON object of this exact shape:\n{"ballots": [{"judge": "judge's name exactly as listed", ${shape}, "note": "two or three sentences in this judge's voice on what decided it for them, quoting the exchange"}], ${moves}, "bestIdea": {"${k1}": "the single most interesting idea ${who1} raised on this question, in one or two sentences", "${k2}": "the same for ${who2}"}, "unresolved": "one sentence on what this exchange left genuinely open for the audience to weigh"}\nOne ballot per judge, ${judges.length} in all, in the listed order. Use the keys "${k1}" for ${who1} and "${k2}" for ${who2}, and the rubric keys exactly as listed. In "claims" list the two to four factual claims that carried the most weight in the exchange, with the bench's honest status for each.`;
 }
 function finalPrompt(){
   const b = state.brief;
@@ -1445,7 +1473,7 @@ function finalPrompt(){
   const transcript = state.rounds.filter(r => r.turns.length).map((r) => `Q${r.index+1}: ${r.q.question}\n${r.turns.map(t => `[${b.positions[t.side].name}, ${t.kind}] ${t.text}`).join('\n')}`).join('\n\n');
   const closes = ['a','b'].filter(s => state.statements.close[s]).map(s => `[${b.positions[s].name}, closing] ${state.statements.close[s]}`).join('\n');
   const cross = state.crossExam.filter(x => x.answer).map(x => `[${b.positions[x.asker].name} asks] ${x.question}\n[${b.positions[other(x.asker)].name} answers] ${x.answer}`).join('\n');
-  return `You are the chief judge writing the final summation of a presidential-style debate for an intelligent audience that will make its own decision.\n\n${briefContext()}\n\nSCOREBOARD (panel of ${b.panel.length}, averaged):\n${per}\nOverall totals: A ${state.totals.a.toFixed(1)}, B ${state.totals.b.toFixed(1)}. Questions won: A ${state.won.a}, B ${state.won.b}, even ${state.won.tie}.\n\nFULL TRANSCRIPT:\n${transcript}${cross ? '\n\nCROSS-EXAMINATION:\n' + cross : ''}${closes ? '\n\nCLOSING STATEMENTS:\n' + closes : ''}\n\nWrite the summation. Weigh the cross-examination: a question that drew a concession or exposed a contradiction counts. Rank the questions by how decisively they were won and explain each in one sentence. Pull out the five best ideas on each side across the whole debate (the ones worth remembering, not merely the ones that scored). Then list the three to five open cruxes the audience must now decide for themselves, and for each say what evidence or value judgment would settle it. Declare an overall winner only if the debating was clearly better on one side; if it was close, say it is too close to call and why. Be candid and specific; quote the debate.\n\nReply with only a JSON object of this exact shape:\n{"headline": "one sentence, like a newspaper's verdict on the night", "winner": "a" or "b" or "tie", "why": "three to five sentences explaining the call, quoting the debate", "ranked": [{"q": 1, "winner": "a" or "b" or "tie", "why": "one sentence"}], "bestIdeas": {"a": ["idea in one or two sentences, with the question number"], "b": ["..."]}, "forYou": [{"crux": "the open question in one sentence", "settle": "what would settle it, in one sentence"}], "closingNote": "two sentences to the audience about what this debate taught, and what it could not"}`;
+  return `You are the chief judge writing the final summation of a presidential-style debate for an intelligent audience that will make its own decision.\n\n${briefContext()}\n\nSCOREBOARD (panel of ${b.panel.length}, averaged):\n${per}\nOverall totals: A ${state.totals.a.toFixed(1)}, B ${state.totals.b.toFixed(1)}. Questions won: A ${state.won.a}, B ${state.won.b}, even ${state.won.tie}.\n\nFULL TRANSCRIPT:\n${transcript}${cross ? '\n\nCROSS-EXAMINATION:\n' + cross : ''}${closes ? '\n\nCLOSING STATEMENTS:\n' + closes : ''}\n\nWrite the summation. Weigh the cross-examination: a question that drew a concession or exposed a contradiction counts. Rank the questions by how decisively they were won and explain each in one sentence. Pull out the five best ideas on each side across the whole debate (the ones worth remembering, not merely the ones that scored). Then list the three to five open cruxes the audience must now decide for themselves, and for each say what evidence or value judgment would settle it. Declare an overall winner only if the debating was clearly better on one side; if it was close, say it is too close to call and why. Be candid and specific; quote the debate.\n\nReply with only a JSON object of this exact shape:\n{"headline": "one sentence, like a newspaper's verdict on the night", "winner": "a" or "b" or "tie", "why": "three to five sentences explaining the call, quoting the debate", "ranked": [{"q": 1, "winner": "a" or "b" or "tie", "why": "one sentence"}], "bestIdeas": {"a": ["idea in one or two sentences, with the question number"], "b": ["..."]}, "forYou": [{"crux": "the open question in one sentence", "settle": "what would settle it, in one sentence"}], "agreed": ["a point both sides conceded or shared, one sentence each; up to three; empty list if none"], "decide": [{"if": "If you believe ..., in one clause", "then": "a" or "b"}], "closingNote": "two sentences to the audience about what this debate taught, and what it could not"}\nIn "decide" give three honest forks: the belief that, if you hold it, should send you to one side.`;
 }
 
 /* ---------- Setup rendering ---------- */
@@ -1541,7 +1569,7 @@ function renderTopics(){
   $('buildHint').textContent = `Topic: ${state.topic}`;
 }
 function syncSettingsUI(){
-  $('press').checked = state.press; $('cross').checked = state.cross;
+  $('press').checked = state.press; $('cross').checked = state.cross; syncDigest();
   $('answerSec').value = String(state.answerSec); $('rebuttalSec').value = String(state.rebuttalSec); $('tier').value = state.tier;
   $('openings').checked = !!state.openings; $('voiceOn').checked = !!state.voiceOn;
   $('hBlind').checked = !!state.harden.blind; $('hBoth').checked = !!state.harden.both; $('hPer').checked = !!state.harden.perJudge;
@@ -1623,10 +1651,10 @@ async function buildBrief(){
   showNotice('setupNotice', ''); $('build').disabled = true; $('buildHint').textContent = 'The moderator is reading up on the topic, casting the candidates, seating the panel, and drafting the questions… (the longest single step)';
   const ctl = new AbortController(); state.ctl = ctl;
   try {
-    const raw = await backend.complete({prompt: briefPrompt(), json:true, signal: ctl.signal, tier: state.tier, effort:'high'});
+    const raw = await backend.complete({prompt: briefPrompt(), json:true, signal: ctl.signal, tier: state.tier, effort: state.tier === 'complex' ? 'high' : 'medium'});
     state.brief = normalizeBrief(raw); state.priorRun = null;
     state.questions = state.brief.questions.map((q, i) => ({...q, id:'q'+i}));
-    state.selected = new Set(state.questions.slice(0, 5).map(q => q.id));
+    state.selected = new Set(state.questions.slice(0, 4).map(q => q.id));
     renderBrief();
     $('setup').hidden = true; $('briefSec').hidden = false; window.scrollTo({top:0, behavior:'smooth'});
   } catch (e) {
@@ -1810,7 +1838,9 @@ function updateEstimate(){
   const n = state.selected.size; const panelCalls = (state.harden.both ? 2 : 1) * (state.harden.perJudge ? state.brief.panel.length : 1);
   const lineup = state.mode === 'lineup';
   const calls = lineup ? n * (state.minds.length + 1) + 1 : n * (4 + panelCalls + (state.press ? 1.6 : 0)) + (state.openings ? 4 : 0) + (state.cross ? 4 : 0) + 1;
-  const perCall = (state.tier === 'quick' ? 0.25 : state.tier === 'complex' ? 1.4 : 0.8) * (lineup ? 0.45 : 1);
+  const beats = lineup ? n * (state.minds.length + 1) + 1 : n * (2 + (state.press ? 0.9 : 0) + 0.2) + (state.openings ? 2 : 0) + (state.cross ? 2 : 0) + 1.2;
+  const perBeat = (state.tier === 'quick' ? 0.2 : state.tier === 'complex' ? 1.1 : 0.55) * (lineup ? 0.45 : 1) * (state.answerSec / 90);
+  const perCall = perBeat * (beats / Math.max(1, calls));
   $('qCount').textContent = `${n} of ${state.questions.length} selected`;
   $('startHint').textContent = n ? (lineup ? `${n} question${n>1?'s':''}, ${state.minds.length} minds, about ${calls} turns, roughly ${Math.max(1, Math.round(calls*perCall))} minutes at this depth.` : `${n} question${n>1?'s':''}, ${state.brief.panel.length} judges, about ${Math.round(calls)} turns, roughly ${Math.max(1, Math.round(calls*perCall))} minutes at this depth.`) : 'Select at least one question.';
   $('start').disabled = n === 0;
@@ -1869,9 +1899,14 @@ function renderBoard(){
       <div class="cand a"><div class="num">${state.totals.a.toFixed(1)}</div><div class="cn">${esc(b.positions.a.name)}</div><div class="school">${esc(b.positions.a.school || b.positions.a.label)}</div><div class="cl">${esc(b.positions.a.label)} · ${state.won.a} won</div></div>
       <div class="mid"><div class="mom"><div class="mom-l"><span>${state.won.a} won</span><span>momentum</span><span>${state.won.b} won</span></div><div class="mom-bar" style="--pct:${pct}%"><i></i></div><div class="calls">${dots}</div></div><span>of 100 per question${state.won.tie ? ` · ${state.won.tie} even` : ''}${(() => { const c = state.rounds.filter(r => r.you && r.you.winner && r.score); return c.length ? ` · you with the panel ${c.filter(r => r.you.winner === r.score.winner).length} of ${c.length}` : ''; })()}</span></div>
       <div class="cand b r"><div class="num">${state.totals.b.toFixed(1)}</div><div class="cn">${esc(b.positions.b.name)}</div><div class="school">${esc(b.positions.b.school || b.positions.b.label)}</div><div class="cl">${esc(b.positions.b.label)} · ${state.won.b} won</div></div>
-    </div>`;
+    </div>${storyHTML()}`;
 }
-function setSpeaking(side){ for (const s of ['a','b']){ const el = $('podium-'+s); if (el) el.classList.toggle('speaking', s === side); } }
+function storyHTML(){
+  const b = state.brief; const done = state.rounds.filter(r => r.score && r.panel);
+  if (!done.length) return '';
+  return `<div class="story"><span class="eyebrow">The story so far</span>${done.map(r => `<div class="sl"><span class="n">Q${r.index + 1}</span><span>${esc((r.panel.brief && r.panel.brief.takeaway) || r.panel.unresolved || r.q.question)}</span><span class="w ${r.score.winner}">${r.score.winner === 'tie' ? 'even' : `${esc(b.positions[r.score.winner].name)} +${Math.abs(r.score.margin).toFixed(1)}`}</span></div>`).join('')}</div>`;
+}
+function setSpeaking(side, on){ for (const s of ['a','b']){ const el = $('podium-'+s); if (!el) continue; if (side == null) el.classList.remove('speaking'); else if (s === side) el.classList.toggle('speaking', on !== false); } }
 function speechCard(side, kind, sec){
   const p = state.brief.positions[side];
   const el = document.createElement('article'); el.className = `panel speech-card ${side}`;
@@ -1909,6 +1944,21 @@ function movedHTML(){
 function ballotFinalHTML(){
   return `<h3>Your ballot</h3><div class="moved">${movedHTML()}</div><div class="seat" style="border:0;background:transparent;padding:4px 0 0"><div class="q" style="font-size:17px">Now that you have heard it all, where do you stand?</div>${leanHTML('end')}</div>`;
 }
+function whatHappenedHTML(round){
+  const b = state.brief, p = round.panel, br = p.brief || {}; const cl = p.claims || [];
+  if (!br.a && !br.b && !br.clash && !cl.length) return '';
+  const st = {supported:'Holds up', contested:'Contested', wrong:'Wrong'};
+  return `<div class="bs-what">
+    <div class="bs-what-grid">
+      ${br.a ? `<div class="bw a"><span class="eyebrow">${esc(b.positions.a.name)} said</span><div>${esc(br.a)}</div></div>` : ''}
+      ${br.b ? `<div class="bw b"><span class="eyebrow">${esc(b.positions.b.name)} said</span><div>${esc(br.b)}</div></div>` : ''}
+    </div>
+    ${br.clash ? `<div class="bw-line"><strong>Where they split:</strong> ${esc(br.clash)}</div>` : ''}
+    ${br.concession ? `<div class="bw-line"><strong>Conceded:</strong> ${esc(br.concession)}</div>` : ''}
+    ${br.takeaway ? `<div class="bw-take">${esc(br.takeaway)}</div>` : ''}
+    ${cl.length ? `<div class="claims"><span class="eyebrow">Claims on the table</span><table class="bs-table"><tbody>${cl.map(c => `<tr><td><span class="${c.side === 'a' ? 'ac' : 'bc'}">${c.side.toUpperCase()}</span> ${esc(c.claim)}</td><td class="st ${c.status}">${st[c.status]}</td><td class="cnote">${esc(c.note)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+  </div>`;
+}
 function yourCallHTML(round){
   const b = state.brief; const y = round.you || {}; const t = round.score;
   const verdict = y.winner ? (y.winner === t.winner ? 'You and the panel agree.' : t.winner === 'tie' ? 'The panel called it even; you did not.' : `You and the panel disagree: they gave it to ${b.positions[t.winner].name}.`) : '';
@@ -1934,8 +1984,11 @@ function howCard(){
 function setSpeech(card, text, sec, final){
   const sp = card.querySelector('.speech'); sp.classList.remove('thinking'); sp.innerHTML = renderSpeech(text);
   const pct = Math.min(100, words(text) / Math.max(1, wordsFor(sec)) * 100); card.querySelector('.timebar i').style.width = pct + '%';
-  if (final) card.querySelector('.clock span').textContent = `${clock(sec)} · ${words(text)} words`;
+  if (final){ card.querySelector('.clock span').textContent = `${clock(sec)} · ${words(text)} words`; card.classList.add('done');
+    let more = card.querySelector('.more'); if (!more){ more = document.createElement('button'); more.type = 'button'; more.className = 'more'; card.appendChild(more); more.onclick = () => { card.classList.toggle('open'); more.textContent = card.classList.contains('open') ? 'Show the bottom line only' : `Read in full · ${words(text)} words`; }; }
+    more.textContent = card.classList.contains('open') ? 'Show the bottom line only' : `Read in full · ${words(text)} words`; }
 }
+function syncDigest(){ const w = document.querySelector('.wrap'); if (w) w.dataset.digest = state.digest ? '1' : '0'; const btn = $('digest'); if (btn){ btn.textContent = state.digest ? 'Reading: digest' : 'Reading: everything'; btn.setAttribute('aria-pressed', String(state.digest)); } }
 function progress(msg){ $('progress').textContent = msg; }
 function modCard(i, q){
   const el = document.createElement('div'); el.className='panel modcard';
@@ -2009,7 +2062,11 @@ function normalizePanel(p, opts = {}){
   const bi = (p && p.bestIdea) || {}; const mv = (p && p.moves && typeof p.moves === 'object') ? p.moves : {};
   const moves = {a:{}, b:{}};
   for (const side of ['a','b']){ const m = mv[keyOf(side)] || {}; moves[side] = {answer:String(m.answer || '').trim().slice(0, 60), rebuttal:String(m.rebuttal || '').trim().slice(0, 60)}; }
-  return { ballots, bestIdea:{a:String(bi[keyOf('a')] || ''), b:String(bi[keyOf('b')] || '')}, unresolved:String((p && p.unresolved) || ''), moves };
+  const br = (p && p.brief && typeof p.brief === 'object') ? p.brief : {};
+  const brief = {a:String(br[keyOf('a')] || '').trim(), b:String(br[keyOf('b')] || '').trim(), clash:String(br.clash || '').trim(), concession:String(br.concession || '').trim(), takeaway:String(br.takeaway || '').trim()};
+  const sideOfKey = (k) => { k = String(k || '').toLowerCase(); return k === keyOf('a') ? 'a' : k === keyOf('b') ? 'b' : null; };
+  const claims = (Array.isArray(p && p.claims) ? p.claims : []).map(c => ({side: sideOfKey(c && c.who), claim:String((c && c.claim) || '').trim(), status: ['supported','contested','wrong'].includes(String(c && c.status).toLowerCase()) ? String(c.status).toLowerCase() : 'contested', note:String((c && c.note) || '').trim()})).filter(c => c.side && c.claim).slice(0, 5);
+  return { ballots, bestIdea:{a:String(bi[keyOf('a')] || ''), b:String(bi[keyOf('b')] || '')}, unresolved:String((p && p.unresolved) || ''), moves, brief, claims };
 }
 function averagePanels(panels){
   const base = panels[0];
@@ -2022,19 +2079,19 @@ function averagePanels(panels){
     }
     return {judge: bl.judge, scores: sc, topic, flags, note: bl.note};
   });
-  return {ballots, bestIdea: base.bestIdea, unresolved: base.unresolved, moves: base.moves, runs: panels.length};
+  return {ballots, bestIdea: base.bestIdea, unresolved: base.unresolved, moves: base.moves, brief: base.brief, claims: base.claims, runs: panels.length};
 }
 async function runPanel(round, {blind = false, order = 'ab', perJudge = false, signal, onProgress} = {}){
   const judges = state.brief.panel;
   if (!perJudge){
-    const raw = await backend.complete({prompt: panelPrompt(round, {blind, order}), json:true, signal, tier: state.tier, effort:'high', onText: onProgress});
+    const raw = await backend.complete({prompt: panelPrompt(round, {blind, order}), json:true, signal, tier: state.tier, effort: state.tier === 'complex' ? 'high' : 'medium', onText: onProgress});
     return normalizePanel(raw, {blind, order, judges});
   }
   const parts = await pmap(judges.map((_, i) => i), 2, async (i) => {
-    const raw = await backend.complete({prompt: panelPrompt(round, {blind, order, judgeIndex:i}), json:true, signal, tier: state.tier, effort:'high', onText: onProgress});
+    const raw = await backend.complete({prompt: panelPrompt(round, {blind, order, judgeIndex:i}), json:true, signal, tier: state.tier, effort: state.tier === 'complex' ? 'high' : 'medium', onText: onProgress});
     return normalizePanel(raw, {blind, order, judges:[judges[i]]});
   });
-  return {ballots: parts.map(x => x.ballots[0]), bestIdea: parts[0].bestIdea, unresolved: parts[0].unresolved, moves: parts[0].moves};
+  return {ballots: parts.map(x => x.ballots[0]), bestIdea: parts[0].bestIdea, unresolved: parts[0].unresolved, moves: parts[0].moves, brief: parts[0].brief, claims: parts[0].claims};
 }
 async function scoreQuestion(round, signal, onProgress){
   const h = state.harden; const orders = h.both ? ['ab','ba'] : ['ab'];
@@ -2079,6 +2136,7 @@ function renderScorecard(card, round){
   card.innerHTML = `<div class="bs-mast"><span>Panel scorecard · question ${round.index+1} of ${state.rounds.length}${esc(hardenLabel())}</span><span>Panel of ${p.ballots.length} · out of 100</span></div>
     <h3 class="bs-head ${t.winner}">${winText}, ${t.a.toFixed(1)} to ${t.b.toFixed(1)}</h3>
     ${p.unresolved ? `<div class="bs-deck">Left open: ${esc(p.unresolved)}</div>` : ''}
+    ${whatHappenedHTML(round)}
     <div class="bs-cols">${col('a')}${col('b')}${box}</div>
     ${['a','b'].filter(s => fl[s] && fl[s].why).map(s => `<div class="bs-fact"><span class="eyebrow">Fact check</span><div><strong>${esc(b.moderator ? b.moderator.name : 'The moderator')}:</strong> ${esc(b.positions[s].name)}, the bench flagged this: ${esc(fl[s].why)}. ${(((fl[s].incorrect || 0) + (fl[s].fallacies || 0)) || 0).toFixed(1)} off.</div></div>`).join('')}
     ${yourCallHTML(round)}
@@ -2201,6 +2259,8 @@ function renderFinal(){
   const ranked = (f && Array.isArray(f.ranked) ? f.ranked : []).map(r => ({q: Number(r.q), winner: ['a','b','tie'].includes(r.winner) ? r.winner : 'tie', why:String(r.why||'')})).filter(r => state.rounds[r.q-1]);
   const ideas = (s) => (f && f.bestIdeas && Array.isArray(f.bestIdeas[s]) ? f.bestIdeas[s] : []).map(String);
   const forYou = (f && Array.isArray(f.forYou) ? f.forYou : []).map(x => ({crux:String(x.crux||''), settle:String(x.settle||'')})).filter(x => x.crux);
+  const agreed = (f && Array.isArray(f.agreed) ? f.agreed : []).map(String).filter(Boolean);
+  const decide = (f && Array.isArray(f.decide) ? f.decide : []).map(x => ({cond:String((x && x.if) || ''), then: ['a','b'].includes(x && x.then) ? x.then : null})).filter(x => x.cond && x.then);
   const scored = state.rounds.filter(r => r.score).length;
   $('finalWrap').innerHTML = `<div class="panel final">
     <div class="bs-mast"><div class="mast-name">The Arena</div><span>Final edition · ${scored} question${scored === 1 ? '' : 's'} · panel of ${b.panel.length}</span><span>The chief judge's summation</span></div>
@@ -2210,7 +2270,9 @@ function renderFinal(){
     ${f ? `<p class="lead"><strong>${esc(f.headline)}</strong> ${esc(f.why)}</p>` : '<p class="lead">The chief judge did not return a summation; the scoreboard above stands.</p>'}
     ${ranked.length ? `<h3>The questions, ranked by how decisively they were won</h3><div class="ranked">${ranked.map((r, i) => { const rd = state.rounds[r.q-1]; return `<div class="rk"><span class="n">${i+1}</span><div><div>${esc(rd.q.question)}</div><div class="why">${esc(r.why)}</div></div><span class="pill ${r.winner}">${r.winner==='tie' ? 'Even' : esc(b.positions[r.winner].name)}</span></div>`; }).join('')}</div>` : ''}
     ${(ideas('a').length || ideas('b').length) ? `<h3>The ideas worth keeping</h3><div class="ideas"><div class="idea a"><span class="eyebrow">${esc(b.positions.a.name)}</span>${ideas('a').map(i=>`<div>· ${esc(i)}</div>`).join('')}</div><div class="idea b"><span class="eyebrow">${esc(b.positions.b.name)}</span>${ideas('b').map(i=>`<div>· ${esc(i)}</div>`).join('')}</div></div>` : ''}
-    ${forYou.length ? `<h3>Now yours to decide</h3><div class="foryou">${forYou.map(x=>`<div class="fy"><div>${esc(x.crux)}</div><div class="s">What would settle it: ${esc(x.settle)}</div></div>`).join('')}</div>` : ''}
+    ${decide.length ? `<h3>How to decide</h3><div class="foryou">${decide.map(x=>`<div class="fy decide"><div>${esc(x.cond)}</div><span class="pill ${x.then}">then ${esc(b.positions[x.then].name)}</span></div>`).join('')}</div>` : ''}
+    ${agreed.length ? `<h3>Where they agreed</h3><div class="foryou">${agreed.map(x=>`<div class="fy">${esc(x)}</div>`).join('')}</div>` : ''}
+    ${forYou.length ? `<h3>Still open</h3><div class="foryou">${forYou.map(x=>`<div class="fy"><div>${esc(x.crux)}</div><div class="s">What would settle it: ${esc(x.settle)}</div></div>`).join('')}</div>` : ''}
     ${f && f.closingNote ? `<p class="lead">${esc(f.closingNote)}</p>` : ''}
     ${ballotFinalHTML()}
     ${auditSummaryHTML()}
@@ -2220,10 +2282,24 @@ function renderFinal(){
 }
 
 /* ---------- The debate ---------- */
+async function scoreInBackground(round, sc, signal){
+  const i = round.index;
+  sc.querySelector('.pending').innerHTML = `<span class="eyebrow">Panel</span><br>${state.brief.panel.length} judges are scoring the exchange…${esc(hardenLabel())}`;
+  try {
+    round.panel = await scoreQuestion(round, signal, ({text}) => { const el = sc.querySelector('.pending'); if (el) el.innerHTML = `<span class="eyebrow">Panel</span><br>Writing ballots… ${text.length.toLocaleString()} characters`; });
+    round.score = scoreRound(round.panel);
+    for (const t of round.turns){ const m = round.panel.moves && round.panel.moves[t.side] && round.panel.moves[t.side][t.kind]; if (m){ t.move = m; setMove(t.card, m); } }
+    recomputeTotals(); renderScorecard(sc, round); renderBoard();
+  } catch (e) {
+    if (e && e.code === 'cancelled') return;
+    console.error('Scoring failed', e);
+    sc.innerHTML = `<div class="pending"><span class="eyebrow">Panel</span><br>No scorecard for question ${i+1}: ${esc(copyFor(e && e.code))}</div>`;
+  }
+}
 function pause(ms, signal){ return new Promise((res, rej) => { if (signal && signal.aborted) return rej({code:'cancelled'}); const t = setTimeout(res, ms); if (signal) signal.addEventListener('abort', () => { clearTimeout(t); rej({code:'cancelled'}); }, {once:true}); }); }
 async function speakInto(card, side, kind, sec, prompt, label, signal){
-  setSpeaking(side); progress(`${label}: ${state.brief.positions[side].name} is thinking…`);
-  card.classList.add('speaking'); card.scrollIntoView({behavior:'smooth', block:'nearest'});
+  setSpeaking(side, true); progress(`${label}: ${state.brief.positions[side].name} is thinking…`);
+  card.classList.add('speaking'); if (!card.dataset.noscroll) card.scrollIntoView({behavior:'smooth', block:'nearest'});
   const clk = card.querySelector('.clock span'); const started = Date.now();
   const tick = setInterval(() => { const rem = Math.max(0, sec - Math.floor((Date.now() - started) / 1000)); if (clk) clk.textContent = clock(rem); }, 1000);
   let text;
@@ -2231,7 +2307,7 @@ async function speakInto(card, side, kind, sec, prompt, label, signal){
     text = (await backend.complete({system: candidateSystem(side), prompt, signal, tier: state.tier, effort: state.tier==='complex' ? 'high' : 'medium',
       onText: ({text}) => { setSpeech(card, text, sec, false); progress(`${label}: ${state.brief.positions[side].name} is speaking…`); }})).trim();
   } finally { clearInterval(tick); }
-  setSpeech(card, text, sec, true); setSpeaking(null); card.classList.remove('speaking');
+  setSpeech(card, text, sec, true); setSpeaking(side, false); card.classList.remove('speaking');
   const intro = `${state.brief.positions[side].name}, ${kind}.`;
   wireSpeak(card, side, intro, () => text);
   if (state.voiceOn){ enqueue(side, intro, text, card); pump(); }
@@ -2257,7 +2333,8 @@ async function runDebate(){
       wrap.innerHTML = `<div class="panel modcard"><div class="eyebrow">${esc(state.brief.moderator.name)} · the opening question</div><div class="q">${esc(state.brief.hook)}</div><details class="bg"><summary>Background, for the record</summary><div style="margin-top:4px">${esc(state.brief.context)}</div></details></div>`;
       const pair = document.createElement('div'); pair.className='pair'; wrap.appendChild(pair); $('feed').appendChild(wrap);
       const cards = {}; for (const s of ['a','b']){ cards[s] = speechCard(s, 'opening statement', state.answerSec); pair.appendChild(cards[s]); }
-      for (const s of ['a','b']) state.statements.open[s] = await speakInto(cards[s], s, 'opening statement', state.answerSec, statementPrompt('open', s), 'Openings', signal);
+      cards.b.dataset.noscroll = '1';
+      await Promise.all(['a','b'].map(async s => { state.statements.open[s] = await speakInto(cards[s], s, 'opening statement', state.answerSec, statementPrompt('open', s), 'Openings', signal); }));
     }
     for (const round of state.rounds){
       const i = round.index; const first = i % 2 === 0 ? 'a' : 'b'; const second = other(first);
@@ -2268,66 +2345,51 @@ async function runDebate(){
       renderBoard();
       const cards = {a: speechCard('a', 'answer', state.answerSec), b: speechCard('b', 'answer', state.answerSec)};
       answers.append(cards.a, cards.b);
-      for (const s of [first, second]){
-        const text = await speakInto(cards[s], s, 'answer', state.answerSec, answerPrompt(round, s, s === first), `Question ${i+1} of ${state.rounds.length}`, signal);
-        round.turns.push({side:s, kind:'answer', text, card:cards[s]});
-        if (s === first) await pause(700, signal);
-      }
+      cards[second].dataset.noscroll = '1';
+      const answersText = await Promise.all([first, second].map(s => speakInto(cards[s], s, 'answer', state.answerSec, answerPrompt(round, s, s === first), `Question ${i+1} of ${state.rounds.length}`, signal)));
+      [first, second].forEach((s, k) => round.turns.push({side:s, kind:'answer', text:answersText[k], card:cards[s]}));
       if (state.press){
         progress(`${state.brief.moderator.name} is weighing whether the question was answered…`);
         let verdict = null;
-        try { verdict = await backend.complete({prompt: dodgePrompt(round), json:true, signal, tier: state.tier, effort:'low'}); } catch (e) { if (e && e.code === 'cancelled') throw e; verdict = null; }
+        try { verdict = await backend.complete({prompt: dodgePrompt(round), json:true, signal, tier:'quick', effort:'low'}); } catch (e) { if (e && e.code === 'cancelled') throw e; verdict = null; }
         const dodgers = ['a','b'].filter(s => verdict && verdict[s] && verdict[s].answered === false && String(verdict[s].followup || '').trim());
         if (dodgers.length){
           const fwrap = document.createElement('div'); fwrap.className = 'pair'; wrap.insertBefore(fwrap, rebuttals);
           const cols = {}; for (const s of ['a','b']){ const col = document.createElement('div'); col.style.display = 'grid'; col.style.gap = '8px'; col.style.minWidth = '0'; col.className = dodgers.includes(s) ? '' : 'nocol'; fwrap.appendChild(col); cols[s] = col; }
+          const fcards = {};
           for (const s of dodgers){
             const fu = String(verdict[s].followup).trim(); const col = cols[s];
             const line = document.createElement('div'); line.className = 'panel modline'; line.innerHTML = `<div class="eyebrow">${esc(state.brief.moderator.name)} presses ${esc(state.brief.positions[s].name)}</div><div class="q">${esc(fu)}</div>`;
-            const fcard = speechCard(s, 'follow-up', 30); col.append(line, fcard);
-            await pause(500, signal);
-            const text = await speakInto(fcard, s, 'follow-up', 30, followupPrompt(round, s, fu), `Question ${i+1}, pressed`, signal);
-            round.turns.push({side:s, kind:'follow-up', text, card:fcard, followup:fu});
+            const fcard = speechCard(s, 'follow-up', 30); col.append(line, fcard); fcards[s] = {card:fcard, fu};
           }
+          await pause(500, signal);
+          await Promise.all(dodgers.map(async (s, k) => { if (k) fcards[s].card.dataset.noscroll = '1'; const text = await speakInto(fcards[s].card, s, 'follow-up', 30, followupPrompt(round, s, fcards[s].fu), `Question ${i+1}, pressed`, signal); round.turns.push({side:s, kind:'follow-up', text, card:fcards[s].card, followup:fcards[s].fu}); }));
         }
       }
-      await pause(900, signal); progress(`Question ${i+1}: ${state.brief.positions[second].name} to rebut…`);
+      await pause(700, signal); progress(`Question ${i+1}: rebuttals…`);
       const rcards = {a: speechCard('a', 'rebuttal', state.rebuttalSec), b: speechCard('b', 'rebuttal', state.rebuttalSec)};
-      rebuttals.append(rcards.a, rcards.b);
-      for (const s of [second, first]){
-        const text = await speakInto(rcards[s], s, 'rebuttal', state.rebuttalSec, rebuttalPrompt(round, s), `Question ${i+1}, rebuttals`, signal);
-        round.turns.push({side:s, kind:'rebuttal', text, card:rcards[s]});
-      }
-      await pause(600, signal);
-      progress(`Question ${i+1}: the panel is scoring…`); sc.querySelector('.pending').innerHTML = `<span class="eyebrow">Panel</span><br>${state.brief.panel.length} judges are scoring the exchange…${esc(hardenLabel())}`;
-      try {
-        round.panel = await scoreQuestion(round, signal, ({text}) => { const el = sc.querySelector('.pending'); if (el) el.innerHTML = `<span class="eyebrow">Panel</span><br>Writing ballots… ${text.length.toLocaleString()} characters`; });
-        round.score = scoreRound(round.panel);
-        for (const t of round.turns){ const m = round.panel.moves && round.panel.moves[t.side] && round.panel.moves[t.side][t.kind]; if (m){ t.move = m; setMove(t.card, m); } }
-        recomputeTotals(); renderScorecard(sc, round); renderBoard();
-      } catch (e) {
-        if (e && e.code === 'cancelled') throw e;
-        sc.innerHTML = `<div class="pending"><span class="eyebrow">Panel</span><br>No scorecard for this question: ${esc(copyFor(e && e.code))}</div>`;
-      }
+      rebuttals.append(rcards.a, rcards.b); rcards[first].dataset.noscroll = '1';
+      const rebutText = await Promise.all([second, first].map(s => speakInto(rcards[s], s, 'rebuttal', state.rebuttalSec, rebuttalPrompt(round, s), `Question ${i+1}, rebuttals`, signal)));
+      [second, first].forEach((s, k) => round.turns.push({side:s, kind:'rebuttal', text:rebutText[k], card:rcards[s]}));
+      round.scoring = scoreInBackground(round, sc, signal);
     }
+    progress('The panel is finishing its ballots…');
+    await Promise.all(state.rounds.map(r => r.scoring || Promise.resolve()));
+    if (signal.aborted) throw {code:'cancelled'};
     if (state.cross && state.rounds.some(r => r.turns.length)){
       const wrap = document.createElement('div'); wrap.className='qblock';
       wrap.innerHTML = `<div class="panel modcard"><div class="eyebrow">${esc(state.brief.moderator.name)} · cross-examination</div><div class="q">Each of you may put one question to the other. Answer the question you are asked.</div></div>`;
       $('feed').appendChild(wrap);
-      const order = state.rounds.length % 2 === 0 ? ['a','b'] : ['b','a'];
-      for (const asker of order){
-        const target = other(asker);
-        const pair = document.createElement('div'); pair.className = 'pair'; wrap.appendChild(pair);
-        const qcard = speechCard(asker, 'cross-examination · the question', 20); const acard = speechCard(target, 'cross-examination · the answer', 60);
-        pair.append(asker === 'a' ? qcard : acard, asker === 'a' ? acard : qcard);
-        acard.querySelector('.speech').textContent = 'Waiting for the question.'; acard.querySelector('.speech').classList.remove('thinking');
-        await pause(600, signal);
-        const question = (await speakInto(qcard, asker, 'cross-examination question', 20, crossQuestionPrompt(asker), 'Cross-examination', signal)).trim();
-        const x = {asker, question, answer:''}; state.crossExam.push(x);
-        acard.querySelector('.speech').classList.add('thinking'); acard.querySelector('.speech').textContent = `${state.brief.positions[target].name} is thinking`;
-        await pause(500, signal);
-        x.answer = (await speakInto(acard, target, 'cross-examination answer', 60, crossAnswerPrompt(target, question), 'Cross-examination', signal)).trim();
-      }
+      const qpair = document.createElement('div'); qpair.className = 'pair'; const apair = document.createElement('div'); apair.className = 'pair'; wrap.append(qpair, apair);
+      const qcards = {a: speechCard('a', 'cross-examination · the question', 20), b: speechCard('b', 'cross-examination · the question', 20)}; qpair.append(qcards.a, qcards.b); qcards.b.dataset.noscroll = '1';
+      const acards = {a: speechCard('a', 'cross-examination · the answer', 60), b: speechCard('b', 'cross-examination · the answer', 60)}; apair.append(acards.a, acards.b); acards.b.dataset.noscroll = '1';
+      for (const s of ['a','b']){ acards[s].querySelector('.speech').textContent = 'Waiting for the question.'; acards[s].querySelector('.speech').classList.remove('thinking'); }
+      await pause(600, signal);
+      const qs2 = await Promise.all(['a','b'].map(s => speakInto(qcards[s], s, 'cross-examination question', 20, crossQuestionPrompt(s), 'Cross-examination', signal)));
+      const xs = [{asker:'a', question:qs2[0].trim(), answer:''}, {asker:'b', question:qs2[1].trim(), answer:''}]; state.crossExam.push(...xs);
+      for (const s of ['a','b']){ acards[s].querySelector('.speech').classList.add('thinking'); acards[s].querySelector('.speech').textContent = `${state.brief.positions[s].name} is thinking`; }
+      await pause(500, signal);
+      await Promise.all(xs.map(async x => { const target = other(x.asker); x.answer = (await speakInto(acards[target], target, 'cross-examination answer', 60, crossAnswerPrompt(target, x.question), 'Cross-examination', signal)).trim(); }));
     }
     if (state.openings){
       const wrap = document.createElement('div'); wrap.className='qblock';
@@ -2336,7 +2398,8 @@ async function runDebate(){
       const order = state.rounds.length % 2 === 0 ? ['a','b'] : ['b','a'];
       await pause(700, signal);
       const cards = {a: speechCard('a', 'closing statement', state.answerSec), b: speechCard('b', 'closing statement', state.answerSec)}; pair.append(cards.a, cards.b);
-      for (const s of order) state.statements.close[s] = await speakInto(cards[s], s, 'closing statement', state.answerSec, statementPrompt('close', s), 'Closings', signal);
+      cards[order[1]].dataset.noscroll = '1';
+      await Promise.all(order.map(async s => { state.statements.close[s] = await speakInto(cards[s], s, 'closing statement', state.answerSec, statementPrompt('close', s), 'Closings', signal); }));
     }
     progress('The chief judge is writing the summation…');
     $('finalWrap').innerHTML = `<div class="panel final"><div class="eyebrow">Final summation</div><div class="pending">Reading the whole debate…</div></div>`;
@@ -2514,6 +2577,8 @@ function transcriptMarkdown(){
     if (!r.turns.length) return;
     L.push(`## Question ${i+1} · ${r.q.theme}`, '', `**Moderator:** ${r.q.question}`, '');
     for (const t of r.turns){ if (t.followup) L.push(`**${b.moderator.name} presses ${b.positions[t.side].name}:** ${t.followup}`, ''); L.push(`### ${b.positions[t.side].name} · ${t.kind}${t.move ? ' · ' + t.move : ''}`, '', t.text, ''); }
+    if (r.panel && r.panel.brief && (r.panel.brief.clash || r.panel.brief.takeaway)){ const br = r.panel.brief; if (br.a) L.push(`- ${b.positions.a.name}: ${br.a}`); if (br.b) L.push(`- ${b.positions.b.name}: ${br.b}`); if (br.clash) L.push(`- Where they split: ${br.clash}`); if (br.concession) L.push(`- Conceded: ${br.concession}`); if (br.takeaway) L.push(`- Takeaway: ${br.takeaway}`); L.push(''); }
+    if (r.panel && r.panel.claims && r.panel.claims.length){ L.push('| Claim | By | Status | Note |', '|---|---|---|---|'); for (const c of r.panel.claims) L.push(`| ${c.claim} | ${b.positions[c.side].name} | ${c.status} | ${c.note} |`); L.push(''); }
     if (r.you && r.you.winner && r.score) L.push(`**Your call:** ${r.you.winner === 'tie' ? 'even' : b.positions[r.you.winner].name}${r.you.note ? ` (${r.you.note})` : ''}.`, '');
     if (r.score){ const t = r.score; L.push(`**Panel:** ${t.winner==='tie' ? 'Even' : b.positions[t.winner].name + ' takes it'}, ${t.a.toFixed(1)} to ${t.b.toFixed(1)} of 100.`, '', '| Criterion | A | B |', '|---|---|---|'); for (const c of CRITERIA) L.push(`| ${c.name} | ${t.avg.a[c.id].toFixed(1)} | ${t.avg.b[c.id].toFixed(1)} |`); if (t.tavg) for (const c of b.rubric) L.push(`| ${c.name} (topic, ${c.weight}%) | ${(t.tavg.a[c.id] ?? 5).toFixed(1)} | ${(t.tavg.b[c.id] ?? 5).toFixed(1)} |`); if (t.parts) L.push(`| Penalties | −${t.parts.a.pen.toFixed(1)} | −${t.parts.b.pen.toFixed(1)} |`); L.push('', `- Best idea, ${b.positions.a.name}: ${r.panel.bestIdea.a}`, `- Best idea, ${b.positions.b.name}: ${r.panel.bestIdea.b}`); if (r.panel.unresolved) L.push(`- Left open: ${r.panel.unresolved}`); L.push(''); for (const bl of r.panel.ballots) L.push(`> **${bl.judge.name}** (${bl.judge.title}): ${bl.note}`); L.push(''); }
   });
@@ -2554,6 +2619,7 @@ function wire(){
   document.querySelectorAll('[data-mode]').forEach(ch => ch.onclick = () => { state.mode = ch.dataset.mode; save(); syncMode(); });
   $('addCrit').onclick = addCriterion; $('shuffleMinds').onclick = shuffleMinds;
   $('clearCast').onclick = () => { state.cast = {a:null, b:null}; state.lineupCast = []; renderRoster(); };
+  $('digest').onclick = () => { state.digest = !state.digest; save(); syncDigest(); };
   $('clearRecords').onclick = () => { if (!state.records.length) return; if (!confirm('Clear every record on this device?')) return; state.records = []; saveRecords(); renderRoster(); };
   $('press').onchange = (e) => { state.press = e.target.checked; save(); updateEstimate(); };
   $('cross').onchange = (e) => { state.cross = e.target.checked; save(); updateEstimate(); };
