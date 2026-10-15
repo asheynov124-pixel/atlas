@@ -264,6 +264,17 @@ details summary{cursor:pointer;font-family:var(--font-display);font-weight:600;f
 .howcard .w{font-family:var(--font-mono);font-size:11.5px;color:var(--muted)}
 .howcard strong.h{font-family:var(--font-display);font-size:14px}
 .breakdown{font-family:var(--font-mono);font-size:12px;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+/* Roster */
+.roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.rcard{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start;text-align:left;padding:9px 10px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);cursor:pointer;min-width:0;color:var(--fg);font-family:var(--font-body)}
+.rcard .av{background:var(--m,var(--muted))}
+.rcard .rn{display:block;font-family:var(--font-display);font-weight:700;font-size:14px;line-height:1.2}
+.rcard .rs{display:block;font-family:var(--font-display);font-size:12px;color:var(--m-ink,var(--brass-ink));line-height:1.3}
+.rcard .rb{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.35}
+.rcard[aria-pressed="true"]{border-color:var(--fg);background:var(--surface-2);box-shadow:inset 3px 0 0 var(--m,var(--fg))}
+.rcard .slot{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg);margin-top:4px}
+.podium .school{font-family:var(--font-display);font-size:12.5px;color:var(--muted);margin-top:-2px}
+details.bg{font-size:14px;color:var(--muted)} details.bg summary{cursor:pointer;font-family:var(--font-display);font-size:13px;color:var(--brass-ink)}
 /* Lineup */
 .mode{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
 .lineup{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
@@ -295,7 +306,7 @@ details summary{cursor:pointer;font-family:var(--font-display);font-weight:600;f
   </header>
 
   <section class="panel section" id="setup" aria-label="Choose a topic">
-    <div><h2>Choose a fight</h2><p class="hint">Big, tangled, even provocative questions work best. The moderator breaks the topic into the questions underneath it, casts two candidates and a panel, and then everything is yours to edit before the first word is spoken.</p></div>
+    <div><h2>Choose a fight</h2><p class="hint">Big, tangled, even provocative questions work best. The moderator breaks the topic into the questions underneath it, casts two experts from the roster whose traditions clash on it, seats a panel, and opens with a question meant to draw blood. Everything is yours to edit before the first word is spoken.</p></div>
     <div class="chips" id="cats" role="group" aria-label="Categories"></div>
     <div class="topics" id="topics" role="group" aria-label="Topics"></div>
     <div class="row">
@@ -312,6 +323,11 @@ details summary{cursor:pointer;font-family:var(--font-display);font-weight:600;f
     <div class="field"><label>Format</label>
       <div class="mode" role="group" aria-label="Format"><button type="button" class="chip" data-mode="debate" aria-pressed="true">Debate · two candidates, a panel keeps score</button><button type="button" class="chip" data-mode="lineup" aria-pressed="false">Lineup · five minds, one vote each</button></div>
       <span class="hint" id="modeHint"></span></div>
+    <div>
+      <div class="gr-head"><div class="eyebrow">The roster · pick who takes the podium, or leave the casting to the moderator</div><div class="row"><button class="btn small" id="clearCast">Clear picks</button></div></div>
+      <span class="hint" id="castHint"></span>
+      <div class="roster" id="roster" style="margin-top:8px"></div>
+    </div>
     <div class="row"><button class="btn primary" id="build">Build the debate</button><span class="hint" id="buildHint"></span></div>
     <div class="notice bad" id="setupNotice" hidden></div>
   </section>
@@ -423,6 +439,32 @@ const CRITERIA = [
   {id:'nuance', name:'Nuance', desc:'Named the real trade-offs and the strongest point against the position; no straw men or slogans.'},
 ];
 const TOPICS = {
+  'The Third Rail':[
+    'Should abortion be legal, and up to what point?',
+    'Does the Second Amendment do more harm than good?',
+    'Is Israel\'s war in Gaza a just war?',
+    'Should the United States have dropped the atomic bombs on Japan?',
+    'Should trans women compete in women\'s sports?',
+    'Does the United States owe Black Americans reparations?',
+    'Is Islam compatible with liberal democracy?',
+    'Was European colonialism, on net, a crime or a gift?',
+    'Should the death penalty exist?',
+    'Should rich countries open their borders?',
+    'Is Western civilization better than the alternatives?',
+    'Should euthanasia be available to anyone who asks?',
+    'Should billionaires be abolished?',
+    'Is the United States an empire, and is that bad?',
+    'Should hard drugs be legal?',
+    'Is eating meat a moral atrocity our grandchildren will not forgive?',
+    'Was the Iraq War a crime, a blunder, or defensible?',
+    'Should children be allowed to transition?',
+    'Should hate speech be illegal?',
+    'Is there any such thing as a just inheritance?',
+    'Should the West have let Ukraine fall rather than risk a wider war?',
+    'Is religion, on balance, a force for good?',
+    'Should we pay people not to have children, or to have more?',
+    'Is pornography a public health crisis?',
+  ],
   'Geopolitics & War':[
     "Is the Iran war in the United States' long-term strategic interest?",
     'Does nuclear deterrence still work in a world of many nuclear powers?',
@@ -836,6 +878,129 @@ const TOPICS = {
     'Is fandom a healthy passion or a tribal sickness?',
   ],
 };
+const ROSTER = [
+  {id:'marsh', name:'Dr. Helena Marsh', school:'Liberal philosopher', avatar:'🕊️', color:'indigo', temper:25, risk:40,
+   bio:'Believes a rule is only just if you would accept it without knowing which side of it you would land on. Patient, exact, allergic to slogans; her blind spot is assuming everyone wants to be reasonable.',
+   style:'Measured and precise; builds from principles to cases; concedes freely and then shows the concession changes nothing.',
+   moves:'The veil of ignorance test; separating what is unjust from what is merely unpopular; asking who the rule protects when power changes hands.'},
+  {id:'delgado', name:'Rosa Delgado', school:'Democratic socialist organizer', avatar:'✊', color:'crimson', temper:80, risk:55,
+   bio:'Came up through tenant unions and believes power, not persuasion, moves the world. Warm, funny, relentless; her blind spot is treating every opponent as a landlord.',
+   style:'Vivid and rhythmic; names the people in the room who pay; turns abstractions into rent, wages, and who gets the bill.',
+   moves:'Follow the money; "who decides?"; the history of rights that were called impossible until they were won.'},
+  {id:'hale', name:'Edmund Hale', school:'Burkean conservative', avatar:'🏛️', color:'slate', temper:30, risk:35,
+   bio:'Thinks institutions are the stored wisdom of the dead and reformers rarely know what they are tearing down. Courteous, elegiac, quietly devastating; his blind spot is mistaking the old for the proven.',
+   style:'Unhurried, literary, fond of the long view; treats every proposal as a demolition order and asks what held the roof up.',
+   moves:'Chesterton\'s fence; the unintended consequences ledger; "compared with what actually existed?"'},
+  {id:'stone', name:'Caleb Stone', school:'Libertarian economist', avatar:'📈', color:'amber', temper:45, risk:60,
+   bio:'Sees incentives where others see villains and coercion where others see policy. Sharp, numerate, a little gleeful; his blind spot is people who cannot exit.',
+   style:'Fast and clipped; "compared to what?"; prices, trade-offs, and the seen versus the unseen.',
+   moves:'Opportunity cost; the knowledge problem; asking who bears the risk of being wrong.'},
+  {id:'osei', name:'Gen. Amara Osei', school:'Military realist', avatar:'♟️', color:'forest', temper:35, risk:45,
+   bio:'Has planned campaigns and buried soldiers, and trusts neither idealists nor accountants. Direct, unsentimental, dry; her blind spot is treating every problem as a theater of operations.',
+   style:'Plain, declarative, map-on-the-table; asks what the adversary does next and who can enforce anything.',
+   moves:'The adversary gets a vote; capability versus intent; ends, ways, and means.'},
+  {id:'ibarra', name:'Fr. Tomás Ibarra', school:'Catholic natural-law thinker', avatar:'✝️', color:'plum', temper:30, risk:40,
+   bio:'Holds that some things are owed to persons simply because they are persons, and that modernity keeps rediscovering this the hard way. Gentle, learned, immovable; his blind spot is the suffering his certainties ask others to bear.',
+   style:'Warm and exact; distinguishes the good from the useful; quotes sparingly and lands it.',
+   moves:'The dignity of the person; "what is this thing for?"; double effect and the difference between permitting and intending.'},
+  {id:'nair', name:'Priya Nair', school:'Effective altruist', avatar:'🧮', color:'teal', temper:35, risk:65,
+   bio:'Counts lives, including the ones not yet born and not yet counted, and finds most moral intuitions embarrassing on inspection. Bright, candid, a little alarming; her blind spot is everything that resists a spreadsheet.',
+   style:'Crisp and quantitative; expected value, scale, neglectedness; cheerfully bites bullets.',
+   moves:'How many, how much, how sure; the drowning child; the moral weight of distance and time.'},
+  {id:'karim', name:'Yusuf Karim', school:'Islamic scholar', avatar:'☪️', color:'forest', temper:30, risk:45,
+   bio:'Trained in jurisprudence and philosophy and convinced the West keeps arguing with a caricature of his tradition. Serene, erudite, pointed; his blind spot is the dissenters inside his own house.',
+   style:'Calm, layered, historically rich; reframes the question before answering it; patient with hostility.',
+   moves:'Revelation and reason as partners; the community before the individual; the record of what tolerance actually looked like.'},
+  {id:'vogt', name:'Dr. Lena Vogt', school:'Evolutionary psychologist', avatar:'🧬', color:'rust', temper:40, risk:70,
+   bio:'Thinks most moral debates are status games played by primates who deny they are primates. Wry, provocative, data-first; her blind spot is culture.',
+   style:'Mischievous and concrete; mechanisms, selection pressures, what the behavior is for; enjoys discomfort.',
+   moves:'What would this look like in any other species; the gap between stated and revealed preferences; costly signals.'},
+  {id:'nakamura', name:'Kai Nakamura', school:'Techno-accelerationist', avatar:'🚀', color:'indigo', temper:65, risk:90,
+   bio:'Believes the only moral failure is slowing down, and that every regulation is a funeral for someone who would have been saved. Electric, impatient, visionary; his blind spot is the people who get run over on the way.',
+   style:'Fast, bold, future-tense; compounding, abundance, the cost of waiting; speaks in trajectories.',
+   moves:'The cost of delay; what the curve says; "the counterfactual is not the status quo, it is decline."'},
+  {id:'halvorsen', name:'Ingrid Halvorsen', school:'Degrowth ecologist', avatar:'🌱', color:'forest', temper:40, risk:70,
+   bio:'Believes infinite growth on a finite planet is a category error dressed up as an economy. Steady, grounded, unexpectedly funny; her blind spot is the poor who want what the rich already have.',
+   style:'Earthy and concrete; soil, watersheds, limits; refuses the premise before the question.',
+   moves:'Thresholds and tipping points; who pays in the long run; "enough" as a political idea.'},
+  {id:'bell', name:'Zora Bell', school:'Abolitionist, Black radical tradition', avatar:'🔥', color:'crimson', temper:85, risk:75,
+   bio:'Reads history as a long argument about who counts as human, and finds the present guilty on most counts. Fierce, lyrical, exact; her blind spot is the reforms that actually worked.',
+   style:'Prophetic cadence with a historian\'s receipts; names names and dates; refuses to be grateful.',
+   moves:'Who built it and who was excluded; the carceral thread through every policy; the difference between a reform and a release.'},
+  {id:'petrova', name:'Nadia Petrova', school:'Feminist theorist', avatar:'♀️', color:'plum', temper:55, risk:60,
+   bio:'Sees the unpaid, the unseen, and the unsaid in every arrangement men call natural. Sharp, dry, generous to the undecided; her blind spot is men who are also losing.',
+   style:'Analytical with a sting; who does the work, who holds the risk; makes the invisible labor visible.',
+   moves:'Follow the care work; the default body the rule was written for; consent and its conditions.'},
+  {id:'reardon', name:'Jack Reardon', school:'National populist', avatar:'🏗️', color:'rust', temper:75, risk:55,
+   bio:'Grew up where the factory closed and thinks the experts who closed it have been apologizing in the wrong accent ever since. Blunt, loyal, suspicious of elegance; his blind spot is the stranger.',
+   style:'Plain speech, concrete places, no abstractions he cannot point at; "and who asked us?"',
+   moves:'Who benefits and who was consulted; sovereignty as the right to be wrong; loyalty to the particular over the universal.'},
+  {id:'ellery', name:'Marcus Ellery', school:'Stoic', avatar:'🪨', color:'slate', temper:15, risk:45,
+   bio:'Holds that most of what people argue about is outside their control and most of what matters is inside it. Still, spare, impossible to rattle; his blind spot is injustice that patience will not cure.',
+   style:'Short sentences, first principles, the one assumption a position cannot do without.',
+   moves:'What is up to us; the view from above; the difference between what happens and what we add to it.'},
+  {id:'arnaud', name:'Simone Arnaud', school:'Existentialist', avatar:'🎭', color:'plum', temper:60, risk:75,
+   bio:'Believes you are what you do and every excuse is a small act of bad faith. Intense, elegant, occasionally cruel; her blind spot is the circumstances that choose for people.',
+   style:'Dramatic and precise; freedom, responsibility, the refusal of comfort; speaks in choices.',
+   moves:'Who is choosing here; the absurd and what to do anyway; bad faith hunting.'},
+  {id:'wren', name:'Dr. Samuel Wren', school:'Christian apologist', avatar:'📖', color:'amber', temper:40, risk:50,
+   bio:'Thinks the modern world runs on borrowed Christian capital and is about to find out what the interest rate is. Genial, well-read, quietly combative; his blind spot is the believer who became an unbeliever for good reasons.',
+   style:'Conversational, story-rich, disarmingly cheerful; the argument from where the values came from.',
+   moves:'Where did that moral intuition come from; the trilemma; what the alternative actually has to offer.'},
+  {id:'kessler', name:'Dr. Ada Kessler', school:'Physicist and skeptic', avatar:'🔭', color:'teal', temper:35, risk:55,
+   bio:'Trusts the equations and the error bars and nothing that cannot survive them. Lucid, impatient with mystery, secretly romantic about the cosmos; her blind spot is meaning.',
+   style:'Clear, evidential, calibrated; "what would it look like if that were false?"',
+   moves:'Falsifiability; the base rate; the history of things that were spiritual until they were explained.'},
+  {id:'dorje', name:'Tenzin Dorje', school:'Buddhist teacher', avatar:'☸️', color:'amber', temper:10, risk:50,
+   bio:'Treats most questions as a symptom of the questioner and most suffering as self-administered. Kind, slow, unexpectedly sharp; his blind spot is the fight that needs fighting.',
+   style:'Spacious, plain, parable-shaped; dissolves the frame; one image that stays.',
+   moves:'Who is the one who wants this; impermanence as an argument; the cost of clinging to being right.'},
+  {id:'brandt', name:'Dr. Elias Brandt', school:'Jungian analyst', avatar:'🌓', color:'indigo', temper:35, risk:65,
+   bio:'Hears the myth under every policy and the shadow under every virtue. Curious, warm, a little uncanny; his blind spot is the problem that is just a problem.',
+   style:'Associative, symbolic, humane; names the archetype in the room; ends with a dream-shaped question.',
+   moves:'The shadow; what the collective is projecting; the opposite that every position secretly contains.'},
+  {id:'calloway', name:'Ruth Calloway', school:'Constitutionalist', avatar:'📜', color:'slate', temper:25, risk:35,
+   bio:'Believes the rules we wrote down when we were calm are the only protection we have when we are not. Crisp, procedural, immovable; her blind spot is the rule that was wrong when written.',
+   style:'Structured and exact; text, structure, precedent; "and who gets to decide that next time?"',
+   moves:'Process over outcome; the rule you would want your enemy bound by; separation of powers as a moral idea.'},
+  {id:'haddad', name:'Omar Haddad', school:'Civil libertarian', avatar:'🗝️', color:'teal', temper:55, risk:60,
+   bio:'Assumes every power granted for a good reason will be used for a bad one by someone later. Quick, principled, a touch paranoid; his blind spot is the harm that freedom lets happen.',
+   style:'Punchy and case-driven; the slippery slope with receipts; "define the limiting principle."',
+   moves:'Who holds the power after the next election; the chilling effect; the limiting principle demand.'},
+  {id:'chen', name:'Dr. Wei Chen', school:'Behavioral economist', avatar:'🎯', color:'amber', temper:35, risk:55,
+   bio:'Knows that people are predictably irrational and that policy written for rational agents is fiction. Playful, empirical, humble about theory; her blind spot is treating citizens as subjects.',
+   style:'Experiments, nudges, what people actually did; charming and unexpectedly stubborn.',
+   moves:'The default option; present bias; what the field study found when the theory said otherwise.'},
+  {id:'fairbanks', name:'Leo Fairbanks', school:'Game theorist', avatar:'♜', color:'slate', temper:30, risk:60,
+   bio:'Sees every dispute as a game with payoffs nobody wants to state aloud. Cool, elegant, faintly amused; his blind spot is the player who is not playing.',
+   style:'Structural and clean; equilibria, credible threats, what each side rationally does next.',
+   moves:'The commitment problem; cheap talk versus costly signals; "and then what?" to the third move.'},
+  {id:'costa', name:'Dr. Beatriz Costa', school:'Historian of empires', avatar:'🗺️', color:'rust', temper:30, risk:45,
+   bio:'Has watched a dozen civilizations convince themselves they were the exception. Dry, panoramic, merciless with analogies that flatter; her blind spot is the thing that is genuinely new.',
+   style:'Narrative and exact; dates, precedents, how it actually went; "we have been here before, and here is how it ended."',
+   moves:'The precedent that fits and the one that does not; overreach; who wrote the record and why.'},
+  {id:'alsayed', name:'Noor Al-Sayed', school:'Communitarian', avatar:'🏘️', color:'forest', temper:40, risk:45,
+   bio:'Believes the individual is a late and fragile invention, and that people are made by what they belong to. Warm, grounded, hard to caricature; her blind spot is the one who wants to leave.',
+   style:'Textured and local; families, congregations, neighborhoods; the goods that only exist in common.',
+   moves:'What the practice is for; thick versus thin belonging; the cost of liberation to the ones left behind.'},
+  {id:'volkov', name:'Dmitri Volkov', school:'AI-risk thinker', avatar:'⚠️', color:'crimson', temper:50, risk:80,
+   bio:'Has run the numbers on extinction and finds everyone else oddly relaxed. Intense, rigorous, bleakly funny; his blind spot is the ordinary present.',
+   style:'Precise and urgent; tail risks, irreversibility, what you cannot undo; refuses false comfort.',
+   moves:'Irreversibility; the asymmetry of catastrophe; "what is your plan if you are wrong?"'},
+  {id:'reyes', name:'Sasha Reyes', school:'Epicurean', avatar:'🍷', color:'plum', temper:60, risk:70,
+   bio:'Thinks the point of life is pleasure well chosen and most moral seriousness is fear in a nice coat. Charming, sly, unexpectedly disciplined; their blind spot is duty.',
+   style:'Light, witty, disarming; the joke on the idea, then the quiet serious point underneath it.',
+   moves:'Who is this suffering for; the hedonic ledger; what the serious people are afraid of.'},
+  {id:'walker', name:'Dr. Imani Walker', school:'Bioethicist', avatar:'🧪', color:'teal', temper:30, risk:50,
+   bio:'Sits on the committees that decide who gets the organ, and has stopped believing in clean answers. Careful, humane, allergic to grandstanding; her blind spot is the bold move that would have worked.',
+   style:'Case-driven and balanced; principles in tension, named; "here is what it looks like at the bedside."',
+   moves:'Autonomy against beneficence; the hard case that breaks the rule; who consents for the one who cannot.'},
+  {id:'brennan', name:'Hal Brennan', school:'Union pragmatist', avatar:'🔧', color:'amber', temper:55, risk:30,
+   bio:'Has negotiated contracts and funerals and distrusts anyone whose plan has no budget line. Gruff, decent, immune to theory; his blind spot is the thing that cannot be bargained.',
+   style:'Plain, impatient, concrete; who pays, who does the work, what happens Monday morning.',
+   moves:'Show me the budget; the second-order effect on the shop floor; the deal that holds versus the deal that is right.'},
+];
+const ROSTER_BY_ID = Object.fromEntries(ROSTER.map(r => [r.id, r]));
 const CANDIDATE_PRESETS = [
   {name:'The Empiricist', style:'Calm, precise, evidence-first; names the limits of what we know; dry humor.', avatar:'🔬', color:'teal', temper:25, risk:40},
   {name:'The Firebrand', style:'Vivid, rhythmic, morally urgent; concrete human stories; punchy closers.', avatar:'🔥', color:'crimson', temper:90, risk:60},
@@ -892,7 +1057,7 @@ const FALLBACK_RUBRIC = [
   {name:'Practical seriousness', desc:'Says what would follow in practice, not only in principle.', weight:15},
 ];
 const slug = (t) => String(t).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 32) || 'c';
-const DEFAULT_MINDS = [0, 1, 2, 3, 9];
+const DEFAULT_MINDS = ['marsh', 'delgado', 'hale', 'karim', 'nakamura'];
 const TAKE_WORDS = 110;
 
 /* ---------- State ---------- */
@@ -902,10 +1067,12 @@ const state = {
   brief:null, questions:[], selected:new Set(),
   rounds:[], statements:{open:{}, close:{}}, final:null, totals:{a:0,b:0}, won:{a:0,b:0,tie:0},
   harden:{blind:false, both:false, perJudge:false}, audit:null, priorRun:null, tone:'spirited', heat:'spirited',
-  mode:'debate', minds:DEFAULT_MINDS.map((i, k) => mindFrom(CANDIDATE_PRESETS[i], k)), lineup:[], lineupFinal:null,
+  mode:'debate', minds:DEFAULT_MINDS.map((id, k) => mindFrom(ROSTER_BY_ID[id], k)), lineup:[], lineupFinal:null,
+  cast:{a:null, b:null}, lineupCast:[],
   running:false, ctl:null,
 };
-function mindFrom(q, k){ return {name:q.name, style:q.style, worldview:'', avatar:q.avatar, color:q.color, temper:q.temper, risk:q.risk, id:'m' + k}; }
+function mindFrom(q, k){ return {name:q.name, school:q.school || '', style:q.style, worldview:q.bio || '', moves:q.moves || '', avatar:q.avatar, color:q.color, temper:q.temper, risk:q.risk, id:'m' + k, rosterId:q.id || ''}; }
+function castFromRoster(p, r){ return Object.assign(p, {name:r.name, school:r.school, worldview:r.bio, style:r.style, moves:r.moves, avatar:r.avatar, color:r.color, temper:r.temper, risk:r.risk, rosterId:r.id}); }
 let backend = {mode:'none'}; let downloadsCap = null;
 
 /* ---------- Helpers ---------- */
@@ -1012,11 +1179,24 @@ function briefPrompt(){
 TOPIC: ${state.topic}
 Category: ${state.category}
 
-Build the debate brief. Be scrupulously neutral. Choose the two most serious, interesting positions on this topic: for a yes/no question, A argues yes and B argues no; if the topic pits two named ideas, schools, thinkers, faiths, or traditions against each other (X vs. Y), A champions X and B champions Y; otherwise pick the two strongest rival readings. Give each candidate a short, memorable name, a worldview, a distinctive speaking style, an emoji that fits them, and a color. If the topic names real thinkers or historical figures on each side, the candidates ARE those figures: use their names, argue from their actual writings and known views in their own voice, and let them see the world as it stands today (they know what has happened since their time); then make one of the twelve questions ask each what they would now revise in their own thought. Assemble a judging panel of five experts whose fields genuinely matter to this topic (for a war: a military strategist, a historian of the region, an economist, a humanitarian ethicist, a domestic-politics analyst; for a question about God: a philosopher of religion, a physicist, a historian of faiths, a psychologist of belief, an ordinary thoughtful believer or doubter), each with a one-sentence lens and the two criteria they weigh most. Then break the topic into twelve sub-questions that together cover its real complexity: the human stakes, the strongest evidence each way, the second-order effects, the moral questions, the historical record, what each side's strongest objection is, the uncomfortable question each side would rather not face, and anything else the topic demands. Group questions by theme. Each must be concrete and debatable, the kind a sharp moderator would actually ask. Finally write a topic-specific scoring rubric: four to six criteria that matter for THIS topic in particular (for a war: honesty about casualties, strategic logic, historical grounding, cost accounting; for the existence of God: handling of evidence, philosophical rigor, engagement with the strongest objection, intellectual humility), each with one sentence on what a 10 looks like and an integer weight, weights summing to 100, most important first. The panel scores every answer on the six universal criteria plus this rubric.
+THE ROSTER (the standing cast of experts; id, name, tradition, who they are):
+${rosterList()}
+
+Build the debate brief. Be scrupulously neutral. Choose the two most serious, interesting positions on this topic: for a yes/no question, A argues yes and B argues no; if the topic pits two named ideas, schools, thinkers, faiths, or traditions against each other (X vs. Y), A champions X and B champions Y; otherwise pick the two strongest rival readings.
+${castInstruction()}
+Each candidate argues from their own tradition, so write each stance in a way that tradition would actually hold it, and let the two traditions collide where it is most revealing. Also choose the five roster members whose traditions would split most interestingly on this topic for a vote-only format ("lineup")${state.lineupCast.length ? `; the producer has already seated ${state.lineupCast.map(id => ROSTER_BY_ID[id].name).join(', ')}, so keep them and fill the rest` : ''}. If the topic names real thinkers or historical figures on each side, ignore the roster for the podiums: the candidates ARE those figures, with their real names, arguing from their actual writings and known views in their own voice, aware of the world as it stands today; then make one of the twelve questions ask each what they would now revise in their own thought.
+Write the moderator's OPENING QUESTION: not background, not a summary, but a provocative, uncomfortable question that goes straight at the nerve of the topic, the thing people actually fight about at dinner, phrased so that each candidate's tradition will take it somewhere different. Write the moderator's CLOSING QUESTION too: what the audience should walk out believing, and what it would cost them to be wrong. Assemble a judging panel of five experts whose fields genuinely matter to this topic (for a war: a military strategist, a historian of the region, an economist, a humanitarian ethicist, a domestic-politics analyst; for a question about God: a philosopher of religion, a physicist, a historian of faiths, a psychologist of belief, an ordinary thoughtful believer or doubter), each with a one-sentence lens and the two criteria they weigh most. Then break the topic into twelve sub-questions that together cover its real complexity: the human stakes, the strongest evidence each way, the second-order effects, the moral questions, the historical record, what each side's strongest objection is, the uncomfortable question each side would rather not face, and anything else the topic demands. Group questions by theme. Each must be concrete and debatable, the kind a sharp moderator would actually ask. Finally write a topic-specific scoring rubric: four to six criteria that matter for THIS topic in particular (for a war: honesty about casualties, strategic logic, historical grounding, cost accounting; for the existence of God: handling of evidence, philosophical rigor, engagement with the strongest objection, intellectual humility), each with one sentence on what a 10 looks like and an integer weight, weights summing to 100, most important first. The panel scores every answer on the six universal criteria plus this rubric.
 
 Reply with only a JSON object of this exact shape:
-{"title": "a short debate title, under 12 words", "context": "three to five sentences of neutral background a smart viewer needs before the first question, including the key facts in dispute", "positions": {"a": {"name": "a short memorable name for candidate A, e.g. The Strategist", "label": "a two-to-four-word stance label", "stance": "one sentence stating the position A will argue", "worldview": "two sentences on how A sees the world and tends to argue", "style": "one sentence on how A speaks", "avatar": "one emoji", "color": "one of teal, crimson, indigo, amber, forest, plum, slate, rust"}, "b": {"name": "...", "label": "...", "stance": "...", "worldview": "...", "style": "...", "avatar": "...", "color": "..."}}, "panel": [{"name": "a judge's full name", "title": "their expertise in a few words", "lens": "one sentence on what they weigh most", "focus": ["two of: insight, evidence, reasoning, responsiveness, eloquence, nuance"]}], "questions": [{"theme": "a one-or-two-word theme", "question": "the question as the moderator will ask it", "why": "one sentence on what hangs on it"}], "rubric": [{"name": "a topic-specific criterion in two to five words", "desc": "one sentence on what a 10 looks like on this topic", "weight": 25}]}
+{"title": "a short debate title, under 12 words", "hook": "the moderator's opening question, one or two sentences", "closer": "the moderator's closing question, one sentence", "context": "three to five sentences of neutral background a smart viewer needs, including the key facts in dispute (shown on request, not read aloud)", "cast": {"a": "roster id for podium A, or empty if the candidates are real historical figures", "b": "roster id for podium B, or empty", "lineup": ["five roster ids"]}, "positions": {"a": {"name": "the roster member's name, or for a historical figure their real name", "label": "a two-to-four-word stance label", "stance": "one sentence stating the position A will argue, in the voice of A's tradition", "worldview": "two sentences on how A sees this topic and tends to argue it (for a historical figure, from their actual thought)", "style": "one sentence on how A speaks", "avatar": "one emoji", "color": "one of teal, crimson, indigo, amber, forest, plum, slate, rust"}, "b": {"name": "...", "label": "...", "stance": "...", "worldview": "...", "style": "...", "avatar": "...", "color": "..."}}, "panel": [{"name": "a judge's full name", "title": "their expertise in a few words", "lens": "one sentence on what they weigh most", "focus": ["two of: insight, evidence, reasoning, responsiveness, eloquence, nuance"]}], "questions": [{"theme": "a one-or-two-word theme", "question": "the question as the moderator will ask it", "why": "one sentence on what hangs on it"}], "rubric": [{"name": "a topic-specific criterion in two to five words", "desc": "one sentence on what a 10 looks like on this topic", "weight": 25}]}
 Exactly five panel entries, twelve questions, and four to six rubric criteria whose weights sum to 100. Give the two candidates different colors.`;
+}
+function rosterList(){ return ROSTER.map(r => `- ${r.id}: ${r.name}, ${r.school}. ${r.bio.split('. ')[0]}.`).join('\n'); }
+function castInstruction(){
+  const a = ROSTER_BY_ID[state.cast.a], b = ROSTER_BY_ID[state.cast.b];
+  if (a && b) return `The producer has already cast ${a.name} (${a.school}) at podium A and ${b.name} (${b.school}) at podium B. Keep them. Assign the two positions so that each argues the side their tradition would take; if both would take the same side, give the more interesting split and explain in the context why each stands where they do.`;
+  if (a || b){ const r = a || b, side = a ? 'A' : 'B', o = a ? 'B' : 'A'; return `The producer has already cast ${r.name} (${r.school}) at podium ${side}. Keep them, give them the side their tradition would take, and cast podium ${o} from the roster with the member whose tradition clashes with theirs most revealingly on this topic.`; }
+  return `Cast both podiums from the roster: the two members whose traditions clash most revealingly on this topic, not merely the two most obvious. Think about where a liberal philosopher and a democratic socialist would part ways, or a Stoic and an accelerationist, and choose the pairing that will teach the audience the most.`;
 }
 function recastPrompt(){
   const b = state.brief;
@@ -1043,7 +1223,7 @@ function topicsPrompt(){
 }
 function candidateSystem(side){
   const p = state.brief.positions[side]; const tone = TONES[state.tone] || TONES.spirited;
-  return `You are ${p.name}, ${SIDE[side]} in a televised, presidential-style debate. Your position: ${p.stance} Your worldview: ${p.worldview}${p.style ? `\nHow you speak: ${p.style}` : ''}
+  return `You are ${p.name}${p.school ? `, ${p.school.replace(/^(a|an|the)\s+/i, '')}` : ''}, ${SIDE[side]} in a televised, presidential-style debate. Your position: ${p.stance} Your worldview: ${p.worldview}${p.style ? `\nHow you speak: ${p.style}` : ''}${p.moves ? `\nYour signature moves: ${p.moves}` : ''}${p.school ? `\nYou argue as a ${p.school.toLowerCase()} would: your tradition shapes what you notice, what you weigh, and where you take the question. Let the audience see where your school of thought leads.` : ''}
 Temperament: ${temperText(Number(p.temper ?? 50))}. Appetite for risk: ${riskText(Number(p.risk ?? 50))}.
 Tone of the evening (${tone.name}): ${tone.rule}
 
@@ -1058,7 +1238,8 @@ HOUSE RULES
 }
 function briefContext(){
   const b = state.brief;
-  return `DEBATE: ${b.title}\nTOPIC: ${state.topic}\nBACKGROUND: ${b.context}\nCANDIDATE A, ${b.positions.a.name} (${b.positions.a.label}): ${b.positions.a.stance}\nCANDIDATE B, ${b.positions.b.name} (${b.positions.b.label}): ${b.positions.b.stance}`;
+  const who = (s) => `${b.positions[s].name}${b.positions[s].school ? `, ${b.positions[s].school}` : ''} (${b.positions[s].label})`;
+  return `DEBATE: ${b.title}\nTOPIC: ${state.topic}\nBACKGROUND: ${b.context}\nCANDIDATE A, ${who('a')}: ${b.positions.a.stance}\nCANDIDATE B, ${who('b')}: ${b.positions.b.stance}`;
 }
 function earlierSummary(){
   const done = state.rounds.filter(r => r.turns.length === 4);
@@ -1083,9 +1264,10 @@ function rebuttalPrompt(round, side){
 function statementPrompt(kind, side){
   const n = wordsFor(state.answerSec);
   const me = state.brief.positions[side].name;
-  if (kind === 'open') return `${briefContext()}\n\nThe moderator invites ${me} to give an opening statement of ${clock(state.answerSec)}, about ${n} words. Tell the audience how you see this topic, what question it really turns on, and the one idea you most want them to carry out of the hall tonight. Do not pre-empt the specific questions to come. Write only your spoken statement.`;
+  const p = state.brief.positions[side];
+  if (kind === 'open') return `${briefContext()}\n\nTHE MODERATOR OPENS WITH THIS QUESTION, TO BOTH OF YOU: ${state.brief.hook}\n\nYou have ${clock(state.answerSec)}, about ${n} words. Do not summarize the topic and do not recite background. Answer the question the way ${p.school ? `a ${p.school.toLowerCase()}` : 'you'} would answer it: take it where your tradition takes it, show the audience the move your school makes that the other side would never make, and land it. Say in your first two sentences where you stand on the question as asked. Do not pre-empt the specific questions to come. Write only your spoken statement.`;
   const transcript = state.rounds.filter(r => r.turns.length).map(r => `Q: ${r.q.question}\n${r.turns.map(t => `[${state.brief.positions[t.side].name}, ${t.kind}] ${t.text}`).join('\n')}`).join('\n\n');
-  return `${briefContext()}\n\nFULL DEBATE SO FAR:\n${transcript}\n\nThe moderator invites ${me} to give a closing statement of ${clock(state.answerSec)}, about ${n} words. Crystallize what the debate revealed: the two or three questions where the real disagreement lives, what you concede, and why your reading of the topic deserves the audience's judgment. No new arguments. End on a line they will remember. Write only your spoken statement.`;
+  return `${briefContext()}\n\nFULL DEBATE SO FAR:\n${transcript}\n\nTHE MODERATOR'S CLOSING QUESTION, TO BOTH OF YOU: ${state.brief.closer}\n\nYou have ${clock(state.answerSec)}, about ${n} words. Answer it. Crystallize what the debate revealed: the two or three questions where the real disagreement lives, what you concede, and why your reading deserves the audience's judgment. No new arguments. End on a line they will remember. Write only your spoken statement.`;
 }
 function scrubNames(text){
   let t = String(text);
@@ -1131,6 +1313,26 @@ function finalPrompt(){
 }
 
 /* ---------- Setup rendering ---------- */
+function castLabel(){
+  const lineup = state.mode === 'lineup';
+  if (lineup){ const names = state.lineupCast.map(id => ROSTER_BY_ID[id].name); return names.length ? `Tonight's lineup: ${names.join(', ')}${names.length < 5 ? ` (the moderator fills the other ${5 - names.length})` : ''}.` : 'Pick up to five, or the moderator picks the five whose traditions split most on this topic.'; }
+  const a = ROSTER_BY_ID[state.cast.a], b = ROSTER_BY_ID[state.cast.b];
+  if (a && b) return `Podium A: ${a.name} · Podium B: ${b.name}.`;
+  if (a || b) return `Podium ${a ? 'A' : 'B'}: ${(a || b).name}; the moderator casts the other podium against them.`;
+  return 'Nobody picked: the moderator casts the two whose traditions clash most revealingly on this topic.';
+}
+function renderRoster(){
+  const el = $('roster'); if (!el) return; const lineup = state.mode === 'lineup';
+  el.innerHTML = ROSTER.map(r => { const slot = lineup ? (state.lineupCast.includes(r.id) ? `Mind ${state.lineupCast.indexOf(r.id) + 1}` : '') : (state.cast.a === r.id ? 'Podium A' : state.cast.b === r.id ? 'Podium B' : '');
+    return `<button type="button" class="rcard mc-${r.color}" data-id="${r.id}" aria-pressed="${String(!!slot)}"><span class="av">${esc(r.avatar)}</span><span style="min-width:0"><span class="rn">${esc(r.name)}</span><span class="rs">${esc(r.school)}</span><div class="rb">${esc(r.bio.split('. ')[0])}.</div>${slot ? `<div class="slot">${slot}</div>` : ''}</span></button>`; }).join('');
+  el.querySelectorAll('.rcard').forEach(btn => btn.onclick = () => {
+    const id = btn.dataset.id;
+    if (lineup){ const k = state.lineupCast.indexOf(id); if (k >= 0) state.lineupCast.splice(k, 1); else { if (state.lineupCast.length >= 5) state.lineupCast.shift(); state.lineupCast.push(id); } }
+    else { const c = state.cast; if (c.a === id) c.a = null; else if (c.b === id) c.b = null; else if (!c.a) c.a = id; else if (!c.b) c.b = id; else c.b = id; }
+    renderRoster();
+  });
+  $('castHint').textContent = castLabel();
+}
 function renderCats(){
   const el = $('cats'); el.innerHTML = '';
   for (const c of Object.keys(TOPICS)){
@@ -1187,7 +1389,8 @@ function normalizePosition(p, fallbackName, fallbackColor){
   const num = (v, d) => { v = Number(v); return Number.isFinite(v) ? Math.min(100, Math.max(0, v)) : d; };
   return {name:String((p && p.name) || fallbackName), label:String((p && p.label) || ''), stance:String((p && p.stance) || ''), worldview:String((p && p.worldview) || ''),
     style:String((p && p.style) || ''), avatar:String((p && p.avatar) || '').trim().slice(0, 2), color: COLOR_NAMES.includes(p && p.color) ? p.color : fallbackColor,
-    temper:num(p && p.temper, 50), risk:num(p && p.risk, 50), voice:String((p && p.voice) || ''), rate:Number(p && p.rate) || 1, pitch:Number(p && p.pitch) || 1};
+    temper:num(p && p.temper, 50), risk:num(p && p.risk, 50), voice:String((p && p.voice) || ''), rate:Number(p && p.rate) || 1, pitch:Number(p && p.pitch) || 1,
+    school:String((p && p.school) || ''), moves:String((p && p.moves) || ''), rosterId:String((p && p.rosterId) || '')};
 }
 function normalizeJudge(j, i){
   const focus = (Array.isArray(j && j.focus) ? j.focus : []).map(String).map(x => x.toLowerCase().trim()).filter(x => CRIT_IDS.includes(x)).slice(0, 3);
@@ -1201,8 +1404,13 @@ function normalizeBrief(b){
   if (!questions.length) throw {code:'invalid_json', message:'The brief had no questions.'};
   const a = normalizePosition(b && b.positions && b.positions.a, 'Candidate A', 'teal');
   const bb = normalizePosition(b && b.positions && b.positions.b, 'Candidate B', 'crimson');
+  const cast = (b && b.cast && typeof b.cast === 'object') ? b.cast : {};
+  const pos = {a, b:bb};
+  for (const side of ['a','b']){ const r = ROSTER_BY_ID[state.cast[side]] || ROSTER_BY_ID[String(cast[side] || '')]; if (r){ const keep = {label:pos[side].label, stance:pos[side].stance}; castFromRoster(pos[side], r); if (cast[side] === r.id && String((b.positions && b.positions[side] && b.positions[side].worldview) || '').length > 40) pos[side].worldview = `${r.bio} On this topic: ${b.positions[side].worldview}`; Object.assign(pos[side], keep); } }
   if (a.color === bb.color) bb.color = COLOR_NAMES.find(c => c !== a.color);
-  return {title:String((b && b.title) || state.topic), context:String((b && b.context) || ''), positions:{a, b:bb}, panel, questions, rubric: normalizeRubric(b && b.rubric)};
+  const lineupIds = [...state.lineupCast, ...(Array.isArray(cast.lineup) ? cast.lineup : [])].map(String).filter(id => ROSTER_BY_ID[id]);
+  if (lineupIds.length){ const ids = [...new Set(lineupIds)]; for (const r of ROSTER){ if (ids.length >= 5) break; if (!ids.includes(r.id)) ids.push(r.id); } state.minds = ids.slice(0, 5).map((id, k) => mindFrom(ROSTER_BY_ID[id], k)); }
+  return {title:String((b && b.title) || state.topic), hook:String((b && b.hook) || state.topic), closer:String((b && b.closer) || 'What should the audience walk out believing tonight, and what would it cost them to be wrong?'), context:String((b && b.context) || ''), positions:pos, panel, questions, rubric: normalizeRubric(b && b.rubric)};
 }
 function normalizeRubric(r){
   let rows = (Array.isArray(r) ? r : []).filter(x => x && x.name).map(x => ({name:String(x.name).trim(), desc:String(x.desc || '').trim(), weight:Math.max(1, Math.round(Number(x.weight)) || 1)})).slice(0, 6);
@@ -1236,11 +1444,11 @@ async function buildBrief(){
   } finally { $('build').disabled = false; $('buildHint').textContent = `Topic: ${state.topic}`; state.ctl = null; }
 }
 function podiumHTML(side, p, extra){
-  return `<div class="panel podium ${side}" id="podium-${side}"><span class="live">Speaking</span><div class="side">${SIDE[side]} · ${esc(p.label)}</div><div class="speaker" style="gap:10px">${avatarHTML(side, 'lg')}<div class="name">${esc(p.name)}</div></div><div class="stance">${esc(p.stance)}</div>${extra ? `<div class="worldview">${esc(p.worldview)}</div>` : ''}</div>`;
+  return `<div class="panel podium ${side}" id="podium-${side}"><span class="live">Speaking</span><div class="side">${SIDE[side]} · ${esc(p.label)}</div><div class="speaker" style="gap:10px">${avatarHTML(side, 'lg')}<div><div class="name">${esc(p.name)}</div>${p.school ? `<div class="school">${esc(p.school)}</div>` : ''}</div></div><div class="stance">${esc(p.stance)}</div>${extra ? `<div class="worldview">${esc(p.worldview)}</div>` : ''}</div>`;
 }
 function renderBrief(){
   const b = state.brief; applyColors();
-  $('briefHead').innerHTML = `<div class="eyebrow">Green room</div><h2>${esc(b.title)}</h2><p>${esc(b.context)}</p>`;
+  $('briefHead').innerHTML = `<div class="eyebrow">Green room</div><h2>${esc(b.title)}</h2><p><strong>The opening question:</strong> ${esc(b.hook)}</p><p>${esc(b.context)}</p>`;
   renderCandidateEditors(); renderPanelEditor(); renderRubricEditor(); renderMindEditor(); renderQuestions(); syncMode();
   const sel = $('addJudgePreset'); sel.innerHTML = '<option value="">Add a judge…</option><option value="blank">A blank judge</option>' + JUDGE_PRESETS.map((j, i) => `<option value="${i}">${esc(j.title)}</option>`).join('');
 }
@@ -1248,6 +1456,9 @@ function voiceOptionsHTML(current){
   const en = audio.voices.filter(v => /^en/i.test(v.lang)); const rest = audio.voices.filter(v => !/^en/i.test(v.lang));
   const opt = (v) => `<option value="${esc(v.name)}" ${v.name === current ? 'selected' : ''}>${esc(v.name)} (${esc(v.lang)})</option>`;
   return `<option value="">Automatic</option>${[...en, ...rest].map(opt).join('')}`;
+}
+function castOptionsHTML(current){
+  return `<option value="">Cast someone…</option><optgroup label="The roster">${ROSTER.map(r => `<option value="r:${r.id}" ${r.id === current ? 'selected' : ''}>${esc(r.name)} · ${esc(r.school)}</option>`).join('')}</optgroup><optgroup label="Archetypes">${CANDIDATE_PRESETS.map((q, i) => `<option value="p:${i}">${esc(q.name)}</option>`).join('')}</optgroup>`;
 }
 function renderCandidateEditors(){
   const b = state.brief; const el = $('briefPodiums');
@@ -1262,8 +1473,10 @@ function renderCandidateEditors(){
     <div class="three">
       <label>Avatar<input type="text" data-f="avatar" value="${esc(p.avatar)}" maxlength="2" placeholder="${esc(initialsOf(p.name))}" aria-label="Avatar, an emoji or up to two letters"></label>
       <label>Color<div class="swatches">${COLOR_NAMES.map(c => `<button type="button" class="swatch" data-color="${c}" title="${c}" aria-label="${c}" aria-pressed="${String(p.color === c)}" style="background:${PALETTE[c].l[0]}"></button>`).join('')}</div></label>
-      <label>Persona<select data-f="preset"><option value="">Apply a persona…</option>${CANDIDATE_PRESETS.map((q, i) => `<option value="${i}">${esc(q.name)}</option>`).join('')}</select></label>
+      <label>Cast<select data-f="preset">${castOptionsHTML(p.rosterId)}</select></label>
     </div>
+    <label>Tradition<input type="text" data-f="school" value="${esc(p.school)}" placeholder="e.g. Liberal philosopher, Democratic socialist organizer" aria-label="Tradition"></label>
+    <label>Signature moves<textarea data-f="moves" placeholder="The arguments they reach for first">${esc(p.moves)}</textarea></label>
     <div class="two">
       <label>Temperament<input type="range" data-f="temper" min="0" max="100" value="${p.temper}"><span class="range-l"><span>calm</span><span>fiery</span></span></label>
       <label>Appetite for risk<input type="range" data-f="risk" min="0" max="100" value="${p.risk}"><span class="range-l"><span>conventional</span><span>heterodox</span></span></label>
@@ -1277,7 +1490,11 @@ function renderCandidateEditors(){
   el.innerHTML = card('a') + card('b');
   el.querySelectorAll('[data-f]').forEach(inp => {
     const side = inp.closest('[data-side]').dataset.side, f = inp.dataset.f;
-    if (f === 'preset'){ inp.onchange = () => { const q = CANDIDATE_PRESETS[Number(inp.value)]; if (!q) return; Object.assign(b.positions[side], {name:q.name, style:q.style, avatar:q.avatar, temper:q.temper, risk:q.risk, color: q.color === b.positions[other(side)].color ? COLOR_NAMES.find(c => c !== q.color) : q.color}); renderCandidateEditors(); }; return; }
+    if (f === 'preset'){ inp.onchange = () => { const v = inp.value; if (!v) return;
+      if (v.startsWith('r:')){ const r = ROSTER_BY_ID[v.slice(2)]; if (!r) return; castFromRoster(b.positions[side], r); }
+      else { const q = CANDIDATE_PRESETS[Number(v.slice(2))]; if (!q) return; Object.assign(b.positions[side], {name:q.name, style:q.style, avatar:q.avatar, temper:q.temper, risk:q.risk, color:q.color, school:'', moves:'', rosterId:''}); }
+      if (b.positions[side].color === b.positions[other(side)].color) b.positions[side].color = COLOR_NAMES.find(c => c !== b.positions[side].color);
+      applyColors(); renderCandidateEditors(); }; return; }
     inp.addEventListener('input', () => {
       const v = inp.type === 'range' ? Number(inp.value) : inp.value;
       b.positions[side][f] = f === 'avatar' ? String(v).trim().slice(0, 2) : v;
@@ -1335,7 +1552,8 @@ function renderMindEditor(){
   const el = $('mindList'); if (!el) return;
   el.innerHTML = state.minds.map((m, i) => `<div class="panel mind-card ed mc-${esc(m.color)}" data-i="${i}">
     <div class="jhead" style="display:flex;align-items:center;gap:8px"><span class="av">${esc(m.avatar || initialsOf(m.name))}</span><input type="text" data-f="name" value="${esc(m.name)}" aria-label="Name" placeholder="Name" style="flex:1"></div>
-    <label>Persona<select data-f="preset"><option value="">Apply a persona…</option>${CANDIDATE_PRESETS.map((q, k) => `<option value="${k}">${esc(q.name)}</option>`).join('')}</select></label>
+    ${m.school ? `<div class="sub">${esc(m.school)}</div>` : ''}
+    <label>Cast<select data-f="preset">${castOptionsHTML(m.rosterId)}</select></label>
     <label>How they think and speak<textarea data-f="style">${esc(m.style)}</textarea></label>
     <div class="two">
       <label>Avatar<input type="text" data-f="avatar" value="${esc(m.avatar)}" maxlength="2" aria-label="Avatar"></label>
@@ -1348,14 +1566,14 @@ function renderMindEditor(){
   </div>`).join('');
   el.querySelectorAll('[data-f]').forEach(inp => {
     const i = Number(inp.closest('[data-i]').dataset.i), f = inp.dataset.f; const m = state.minds[i];
-    if (f === 'preset'){ inp.onchange = () => { const q = CANDIDATE_PRESETS[Number(inp.value)]; if (!q) return; Object.assign(m, {name:q.name, style:q.style, avatar:q.avatar, color:q.color, temper:q.temper, risk:q.risk}); renderMindEditor(); }; return; }
+    if (f === 'preset'){ inp.onchange = () => { const v = inp.value; if (!v) return; if (v.startsWith('r:')){ const r = ROSTER_BY_ID[v.slice(2)]; if (r) Object.assign(m, mindFrom(r, i)); } else { const q = CANDIDATE_PRESETS[Number(v.slice(2))]; if (q) Object.assign(m, {name:q.name, school:'', style:q.style, worldview:'', moves:'', avatar:q.avatar, color:q.color, temper:q.temper, risk:q.risk, rosterId:''}); } renderMindEditor(); }; return; }
     inp.addEventListener('input', () => { const v = inp.type === 'range' ? Number(inp.value) : inp.value; m[f] = f === 'avatar' ? String(v).trim().slice(0, 2) : v; if (f === 'name' || f === 'avatar'){ const av = inp.closest('.mind-card').querySelector('.av'); if (av) av.textContent = m.avatar || initialsOf(m.name); } });
   });
   el.querySelectorAll('.swatch').forEach(sw => sw.onclick = () => { const i = Number(sw.closest('[data-i]').dataset.i); state.minds[i].color = sw.dataset.color; renderMindEditor(); });
 }
 function shuffleMinds(){
-  const pool = CANDIDATE_PRESETS.map((_, i) => i); for (let i = pool.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-  state.minds = pool.slice(0, 5).map((i, k) => mindFrom(CANDIDATE_PRESETS[i], k)); renderMindEditor();
+  const pool = ROSTER.slice(); for (let i = pool.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  state.minds = pool.slice(0, 5).map((r, k) => mindFrom(r, k)); renderMindEditor();
 }
 function syncMode(){
   const lineup = state.mode === 'lineup';
@@ -1366,7 +1584,7 @@ function syncMode(){
   for (const id of ['grCandidates', 'grPanel', 'grRubric']){ const el = $(id); if (el) el.hidden = lineup; }
   const gl = $('grLineup'); if (gl) gl.hidden = !lineup;
   document.querySelectorAll('.debate-only').forEach(el => { el.hidden = lineup; });
-  updateEstimate();
+  renderRoster(); updateEstimate();
 }
 function renderQuestions(){
   const el = $('qlist'); el.innerHTML = '';
@@ -1787,7 +2005,7 @@ async function runDebate(){
   try {
     if (state.openings){
       const wrap = document.createElement('div'); wrap.className='qblock';
-      wrap.innerHTML = `<div class="panel modcard"><div class="eyebrow">Moderator</div><div class="q">Opening statements</div><div class="why">${esc(state.brief.context)}</div></div>`;
+      wrap.innerHTML = `<div class="panel modcard"><div class="eyebrow">Moderator · the opening question</div><div class="q">${esc(state.brief.hook)}</div><details class="bg"><summary>Background, for the record</summary><div style="margin-top:4px">${esc(state.brief.context)}</div></details></div>`;
       const pair = document.createElement('div'); pair.className='pair'; wrap.appendChild(pair); $('feed').appendChild(wrap);
       const cards = {}; for (const s of ['a','b']){ cards[s] = speechCard(s, 'opening statement', state.answerSec); pair.appendChild(cards[s]); }
       for (const s of ['a','b']) state.statements.open[s] = await speakInto(cards[s], s, 'opening statement', state.answerSec, statementPrompt('open', s), 'Openings', signal);
@@ -1824,7 +2042,7 @@ async function runDebate(){
     }
     if (state.openings){
       const wrap = document.createElement('div'); wrap.className='qblock';
-      wrap.innerHTML = `<div class="panel modcard"><div class="eyebrow">Moderator</div><div class="q">Closing statements</div></div>`;
+      wrap.innerHTML = `<div class="panel modcard"><div class="eyebrow">Moderator · the closing question</div><div class="q">${esc(state.brief.closer)}</div></div>`;
       const pair = document.createElement('div'); pair.className='pair'; wrap.appendChild(pair); $('feed').appendChild(wrap);
       const order = state.rounds.length % 2 === 0 ? ['a','b'] : ['b','a'];
       const cards = {a: speechCard('a', 'closing statement', state.answerSec), b: speechCard('b', 'closing statement', state.answerSec)}; pair.append(cards.a, cards.b);
@@ -1857,7 +2075,7 @@ async function runDebate(){
 /* ---------- The lineup ---------- */
 function mindSystem(m){
   const tone = TONES[state.tone] || TONES.spirited;
-  return `You are ${m.name}, one of five minds on a televised panel that votes on hard questions. How you think and speak: ${m.style}${m.worldview ? `\nWorldview: ${m.worldview}` : ''}
+  return `You are ${m.name}${m.school ? `, ${m.school}` : ''}, one of five minds on a televised panel that votes on hard questions. How you think and speak: ${m.style}${m.worldview ? `\nWho you are: ${m.worldview}` : ''}${m.moves ? `\nYour signature moves: ${m.moves}` : ''}${m.school ? `\nYou answer as a ${m.school.toLowerCase()} would; let your tradition show in where you take the question.` : ''}
 Temperament: ${temperText(Number(m.temper ?? 50))}. Appetite for risk: ${riskText(Number(m.risk ?? 50))}.
 Tone of the evening (${tone.name}): ${tone.rule}
 
@@ -1981,7 +2199,7 @@ function renderLineupFinal(){
   </div>`;
 }
 function lineupMarkdown(){
-  const b = state.brief; const L = [`# ${b.title}`, '', `*${state.topic}* · the lineup`, '', b.context, '', `The minds: ${state.minds.map(m => `${m.name} (${m.style})`).join('; ')}`, ''];
+  const b = state.brief; const L = [`# ${b.title}`, '', `*${state.topic}* · the lineup`, '', b.context, '', `The minds: ${state.minds.map(m => `${m.name}${m.school ? `, ${m.school}` : ''}`).join('; ')}`, ''];
   state.lineup.forEach((r, i) => {
     if (!r.votes.some(v => v.done)) return;
     L.push(`## Question ${i+1} · ${r.q.theme}`, '', `**Moderator:** ${r.q.question}`, '');
@@ -1999,15 +2217,15 @@ function lineupMarkdown(){
 /* ---------- Export ---------- */
 function transcriptMarkdown(){
   if (state.mode === 'lineup' && state.lineup.length) return lineupMarkdown();
-  const b = state.brief; const L = [`# ${b.title}`, '', `*${state.topic}*`, '', b.context, '', `**${b.positions.a.name}** (${b.positions.a.label}): ${b.positions.a.stance}`, `**${b.positions.b.name}** (${b.positions.b.label}): ${b.positions.b.stance}`, '', `Panel: ${b.panel.map(j => `${j.name} (${j.title})`).join('; ')}`, `Rubric: ${b.rubric.map(c => `${c.name} (${c.weight}%)`).join('; ')}`, `Tone: ${(TONES[state.tone] || TONES.spirited).name}.`, ''];
-  if (state.statements.open.a || state.statements.open.b){ L.push('## Opening statements', ''); for (const s of ['a','b']) if (state.statements.open[s]) L.push(`### ${b.positions[s].name}`, '', state.statements.open[s], ''); }
+  const b = state.brief; const L = [`# ${b.title}`, '', `*${state.topic}*`, '', b.context, '', `**${b.positions.a.name}**${b.positions.a.school ? `, ${b.positions.a.school}` : ''} (${b.positions.a.label}): ${b.positions.a.stance}`, `**${b.positions.b.name}**${b.positions.b.school ? `, ${b.positions.b.school}` : ''} (${b.positions.b.label}): ${b.positions.b.stance}`, '', `Panel: ${b.panel.map(j => `${j.name} (${j.title})`).join('; ')}`, `Rubric: ${b.rubric.map(c => `${c.name} (${c.weight}%)`).join('; ')}`, `Tone: ${(TONES[state.tone] || TONES.spirited).name}.`, ''];
+  if (state.statements.open.a || state.statements.open.b){ L.push('## Opening statements', '', `**Moderator:** ${b.hook}`, ''); for (const s of ['a','b']) if (state.statements.open[s]) L.push(`### ${b.positions[s].name}`, '', state.statements.open[s], ''); }
   state.rounds.forEach((r, i) => {
     if (!r.turns.length) return;
     L.push(`## Question ${i+1} · ${r.q.theme}`, '', `**Moderator:** ${r.q.question}`, '');
     for (const t of r.turns) L.push(`### ${b.positions[t.side].name} · ${t.kind}${t.move ? ' · ' + t.move : ''}`, '', t.text, '');
     if (r.score){ const t = r.score; L.push(`**Panel:** ${t.winner==='tie' ? 'Even' : b.positions[t.winner].name + ' takes it'}, ${t.a.toFixed(1)} to ${t.b.toFixed(1)} of 100.`, '', '| Criterion | A | B |', '|---|---|---|'); for (const c of CRITERIA) L.push(`| ${c.name} | ${t.avg.a[c.id].toFixed(1)} | ${t.avg.b[c.id].toFixed(1)} |`); if (t.tavg) for (const c of b.rubric) L.push(`| ${c.name} (topic, ${c.weight}%) | ${(t.tavg.a[c.id] ?? 5).toFixed(1)} | ${(t.tavg.b[c.id] ?? 5).toFixed(1)} |`); if (t.parts) L.push(`| Penalties | −${t.parts.a.pen.toFixed(1)} | −${t.parts.b.pen.toFixed(1)} |`); L.push('', `- Best idea, ${b.positions.a.name}: ${r.panel.bestIdea.a}`, `- Best idea, ${b.positions.b.name}: ${r.panel.bestIdea.b}`); if (r.panel.unresolved) L.push(`- Left open: ${r.panel.unresolved}`); L.push(''); for (const bl of r.panel.ballots) L.push(`> **${bl.judge.name}** (${bl.judge.title}): ${bl.note}`); L.push(''); }
   });
-  if (state.statements.close.a || state.statements.close.b){ L.push('## Closing statements', ''); for (const s of ['a','b']) if (state.statements.close[s]) L.push(`### ${b.positions[s].name}`, '', state.statements.close[s], ''); }
+  if (state.statements.close.a || state.statements.close.b){ L.push('## Closing statements', '', `**Moderator:** ${b.closer}`, ''); for (const s of ['a','b']) if (state.statements.close[s]) L.push(`### ${b.positions[s].name}`, '', state.statements.close[s], ''); }
   const o = officialResult(); L.push('## Final', '', `**${o.winner==='tie' ? 'Too close to call' : b.positions[o.winner].name + ' wins the night'}.** A ${state.totals.a.toFixed(1)}, B ${state.totals.b.toFixed(1)}; questions won A ${state.won.a}, B ${state.won.b}, even ${state.won.tie}.`, '');
   const hr = hardenedResult();
   if (hr){ L.push('### Audit of the bench', '', `Noise floor ${hr.noise.toFixed(1)} points; blind shift ${hr.labelShift > 0 ? '+' : ''}${hr.labelShift.toFixed(1)} toward A; order swap flipped ${hr.flips} of ${hr.n}; hardened call: ${hr.winner === 'tie' ? 'too close to call' : b.positions[hr.winner].name + ' wins'}, ${hr.totals.a.toFixed(1)} to ${hr.totals.b.toFixed(1)}.`, ''); for (const a of state.audit.rounds){ const rd = state.rounds[a.index]; L.push(`- Q${a.index+1} ${rd.q.question}: original ${a.original.margin > 0 ? '+' : ''}${a.original.margin.toFixed(1)}, noise ${a.noise.toFixed(1)}, blind shift ${a.labelShift > 0 ? '+' : ''}${a.labelShift.toFixed(1)}, order ${a.orderFlip ? 'flipped' : 'held'}, hardened ${a.hardened.margin > 0 ? '+' : ''}${a.hardened.margin.toFixed(1)} (${a.verdict})`); } L.push(''); }
@@ -2041,6 +2259,7 @@ function wire(){
   $('swapSides').onclick = swapSides; $('recast').onclick = recastCandidates; $('rerollPanel').onclick = rerollPanel;
   document.querySelectorAll('[data-mode]').forEach(ch => ch.onclick = () => { state.mode = ch.dataset.mode; save(); syncMode(); });
   $('addCrit').onclick = addCriterion; $('shuffleMinds').onclick = shuffleMinds;
+  $('clearCast').onclick = () => { state.cast = {a:null, b:null}; state.lineupCast = []; renderRoster(); };
   $('addJudgePreset').onchange = (e) => { const v = e.target.value; if (!v) return; addJudge(v === 'blank' ? null : JUDGE_PRESETS[Number(v)]); e.target.value = ''; };
   $('build').onclick = () => { if (!state.ctl) buildBrief(); };
   $('rebuild').onclick = () => { $('briefSec').hidden = true; $('setup').hidden = false; buildBrief(); };
