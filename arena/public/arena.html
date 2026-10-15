@@ -1,7 +1,7 @@
 <title>Steelman Arena</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,700;0,9..144,800;1,9..144,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: a televised debate. A scoreboard band, two podiums beneath it, then one block per
    question: the moderator's card, the two answers side by side, the rebuttals side by side,
@@ -12,8 +12,11 @@
   --b:#a3393c; --b-soft:#f5e4e4; --b-ink:#7f2a2d;
   --brass:#8a6a1e; --brass-soft:#f2ecdc; --brass-ink:#5f4810;
   --good:#2f7d4f; --warn:#b2691b; --bad:#b03a3a;
-  --font-display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
-  --font-body:"Source Serif 4","Iowan Old Style",Georgia,"Times New Roman",serif;
+  --font-display:"Fraunces","Iowan Old Style",Georgia,"Times New Roman",serif;
+  --font-body:"Source Sans 3","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --font-serif:"Source Serif 4","Iowan Old Style",Georgia,"Times New Roman",serif;
+  --paper:#f3efe4; --paper-2:#faf7ee; --paper-ink:#1b1a17; --paper-muted:#5e5a50; --paper-line:#cfc9b8;
+  --stage:#141413; --stage-2:#1c1c1b; --stage-3:#2a2a28; --stage-line:#2c2c2a; --stage-fg:#f4f1ea; --stage-muted:#b8b3a8; --gold:#e0c48a;
   --font-mono:"IBM Plex Mono","SFMono-Regular",Menlo,Consolas,monospace;
   --radius:6px; --shadow:0 1px 2px rgba(20,24,28,.06),0 6px 18px rgba(20,24,28,.05);
 }
@@ -24,6 +27,7 @@
     --b:#e07e80; --b-soft:#3a1c1d; --b-ink:#f0b0b1;
     --brass:#d2b25e; --brass-soft:#2f2914; --brass-ink:#ead49a;
     --good:#6fc48f; --warn:#e0a35a; --bad:#e26b6b;
+    --paper:#1f1d19; --paper-2:#262320; --paper-ink:#efe9dc; --paper-muted:#b3ac9c; --paper-line:#3d382f;
     --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
     color-scheme:dark;
   }
@@ -34,6 +38,7 @@
   --b:#e07e80; --b-soft:#3a1c1d; --b-ink:#f0b0b1;
   --brass:#d2b25e; --brass-soft:#2f2914; --brass-ink:#ead49a;
   --good:#6fc48f; --warn:#e0a35a; --bad:#e26b6b;
+  --paper:#1f1d19; --paper-2:#262320; --paper-ink:#efe9dc; --paper-muted:#b3ac9c; --paper-line:#3d382f;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
   color-scheme:dark;
 }
@@ -42,13 +47,13 @@ html{height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:17px;line-height:1.55;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
 button,input,select,textarea{font:inherit;color:inherit}
-h1,h2,h3,h4{font-family:var(--font-display);margin:0;text-wrap:balance;line-height:1.1}
+h1,h2,h3,h4{font-family:var(--font-display);margin:0;text-wrap:balance;line-height:1.15}
 p{margin:0}
 .wrap{max-width:1100px;margin:0 auto}
 .eyebrow{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:18px 0 10px;border-bottom:1px solid var(--line)}
 .brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
-.brand h1{font-size:26px;font-weight:800;letter-spacing:-.01em}
+.brand h1{font-size:28px;font-weight:800;letter-spacing:.01em}
 .brand .tag{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
 .status{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:12px;color:var(--muted)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
@@ -89,10 +94,14 @@ select{padding:7px 10px;border:1px solid var(--line);border-radius:var(--radius)
 .podiums{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:640px){.podiums{grid-template-columns:1fr}}
 .podium{padding:16px 18px;display:grid;gap:8px;min-width:0;position:relative}
+.stage .podium{background:var(--stage-2);color:var(--stage-fg);border:0;box-shadow:none}
+.stage .podium .side,.stage .podium .school,.stage .podium .stance{color:var(--stage-muted)}
+.stage .podium .stance{color:var(--stage-fg);font-size:15.5px}
+.stage .podium .name{font-size:20px}
 .podium.a{border-top:5px solid var(--a)} .podium.b{border-top:5px solid var(--b)}
 .podium .side{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase}
 .a .side{color:var(--a)} .b .side{color:var(--b)}
-.podium .name{font-family:var(--font-display);font-weight:800;font-size:22px;line-height:1.1}
+.podium .name{font-family:var(--font-body);font-weight:800;font-size:22px;line-height:1.1}
 .podium .stance{font-size:15px}
 .podium .worldview{font-size:14px;color:var(--muted)}
 .podium .live{position:absolute;top:12px;right:14px;font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;display:none;align-items:center;gap:6px}
@@ -116,42 +125,63 @@ select{padding:7px 10px;border:1px solid var(--line);border-radius:var(--radius)
 /* Stage */
 .stage{margin-top:20px;display:grid;gap:14px}
 .stage>*,.feed>*,.qblock>*{min-width:0}
-.board{padding:16px 20px;display:grid;gap:12px;background:var(--fg);color:var(--bg);border-radius:var(--radius)}
-.board .eyebrow{color:color-mix(in srgb,var(--bg) 70%,transparent)}
+.board{padding:14px 20px 16px;display:grid;gap:14px;background:var(--stage);color:var(--stage-fg);border-radius:var(--radius)}
+.board .eyebrow{color:var(--stage-muted)}
+.bd-top{display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-family:var(--font-mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--stage-muted);padding-bottom:12px;border-bottom:1px solid var(--stage-line)}
+.bd-top .live{display:inline-flex;align-items:center;gap:8px;color:var(--stage-fg)}
+.bd-top .live i{width:9px;height:9px;border-radius:50%;background:#e05a4e;animation:pulse 1.2s ease-in-out infinite}
+.bd-top .bd-title{flex:1;min-width:0;font-family:var(--font-display);font-size:16px;letter-spacing:.01em;text-transform:none;color:var(--stage-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mom{display:grid;gap:6px;min-width:min(280px,100%)}
+.mom .mom-l{display:flex;justify-content:space-between;gap:12px;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--stage-muted);white-space:nowrap}
+.mom .mom-bar{position:relative;height:10px;border-radius:999px;background:linear-gradient(90deg,var(--a) 0 var(--pct),var(--b) var(--pct) 100%)}
+.mom .mom-bar i{position:absolute;left:var(--pct);top:-5px;width:4px;height:20px;margin-left:-2px;background:var(--stage-fg);border-radius:2px}
+.calls{display:flex;gap:5px;justify-content:center;flex-wrap:wrap}
+.calls span{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-mono);font-size:9.5px;background:var(--stage-3);color:var(--stage-muted)}
+.calls .a{background:var(--a);color:#fff} .calls .b{background:var(--b);color:#fff} .calls .tie{background:#45453f;color:var(--stage-fg)} .calls .now{border:1.5px dashed var(--stage-muted);background:transparent}
+.board .school{font-family:var(--font-body);font-size:12.5px;color:var(--stage-muted)}
 .score{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,auto) minmax(0,1fr);gap:14px;align-items:center}
 .score .mid{min-width:0}
 .score .cand{display:grid;gap:2px;min-width:0}
 .score .cand.r{text-align:right}
-.score .cn{font-family:var(--font-display);font-weight:700;font-size:15px;line-height:1.15}
-.score .cl{font-family:var(--font-display);font-size:12.5px;color:color-mix(in srgb,var(--bg) 70%,transparent)}
+.score .cn{font-family:var(--font-body);font-weight:700;font-size:16px;line-height:1.15}
+.score .cl{font-family:var(--font-body);font-size:12.5px;color:var(--stage-muted)}
 .score .num{font-family:var(--font-display);font-weight:800;font-size:clamp(28px,9vw,38px);line-height:1;font-variant-numeric:tabular-nums}
 @media (max-width:560px){.score{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.score .mid{grid-column:1/-1;order:3}}
 .score .cand.a .num{color:var(--a-board,#9fd6e8)} .score .cand.b .num{color:var(--b-board,#f0b0b1)}
-.score .mid{text-align:center;font-family:var(--font-mono);font-size:12px;color:color-mix(in srgb,var(--bg) 75%,transparent);display:grid;gap:3px}
-.score .mid b{color:var(--bg);font-weight:500;font-size:13px}
+.score .mid{text-align:center;font-family:var(--font-mono);font-size:12px;color:var(--stage-muted);display:grid;gap:3px}
+.score .mid b{color:var(--stage-fg);font-weight:500;font-size:13px}
 .feed{display:grid;gap:14px}
 .qblock{display:grid;gap:10px}
-.modcard{padding:16px 18px;display:grid;gap:6px;background:var(--surface-2)}
-.modcard .q{font-family:var(--font-display);font-weight:700;font-size:clamp(17px,2.2vw,21px);line-height:1.25}
-.modcard .why{font-size:14.5px;color:var(--muted)}
-.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media (max-width:700px){.pair{grid-template-columns:1fr}}
-.speech-card{padding:14px 16px;display:grid;gap:8px;min-width:0;align-content:start}
-.speech-card.a{border-top:3px solid var(--a)} .speech-card.b{border-top:3px solid var(--b)}
+.modcard{padding:26px 24px 10px;display:grid;gap:8px;background:transparent;border:0;box-shadow:none;text-align:center;justify-items:center}
+.modcard .eyebrow{color:var(--brass-ink)}
+.modcard .q{font-family:var(--font-display);font-weight:500;font-size:clamp(21px,2.8vw,32px);line-height:1.22;letter-spacing:-.005em;max-width:30ch}
+.modcard .why{font-size:15px;color:var(--muted);max-width:60ch}
+.modcard details.bg{max-width:70ch}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pair+.pair{margin-top:-12px}
+.pair+.pair .speech-card{border-radius:0 0 var(--radius) var(--radius)}
+.qblock .pair:first-of-type .speech-card{border-radius:var(--radius) var(--radius) 0 0}
+.pair+.pair .speech-card.a{border-top:1px solid color-mix(in srgb,var(--a) 30%,transparent)} .pair+.pair .speech-card.b{border-top:1px solid color-mix(in srgb,var(--b) 30%,transparent)}
+@media (max-width:700px){.pair{grid-template-columns:1fr}.pair+.pair{margin-top:0}.speech-card{border-radius:var(--radius)!important}}
+.speech-card{padding:16px 18px 14px;display:grid;gap:10px;min-width:0;align-content:start;border:0;box-shadow:none;transition:box-shadow .3s}
+.speech-card.a{background:var(--a-soft)} .speech-card.b{background:var(--b-soft)}
+.speech-card.speaking{box-shadow:inset 0 0 0 2px var(--a),0 0 28px color-mix(in srgb,var(--a) 28%,transparent)} .speech-card.b.speaking{box-shadow:inset 0 0 0 2px var(--b),0 0 28px color-mix(in srgb,var(--b) 28%,transparent)}
 .sc-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.sc-head .who{font-family:var(--font-display);font-weight:700;font-size:14.5px}
-.a .sc-head .who{color:var(--a-ink)} .b .sc-head .who{color:var(--b-ink)}
-.sc-head .kind{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
-.sc-head .clock{margin-left:auto;font-family:var(--font-mono);font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.sc-head .who{font-family:var(--font-body);font-weight:700;font-size:13.5px;color:#fff;padding:3px 9px;border-radius:4px;background:var(--a)}
+.b .sc-head .who{background:var(--b)}
+.sc-head .school{font-family:var(--font-body);font-size:12.5px;color:var(--muted)}
+.sc-head .kind{font-family:var(--font-mono);font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.sc-head .clock{margin-left:auto;font-family:var(--font-mono);font-size:11.5px;color:var(--muted);display:flex;gap:6px;align-items:center;white-space:nowrap}
 .icon-btn{border:1px solid var(--line);background:var(--surface);border-radius:4px;width:28px;height:28px;display:grid;place-items:center;cursor:pointer;color:var(--muted);padding:0}
 .icon-btn[aria-pressed="true"]{color:var(--fg);border-color:var(--fg)}
 .icon-btn svg{width:15px;height:15px}
-.speech{font-size:16px;line-height:1.6;display:grid;gap:9px;min-width:0;overflow-wrap:anywhere}
+.speech{font-size:16.5px;line-height:1.58;display:grid;gap:9px;min-width:0;overflow-wrap:anywhere}
+.speech p:first-child{font-family:var(--font-serif);font-size:19px;line-height:1.45}
 .speech.thinking{color:var(--muted);font-style:italic}
 .speech.thinking::after{content:"";display:inline-block;width:.6em;height:1em;vertical-align:-.15em;margin-left:2px;background:currentColor;animation:blink 1s steps(2,start) infinite}
 @keyframes blink{to{visibility:hidden}}
 @media (prefers-reduced-motion:reduce){.speech.thinking::after{animation:none}}
-.timebar{height:3px;background:var(--surface-2);border-radius:2px;overflow:hidden}
+.timebar{height:3px;background:color-mix(in srgb,var(--fg) 10%,transparent);border-radius:2px;overflow:hidden}
 .timebar i{display:block;height:100%;width:0;background:var(--muted);transition:width .3s linear}
 .a .timebar i{background:var(--a)} .b .timebar i{background:var(--b)}
 .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:12px 16px}
@@ -159,16 +189,46 @@ select{padding:7px 10px;border:1px solid var(--line);border-radius:var(--radius)
 .progress{font-family:var(--font-mono);font-size:12.5px;color:var(--muted)}
 
 /* Scorecards */
-.scorecard{padding:14px 16px;display:grid;gap:10px;border-left:4px solid var(--brass)}
+.scorecard{padding:18px 22px 20px;display:grid;gap:12px;background:var(--paper);color:var(--paper-ink);border:1px solid var(--paper-line);font-family:var(--font-serif);box-shadow:none}
 .scorecard .top{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .scorecard .top .eyebrow{color:var(--brass-ink)}
+.bs-mast{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--paper-muted);border-top:3px double var(--paper-ink);border-bottom:1px solid var(--paper-ink);padding:7px 0 6px}
+.bs-mast .mast-name{font-family:var(--font-display);font-size:30px;font-weight:800;letter-spacing:.02em;line-height:1;color:var(--paper-ink);text-transform:none;width:100%;text-align:center}
+.bs-head{font-family:var(--font-display);font-size:clamp(22px,2.6vw,30px);font-weight:600;line-height:1.15;letter-spacing:-.01em}
+.bs-head.a{color:var(--a-ink)} .bs-head.b{color:var(--b-ink)} .bs-head.tie{color:var(--paper-ink)}
+.bs-deck{font-size:16.5px;font-style:italic;color:var(--paper-muted);max-width:80ch}
+.bs-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 280px;gap:24px;align-items:start}
+@media (max-width:860px){.bs-cols{grid-template-columns:1fr 1fr}.bs-box{grid-column:1/-1}}
+@media (max-width:600px){.bs-cols{grid-template-columns:1fr}}
+.bs-col{display:grid;gap:8px;min-width:0}
+.bs-col .eyebrow{font-size:10.5px;letter-spacing:.14em}
+.bs-col.a .eyebrow{color:var(--a-ink)} .bs-col.b .eyebrow{color:var(--b-ink)}
+.bs-move{font-family:var(--font-display);font-size:18px;font-weight:600;line-height:1.3}
+.bs-quote{margin:0;padding:10px 0;border-top:1px solid var(--paper-line);border-bottom:1px solid var(--paper-line);font-family:var(--font-display);font-size:19px;line-height:1.32;font-weight:400}
+.bs-col.a .bs-quote{color:var(--a-ink)} .bs-col.b .bs-quote{color:var(--b-ink)}
+.bs-pen{font-size:13.5px;color:var(--paper-muted)}
+.bs-box{border:1px solid var(--paper-ink);padding:10px 12px;display:grid;gap:6px;background:var(--paper-2);min-width:0}
+.bs-box-title{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;text-align:center;border-bottom:1px solid var(--paper-ink);padding-bottom:6px;color:var(--paper-ink)}
+.bs-table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:12px;font-variant-numeric:tabular-nums}
+.bs-table th,.bs-table td{padding:3px 0;text-align:right;white-space:nowrap;border:0}
+.bs-table th:first-child,.bs-table td:first-child{text-align:left;font-family:var(--font-serif);font-weight:400;color:var(--paper-ink);white-space:normal}
+.bs-table th{font-weight:500;color:var(--paper-muted)}
+.bs-table .sub td{border-top:1px solid var(--paper-line);padding-top:5px}
+.bs-table .tot td{border-top:1px solid var(--paper-ink);font-weight:600;padding-top:5px}
+.bs-table .ac{color:var(--a-ink)} .bs-table .bc{color:var(--b-ink)}
+.bs-table .w{color:var(--paper-muted);font-size:10.5px}
+.bs-bench{display:grid;gap:6px;font-size:14.5px;line-height:1.45;font-style:italic;color:var(--paper-ink)}
+.bs-bench .eyebrow{font-style:normal;color:var(--paper-muted)}
+.bs-bench strong{font-style:normal}
+.scorecard details summary{color:var(--paper-muted)}
+.scorecard .hint{color:var(--paper-muted)}
 .pill{font-family:var(--font-display);font-weight:700;font-size:13.5px;padding:3px 10px;border-radius:999px;display:inline-block}
 .pill.a{background:var(--a-soft);color:var(--a-ink)} .pill.b{background:var(--b-soft);color:var(--b-ink)} .pill.tie{background:var(--surface-2);color:var(--muted)}
 .scorecard table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:12.5px;font-variant-numeric:tabular-nums}
-.scorecard th,.scorecard td{padding:4px 5px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
-.scorecard th:first-child,.scorecard td:first-child{text-align:left;font-family:var(--font-display);font-weight:500;color:var(--muted);white-space:normal;min-width:110px}
+.scorecard th,.scorecard td{padding:4px 5px;border-bottom:1px solid var(--paper-line);text-align:right;white-space:nowrap}
+.scorecard th:first-child,.scorecard td:first-child{text-align:left;font-family:var(--font-serif);font-weight:400;color:var(--paper-ink);white-space:normal;min-width:110px}
 .tablewrap{max-width:100%}
-.scorecard th{color:var(--muted);font-weight:500}
+.scorecard th{color:var(--paper-muted);font-weight:500}
 .scorecard .ac{color:var(--a-ink)} .scorecard .bc{color:var(--b-ink)}
 .tablewrap{overflow-x:auto}
 .crits{display:grid;gap:5px}
@@ -190,7 +250,7 @@ select{padding:7px 10px;border:1px solid var(--line);border-radius:var(--radius)
 .idea.a .eyebrow{color:var(--a-ink)} .idea.b .eyebrow{color:var(--b-ink)}
 details summary{cursor:pointer;font-family:var(--font-display);font-weight:600;font-size:14px}
 .pending{color:var(--muted);font-family:var(--font-display);font-size:14px}
-.audit{margin-top:2px;padding:9px 11px;border:1px dashed var(--brass);border-radius:4px;font-family:var(--font-display);font-size:13.5px;display:grid;gap:4px}
+.audit{margin-top:2px;padding:9px 11px;border:1px dashed var(--brass);border-radius:4px;font-family:var(--font-body);font-size:13.5px;display:grid;gap:4px}
 .audit .eyebrow{color:var(--brass-ink)}
 .pill.solid{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
 .pill.shaky{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
@@ -202,12 +262,23 @@ details summary{cursor:pointer;font-family:var(--font-display);font-weight:600;f
 .harden{display:flex;gap:6px 16px;flex-wrap:wrap}
 
 /* Final */
-.final{padding:20px 22px;display:grid;gap:14px;border:2px solid var(--brass);background:var(--brass-soft)}
+.final{padding:22px 26px 24px;display:grid;gap:14px;border:1px solid var(--paper-line);background:var(--paper);color:var(--paper-ink);font-family:var(--font-serif);box-shadow:none}
 .final .eyebrow{color:var(--brass-ink)}
-.final h2{font-size:clamp(22px,3.2vw,32px);font-weight:800}
+.final h2{font-size:clamp(28px,4vw,44px);font-weight:600;letter-spacing:-.01em;line-height:1.1}
+.final h2.tie{color:var(--paper-ink)}
+.final .deck{font-size:17px;font-style:italic;color:var(--paper-muted);max-width:80ch;margin-top:-6px}
+.final .score .cn,.final .score .cl{color:var(--paper-ink)}
+.final .score .cl{color:var(--paper-muted)}
+.final .score .mid{color:var(--paper-muted)} .final .score .mid b{color:var(--paper-ink)}
+.final .rk,.final .fy{background:var(--paper-2);border:1px solid var(--paper-line)}
+.final .rk .why,.final .fy .s,.final .rk .n{color:var(--paper-muted)}
+.final .idea{background:var(--paper-2);border:1px solid var(--paper-line)}
+.final .idea.a{border-color:var(--a)} .final .idea.b{border-color:var(--b)}
+.final .mini th,.final .mini td{border-color:var(--paper-line)} .final .mini th{color:var(--paper-muted)}
+.final .hint{color:var(--paper-muted)}
+.final h3{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:500;color:var(--paper-muted);border-bottom:1px solid var(--paper-ink);padding-bottom:5px;margin-top:6px}
 .final h2.a{color:var(--a-ink)} .final h2.b{color:var(--b-ink)}
-.final .lead{font-size:16px;max-width:72ch}
-.final h3{font-size:15px;font-weight:700;margin-top:4px}
+.final .lead{font-size:16.5px;max-width:76ch;line-height:1.55}
 .final .score .num{font-size:34px}
 .ranked{display:grid;gap:6px}
 .rk{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:8px 10px;background:var(--surface);border-radius:4px;font-size:14.5px}
@@ -256,7 +327,8 @@ details summary{cursor:pointer;font-family:var(--font-display);font-weight:600;f
 @media (max-width:640px){.rubric .rrow{grid-template-columns:1fr 96px auto}.rubric .rrow textarea{grid-column:1/-1}}
 .rubric .w{font-family:var(--font-mono);font-size:12px;color:var(--muted);text-align:right}
 .rubric textarea{min-height:40px}
-.howcard{padding:14px 16px;display:grid;gap:8px;border-left:4px solid var(--brass)}
+.howcard{padding:16px 20px;display:grid;gap:8px;background:var(--paper);color:var(--paper-ink);border:1px solid var(--paper-line);font-family:var(--font-serif);box-shadow:none}
+.howcard .hint,.howcard .w{color:var(--paper-muted)}
 .howcard .eyebrow{color:var(--brass-ink)}
 .howcard .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:700px){.howcard .cols{grid-template-columns:1fr}}
@@ -281,7 +353,7 @@ details.bg{font-size:14px;color:var(--muted)} details.bg summary{cursor:pointer;
 .mind-card{padding:12px 14px;display:grid;gap:8px;min-width:0;border-top:3px solid var(--m,var(--brass))}
 .mind-card .av,.vote .av{background:var(--m,var(--muted))}
 .votes{display:grid;gap:8px}
-.vote{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;padding:10px 12px;border-left:4px solid var(--m,var(--brass))}
+.vote{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;padding:12px 14px;border:0;box-shadow:none;background:color-mix(in srgb,var(--m,var(--brass)) 9%,var(--surface))}
 .vote .vh{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .vote .vname{font-family:var(--font-display);font-weight:700;font-size:14.5px;color:var(--m-ink,var(--fg))}
 .vans{font-family:var(--font-display);font-weight:700;font-size:13px;padding:2px 9px;border-radius:999px;background:var(--surface-2);color:var(--muted)}
@@ -289,7 +361,7 @@ details.bg{font-size:14px;color:var(--muted)} details.bg summary{cursor:pointer;
 .vans.no{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
 .vote .vline{font-style:italic;color:var(--muted);font-size:14px;margin-top:4px}
 .vote .clock{margin-left:auto}
-.tally{padding:12px 14px;display:grid;gap:6px;border-left:4px solid var(--brass);font-size:14.5px}
+.tally{padding:14px 18px;display:grid;gap:6px;background:var(--paper);color:var(--paper-ink);border:1px solid var(--paper-line);font-family:var(--font-serif);font-size:15px;box-shadow:none}
 .tally .eyebrow{color:var(--brass-ink)}
 .tally .marks{display:flex;gap:6px;flex-wrap:wrap}
 .lboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;text-align:center}
@@ -1668,18 +1740,20 @@ function swapSides(){
 /* ---------- Stage rendering ---------- */
 function renderBoard(){
   const b = state.brief; const done = state.rounds.filter(r => r.score).length; const total = state.rounds.length;
-  $('board').innerHTML = `<div class="eyebrow">${esc(b.title)}</div>
+  const sum = state.totals.a + state.totals.b; const pct = sum ? Math.round(state.totals.a / sum * 1000) / 10 : 50;
+  const dots = state.rounds.map((r, i) => { const cls = r.score ? r.score.winner : (i === done && state.running ? 'now' : ''); const title = r.score ? (r.score.winner === 'tie' ? 'Even' : `${b.positions[r.score.winner].name} +${Math.abs(r.score.margin).toFixed(1)}`) : r.q.question; return `<span class="${cls}" title="${esc(title)}">${i+1}</span>`; }).join('');
+  $('board').innerHTML = `<div class="bd-top"><span class="live"><i></i>${state.running ? 'Live' : 'Final'}</span><span>Steelman Arena</span><span class="bd-title">${esc(b.title)}</span><span>${total ? (done >= total ? `${total} questions` : `Question ${Math.min(done + 1, total)} of ${total}`) : 'Warming up'}</span></div>
     <div class="score">
-      <div class="cand a"><div class="num">${state.totals.a.toFixed(1)}</div><div class="cn">${esc(b.positions.a.name)}</div><div class="cl">${esc(b.positions.a.label)} · ${state.won.a} won</div></div>
-      <div class="mid"><b>${total ? `Question ${Math.min(done + 1, total)} of ${total}` : 'Warming up'}</b><span>panel points, of 100 per question</span>${state.won.tie ? `<span>${state.won.tie} even</span>` : ''}</div>
-      <div class="cand b r"><div class="num">${state.totals.b.toFixed(1)}</div><div class="cn">${esc(b.positions.b.name)}</div><div class="cl">${esc(b.positions.b.label)} · ${state.won.b} won</div></div>
+      <div class="cand a"><div class="num">${state.totals.a.toFixed(1)}</div><div class="cn">${esc(b.positions.a.name)}</div><div class="school">${esc(b.positions.a.school || b.positions.a.label)}</div><div class="cl">${esc(b.positions.a.label)} · ${state.won.a} won</div></div>
+      <div class="mid"><div class="mom"><div class="mom-l"><span>${state.won.a} won</span><span>momentum</span><span>${state.won.b} won</span></div><div class="mom-bar" style="--pct:${pct}%"><i></i></div><div class="calls">${dots}</div></div><span>of 100 per question${state.won.tie ? ` · ${state.won.tie} even` : ''}</span></div>
+      <div class="cand b r"><div class="num">${state.totals.b.toFixed(1)}</div><div class="cn">${esc(b.positions.b.name)}</div><div class="school">${esc(b.positions.b.school || b.positions.b.label)}</div><div class="cl">${esc(b.positions.b.label)} · ${state.won.b} won</div></div>
     </div>`;
 }
 function setSpeaking(side){ for (const s of ['a','b']){ const el = $('podium-'+s); if (el) el.classList.toggle('speaking', s === side); } }
 function speechCard(side, kind, sec){
   const p = state.brief.positions[side];
   const el = document.createElement('article'); el.className = `panel speech-card ${side}`;
-  el.innerHTML = `<div class="sc-head">${avatarHTML(side, 'sm')}<span class="who">${esc(p.name)}</span><span class="kind">${esc(kind)}</span><span class="clock"><span>${clock(sec)}</span><button class="icon-btn" title="Read aloud" aria-label="Read aloud" data-act="speak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg></button></span></div>
+  el.innerHTML = `<div class="sc-head">${avatarHTML(side, 'sm')}<span class="who">${esc(p.name)}</span>${p.school ? `<span class="school">${esc(p.school)}</span>` : ''}<span class="kind">${esc(kind)}</span><span class="clock"><span>${clock(sec)}</span><button class="icon-btn" title="Read aloud" aria-label="Read aloud" data-act="speak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg></button></span></div>
     <div class="timebar"><i></i></div><div class="speech thinking">${esc(p.name)} is thinking</div>`;
   return el;
 }
@@ -1830,22 +1904,27 @@ function scoreRound(panel){
 function renderScorecard(card, round){
   const b = state.brief, p = round.panel, t = round.score;
   const w = rubricWeights(b.rubric); const tavg = t.tavg || {a:{}, b:{}}; const parts = t.parts || {a:{six:t.a, topic:0, pen:0}, b:{six:t.b, topic:0, pen:0}}; const fl = t.flags || {a:{}, b:{}};
-  const bar = (c) => `<div class="crit"><span class="cname">${esc(c.name)}</span><div class="bar l"><i style="width:${t.avg.a[c.id]*10}%"></i></div><span class="mid">${t.avg.a[c.id].toFixed(1)} · ${t.avg.b[c.id].toFixed(1)}</span><div class="bar r"><i style="width:${t.avg.b[c.id]*10}%"></i></div></div>`;
-  const tbar = (c, i) => { const va = tavg.a[c.id] ?? 5, vb = tavg.b[c.id] ?? 5; return `<div class="crit"><span class="cname">${esc(c.name)} <span class="w" style="font-family:var(--font-mono);font-size:10.5px;color:var(--muted)">${Math.round(w[i]*100)}%</span></span><div class="bar l"><i style="width:${va*10}%"></i></div><span class="mid">${va.toFixed(1)} · ${vb.toFixed(1)}</span><div class="bar r"><i style="width:${vb*10}%"></i></div></div>`; };
   const row = (bl) => { const ta = ballotTotal(bl, 'a'), tb = ballotTotal(bl, 'b'); return `<tr><td>${esc(bl.judge.name)}<br><span style="font-size:11.5px">${esc(bl.judge.title)}</span></td>${CRITERIA.map(c=>`<td class="ac">${fmt(bl.scores.a[c.id])}</td><td class="bc">${fmt(bl.scores.b[c.id])}</td>`).join('')}<td class="ac">${ta.topic.toFixed(1)}</td><td class="bc">${tb.topic.toFixed(1)}</td><td class="ac">${ta.pen ? '−' + fmt(ta.pen) : '0'}</td><td class="bc">${tb.pen ? '−' + fmt(tb.pen) : '0'}</td><td class="ac"><strong>${ta.total.toFixed(1)}</strong></td><td class="bc"><strong>${tb.total.toFixed(1)}</strong></td></tr>`; };
   const winText = t.winner === 'tie' ? 'Even' : `${esc(b.positions[t.winner].name)} takes it`;
-  const pen = (s) => { const f = fl[s] || {}; const n = (f.incorrect || 0) + (f.fallacies || 0); if (!n) return ''; return `<div><strong>${esc(b.positions[s].name)}</strong> −${n.toFixed(1)}: ${f.incorrect ? `${f.incorrect.toFixed(1)} factual` : ''}${f.incorrect && f.fallacies ? ', ' : ''}${f.fallacies ? `${f.fallacies.toFixed(1)} fallac${f.fallacies === 1 ? 'y' : 'ies'}` : ''}${f.why ? ` (${esc(f.why)})` : ''}</div>`; };
-  const pens = pen('a') + pen('b');
-  card.innerHTML = `<div class="top"><span class="eyebrow">Panel scorecard · question ${round.index+1}${esc(hardenLabel())}</span><span class="pill ${t.winner}">${winText} · ${t.a.toFixed(1)} to ${t.b.toFixed(1)}</span><span class="hint">of 100 · ${t.votes.a} judge${t.votes.a===1?'':'s'} for A, ${t.votes.b} for B</span></div>
-    <div class="breakdown"><span>Universal six (60): A ${parts.a.six.toFixed(1)} · B ${parts.b.six.toFixed(1)}</span><span>Topic rubric (40): A ${parts.a.topic.toFixed(1)} · B ${parts.b.topic.toFixed(1)}</span><span>Penalties: A −${parts.a.pen.toFixed(1)} · B −${parts.b.pen.toFixed(1)}</span></div>
-    <div class="crits">${CRITERIA.map(bar).join('')}</div>
-    <div class="eyebrow" style="margin-top:2px">This topic's rubric</div>
-    <div class="crits">${b.rubric.map(tbar).join('')}</div>
-    ${pens ? `<div class="hint" style="display:grid;gap:2px"><span class="eyebrow">Penalties the judges flagged</span>${pens}</div>` : ''}
-    <div class="ideas"><div class="idea a"><span class="eyebrow">Best idea · ${esc(b.positions.a.name)}</span>${esc(p.bestIdea.a)}</div><div class="idea b"><span class="eyebrow">Best idea · ${esc(b.positions.b.name)}</span>${esc(p.bestIdea.b)}</div></div>
-    ${p.unresolved ? `<div class="hint"><strong>Left open:</strong> ${esc(p.unresolved)}</div>` : ''}
-    <details><summary>The judges' notes</summary><div class="notes" style="margin-top:8px">${p.ballots.map(bl => `<div class="note"><div class="jn">${esc(bl.judge.name)} <span>· ${esc(bl.judge.title)}</span></div><div>${esc(bl.note)}</div></div>`).join('')}</div></details>
-    <details><summary>Full score table</summary><div class="tablewrap" style="margin-top:8px"><table><thead><tr><th>Judge</th>${CRITERIA.map(c=>`<th colspan="2">${esc(c.name.slice(0,4))}</th>`).join('')}<th colspan="2">Topic</th><th colspan="2">Pen.</th><th colspan="2">Total</th></tr><tr><th></th>${CRITERIA.map(()=>'<th class="ac">A</th><th class="bc">B</th>').join('')}<th class="ac">A</th><th class="bc">B</th><th class="ac">A</th><th class="bc">B</th><th class="ac">A</th><th class="bc">B</th></tr></thead><tbody>${p.ballots.map(row).join('')}</tbody></table></div></details>`;
+  const pen = (s) => { const f = fl[s] || {}; const n = (f.incorrect || 0) + (f.fallacies || 0); if (!n) return ''; return `<strong>Penalties</strong> −${n.toFixed(1)}: ${f.incorrect ? `${f.incorrect.toFixed(1)} factual` : ''}${f.incorrect && f.fallacies ? ', ' : ''}${f.fallacies ? `${f.fallacies.toFixed(1)} fallac${f.fallacies === 1 ? 'y' : 'ies'}` : ''}${f.why ? ` (${esc(f.why)})` : ''}`; };
+  const moveOf = (side) => { const m = p.moves && p.moves[side]; return m && (m.answer || m.rebuttal) ? [m.answer, m.rebuttal].filter(Boolean).join(' · ') : ''; };
+  const penRow = (f) => { const n = (f.incorrect || 0) + (f.fallacies || 0); return n ? `−${n.toFixed(1)}` : '0'; };
+  const col = (side) => `<div class="bs-col ${side}"><span class="eyebrow">${esc(b.positions[side].name)}${b.positions[side].school ? ` · ${esc(b.positions[side].school)}` : ''}</span>${moveOf(side) ? `<div class="bs-move">“${esc(moveOf(side))}”</div>` : ''}<blockquote class="bs-quote">${esc(p.bestIdea[side] || 'No idea singled out.')}</blockquote>${pen(side) ? `<div class="bs-pen">${pen(side)}</div>` : ''}</div>`;
+  const tr = (name, a, bb, cls = '') => `<tr class="${cls}"><td>${name}</td><td class="ac">${a}</td><td class="bc">${bb}</td></tr>`;
+  const box = `<div class="bs-box"><div class="bs-box-title">Box score · question ${round.index+1}</div><table class="bs-table"><thead><tr><th>Criterion</th><th class="ac">A</th><th class="bc">B</th></tr></thead><tbody>
+    ${CRITERIA.map(c => tr(esc(c.name), t.avg.a[c.id].toFixed(1), t.avg.b[c.id].toFixed(1))).join('')}
+    ${tr('Universal six · 60', parts.a.six.toFixed(1), parts.b.six.toFixed(1), 'sub')}
+    ${b.rubric.map((c, i) => tr(`${esc(c.name)} <span class="w">${Math.round(w[i]*100)}%</span>`, (tavg.a[c.id] ?? 5).toFixed(1), (tavg.b[c.id] ?? 5).toFixed(1))).join('')}
+    ${tr('Topic rubric · 40', parts.a.topic.toFixed(1), parts.b.topic.toFixed(1), 'sub')}
+    ${tr('Penalties', penRow(fl.a || {}), penRow(fl.b || {}))}
+    ${tr('Total of 100', t.a.toFixed(1), t.b.toFixed(1), 'tot')}
+  </tbody></table><div class="hint" style="font-family:var(--font-mono);font-size:11px;text-align:center">Judges for A ${t.votes.a} · for B ${t.votes.b}</div></div>`;
+  card.innerHTML = `<div class="bs-mast"><span>Panel scorecard · question ${round.index+1} of ${state.rounds.length}${esc(hardenLabel())}</span><span>Panel of ${p.ballots.length} · out of 100</span></div>
+    <h3 class="bs-head ${t.winner}">${winText}, ${t.a.toFixed(1)} to ${t.b.toFixed(1)}</h3>
+    ${p.unresolved ? `<div class="bs-deck">Left open: ${esc(p.unresolved)}</div>` : ''}
+    <div class="bs-cols">${col('a')}${col('b')}${box}</div>
+    <div class="bs-bench"><span class="eyebrow">From the bench</span>${p.ballots.map(bl => `<div><strong>${esc(bl.judge.name.split(' ').pop())}</strong> <span style="font-style:normal;color:var(--paper-muted)">(${esc(bl.judge.title)})</span>: ${esc(bl.note)}</div>`).join('')}</div>
+    <details><summary>Every judge's card</summary><div class="tablewrap" style="margin-top:8px"><table><thead><tr><th>Judge</th>${CRITERIA.map(c=>`<th colspan="2">${esc(c.name.slice(0,4))}</th>`).join('')}<th colspan="2">Topic</th><th colspan="2">Pen.</th><th colspan="2">Total</th></tr><tr><th></th>${CRITERIA.map(()=>'<th class="ac">A</th><th class="bc">B</th>').join('')}<th class="ac">A</th><th class="bc">B</th><th class="ac">A</th><th class="bc">B</th><th class="ac">A</th><th class="bc">B</th></tr></thead><tbody>${p.ballots.map(row).join('')}</tbody></table></div></details>`;
   if (round.audit) renderAuditBox(round);
 }
 function ensureAuditBox(round){
@@ -1962,10 +2041,12 @@ function renderFinal(){
   const ranked = (f && Array.isArray(f.ranked) ? f.ranked : []).map(r => ({q: Number(r.q), winner: ['a','b','tie'].includes(r.winner) ? r.winner : 'tie', why:String(r.why||'')})).filter(r => state.rounds[r.q-1]);
   const ideas = (s) => (f && f.bestIdeas && Array.isArray(f.bestIdeas[s]) ? f.bestIdeas[s] : []).map(String);
   const forYou = (f && Array.isArray(f.forYou) ? f.forYou : []).map(x => ({crux:String(x.crux||''), settle:String(x.settle||'')})).filter(x => x.crux);
+  const scored = state.rounds.filter(r => r.score).length;
   $('finalWrap').innerHTML = `<div class="panel final">
-    <div class="eyebrow">Final summation · the chief judge</div>
+    <div class="bs-mast"><div class="mast-name">The Arena</div><span>Final edition · ${scored} question${scored === 1 ? '' : 's'} · panel of ${b.panel.length}</span><span>The chief judge's summation</span></div>
     <h2 class="${w}">${esc(title)}</h2>
-    <div class="score"><div class="cand a"><div class="num" style="color:var(--a-ink)">${state.totals.a.toFixed(1)}</div><div class="cn">${esc(b.positions.a.name)}</div><div class="cl" style="color:var(--muted)">${state.won.a} questions won</div></div><div class="mid" style="color:var(--muted)"><b style="color:var(--fg)">${esc(o.reason)}</b><span>panel points, of 100 per question, across ${state.rounds.filter(r=>r.score).length} questions</span></div><div class="cand b r"><div class="num" style="color:var(--b-ink)">${state.totals.b.toFixed(1)}</div><div class="cn">${esc(b.positions.b.name)}</div><div class="cl" style="color:var(--muted)">${state.won.b} questions won</div></div></div>
+    <div class="deck">${esc(o.reason)}</div>
+    <div class="score"><div class="cand a"><div class="num" style="color:var(--a-ink)">${state.totals.a.toFixed(1)}</div><div class="cn">${esc(b.positions.a.name)}</div><div class="cl" style="color:var(--muted)">${state.won.a} questions won</div></div><div class="mid"><b>${state.won.a} · ${state.won.tie} even · ${state.won.b}</b><span>questions won · panel points of 100 per question</span></div><div class="cand b r"><div class="num" style="color:var(--b-ink)">${state.totals.b.toFixed(1)}</div><div class="cn">${esc(b.positions.b.name)}</div><div class="cl" style="color:var(--muted)">${state.won.b} questions won</div></div></div>
     ${f ? `<p class="lead"><strong>${esc(f.headline)}</strong> ${esc(f.why)}</p>` : '<p class="lead">The chief judge did not return a summation; the scoreboard above stands.</p>'}
     ${ranked.length ? `<h3>The questions, ranked by how decisively they were won</h3><div class="ranked">${ranked.map((r, i) => { const rd = state.rounds[r.q-1]; return `<div class="rk"><span class="n">${i+1}</span><div><div>${esc(rd.q.question)}</div><div class="why">${esc(r.why)}</div></div><span class="pill ${r.winner}">${r.winner==='tie' ? 'Even' : esc(b.positions[r.winner].name)}</span></div>`; }).join('')}</div>` : ''}
     ${(ideas('a').length || ideas('b').length) ? `<h3>The ideas worth keeping</h3><div class="ideas"><div class="idea a"><span class="eyebrow">${esc(b.positions.a.name)}</span>${ideas('a').map(i=>`<div>· ${esc(i)}</div>`).join('')}</div><div class="idea b"><span class="eyebrow">${esc(b.positions.b.name)}</span>${ideas('b').map(i=>`<div>· ${esc(i)}</div>`).join('')}</div></div>` : ''}
@@ -1979,10 +2060,10 @@ function renderFinal(){
 /* ---------- The debate ---------- */
 async function speakInto(card, side, kind, sec, prompt, label, signal){
   setSpeaking(side); progress(`${label}: ${state.brief.positions[side].name} is thinking…`);
-  card.scrollIntoView({behavior:'smooth', block:'nearest'});
+  card.classList.add('speaking'); card.scrollIntoView({behavior:'smooth', block:'nearest'});
   const text = (await backend.complete({system: candidateSystem(side), prompt, signal, tier: state.tier, effort: state.tier==='complex' ? 'high' : 'medium',
     onText: ({text}) => { setSpeech(card, text, sec, false); progress(`${label}: ${state.brief.positions[side].name} is speaking…`); }})).trim();
-  setSpeech(card, text, sec, true); setSpeaking(null);
+  setSpeech(card, text, sec, true); setSpeaking(null); card.classList.remove('speaking');
   const intro = `${state.brief.positions[side].name}, ${kind}.`;
   wireSpeak(card, side, intro, () => text);
   if (state.voiceOn){ enqueue(side, intro, text, card); pump(); }
@@ -2187,7 +2268,7 @@ function renderLineupFinal(){
   const forYou = (f && Array.isArray(f.forYou) ? f.forYou : []).map(x => ({crux:String(x.crux||''), settle:String(x.settle||'')})).filter(x => x.crux);
   const rows = state.lineup.map((r, i) => { const t = tallyOf(r); const name = (s) => s === 'yes' ? 'Yes' : s === 'no' ? 'No' : 'Neither'; return `<tr><td>${i+1}. ${esc(r.q.question)}</td>${r.votes.map(v => `<td class="${v.side}">${v.done ? (v.side === 'yes' ? '✓' : v.side === 'no' ? '✗' : '◐') : '·'}</td>`).join('')}<td>${t.split ? 'Split' : t.majority ? `${name(t.majority)} ${t.counts[t.majority]}–${t.n - t.counts[t.majority]}` : '—'}</td></tr>`; }).join('');
   $('finalWrap').innerHTML = `<div class="panel final">
-    <div class="eyebrow">The board · ${esc(b.title)}</div>
+    <div class="bs-mast"><div class="mast-name">The Arena</div><span>The lineup · ${esc(b.title)}</span><span>${state.minds.length} minds · ${n} question${n === 1 ? '' : 's'}</span></div>
     <h2>${f && f.headline ? esc(f.headline) : `${n} question${n === 1 ? '' : 's'}, ${state.minds.length} minds`}</h2>
     <div class="tablewrap"><table class="mini"><thead><tr><th>Question</th>${state.minds.map(m => `<th title="${esc(m.name)}">${esc(m.avatar || initialsOf(m.name))}</th>`).join('')}<th>Room</th></tr></thead><tbody>${rows}</tbody></table></div>
     <div class="tablewrap"><table class="mini"><thead><tr><th>Mind</th><th>Yes</th><th>No</th><th>Neither</th><th>With the room</th><th>Stood alone</th></tr></thead><tbody>${stats.map(s => `<tr><td>${esc(s.mind.name)}</td><td>${s.yes}</td><td>${s.no}</td><td>${s.other}</td><td>${s.voted ? `${s.withRoom} of ${s.voted}` : '—'}</td><td>${s.alone}</td></tr>`).join('')}</tbody></table></div>
