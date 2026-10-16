@@ -1,7 +1,25 @@
 'use client';
-import { useMemo, useState } from 'react';
-import usMap from '@/data/us-map.json';
+import { useEffect, useMemo, useState } from 'react';
+import { geoPath } from 'd3-geo';
+import { feature, mesh } from 'topojson-client';
+import type { Topology, GeometryCollection } from 'topojson-specification';
 import centroids from '@/data/county-centroids.json';
+
+/** us-atlas is a public, versioned dataset: fetched at runtime (pre-projected Albers USA, 975×610) instead of bundled. */
+const US_ATLAS = 'https://cdn.jsdelivr.net/npm/us-atlas@3.0.1/states-albers-10m.json';
+const W = 975, H = 610;
+function useUsMap() {
+  const [m, setM] = useState<{ nation: string; borders: string } | null>(null);
+  useEffect(() => {
+    let on = true;
+    fetch(US_ATLAS).then((r) => r.json()).then((t: Topology<{ nation: GeometryCollection; states: GeometryCollection }>) => {
+      const path = geoPath();
+      if (on) setM({ nation: path(feature(t, t.objects.nation)) ?? '', borders: path(mesh(t, t.objects.states, (a, b) => a !== b)) ?? '' });
+    }).catch(() => {});
+    return () => { on = false; };
+  }, []);
+  return m;
+}
 
 export type ClusterLite = { id: number; lens: string; decade: number | null; county: string; state: string; weapon: string; weaponClass: string | null; victims: number; solved: number; firstYear: number | null; lastYear: number | null; note: string | null };
 type Base = { slug: string; name: string; county: string; state: string };
@@ -18,14 +36,13 @@ export function AtlasMap({ full, decade, bases, caveat }: { full: ClusterLite[];
   const src = lens === 'full' ? full : decade;
   const shown = useMemo(() => src.filter((c) => c.victims >= minVictims && c.solved / c.victims <= maxShare / 100 + 1e-9).sort((a, b) => (b.victims - b.solved) - (a.victims - a.solved)), [src, minVictims, maxShare]);
   const top = shown.slice(0, 8);
-  const { width, height, nation, borders } = usMap as { width: number; height: number; nation: string; borders: string };
+  const usMap = useUsMap(); const width = W, height = H;
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'stretch' }}>
       <div style={{ flex: '999 1 760px', minWidth: 0, background: 'var(--dark-panel)', border: '1px solid var(--dark-rule)' }}>
         <div className="mapbox" style={{ aspectRatio: `${width} / ${height}` }}>
           <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${shown.length} flagged clusters on a map of the United States`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-            <path d={nation} fill="#22272E" />
-            <path d={borders} fill="none" stroke="#39404A" strokeWidth="0.8" strokeLinejoin="round" />
+            {usMap ? <><path d={usMap.nation} fill="#22272E" /><path d={usMap.borders} fill="none" stroke="#39404A" strokeWidth="0.8" strokeLinejoin="round" /></> : <text x={width / 2} y={height / 2} textAnchor="middle" fontFamily="var(--mono)" fontSize="12" fill="#8A9099">loading county base map…</text>}
             {layers.clusters && shown.map((c) => { const p = C[`${c.county}|${c.state}`]; if (!p) return null; const u = c.victims - c.solved; const r = Math.max(Math.sqrt(u) * 2.7, 4); const k = classOf(c);
               return <circle key={c.id} id={`cl-${c.id}`} cx={p.x} cy={p.y} r={r} fill={FILL[k]} stroke={LINE[k]} strokeWidth="1.5"><title>{`${c.county}, ${c.state} · ${c.weapon}${c.decade ? ` · ${c.decade}s` : ''} · ${c.solved} solved of ${c.victims}`}</title></circle>; })}
             {layers.bases && bases.map((b) => { const p = C[`${b.county}|${b.state}`]; if (!p) return null; return <rect key={b.slug} x={p.x - 3.5} y={p.y - 3.5} width="7" height="7" transform={`rotate(45 ${p.x} ${p.y})`} fill="#E8E6E0" stroke="#101317" strokeWidth="1.5"><title>{b.name}</title></rect>; })}
