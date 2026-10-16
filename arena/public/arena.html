@@ -61,6 +61,34 @@ p{margin:0}
 
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
 .section{margin-top:20px;padding:18px 20px 20px;display:grid;gap:18px}
+/* Quick start */
+.quick{padding:28px 24px 24px;gap:20px}
+.quick .q-hero h2{font-size:clamp(26px,3.6vw,38px);font-weight:600;letter-spacing:-.01em;line-height:1.1}
+.quick .q-hero p{font-size:16px;color:var(--muted);margin-top:6px;max-width:60ch}
+.quick textarea{width:100%;min-height:84px;resize:vertical;padding:14px 16px;border:1.5px solid var(--line);border-radius:var(--radius);background:var(--surface);font-family:var(--font-display);font-size:clamp(19px,2.4vw,24px);line-height:1.3;color:var(--fg)}
+.quick textarea:focus{border-color:var(--fg)}
+@media (max-width:560px){.quick textarea{min-height:120px;font-size:18px}.quick{padding:20px 16px}}
+.q-sugg{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.q-sugg .chip{font-family:var(--font-body);font-weight:500;font-size:13.5px;text-align:left;white-space:normal;max-width:100%}
+.q-sugg .chip.more{background:transparent;border-style:dashed;color:var(--muted)}
+.depth{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:640px){.depth{grid-template-columns:1fr}}
+.depth .dc{text-align:left;padding:14px 16px;border:1.5px solid var(--line);border-radius:var(--radius);background:var(--surface);cursor:pointer;display:grid;gap:4px;min-width:0;color:var(--fg);font-family:var(--font-body)}
+.depth .dc .t{font-family:var(--font-display);font-size:19px;font-weight:600;line-height:1.15}
+.depth .dc .m{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--brass-ink)}
+.depth .dc .d{font-size:13.5px;color:var(--muted);line-height:1.4}
+.depth .dc[aria-pressed="true"]{border-color:var(--fg);background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--fg)}
+.q-cast{border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px}
+.q-cast summary{cursor:pointer;font-family:var(--font-display);font-size:14.5px;color:var(--brass-ink)}
+.q-cast .pair2{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin-top:10px}
+@media (max-width:560px){.q-cast .pair2{grid-template-columns:1fr}.q-cast .vs{display:none}}
+.q-cast select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--surface);font-family:var(--font-display);font-size:14px;color:var(--fg)}
+.q-cast .vs{font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--muted);text-align:center}
+.btn.big{font-size:17px;padding:12px 22px}
+.q-foot{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.q-foot .link{border:0;background:transparent;color:var(--muted);font-family:var(--font-mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;padding:6px 0;text-decoration:underline;text-underline-offset:3px}
+.q-foot .link:hover{color:var(--fg)}
+.q-pro{display:flex;gap:6px 14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .section h2{font-size:18px;font-weight:700}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
@@ -438,8 +466,34 @@ details.bg{font-size:14px;color:var(--muted)} details.bg summary{cursor:pointer;
     <div class="status" id="status"><span class="dot wait"></span><span id="statusText">Connecting…</span></div>
   </header>
 
-  <section class="panel section" id="setup" aria-label="Choose a topic">
-    <div><h2>Choose a fight</h2><p class="hint">Big, tangled, even provocative questions work best. The moderator breaks the topic into the questions underneath it, casts two experts from the roster whose traditions clash on it, seats a panel, and opens with a question meant to draw blood. Everything is yours to edit before the first word is spoken.</p></div>
+  <section class="panel section quick" id="quick" aria-label="Quick start">
+    <div class="q-hero"><h2>Find the better argument.</h2><p>Type a question. Two experts argue it from their traditions, a panel scores every exchange, and you decide. Pick how deep to go, then press the button.</p></div>
+    <div>
+      <textarea id="qTopic" placeholder="Should billionaires exist? Is free will an illusion? Was the Iraq war defensible?" aria-label="The question"></textarea>
+      <div class="q-sugg" id="qSugg" style="margin-top:8px"></div>
+    </div>
+    <div>
+      <div class="eyebrow" style="margin-bottom:8px">How deep</div>
+      <div class="depth" role="group" aria-label="How deep">
+        <button type="button" class="dc" data-depth="snap" aria-pressed="true"><span class="t">Snap</span><span class="m">About a minute</span><span class="d">One sharp question, the quick model, straight to a verdict. For settling an argument at the table.</span></button>
+        <button type="button" class="dc" data-depth="short" aria-pressed="false"><span class="t">Short</span><span class="m">Three to five minutes</span><span class="d">Three questions, the full model, the moderator presses dodges. Enough to change your mind.</span></button>
+        <button type="button" class="dc" data-depth="full" aria-pressed="false"><span class="t">Full evening</span><span class="m">Ten minutes or more</span><span class="d">Openings, four questions, cross-examination, closings, and the green room to edit everything first.</span></button>
+      </div>
+    </div>
+    <details class="q-cast"><summary>Choose who argues (optional, the moderator casts otherwise)</summary>
+      <div class="pair2"><select id="qCastA" aria-label="Podium A"></select><span class="vs">vs</span><select id="qCastB" aria-label="Podium B"></select></div>
+    </details>
+    <div class="q-foot">
+      <button class="btn primary big" id="go">Find the better argument</button>
+      <span class="hint" id="goHint"></span>
+      <button type="button" class="link" id="toAdvanced">Advanced setup</button>
+    </div>
+    <div class="q-pro"><span>Named moderator</span><span>Panel of experts</span><span>Scored out of 100</span><span>Your ballot</span><span>Claims checked</span></div>
+    <div class="notice bad" id="quickNotice" hidden></div>
+  </section>
+
+  <section class="panel section" id="setup" hidden aria-label="Choose a topic">
+    <div><div class="row" style="justify-content:space-between"><h2>Choose a fight</h2><button type="button" class="btn small" id="toQuick">Back to quick start</button></div><p class="hint">Big, tangled, even provocative questions work best. The moderator breaks the topic into the questions underneath it, casts two experts from the roster whose traditions clash on it, seats a panel, and opens with a question meant to draw blood. Everything is yours to edit before the first word is spoken.</p></div>
     <div class="chips" id="cats" role="group" aria-label="Categories"></div>
     <div class="topics" id="topics" role="group" aria-label="Topics"></div>
     <div class="row">
@@ -1209,6 +1263,7 @@ const state = {
   mode:'debate', minds:DEFAULT_MINDS.map((id, k) => mindFrom(ROSTER_BY_ID[id], k)), lineup:[], lineupFinal:null,
   cast:{a:null, b:null}, lineupCast:[],
   press:true, cross:true, ballot:{start:null, end:null}, crossExam:[], runId:null, records:[], portraits:{},
+  depth:'snap', advanced:false,
   running:false, ctl:null,
 };
 function mindFrom(q, k){ return {name:q.name, school:q.school || '', style:q.style, worldview:q.bio || '', moves:q.moves || '', avatar:q.avatar, color:q.color, temper:q.temper, risk:q.risk, id:'m' + k, rosterId:q.id || ''}; }
@@ -1238,7 +1293,7 @@ function parseJSONish(s){
   if (a >= 0 && b > a) { try { return JSON.parse(t.slice(a, b+1)); } catch {} }
   throw {code:'invalid_json', message:'The reply held no JSON.', text:t};
 }
-function save(){ try{ localStorage.setItem('arena.v2', JSON.stringify({answerSec:state.answerSec, rebuttalSec:state.rebuttalSec, tier:state.tier, openings:state.openings, voiceOn:state.voiceOn, harden:state.harden, tone:state.tone, heat:state.heat, mode:state.mode, press:state.press, cross:state.cross, digest:state.digest})); }catch{} }
+function save(){ try{ localStorage.setItem('arena.v2', JSON.stringify({answerSec:state.answerSec, rebuttalSec:state.rebuttalSec, tier:state.tier, openings:state.openings, voiceOn:state.voiceOn, harden:state.harden, tone:state.tone, heat:state.heat, mode:state.mode, press:state.press, cross:state.cross, digest:state.digest, depth:state.depth, advanced:state.advanced})); }catch{} }
 function load(){ try{ const s = JSON.parse(localStorage.getItem('arena.v2')||'null'); if (s){ const h = Object.assign({blind:false, both:false, perJudge:false}, s.harden || {}); delete s.harden; Object.assign(state, s); state.harden = h; if (!['debate','lineup'].includes(state.mode)) state.mode = 'debate'; } }catch{}
   try{ const r = JSON.parse(localStorage.getItem('arena.records') || '[]'); state.records = Array.isArray(r) ? r : []; }catch{ state.records = []; }
   try{ const p = JSON.parse(localStorage.getItem('arena.portraits') || '{}'); state.portraits = p && typeof p === 'object' ? p : {}; }catch{ state.portraits = {}; } }
@@ -1314,10 +1369,16 @@ async function initBackend(){
   showNotice('setupNotice', 'No backend found. Run "npm start" in the arena folder and open the printed address, or open this page as a claude.ai artifact.');
 }
 function setStatus(kind, text){ $('status').querySelector('.dot').className = 'dot ' + kind; $('statusText').textContent = text; }
-function showNotice(id, msg){ const n = $(id); n.textContent = msg || ''; n.hidden = !msg; }
+function showNotice(id, msg){ const n = $(id); n.textContent = msg || ''; n.hidden = !msg; if (id === 'setupNotice'){ const q = $('quickNotice'); if (q){ q.textContent = msg || ''; q.hidden = !msg; } } }
 
 /* ---------- Prompts ---------- */
-function briefPrompt(){
+const DEPTHS = {
+  snap:{tier:'quick', answerSec:60, rebuttalSec:30, openings:false, press:false, cross:false, pick:1, lean:{questions:3, panel:3, rubric:'three', rubricN:3}},
+  short:{tier:'default', answerSec:90, rebuttalSec:45, openings:false, press:true, cross:false, pick:3, lean:{questions:5, panel:3, rubric:'three or four', rubricN:3}},
+  full:null,
+};
+function briefPrompt(lean){
+  const nPanel = lean ? lean.panel : 5; const nQ = lean ? lean.questions : 12; const words = {3:'three', 5:'five', 12:'twelve'};
   return `You are the moderator and producer of a televised, presidential-style debate between two AI candidates. The audience is intelligent, curious, and here to learn: they want the best and most interesting ideas on each side articulated beautifully, so they can make up their own minds.
 
 TOPIC: ${state.topic}
@@ -1329,11 +1390,11 @@ ${rosterList()}
 Build the debate brief. Be scrupulously neutral. Choose the two most serious, interesting positions on this topic: for a yes/no question, A argues yes and B argues no; if the topic pits two named ideas, schools, thinkers, faiths, or traditions against each other (X vs. Y), A champions X and B champions Y; otherwise pick the two strongest rival readings.
 ${castInstruction()}
 Each candidate argues from their own tradition, so write each stance in a way that tradition would actually hold it, and let the two traditions collide where it is most revealing. Also choose the five roster members whose traditions would split most interestingly on this topic for a vote-only format ("lineup")${state.lineupCast.length ? `; the producer has already seated ${state.lineupCast.map(id => ROSTER_BY_ID[id].name).join(', ')}, so keep them and fill the rest` : ''}. If the topic names real thinkers or historical figures on each side, ignore the roster for the podiums: the candidates ARE those figures, with their real names, arguing from their actual writings and known views in their own voice, aware of the world as it stands today; then make one of the twelve questions ask each what they would now revise in their own thought.
-Name the moderator: a full name and one sentence on how they run the room (dry, relentless, courteous, impatient with evasion). Write the moderator's OPENING QUESTION: not background, not a summary, but a provocative, uncomfortable question that goes straight at the nerve of the topic, the thing people actually fight about at dinner, phrased so that each candidate's tradition will take it somewhere different. Write the moderator's CLOSING QUESTION too: what the audience should walk out believing, and what it would cost them to be wrong. Assemble a judging panel of five experts whose fields genuinely matter to this topic (for a war: a military strategist, a historian of the region, an economist, a humanitarian ethicist, a domestic-politics analyst; for a question about God: a philosopher of religion, a physicist, a historian of faiths, a psychologist of belief, an ordinary thoughtful believer or doubter), each with a one-sentence lens and the two criteria they weigh most. Then break the topic into twelve sub-questions that together cover its real complexity: the human stakes, the strongest evidence each way, the second-order effects, the moral questions, the historical record, what each side's strongest objection is, the uncomfortable question each side would rather not face, and anything else the topic demands. Group questions by theme. Each must be concrete and debatable, the kind a sharp moderator would actually ask. Finally write a topic-specific scoring rubric: four to six criteria that matter for THIS topic in particular (for a war: honesty about casualties, strategic logic, historical grounding, cost accounting; for the existence of God: handling of evidence, philosophical rigor, engagement with the strongest objection, intellectual humility), each with one sentence on what a 10 looks like and an integer weight, weights summing to 100, most important first. The panel scores every answer on the six universal criteria plus this rubric.
+Name the moderator: a full name and one sentence on how they run the room (dry, relentless, courteous, impatient with evasion). Write the moderator's OPENING QUESTION: not background, not a summary, but a provocative, uncomfortable question that goes straight at the nerve of the topic, the thing people actually fight about at dinner, phrased so that each candidate's tradition will take it somewhere different. Write the moderator's CLOSING QUESTION too: what the audience should walk out believing, and what it would cost them to be wrong. Assemble a judging panel of ${words[nPanel] || nPanel} experts whose fields genuinely matter to this topic (for a war: a military strategist, a historian of the region, an economist, a humanitarian ethicist, a domestic-politics analyst; for a question about God: a philosopher of religion, a physicist, a historian of faiths, a psychologist of belief, an ordinary thoughtful believer or doubter), each with a one-sentence lens and the two criteria they weigh most. Then break the topic into ${words[nQ] || nQ} sub-questions${lean ? ', the sharpest first: the one question that decides the most, then the next most revealing' : ' that together cover its real complexity: the human stakes, the strongest evidence each way, the second-order effects, the moral questions, the historical record, what each side\'s strongest objection is, the uncomfortable question each side would rather not face, and anything else the topic demands'}. Group questions by theme. Each must be concrete and debatable, the kind a sharp moderator would actually ask. Finally write a topic-specific scoring rubric: ${lean ? lean.rubric : 'four to six'} criteria that matter for THIS topic in particular (for a war: honesty about casualties, strategic logic, historical grounding, cost accounting; for the existence of God: handling of evidence, philosophical rigor, engagement with the strongest objection, intellectual humility), each with one sentence on what a 10 looks like and an integer weight, weights summing to 100, most important first. The panel scores every answer on the six universal criteria plus this rubric.
 
 Reply with only a JSON object of this exact shape:
 {"title": "a short debate title, under 12 words", "moderator": {"name": "the moderator's full name", "style": "one sentence on how they run the room"}, "hook": "the moderator's opening question, one or two sentences", "closer": "the moderator's closing question, one sentence", "context": "three to five sentences of neutral background a smart viewer needs, including the key facts in dispute (shown on request, not read aloud)", "cast": {"a": "roster id for podium A, or empty if the candidates are real historical figures", "b": "roster id for podium B, or empty", "lineup": ["five roster ids"]}, "positions": {"a": {"name": "the roster member's name, or for a historical figure their real name", "label": "a two-to-four-word stance label", "stance": "one sentence stating the position A will argue, in the voice of A's tradition", "worldview": "two sentences on how A sees this topic and tends to argue it (for a historical figure, from their actual thought)", "style": "one sentence on how A speaks", "avatar": "one emoji", "color": "one of teal, crimson, indigo, amber, forest, plum, slate, rust"}, "b": {"name": "...", "label": "...", "stance": "...", "worldview": "...", "style": "...", "avatar": "...", "color": "..."}}, "panel": [{"name": "a judge's full name", "title": "their expertise in a few words", "lens": "one sentence on what they weigh most", "focus": ["two of: insight, evidence, reasoning, responsiveness, eloquence, nuance"]}], "questions": [{"theme": "a one-or-two-word theme", "question": "the question as the moderator will ask it", "why": "one sentence on what hangs on it"}], "rubric": [{"name": "a topic-specific criterion in two to five words", "desc": "one sentence on what a 10 looks like on this topic", "weight": 25}]}
-Exactly five panel entries, twelve questions, and four to six rubric criteria whose weights sum to 100. Give the two candidates different colors.`;
+Exactly ${words[nPanel] || nPanel} panel entries, ${words[nQ] || nQ} questions, and ${lean ? lean.rubric : 'four to six'} rubric criteria whose weights sum to 100. Give the two candidates different colors.${lean ? ' Be brisk: every string short, nothing padded.' : ''}`;
 }
 function rosterList(){ return ROSTER.map(r => `- ${r.id}: ${r.name}, ${r.school}. ${r.bio.split('. ')[0]}.`).join('\n'); }
 function castInstruction(){
@@ -1646,21 +1707,58 @@ function ballotTotal(bl, side){
   const pen = penaltyOf(bl.flags && bl.flags[side]);
   return {six, topic, pen, total: Math.max(0, six + topic - pen)};
 }
-async function buildBrief(){
-  if (backend.mode === 'none'){ showNotice('setupNotice', 'No backend is connected yet.'); return; }
-  showNotice('setupNotice', ''); $('build').disabled = true; $('buildHint').textContent = 'The moderator is reading up on the topic, casting the candidates, seating the panel, and drafting the questions… (the longest single step)';
+async function buildBrief(opts = {}){
+  const notice = opts.quick ? 'quickNotice' : 'setupNotice';
+  if (backend.mode === 'none'){ showNotice(notice, 'No backend is connected yet.'); return; }
+  showNotice(notice, ''); $('build').disabled = true; $('go').disabled = true;
+  $('buildHint').textContent = 'The moderator is reading up on the topic, casting the candidates, seating the panel, and drafting the questions… (the longest single step)';
+  $('goHint').textContent = opts.quick ? 'Casting the debate…' : '';
   const ctl = new AbortController(); state.ctl = ctl;
   try {
-    const raw = await backend.complete({prompt: briefPrompt(), json:true, signal: ctl.signal, tier: state.tier, effort: state.tier === 'complex' ? 'high' : 'medium'});
+    const lean = opts.lean || null;
+    const raw = await backend.complete({prompt: briefPrompt(lean), json:true, signal: ctl.signal, tier: lean ? (state.tier === 'quick' ? 'quick' : 'default') : state.tier, effort: lean ? 'low' : (state.tier === 'complex' ? 'high' : 'medium')});
     state.brief = normalizeBrief(raw); state.priorRun = null;
     state.questions = state.brief.questions.map((q, i) => ({...q, id:'q'+i}));
-    state.selected = new Set(state.questions.slice(0, 4).map(q => q.id));
+    state.selected = new Set(state.questions.slice(0, opts.pick || 4).map(q => q.id));
     renderBrief();
-    $('setup').hidden = true; $('briefSec').hidden = false; window.scrollTo({top:0, behavior:'smooth'});
+    state.ctl = null;
+    if (opts.autostart){ $('quick').hidden = true; $('setup').hidden = true; runDebate(); return; }
+    $('setup').hidden = true; $('quick').hidden = true; $('briefSec').hidden = false; window.scrollTo({top:0, behavior:'smooth'});
   } catch (e) {
-    showNotice('setupNotice', copyFor(e && e.code));
-  } finally { $('build').disabled = false; $('buildHint').textContent = `Topic: ${state.topic}`; state.ctl = null; }
+    showNotice(notice, copyFor(e && e.code));
+  } finally { $('build').disabled = false; $('go').disabled = false; $('buildHint').textContent = `Topic: ${state.topic}`; $('goHint').textContent = ''; state.ctl = null; }
 }
+/* ---------- Quick start ---------- */
+const QUICK_POOL = ['The Third Rail', 'Religion & God', 'Big Questions', 'Politics & Government', 'Technology & AI', 'Life & Meaning', 'Matchups: Ideas Compete', 'Economics', 'Geopolitics & War'];
+function renderQuickSuggestions(){
+  const pool = QUICK_POOL.flatMap(c => TOPICS[c] || []); const picks = [];
+  const used = new Set(); while (picks.length < 6 && used.size < pool.length){ const i = Math.floor(Math.random() * pool.length); if (used.has(i)) continue; used.add(i); picks.push(pool[i]); }
+  $('qSugg').innerHTML = picks.map(q => `<button type="button" class="chip" data-q="${esc(q)}">${esc(q)}</button>`).join('') + '<button type="button" class="chip more" data-more>More like these</button>';
+  $('qSugg').querySelectorAll('[data-q]').forEach(b => b.onclick = () => { $('qTopic').value = b.dataset.q; $('qTopic').focus(); });
+  $('qSugg').querySelector('[data-more]').onclick = renderQuickSuggestions;
+}
+function renderQuickCast(){
+  const opts = (sel) => `<option value="">Let the moderator cast</option>${ROSTER.map(r => `<option value="${r.id}" ${state.cast[sel] === r.id ? 'selected' : ''}>${esc(r.name)} · ${esc(r.school)}</option>`).join('')}`;
+  $('qCastA').innerHTML = opts('a'); $('qCastB').innerHTML = opts('b');
+}
+function syncDepth(){ document.querySelectorAll('[data-depth]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.depth === state.depth))); }
+function applyDepth(d){
+  const p = DEPTHS[d]; if (!p) return;
+  Object.assign(state, {tier:p.tier, answerSec:p.answerSec, rebuttalSec:p.rebuttalSec, openings:p.openings, press:p.press, cross:p.cross}); state.mode = 'debate';
+  save(); syncSettingsUI(); syncMode();
+}
+async function quickGo(){
+  if (state.ctl || state.running) return;
+  let topic = $('qTopic').value.trim();
+  if (!topic){ const pool = QUICK_POOL.flatMap(c => TOPICS[c] || []); topic = pool[Math.floor(Math.random() * pool.length)]; $('qTopic').value = topic; }
+  state.topic = topic; state.category = Object.keys(TOPICS).find(c => TOPICS[c].includes(topic)) || state.category; $('customTopic').value = ''; renderCats(); renderTopics();
+  state.cast = {a: $('qCastA').value || null, b: $('qCastB').value || null}; if (state.cast.a && state.cast.a === state.cast.b) state.cast.b = null; state.lineupCast = [];
+  const p = DEPTHS[state.depth];
+  if (p){ applyDepth(state.depth); await buildBrief({quick:true, lean:p.lean, pick:p.pick, autostart:true}); }
+  else { state.mode = 'debate'; syncMode(); await buildBrief({quick:true}); }
+}
+function showQuick(){ state.advanced = false; save(); $('setup').hidden = true; $('briefSec').hidden = true; $('stage').hidden = true; $('quick').hidden = false; renderQuickCast(); window.scrollTo({top:0}); }
+function showSetup(){ state.advanced = true; save(); $('quick').hidden = true; $('briefSec').hidden = true; $('stage').hidden = true; $('setup').hidden = false; renderRoster(); window.scrollTo({top:0}); }
 function podiumHTML(side, p, extra){
   return `<div class="panel podium ${side}" id="podium-${side}"><span class="live">Speaking</span><div class="side">${SIDE[side]} · ${esc(p.label)}</div><div class="speaker" style="gap:10px">${avatarHTML(side, 'lg')}<div><div class="name">${esc(p.name)}</div>${p.school ? `<div class="school">${esc(p.school)}</div>` : ''}</div></div><div class="stance">${esc(p.stance)}</div>${extra ? `<div class="worldview">${esc(p.worldview)}</div>` : ''}</div>`;
 }
@@ -2625,8 +2723,12 @@ function wire(){
   $('cross').onchange = (e) => { state.cross = e.target.checked; save(); updateEstimate(); };
   $('addJudgePreset').onchange = (e) => { const v = e.target.value; if (!v) return; addJudge(v === 'blank' ? null : JUDGE_PRESETS[Number(v)]); e.target.value = ''; };
   $('build').onclick = () => { if (!state.ctl) buildBrief(); };
-  $('rebuild').onclick = () => { $('briefSec').hidden = true; $('setup').hidden = false; buildBrief(); };
-  $('backToTopics').onclick = () => { $('briefSec').hidden = true; $('setup').hidden = false; window.scrollTo({top:0}); };
+  $('rebuild').onclick = () => { $('briefSec').hidden = true; if (state.advanced) $('setup').hidden = false; else $('quick').hidden = false; buildBrief(state.advanced ? {} : {quick:true}); };
+  $('backToTopics').onclick = () => { if (state.advanced) showSetup(); else showQuick(); };
+  $('go').onclick = quickGo;
+  $('qTopic').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); quickGo(); } });
+  document.querySelectorAll('[data-depth]').forEach(b => b.onclick = () => { state.depth = b.dataset.depth; save(); syncDepth(); });
+  $('toAdvanced').onclick = showSetup; $('toQuick').onclick = showQuick;
   $('moreQ').onclick = moreQuestions;
   $('selAll').onclick = () => { state.questions.forEach(q => state.selected.add(q.id)); renderQuestions(); };
   $('selNone').onclick = () => { state.selected.clear(); renderQuestions(); };
@@ -2638,7 +2740,7 @@ function wire(){
   $('rematch').onclick = rematchSwapped;
   $('start').onclick = () => { if (!state.running){ state.priorRun = null; runDebate(); } };
   $('stop').onclick = () => { if (state.ctl) state.ctl.abort(); };
-  $('newDebate').onclick = () => { if (state.ctl) state.ctl.abort(); stopAudio(); state.priorRun = null; $('stage').hidden = true; $('setup').hidden = false; renderRoster(); window.scrollTo({top:0}); };
+  $('newDebate').onclick = () => { if (state.ctl) state.ctl.abort(); stopAudio(); state.priorRun = null; if (state.advanced) showSetup(); else showQuick(); };
   $('copy').onclick = copyTranscript; $('save').onclick = saveTranscript; $('stopAudio').onclick = stopAudio;
   $('speakAll').onclick = () => {
     stopAudio(); const b = state.brief;
@@ -2651,6 +2753,6 @@ function wire(){
   };
 }
 
-injectPaletteCSS(); load(); syncSettingsUI(); renderCats(); renderTopics(); wire(); syncMode(); renderMindEditor(); initBackend();
+injectPaletteCSS(); load(); syncSettingsUI(); renderCats(); renderTopics(); wire(); syncMode(); renderMindEditor(); renderQuickSuggestions(); renderQuickCast(); syncDepth(); if (state.advanced){ $('quick').hidden = true; $('setup').hidden = false; } initBackend();
 })();
 </script>

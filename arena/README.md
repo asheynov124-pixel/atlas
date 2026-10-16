@@ -29,6 +29,10 @@ Node 22.9 or newer. The server reads `.env` on start; alternatively run `ant aut
 | `INSPIRATION.md` | The Clarified Mind channel study and what this app borrowed from it. |
 | `.env.example` | Settings: model, quick-tier model, port, refusal fallbacks. |
 
+## Quick start
+
+The page opens on one screen: a question box with six suggestions from the library, three depth cards, an optional "who argues" pair from the roster, and one button. **Snap** runs one sharp question on the quick model with a three-judge panel, no openings or cross-examination, straight to the scorecard and verdict, about a minute. **Short** runs three questions on the full model with the moderator pressing dodges, three to five minutes. **Full evening** builds the complete brief and opens the green room so everything can be edited first. Enter in the question box starts it; an empty box picks a provocative question at random. "Advanced setup" reveals the full topic library, format toggle, roster, standings, and green room; nothing was removed, and the page remembers which screen you used last.
+
 ## How a debate runs
 
 1. **Topic and format.** Pick one of 360-plus questions across 24 categories (geopolitics, parties, religion and God, the big metaphysical questions, matchups where two ideas or thinkers compete, minds across time where Nietzsche meets Jung or Keynes meets Hayek in 2026, sex and love, gender, race and nation, crime, health, money, media, art, history, education, and more), ask for eight new ones in any category at a chosen heat (measured, spirited, provocative), hit "Pick a fight between two ideas", or type your own. The clock runs at about 130 words a minute: 1, 2, or 3 minutes per answer and 30, 60, or 90 seconds per rebuttal.
