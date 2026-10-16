@@ -46,3 +46,15 @@ Logged choices the owner did not have to make. Newest last.
     files that break the tier rules, reconciliation or the privacy rules, so the rules live in one place.
 18. **The automated verifier re-derives the review queue** (missing citations, unsourced attributions, source
     conflicts, reconciliation, living-never-charged, street-address recovery sites) and only adds what is missing.
+19. **Vercel project `modus`** (prj_B90whJUp0vfy8mQsUYYGkFgmReX6) lives on the personal scope `asheynov124-2433`; Vercel
+    Authentication (SSO) is off because the app has its own gate; Node 22. `APP_PASSWORD` and `APP_SECRET` are set as
+    encrypted project env vars for production and preview and are not stored anywhere in the repo.
+20. **Deploys come from GitHub, not uploads.** The first Git deploy failed with `git_info_fail` because the Vercel
+    account has no GitHub login connection; a file upload would push ~200 KB through the agent on every release.
+    The owner connects GitHub once (Vercel → Account → Login Connections, then the project's Git settings) and the
+    `modus` branch deploys on push with root directory `modus`.
+21. **Database is a Neon store created from the Vercel Storage tab.** No marketplace integration can be installed by
+    API; the owner approves it once in the dashboard, Vercel injects `DATABASE_URL`, and `db:reset` is run against it
+    from the workspace.
+22. **The base map is fetched at runtime.** us-atlas is a public, versioned dataset; the atlas loads
+    `states-albers-10m.json` from jsDelivr in the browser instead of bundling 107 KB of path data.

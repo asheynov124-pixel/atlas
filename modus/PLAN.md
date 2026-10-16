@@ -46,10 +46,10 @@ Status key: ☐ todo · ◐ in progress · ☑ done
 - **Verify:** preview URL; atlas re-derives the 54 clusters from the raw 1980–2014 file; new file loads.
 
 ## Needs the owner (only these)
-1. Vercel: the account `asheynov124-2433` (hobby plan, no teams) is the only scope. Confirm, or name another.
-2. A Neon `DATABASE_URL` (or say "provision one" and I will create a Postgres store through Vercel's marketplace
-   when you have approved it in the dashboard). I then run `db:reset` against it from here.
-3. The app password (and, optionally, a separate `APP_SECRET`).
+1. ☑ Vercel scope confirmed: personal account `asheynov124-2433`; project `modus` created.
+2. Neon database: create it from the project's Storage tab (one approval); `DATABASE_URL` is injected; I seed it.
+3. ☑ App password generated and stored in Vercel env (handed to the owner once in chat, never in the repo).
+3a. GitHub login connection on Vercel (one click) so the `modus` branch deploys on push.
 4. A domain, if any.
 5. The MAP 1976–2025 file: murderdata.org and its mirrors are blocked from this workspace. Download the SHR file
    and drop it at `data/map/` (any filename); the atlas re-derives the clusters from it.
