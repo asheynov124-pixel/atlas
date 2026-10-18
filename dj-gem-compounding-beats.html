@@ -1,0 +1,2115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DJ Gem">
+<meta name="theme-color" content="#07040f">
+<title>DJ Gem: Compounding Beats</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+  /* ---------- Critical layout (works even if the Tailwind CDN is slow) ---------- */
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+    --neon-a: #22d3ee;
+    --neon-b: #f472b6;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: #07040f; color: #e5e7eb; overflow: hidden;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; width: 100%; }
+  header#topbar { flex: 0 0 auto; padding-top: calc(var(--sat) + 0.5rem); padding-left: calc(var(--sal) + 0.75rem); padding-right: calc(var(--sar) + 0.75rem); }
+  main#layout { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  #stage-pane { position: relative; flex: 0 0 46%; min-height: 0; min-width: 0; overflow: hidden; }
+  #panel { flex: 1 1 auto; min-height: 0; min-width: 0; overflow: hidden; display: flex; flex-direction: column; padding-bottom: var(--sab); padding-left: var(--sal); padding-right: var(--sar); }
+  #panel > nav, #panel > #buy-modes { flex: 0 0 auto; }
+  #topbar-stats { display: flex; align-items: center; gap: 1.25rem; min-width: 0; flex: 1 1 100%; order: 3; overflow-x: auto; padding-bottom: 2px; }
+  #topbar-controls { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; order: 2; }
+  @media (min-width: 768px) {
+    #topbar-stats { flex: 1 1 0%; order: 2; }
+    #topbar-controls { order: 3; margin-left: 0; }
+  }
+  @media (min-width: 768px) {
+    main#layout { flex-direction: row; }
+    #stage-pane { flex: 0 0 60%; height: 100%; }
+    #panel { flex: 0 0 40%; height: 100%; }
+  }
+  #three-container { position: absolute; inset: 0; }
+  #three-container canvas { display: block; touch-action: none; cursor: crosshair; }
+  #viz { position: absolute; left: 0; right: 0; bottom: 0; height: 72px; width: 100%; pointer-events: none; }
+  /* HUD geometry lives here (not only in Tailwind classes) so the overlay never collapses onto the canvas. */
+  .hud-tl { position: absolute; top: 0.75rem; left: 0.75rem; z-index: 10; }
+  .hud-tr { position: absolute; top: 0.75rem; right: 0.75rem; z-index: 10; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; }
+  .hud-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; pointer-events: none; }
+  .hud-bottom { position: absolute; bottom: 78px; left: 0; right: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 0.25rem; pointer-events: none; }
+  .hud-bottom > * { pointer-events: auto; }
+  .hud-foot { position: absolute; bottom: 0.25rem; left: 0.5rem; z-index: 10; }
+  .hidden { display: none !important; }
+  .mono { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+  /* ---------- Scrollbars ---------- */
+  .scroll::-webkit-scrollbar { width: 8px; }
+  .scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
+  .scroll::-webkit-scrollbar-thumb { background: linear-gradient(var(--neon-a), var(--neon-b)); border-radius: 8px; }
+
+  /* ---------- Glow & neon ---------- */
+  .neon-text { text-shadow: 0 0 6px rgba(34,211,238,0.9), 0 0 18px rgba(244,114,182,0.5); }
+  .glass { background: rgba(10, 6, 24, 0.72); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.08); }
+  .btn { transition: transform .08s ease, box-shadow .2s ease, background .2s ease, opacity .2s ease; user-select: none; -webkit-user-select: none; }
+  .btn:active:not(:disabled) { transform: scale(0.96); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-neon { background: linear-gradient(135deg, #0891b2, #7c3aed); box-shadow: 0 0 18px rgba(34,211,238,0.35), inset 0 0 0 1px rgba(255,255,255,0.12); }
+  .btn-neon:hover:not(:disabled) { box-shadow: 0 0 28px rgba(34,211,238,0.6), inset 0 0 0 1px rgba(255,255,255,0.2); }
+  .btn-pink { background: linear-gradient(135deg, #db2777, #7c3aed); box-shadow: 0 0 18px rgba(244,114,182,0.35); }
+  .btn-gold { background: linear-gradient(135deg, #f59e0b, #dc2626); box-shadow: 0 0 18px rgba(250,204,21,0.35); }
+  .btn-ghost { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); }
+  .btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,0.12); }
+  .tab-btn.active { background: linear-gradient(135deg, rgba(34,211,238,0.25), rgba(244,114,182,0.25)); color: #fff; box-shadow: inset 0 -2px 0 var(--neon-a); }
+  .mode-btn.active { background: linear-gradient(135deg, #0891b2, #7c3aed); color: #fff; }
+
+  /* ---------- Drop button ---------- */
+  #btn-drop { position: relative; overflow: hidden; }
+  #btn-drop::after { content: ""; position: absolute; inset: -40%; background: conic-gradient(from 0deg, transparent 0 70%, rgba(255,255,255,0.35) 85%, transparent 100%); animation: spin 2.4s linear infinite; pointer-events: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .beat-pulse { animation: beat 0.476s ease-out infinite; }
+  @keyframes beat { 0% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+  /* ---------- Floating text & ripples ---------- */
+  .float-text { position: absolute; pointer-events: none; font-weight: 800; color: #fff; text-shadow: 0 0 8px var(--neon-a), 0 0 16px var(--neon-b); animation: floatUp 0.9s ease-out forwards; transform: translate(-50%, -50%); white-space: nowrap; z-index: 20; }
+  @keyframes floatUp { 0% { opacity: 1; transform: translate(-50%, -50%) scale(0.8); } 100% { opacity: 0; transform: translate(-50%, -140%) scale(1.3); } }
+  .ripple-dom { position: absolute; pointer-events: none; border: 2px solid var(--neon-a); border-radius: 9999px; width: 20px; height: 20px; transform: translate(-50%, -50%); animation: rippleOut 0.7s ease-out forwards; z-index: 19; }
+  @keyframes rippleOut { 0% { opacity: 0.9; width: 20px; height: 20px; } 100% { opacity: 0; width: 160px; height: 160px; } }
+
+  /* ---------- Toasts ---------- */
+  #toasts { position: fixed; top: calc(var(--sat) + 205px); left: 50%; transform: translateX(-50%); z-index: 60; display: flex; flex-direction: column; gap: 8px; pointer-events: none; width: min(92vw, 420px); }
+  @media (min-width: 768px) { #toasts { top: calc(var(--sat) + 120px); left: 30%; width: min(54vw, 420px); } }
+  .toast { animation: toastIn 0.25s ease-out, toastOut 0.4s ease-in 2.8s forwards; }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(-10px) scale(0.96); } to { opacity: 1; transform: none; } }
+  @keyframes toastOut { to { opacity: 0; transform: translateY(-8px); } }
+
+  /* ---------- Modals ---------- */
+  .modal { position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(3, 1, 10, 0.75); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  .modal-card { animation: modalIn 0.35s cubic-bezier(.2,.9,.3,1.3); }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(20px) scale(0.94); } to { opacity: 1; transform: none; } }
+  .shine { background: linear-gradient(90deg, #22d3ee, #f472b6, #facc15, #22d3ee); background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shine 4s linear infinite; }
+  @keyframes shine { to { background-position: 300% 0; } }
+
+  /* ---------- Stage cards ---------- */
+  .stage-card { transition: box-shadow .25s ease, border-color .25s ease; overflow: hidden; }
+  .stage-card.payout { animation: payoutFlash 0.35s ease-out; }
+  @keyframes payoutFlash { 0% { box-shadow: 0 0 0 1px rgba(255,255,255,0.4), 0 0 22px rgba(34,211,238,0.6); } 100% { box-shadow: none; } }
+  .bar { transition: none; }
+  .bar.smooth { transition: width 0.1s linear; }
+  .disc-badge { animation: discPulse 1s ease-in-out infinite alternate; }
+  @keyframes discPulse { from { box-shadow: 0 0 10px rgba(250,204,21,0.4); } to { box-shadow: 0 0 26px rgba(250,204,21,0.9); } }
+  input[type=range] { accent-color: #22d3ee; }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- ======================= TOP BAR ======================= -->
+  <header id="topbar" class="glass z-30 pb-2 flex items-center gap-3 flex-wrap">
+    <div class="flex items-center gap-2 mr-1">
+      <div class="w-9 h-9 rounded-xl btn-neon flex items-center justify-center text-lg font-black select-none">🎚️</div>
+      <div class="leading-tight">
+        <div class="font-black tracking-widest text-sm neon-text">DJ GEM</div>
+        <div class="text-[10px] uppercase tracking-[0.3em] text-cyan-300/80">Compounding Beats</div>
+      </div>
+    </div>
+    <div id="topbar-stats" class="scroll">
+      <div class="min-w-0">
+        <div class="text-[10px] uppercase tracking-widest text-gray-400">Cash</div>
+        <div id="cash" class="mono font-black text-lg sm:text-xl text-emerald-300 whitespace-nowrap">$0.00</div>
+      </div>
+      <div class="min-w-0">
+        <div class="text-[10px] uppercase tracking-widest text-gray-400">Per second</div>
+        <div id="cps" class="mono font-bold text-sm sm:text-base text-cyan-300 whitespace-nowrap">$0.00/s</div>
+      </div>
+      <div class="min-w-0">
+        <div class="text-[10px] uppercase tracking-widest text-gray-400">Fame · Execs</div>
+        <div id="fame" class="mono font-bold text-sm sm:text-base text-pink-300 whitespace-nowrap">0 <span class="text-[10px] text-gray-400">(×1.00)</span></div>
+      </div>
+    </div>
+    <div id="topbar-controls">
+      <button id="btn-mute" class="btn btn-ghost w-10 h-10 rounded-xl text-lg" title="Mute / Unmute (M)" aria-label="Mute or unmute">🔊</button>
+      <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8" class="w-20 sm:w-28 hidden sm:block" title="Master volume" aria-label="Master volume">
+      <button id="btn-settings" class="btn btn-ghost w-10 h-10 rounded-xl text-lg" title="Settings" aria-label="Settings">⚙️</button>
+    </div>
+  </header>
+
+  <!-- ======================= MAIN LAYOUT ======================= -->
+  <main id="layout">
+    <!-- ---------- 3D STAGE PANE ---------- -->
+    <section id="stage-pane" class="bg-black">
+      <div id="three-container"></div>
+      <div id="three-fallback" class="hidden absolute inset-0 flex items-center justify-center text-center p-6 bg-gradient-to-b from-fuchsia-950 via-[#07040f] to-cyan-950">
+        <div>
+          <div class="text-5xl mb-3">🎛️</div>
+          <div class="font-bold">3D stage unavailable</div>
+          <div class="text-xs text-gray-400 mt-1">WebGL or the Three.js CDN could not load. The music, clicks and tycoon economy still work.</div>
+        </div>
+      </div>
+      <canvas id="viz"></canvas>
+
+      <!-- HUD: top-left location -->
+      <div class="hud-tl glass rounded-xl px-3 py-2 max-w-[70%]">
+        <div id="tier-name" class="font-black tracking-wide text-sm shine">Club Underground</div>
+        <div id="tier-place" class="text-[11px] text-gray-300">Basement · Earth</div>
+        <div id="stem-row" class="flex gap-1 mt-1"></div>
+      </div>
+
+      <!-- HUD: top-right frenzy + warp -->
+      <div class="hud-tr">
+        <div id="frenzy-badge" class="hidden glass rounded-xl px-3 py-1.5 text-xs font-bold text-yellow-300 border-yellow-400/40 disc-badge">⚡ 3× FRENZY <span id="frenzy-time" class="mono">30s</span></div>
+        <button id="btn-warp" class="btn btn-ghost glass rounded-xl px-3 py-2 text-xs font-bold text-left" title="Time Warp: instantly collect 1 hour of automated earnings. 45 minute recharge.">
+          <div>⏩ TIME WARP</div>
+          <div id="warp-label" class="mono text-[11px] text-cyan-300">READY</div>
+        </button>
+      </div>
+
+      <!-- HUD: airdrop hint -->
+      <div id="disc-hint" class="hidden hud-center text-center">
+        <div class="text-yellow-300 font-black text-sm tracking-widest animate-bounce drop-shadow-[0_0_10px_rgba(250,204,21,0.9)]">GOLD VINYL AIRDROP ↓ TAP IT</div>
+      </div>
+
+      <!-- HUD: bottom controls -->
+      <div class="hud-bottom">
+        <button id="btn-drop" class="btn btn-pink rounded-full px-8 py-3 font-black tracking-widest text-white text-base sm:text-lg shadow-2xl" title="Drop the beat (Space)">
+          <span class="relative z-10">🔥 DROP THE BEAT</span>
+        </button>
+        <div class="text-[11px] text-gray-300 mono">+<span id="click-value">$1.00</span> per drop · tap the stage too</div>
+      </div>
+      <div class="hud-foot text-[10px] text-gray-500 mono">126 BPM · drag to orbit · scroll to zoom · right-drag to pan</div>
+    </section>
+
+    <!-- ---------- RIGHT PANEL ---------- -->
+    <aside id="panel" class="bg-[#0a0618] border-l border-white/5">
+      <nav class="flex text-xs sm:text-sm font-bold uppercase tracking-wider border-b border-white/10">
+        <button class="tab-btn btn flex-1 py-3 text-gray-400 active" data-tab="stages">Stages</button>
+        <button class="tab-btn btn flex-1 py-3 text-gray-400" data-tab="upgrades">Upgrades <span id="upg-count" class="ml-1 text-[10px] bg-pink-500/80 text-white rounded-full px-1.5 py-0.5 hidden">0</span></button>
+        <button class="tab-btn btn flex-1 py-3 text-gray-400" data-tab="managers">Engineers</button>
+        <button class="tab-btn btn flex-1 py-3 text-gray-400" data-tab="prestige">Prestige <span id="prestige-dot" class="ml-1 inline-block w-2 h-2 rounded-full bg-yellow-400 hidden"></span></button>
+      </nav>
+
+      <div id="buy-modes" class="flex gap-1 p-2 border-b border-white/10">
+        <button class="mode-btn btn btn-ghost flex-1 py-1.5 rounded-lg text-xs font-bold active" data-mode="1">BUY 1</button>
+        <button class="mode-btn btn btn-ghost flex-1 py-1.5 rounded-lg text-xs font-bold" data-mode="10">BUY 10</button>
+        <button class="mode-btn btn btn-ghost flex-1 py-1.5 rounded-lg text-xs font-bold" data-mode="next">BUY NEXT</button>
+        <button class="mode-btn btn btn-ghost flex-1 py-1.5 rounded-lg text-xs font-bold" data-mode="max">BUY MAX</button>
+      </div>
+
+      <div class="flex-1 min-h-0 overflow-y-auto scroll">
+        <div id="tab-stages" class="tab-panel p-2 space-y-2"></div>
+        <div id="tab-upgrades" class="tab-panel p-2 space-y-2 hidden"></div>
+        <div id="tab-managers" class="tab-panel p-2 space-y-2 hidden"></div>
+        <div id="tab-prestige" class="tab-panel p-3 space-y-3 hidden"></div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<!-- ======================= TOASTS ======================= -->
+<div id="toasts"></div>
+
+<!-- ======================= SPLASH ======================= -->
+<div id="splash" class="modal">
+  <div class="modal-card glass rounded-3xl p-8 text-center max-w-md w-full">
+    <div class="text-6xl mb-3">🎧</div>
+    <h1 class="text-3xl font-black tracking-widest shine">DJ GEM</h1>
+    <div class="text-xs uppercase tracking-[0.4em] text-cyan-300 mb-4">Compounding Beats</div>
+    <p class="text-sm text-gray-300 mb-6">Drop beats. Press vinyl. Sign artists. Throw raves on the Moon. Every dollar compounds, and every stage you buy adds a new layer to the track.</p>
+    <button id="btn-start" class="btn btn-neon rounded-full px-8 py-3 font-black tracking-widest w-full">▶ PRESS PLAY</button>
+    <div class="text-[10px] text-gray-500 mt-3">Audio is synthesized live in your browser. Headphones recommended.</div>
+  </div>
+</div>
+
+<!-- ======================= WELCOME BACK MODAL ======================= -->
+<div id="modal-welcome" class="modal hidden">
+  <div class="modal-card glass rounded-3xl p-8 text-center max-w-md w-full">
+    <div class="text-5xl mb-2 animate-bounce">💿</div>
+    <h2 class="text-2xl font-black shine">WELCOME BACK, DJ</h2>
+    <div id="welcome-away" class="text-xs text-gray-400 mt-1">Your engineers kept the party going for 0m</div>
+    <div class="my-5">
+      <div class="text-[10px] uppercase tracking-widest text-gray-400">Offline cash collected</div>
+      <div id="welcome-cash" class="mono text-4xl font-black text-emerald-300">$0.00</div>
+      <div id="welcome-note" class="text-[11px] text-gray-500 mt-1">Based on your automated stages (capped at 12 hours).</div>
+    </div>
+    <button id="btn-collect" class="btn btn-neon rounded-full px-8 py-3 font-black tracking-widest w-full">COLLECT &amp; DROP THE BEAT</button>
+  </div>
+</div>
+
+<!-- ======================= PRESTIGE MODAL ======================= -->
+<div id="modal-prestige" class="modal hidden">
+  <div class="modal-card glass rounded-3xl p-7 max-w-md w-full">
+    <h2 class="text-xl font-black shine">SIGN WITH THE LABEL EXECS?</h2>
+    <p class="text-sm text-gray-300 mt-2">You will end this tour run: cash, stages, engineers and upgrades reset. In exchange you gain <span id="prestige-gain" class="font-bold text-yellow-300 mono">0</span> Record Label Execs, each adding a compounding +2% to every dollar you make, forever.</p>
+    <div class="mt-3 text-xs text-gray-400">New global multiplier: <span id="prestige-newmult" class="mono text-cyan-300 font-bold">×1.00</span></div>
+    <div class="flex gap-2 mt-5">
+      <button id="btn-prestige-cancel" class="btn btn-ghost rounded-xl px-4 py-2 flex-1 font-bold">Keep touring</button>
+      <button id="btn-prestige-confirm" class="btn btn-gold rounded-xl px-4 py-2 flex-1 font-black">Sign the deal</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= SETTINGS MODAL ======================= -->
+<div id="modal-settings" class="modal hidden">
+  <div class="modal-card glass rounded-3xl p-6 max-w-md w-full space-y-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-black shine">SETTINGS</h2>
+      <button id="btn-settings-close" class="btn btn-ghost w-9 h-9 rounded-xl">✕</button>
+    </div>
+    <div class="space-y-2">
+      <label class="text-xs uppercase tracking-widest text-gray-400">Master volume</label>
+      <div class="flex items-center gap-3">
+        <button id="btn-mute2" class="btn btn-ghost w-10 h-10 rounded-xl text-lg">🔊</button>
+        <input id="vol2" type="range" min="0" max="1" step="0.01" value="0.8" class="flex-1" aria-label="Master volume">
+        <span id="vol-label" class="mono text-xs w-10 text-right">80%</span>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-2 text-xs">
+      <div class="glass rounded-xl p-3"><div class="text-gray-400">Lifetime earnings</div><div id="st-lifetime" class="mono font-bold text-emerald-300">$0</div></div>
+      <div class="glass rounded-xl p-3"><div class="text-gray-400">Beats dropped</div><div id="st-clicks" class="mono font-bold">0</div></div>
+      <div class="glass rounded-xl p-3"><div class="text-gray-400">Tours completed</div><div id="st-prestiges" class="mono font-bold">0</div></div>
+      <div class="glass rounded-xl p-3"><div class="text-gray-400">Airdrops caught</div><div id="st-airdrops" class="mono font-bold">0</div></div>
+    </div>
+    <div class="space-y-2">
+      <label class="text-xs uppercase tracking-widest text-gray-400">Save data</label>
+      <div class="flex gap-2">
+        <button id="btn-export" class="btn btn-ghost rounded-xl px-3 py-2 text-xs font-bold flex-1">Export</button>
+        <button id="btn-import" class="btn btn-ghost rounded-xl px-3 py-2 text-xs font-bold flex-1">Import</button>
+        <button id="btn-reset" class="btn rounded-xl px-3 py-2 text-xs font-bold flex-1 bg-red-900/60 border border-red-500/40">Hard reset</button>
+      </div>
+      <textarea id="save-io" class="w-full h-20 text-[10px] mono bg-black/40 border border-white/10 rounded-xl p-2 hidden" placeholder="Paste a save string here, then press Import"></textarea>
+    </div>
+    <div class="text-[10px] text-gray-500">Autosaves every 10 seconds and whenever you leave the tab. Offline earnings are computed from your automated stages.</div>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================================
+   DJ GEM: COMPOUNDING BEATS
+   A single-file idle tycoon + procedural Web Audio music engine + Three.js isometric stage.
+   Sections:
+     1. Config & helpers
+     2. State & persistence
+     3. Economy
+     4. AudioEngine (Web Audio, 126 BPM tech-house / synthwave)
+     5. World (Three.js scene)
+     6. UI
+     7. Game loop & bootstrap
+   ========================================================================================== */
+(function () {
+'use strict';
+
+/* ==========================================================================================
+   1. CONFIG & HELPERS
+   ========================================================================================== */
+const SAVE_KEY = 'djgem_compounding_beats_v1';
+const COST_GROWTH = 1.15;
+const MILESTONES = [25, 50, 100, 200, 300, 400, 500, 750, 1000, 1500, 2000, 3000, 5000];
+const OFFLINE_CAP_SEC = 12 * 3600;
+const WARP_COOLDOWN_MS = 45 * 60 * 1000;
+const WARP_HOURS = 1;
+const FRENZY_MS = 30 * 1000;
+const FRENZY_MULT = 3;
+const DISC_VISIBLE_MS = 20 * 1000;
+const EXEC_BASE = 100000; // $100k lifetime for the first exec
+
+const STAGES = [
+  { id: 'studio', name: 'Bedroom Studio',          baseCost: 4,       baseProfit: 1,     baseTime: 0.8, icon: '🎧', color: '#22d3ee', stem: 'kick',   blurb: 'Lo-fi loops from a cramped flat. Kick drum unlocked.' },
+  { id: 'vinyl',  name: 'Vinyl Pressing Plant',    baseCost: 60,      baseProfit: 15,    baseTime: 2.5, icon: '💿', color: '#a78bfa', stem: 'bass',   blurb: 'Wax moves units. Bass moves feet.' },
+  { id: 'club',   name: 'Underground Club',        baseCost: 720,     baseProfit: 90,    baseTime: 6,   icon: '🕺', color: '#f472b6', stem: 'hats',   blurb: 'Sweaty basement, sticky floor, crisp hi-hats.' },
+  { id: 'rave',   name: 'Warehouse Rave',          baseCost: 8640,    baseProfit: 750,   baseTime: 12,  icon: '🏭', color: '#fb923c', stem: 'chords', blurb: 'Illegal? Legendary. Chord stabs unlocked.' },
+  { id: 'neon',   name: 'Neon Mainstage Festival', baseCost: 103680,  baseProfit: 5000,  baseTime: 24,  icon: '🎆', color: '#facc15', stem: 'lead',   blurb: 'Three days, zero sleep, infinite lasers. Lead arp unlocked.' },
+  { id: 'lunar',  name: 'Orbital Lunar Arena',     baseCost: 1244160, baseProfit: 40000, baseTime: 60,  icon: '🌙', color: '#34d399', stem: 'pad',    blurb: 'Low gravity, high BPM. Cosmic pads unlocked.' }
+];
+
+const MANAGERS = [
+  { stage: 'studio', name: 'Lo-Fi Lena',   title: 'Bedroom Sound Engineer',    cost: 100 },
+  { stage: 'vinyl',  name: 'Groove Gus',   title: 'Plant Floor Supervisor',    cost: 1500 },
+  { stage: 'club',   name: 'Bassline Bea', title: 'Resident Club Engineer',    cost: 18000 },
+  { stage: 'rave',   name: 'Rave Rafael',  title: 'Warehouse Rig Technician',  cost: 216000 },
+  { stage: 'neon',   name: 'Neon Nadia',   title: 'Festival Production Lead',  cost: 2600000 },
+  { stage: 'lunar',  name: 'Luna Lux',     title: 'Orbital Broadcast Engineer', cost: 31000000 }
+];
+
+const UPGRADES = [
+  { id: 'foam1',  name: 'Acoustic Foam I',          target: 'studio', mult: 3,  cost: 250,     desc: 'Egg-crate walls. Bedroom Studio profit ×3.' },
+  { id: 'xlr1',   name: 'Gold XLR Cables I',        target: 'vinyl',  mult: 3,  cost: 2500,    desc: 'Oxygen-free copper, gold plugs. Vinyl Plant profit ×3.' },
+  { id: 'sub1',   name: 'Subwoofer Arrays I',       target: 'club',   mult: 3,  cost: 30000,   desc: 'Chest-rattling 18-inch drivers. Club profit ×3.' },
+  { id: 'comp1',  name: 'Master Compression I',     target: 'all',    mult: 2,  cost: 100000,  desc: 'Glue the whole mix. ALL stages ×2.' },
+  { id: 'viral',  name: 'Viral Remix Drop',         target: 'click',  mult: 10, cost: 250000,  desc: 'The algorithm loves you. Manual drops ×10.' },
+  { id: 'laser',  name: 'Laser Rig',                target: 'rave',   mult: 3,  cost: 400000,  desc: 'Green beams through fog. Warehouse Rave ×3.' },
+  { id: 'foam2',  name: 'Acoustic Foam II',         target: 'studio', mult: 5,  cost: 1e6,     desc: 'Bass traps in every corner. Bedroom Studio ×5.' },
+  { id: 'holo',   name: 'Holographic Headliner',    target: 'neon',   mult: 3,  cost: 5e6,     desc: 'A DJ who never cancels. Neon Festival ×3.' },
+  { id: 'xlr2',   name: 'Gold XLR Cables II',       target: 'vinyl',  mult: 5,  cost: 1.2e7,   desc: 'Audiophile-grade snake. Vinyl Plant ×5.' },
+  { id: 'zerog',  name: 'Zero-G Dancefloor',        target: 'lunar',  mult: 3,  cost: 6e7,     desc: 'Nobody ever lands. Lunar Arena ×3.' },
+  { id: 'sub2',   name: 'Subwoofer Arrays II',      target: 'club',   mult: 5,  cost: 1.5e8,   desc: 'Cardioid sub stack. Club ×5.' },
+  { id: 'comp2',  name: 'Master Compression II',    target: 'all',    mult: 3,  cost: 5e8,     desc: 'Parallel compression bus. ALL stages ×3.' },
+  { id: 'viral2', name: 'Algorithmic Hype Machine', target: 'click',  mult: 25, cost: 1e9,     desc: 'Every drop trends worldwide. Manual drops ×25.' },
+  { id: 'foam3',  name: 'Acoustic Foam III',        target: 'studio', mult: 10, cost: 2e9,     desc: 'Anechoic chamber. Bedroom Studio ×10.' },
+  { id: 'xlr3',   name: 'Gold XLR Cables III',      target: 'vinyl',  mult: 10, cost: 1e10,    desc: 'Cryogenically treated. Vinyl Plant ×10.' },
+  { id: 'sub3',   name: 'Subwoofer Arrays III',     target: 'club',   mult: 10, cost: 5e10,    desc: 'Infrasonic. Club ×10.' },
+  { id: 'comp3',  name: 'Master Compression III',   target: 'all',    mult: 5,  cost: 2.5e11,  desc: 'Mastered for interplanetary broadcast. ALL ×5.' },
+  { id: 'tour',   name: 'Interplanetary Tour Bus',  target: 'all',    mult: 2,  cost: 1e12,    desc: 'Mars by Friday. ALL ×2.' }
+];
+
+const TIERS = [
+  { name: 'Club Underground',     place: 'Basement · Earth',          threshold: 0,    bg: 0x07040f, neon: [0x22d3ee, 0xf472b6], accent: 0xa855f7, planet: null },
+  { name: 'Neon Festival',        place: 'Desert Mainstage · Earth',  threshold: 1e5,  bg: 0x0b0520, neon: [0xf472b6, 0xfacc15], accent: 0x22d3ee, planet: null },
+  { name: 'Lunar Arena',          place: 'Sea of Tranquility · Moon', threshold: 1e7,  bg: 0x02030c, neon: [0x34d399, 0x60a5fa], accent: 0xe2e8f0, planet: { color: 0xdfe6f0, size: 7, pos: [-20, 16, -34] } },
+  { name: 'Martian Orbital Rave', place: 'Low Orbit · Mars',          threshold: 1e9,  bg: 0x120406, neon: [0xfb923c, 0xef4444], accent: 0xfacc15, planet: { color: 0xc2410c, size: 11, pos: [22, 12, -38] } }
+];
+
+const SUFFIXES = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
+function fmt(n) {
+  if (!isFinite(n)) return '∞';
+  if (n < 0) return '-' + fmt(-n);
+  if (n < 1000) return n.toFixed(2);
+  const e = Math.min(Math.floor(Math.log10(n) / 3), SUFFIXES.length - 1);
+  if (e >= SUFFIXES.length - 1 && n >= Math.pow(1000, SUFFIXES.length)) return n.toExponential(2);
+  return (n / Math.pow(1000, e)).toFixed(2) + SUFFIXES[e];
+}
+function fmtInt(n) { return n < 1000 ? String(Math.floor(n)) : fmt(n); }
+function fmtMult(x) { return x < 1000 ? x.toFixed(2) : fmt(x); }
+function money(n) { return '$' + fmt(n); }
+function fmtTime(sec) {
+  sec = Math.max(0, Math.ceil(sec));
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  if (h > 0) return h + 'h ' + String(m).padStart(2, '0') + 'm';
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+function fmtDuration(sec) {
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
+  if (h > 0) return h + 'h ' + m + 'm';
+  if (m > 0) return m + 'm ' + Math.floor(sec % 60) + 's';
+  return Math.floor(sec) + 's';
+}
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+function rand(a, b) { return a + Math.random() * (b - a); }
+function $(id) { return document.getElementById(id); }
+function stageDef(id) { return STAGES.find(s => s.id === id); }
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+/* ==========================================================================================
+   2. STATE & PERSISTENCE
+   ========================================================================================== */
+function defaultState() {
+  const stages = {};
+  for (const s of STAGES) stages[s.id] = { owned: s.id === 'studio' ? 1 : 0, progress: 0, running: false };
+  return {
+    version: 1,
+    cash: 0,
+    lifetimeEarnings: 0,
+    runEarnings: 0,
+    execs: 0,
+    execsClaimedTotal: 0,
+    stages,
+    managers: {},
+    upgrades: {},
+    warpReadyAt: 0,
+    frenzyUntil: 0,
+    totalClicks: 0,
+    stats: { prestiges: 0, warps: 0, airdrops: 0, milestones: 0 },
+    settings: { volume: 0.8, muted: false, buyMode: '1' },
+    lastSave: Date.now(),
+    firstPlayed: Date.now()
+  };
+}
+
+let state = defaultState();
+
+const Persistence = {
+  load() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      return this.migrate(data);
+    } catch (e) {
+      console.warn('[DJ Gem] Save could not be read, starting fresh.', e);
+      return null;
+    }
+  },
+  migrate(data) {
+    const base = defaultState();
+    const merged = Object.assign({}, base, data);
+    merged.stages = Object.assign({}, base.stages);
+    for (const id of Object.keys(base.stages)) {
+      merged.stages[id] = Object.assign({}, base.stages[id], (data.stages && data.stages[id]) || {});
+      if (!isFinite(merged.stages[id].owned)) merged.stages[id].owned = base.stages[id].owned;
+    }
+    merged.managers = Object.assign({}, data.managers || {});
+    merged.upgrades = Object.assign({}, data.upgrades || {});
+    merged.stats = Object.assign({}, base.stats, data.stats || {});
+    merged.settings = Object.assign({}, base.settings, data.settings || {});
+    for (const k of ['cash', 'lifetimeEarnings', 'runEarnings', 'execs', 'execsClaimedTotal', 'warpReadyAt', 'frenzyUntil', 'totalClicks', 'lastSave', 'firstPlayed']) {
+      if (!isFinite(merged[k])) merged[k] = base[k];
+    }
+    return merged;
+  },
+  save() {
+    try {
+      state.lastSave = Date.now();
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.warn('[DJ Gem] Could not save.', e);
+    }
+  },
+  exportString() { return btoa(unescape(encodeURIComponent(JSON.stringify(state)))); },
+  importString(str) {
+    const data = JSON.parse(decodeURIComponent(escape(atob(str.trim()))));
+    if (!data || typeof data !== 'object' || !data.stages) throw new Error('Not a DJ Gem save');
+    state = this.migrate(data);
+    this.save();
+  },
+  wipe() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ } }
+};
+
+/* ==========================================================================================
+   3. ECONOMY
+   ========================================================================================== */
+const Economy = {
+  buyMode: '1',
+  listeners: {},
+  on(evt, fn) { (this.listeners[evt] = this.listeners[evt] || []).push(fn); },
+  emit(evt, payload) { (this.listeners[evt] || []).forEach(fn => { try { fn(payload); } catch (e) { console.error(e); } }); },
+
+  milestonesReached(owned) { let n = 0; for (const m of MILESTONES) if (owned >= m) n++; return n; },
+  nextMilestone(owned) { for (const m of MILESTONES) if (owned < m) return m; return null; },
+  stageUpgradeMult(id) { let m = 1; for (const u of UPGRADES) if (state.upgrades[u.id] && u.target === id) m *= u.mult; return m; },
+  globalUpgradeMult() { let m = 1; for (const u of UPGRADES) if (state.upgrades[u.id] && u.target === 'all') m *= u.mult; return m; },
+  clickUpgradeMult() { let m = 1; for (const u of UPGRADES) if (state.upgrades[u.id] && u.target === 'click') m *= u.mult; return m; },
+  prestigeMult() { return Math.pow(1.02, state.execs); },
+  frenzyActive() { return Date.now() < state.frenzyUntil; },
+  frenzyMult() { return this.frenzyActive() ? FRENZY_MULT : 1; },
+  globalMult() { return this.globalUpgradeMult() * this.prestigeMult() * this.frenzyMult(); },
+
+  stageProfit(def) {
+    const s = state.stages[def.id];
+    return def.baseProfit * s.owned * Math.pow(2, this.milestonesReached(s.owned)) * this.stageUpgradeMult(def.id) * this.globalMult();
+  },
+  stageCycle(def) { return def.baseTime / Math.pow(2, this.milestonesReached(state.stages[def.id].owned)); },
+  stageCPS(def) {
+    const s = state.stages[def.id];
+    if (s.owned <= 0 || !state.managers[def.id]) return 0;
+    return this.stageProfit(def) / this.stageCycle(def);
+  },
+  totalCPS() { let t = 0; for (const d of STAGES) t += this.stageCPS(d); return t; },
+  totalCPSNoFrenzy() { return this.totalCPS() / this.frenzyMult(); },
+
+  clickValue() {
+    const cps = this.totalCPSNoFrenzy();
+    return (1 + cps * 0.02) * this.clickUpgradeMult() * this.prestigeMult() * this.frenzyMult();
+  },
+
+  costOfN(def, n) {
+    const owned = state.stages[def.id].owned;
+    return def.baseCost * Math.pow(COST_GROWTH, owned) * (Math.pow(COST_GROWTH, n) - 1) / (COST_GROWTH - 1);
+  },
+  maxAffordable(def) {
+    const owned = state.stages[def.id].owned;
+    const unit = def.baseCost * Math.pow(COST_GROWTH, owned);
+    let n = Math.floor(Math.log(state.cash * (COST_GROWTH - 1) / unit + 1) / Math.log(COST_GROWTH));
+    if (!isFinite(n) || n < 0) n = 0;
+    // Guard against floating-point rounding pushing the exact cost a hair above the cash balance.
+    while (n > 0 && this.costOfN(def, n) > state.cash) n--;
+    return n;
+  },
+  quantityForMode(def) {
+    const owned = state.stages[def.id].owned;
+    switch (this.buyMode) {
+      case '10': return 10;
+      case 'next': { const nm = this.nextMilestone(owned); return nm ? nm - owned : 100; }
+      case 'max': return Math.max(1, this.maxAffordable(def));
+      default: return 1;
+    }
+  },
+
+  earn(amount, source) {
+    if (!isFinite(amount) || amount <= 0) return;
+    const prevTier = this.tierIndex();
+    state.cash += amount;
+    state.lifetimeEarnings += amount;
+    state.runEarnings += amount;
+    const newTier = this.tierIndex();
+    if (newTier !== prevTier) this.emit('tier', newTier);
+    this.emit('earn', { amount, source });
+  },
+  spend(amount) {
+    if (state.cash < amount) return false;
+    state.cash -= amount;
+    return true;
+  },
+
+  tierIndex() {
+    const L = state.lifetimeEarnings;
+    let t = 0;
+    for (let i = 0; i < TIERS.length; i++) if (L >= TIERS[i].threshold) t = i;
+    return t;
+  },
+
+  buyStage(def) {
+    const n = this.quantityForMode(def);
+    const cost = this.costOfN(def, n);
+    if (!this.spend(cost)) { this.emit('denied', def.name); return false; }
+    const s = state.stages[def.id];
+    const before = this.milestonesReached(s.owned);
+    const wasZero = s.owned === 0;
+    s.owned += n;
+    const after = this.milestonesReached(s.owned);
+    this.emit('buy', { def, n, cost });
+    if (wasZero) this.emit('stemUnlock', def);
+    if (after > before) { state.stats.milestones += after - before; this.emit('milestone', { def, milestone: MILESTONES[after - 1], count: after }); }
+    return true;
+  },
+  buyManager(m) {
+    if (state.managers[m.stage]) return false;
+    if (!this.spend(m.cost)) { this.emit('denied', m.name); return false; }
+    state.managers[m.stage] = true;
+    const s = state.stages[m.stage];
+    if (s.owned > 0) s.running = true;
+    this.emit('manager', m);
+    return true;
+  },
+  buyUpgrade(u) {
+    if (state.upgrades[u.id]) return false;
+    if (!this.spend(u.cost)) { this.emit('denied', u.name); return false; }
+    state.upgrades[u.id] = true;
+    this.emit('upgrade', u);
+    return true;
+  },
+  startCycle(def) {
+    const s = state.stages[def.id];
+    if (s.owned <= 0 || s.running) return false;
+    s.running = true;
+    s.progress = 0;
+    return true;
+  },
+
+  tick(dt) {
+    if (dt > 1.5) {
+      // Long gap (tab throttled). Pay out automated income flatly instead of simulating cycles.
+      const amount = this.totalCPS() * dt;
+      if (amount > 0) this.earn(amount, 'catchup');
+      return;
+    }
+    for (const def of STAGES) {
+      const s = state.stages[def.id];
+      if (s.owned <= 0) continue;
+      const managed = !!state.managers[def.id];
+      if (managed && !s.running) s.running = true;
+      if (!s.running) continue;
+      const cycle = this.stageCycle(def);
+      s.progress += dt / cycle;
+      if (s.progress >= 1) {
+        const cycles = Math.floor(s.progress);
+        const profit = this.stageProfit(def) * cycles;
+        this.earn(profit, def.id);
+        this.emit('payout', { def, profit });
+        if (managed) s.progress -= cycles;
+        else { s.progress = 0; s.running = false; }
+      }
+    }
+  },
+
+  // ---- Prestige ----
+  execsForLifetime(L) { return Math.floor(Math.sqrt(Math.max(0, L) / EXEC_BASE)); },
+  claimableExecs() { return Math.max(0, this.execsForLifetime(state.lifetimeEarnings) - state.execsClaimedTotal); },
+  nextExecAt() { const n = state.execsClaimedTotal + this.claimableExecs() + 1; return n * n * EXEC_BASE; },
+  prestige() {
+    const gain = this.claimableExecs();
+    if (gain <= 0) return false;
+    state.execs += gain;
+    state.execsClaimedTotal += gain;
+    state.stats.prestiges += 1;
+    state.cash = 0;
+    state.runEarnings = 0;
+    for (const def of STAGES) state.stages[def.id] = { owned: def.id === 'studio' ? 1 : 0, progress: 0, running: false };
+    state.managers = {};
+    state.upgrades = {};
+    state.frenzyUntil = 0;
+    this.emit('prestige', gain);
+    return true;
+  },
+
+  // ---- Time warp ----
+  warpReady() { return Date.now() >= state.warpReadyAt; },
+  warp() {
+    if (!this.warpReady()) return { ok: false, reason: 'cooldown' };
+    const cps = this.totalCPSNoFrenzy();
+    if (cps <= 0) return { ok: false, reason: 'nocps' };
+    const amount = cps * 3600 * WARP_HOURS;
+    this.earn(amount, 'warp');
+    state.warpReadyAt = Date.now() + WARP_COOLDOWN_MS;
+    state.stats.warps += 1;
+    this.emit('warp', amount);
+    return { ok: true, amount };
+  },
+
+  // ---- Frenzy ----
+  startFrenzy() {
+    state.frenzyUntil = Math.max(Date.now(), state.frenzyUntil) + FRENZY_MS;
+    state.stats.airdrops += 1;
+    this.emit('frenzy', state.frenzyUntil);
+  },
+
+  // ---- Offline ----
+  computeOffline(now) {
+    const away = Math.max(0, (now - state.lastSave) / 1000);
+    const effective = Math.min(away, OFFLINE_CAP_SEC);
+    const cps = this.totalCPSNoFrenzy();
+    return { away, effective, amount: cps * effective };
+  },
+
+  click() {
+    const v = this.clickValue();
+    state.totalClicks += 1;
+    this.earn(v, 'click');
+    return v;
+  }
+};
+
+/* ==========================================================================================
+   4. AUDIO ENGINE  — 126 BPM procedural tech-house / synthwave, zero samples
+   ========================================================================================== */
+const AudioEngine = (function () {
+  const BPM = 126, BEAT = 60 / BPM, STEP = BEAT / 4, BAR = BEAT * 4;
+  const LOOKAHEAD_MS = 25;
+  let ctx = null, master = null, comp = null, analyser = null, fxGain = null;
+  let delayNode = null, delayOut = null;
+  const stems = {};
+  const unlocked = { kick: true, bass: false, hats: false, chords: false, lead: false, pad: false };
+  let step = 0, nextTime = 0, timer = null, running = false, aheadSec = 0.16;
+  let noiseBuf = null;
+  let tier = 0, cutoff = 0.3;
+  let dropStart = -1, buildEnd = -1, dropFired = true;
+  const kickTimes = [];
+  let volume = 0.8, muted = false;
+  const listeners = { drop: [], bar: [] };
+
+  const CHORD = { m: [0, 3, 7], M: [0, 4, 7], M7: [0, 4, 7, 11], m7: [0, 3, 7, 10] };
+  // Semitones relative to A. One chord per bar, four bars per loop.
+  const PROG = [
+    [{ r: 0, t: 'm' }, { r: 0, t: 'm' }, { r: 8, t: 'M7' }, { r: 10, t: 'M' }],   // Am  Am  Fmaj7 G    — dark & minimal
+    [{ r: 0, t: 'm' }, { r: 8, t: 'M' }, { r: 3, t: 'M' }, { r: 10, t: 'M' }],    // Am  F   C     G    — classic synthwave
+    [{ r: 5, t: 'm' }, { r: 8, t: 'M' }, { r: 0, t: 'm' }, { r: 10, t: 'M' }],    // Dm  F   Am    G    — lunar lift
+    [{ r: 8, t: 'M7' }, { r: 10, t: 'M' }, { r: 0, t: 'm7' }, { r: 7, t: 'M' }]   // Fmaj7 G Am7   E    — martian tension
+  ];
+  const BASS = [
+    [[0, 1], null, [0, .7], null, null, [0, .9], null, [0, .7], [0, 1], null, [0, .7], null, null, [0, .9], [12, .6], null],
+    [[0, 1], null, [0, .7], [0, .6], null, [12, .8], null, [0, .7], [0, 1], null, [0, .7], [7, .7], null, [0, .9], [12, .6], null],
+    [[0, 1], [12, .5], [0, .7], null, [0, .6], [12, .8], null, [0, .7], [0, 1], [12, .5], [0, .7], [7, .7], null, [0, .9], [12, .6], [10, .5]],
+    [[0, 1], [12, .6], [0, .8], [12, .5], [0, .6], [12, .9], [0, .5], [0, .7], [0, 1], [12, .6], [0, .8], [7, .7], [0, .5], [0, .9], [12, .7], [10, .6]]
+  ];
+  const freq = (semi, base) => base * Math.pow(2, semi / 12);
+
+  function ensure() {
+    if (ctx) {
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      return true;
+    }
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      try { ctx = new AC({ latencyHint: 'interactive' }); } catch (optErr) { ctx = new AC(); }
+      build();
+      start();
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      return true;
+    } catch (e) {
+      console.warn('[DJ Gem] Web Audio unavailable:', e);
+      ctx = null;
+      return false;
+    }
+  }
+
+  function build() {
+    master = ctx.createGain();
+    master.gain.value = muted ? 0 : volume;
+    comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -14; comp.knee.value = 18; comp.ratio.value = 5; comp.attack.value = 0.004; comp.release.value = 0.22;
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024; analyser.smoothingTimeConstant = 0.82;
+    comp.connect(master); master.connect(analyser); analyser.connect(ctx.destination);
+    for (const n of Object.keys(unlocked)) {
+      const g = ctx.createGain();
+      g.gain.value = unlocked[n] ? 1 : 0;
+      g.connect(comp);
+      stems[n] = g;
+    }
+    fxGain = ctx.createGain(); fxGain.gain.value = 0.9; fxGain.connect(comp);
+    // Dotted-eighth feedback delay for the lead arp
+    delayNode = ctx.createDelay(1.0); delayNode.delayTime.value = STEP * 3;
+    const fb = ctx.createGain(); fb.gain.value = 0.38;
+    const dfilt = ctx.createBiquadFilter(); dfilt.type = 'lowpass'; dfilt.frequency.value = 2800;
+    delayNode.connect(dfilt); dfilt.connect(fb); fb.connect(delayNode);
+    delayOut = ctx.createGain(); delayOut.gain.value = 0.45;
+    dfilt.connect(delayOut); delayOut.connect(stems.lead);
+    // Shared white-noise buffer
+    const len = Math.floor(ctx.sampleRate * 2);
+    noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  }
+
+  function start() {
+    if (running) return;
+    running = true;
+    step = 0;
+    nextTime = ctx.currentTime + 0.08;
+    timer = setInterval(schedule, LOOKAHEAD_MS);
+  }
+
+  function schedule() {
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    if (nextTime < now - 0.5) {
+      // Timers were throttled; resync to the grid instead of dumping a burst of late notes.
+      const missed = Math.ceil((now - nextTime) / STEP);
+      step = (step + missed) % 64;
+      nextTime += missed * STEP;
+    }
+    while (nextTime < now + aheadSec) {
+      scheduleStep(step, nextTime);
+      nextTime += STEP;
+      step = (step + 1) % 64;
+    }
+  }
+
+  function scheduleStep(s, t) {
+    const bar = Math.floor(s / 16) % 4, st = s % 16;
+    const chord = PROG[tier][bar];
+    const inBuild = t >= dropStart && t < buildEnd;
+    if (!dropFired && t >= buildEnd) {
+      dropFired = true;
+      playCrash(t); playBoom(t);
+      listeners.drop.forEach(fn => fn(t));
+    }
+    if (st === 0) listeners.bar.forEach(fn => fn(t, bar));
+
+    // Kick: four on the floor
+    if (st % 4 === 0 && !inBuild && unlocked.kick) { playKick(t); kickTimes.push(t); }
+    // Hats: off-beat eighths loud, in-between sixteenths soft
+    if (unlocked.hats) {
+      if (st % 4 === 2) playHat(t, 0.55, 0.13);
+      else if (st % 2 === 1) playHat(t, 0.18, 0.045);
+      if (inBuild && st % 2 === 0) playHat(t, 0.3, 0.05);
+      if (st === 4 || st === 12) playClap(t);
+    }
+    // Bass: 16th-note groove
+    if (unlocked.bass && !inBuild) {
+      const bp = BASS[tier][st];
+      if (bp) playBass(t, chord.r + bp[0], bp[1]);
+    }
+    // Chords: pluck on the downbeat, stabs on the "and" of 2 and 4
+    if (unlocked.chords) {
+      if (st === 0) playChord(t, chord, 0.55, 0.9);
+      else if (st === 6 || st === 14) playChord(t, chord, 0.4, 0.28);
+      else if (tier >= 2 && st === 10) playChord(t, chord, 0.3, 0.2);
+    }
+    // Lead arp: eighths at low tiers, sixteenths once the festival is lit
+    if (unlocked.lead && (tier >= 1 || st % 2 === 0)) playArp(t, chord, s);
+    // Pad: one sustained chord per bar
+    if (unlocked.pad && st === 0) playPad(t, chord);
+  }
+
+  // ---------- Instruments ----------
+  function noiseSource(t, dur) {
+    const src = ctx.createBufferSource();
+    src.buffer = noiseBuf;
+    src.start(t); src.stop(t + dur + 0.05);
+    return src;
+  }
+  function playKick(t) {
+    const o = ctx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(140, t);
+    o.frequency.exponentialRampToValueAtTime(40, t + 0.09);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(1.0, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
+    o.connect(g); g.connect(stems.kick);
+    o.start(t); o.stop(t + 0.4);
+    const c = ctx.createOscillator(); c.type = 'square';
+    c.frequency.setValueAtTime(900, t); c.frequency.exponentialRampToValueAtTime(180, t + 0.02);
+    const cg = ctx.createGain(); cg.gain.setValueAtTime(0.22, t); cg.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+    c.connect(cg); cg.connect(stems.kick);
+    c.start(t); c.stop(t + 0.04);
+  }
+  function playHat(t, vel, decay) {
+    const src = noiseSource(t, decay);
+    const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 7200; f.Q.value = 0.7;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(vel * 0.55, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + decay);
+    src.connect(f); f.connect(g); g.connect(stems.hats);
+  }
+  function playClap(t) {
+    const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1800; f.Q.value = 0.9;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    for (const off of [0, 0.011, 0.022]) {
+      g.gain.setValueAtTime(0.85, t + off);
+      g.gain.exponentialRampToValueAtTime(0.15, t + off + 0.009);
+    }
+    g.gain.setValueAtTime(0.7, t + 0.033);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
+    const src = noiseSource(t, 0.26);
+    src.connect(f); f.connect(g); g.connect(stems.hats);
+    // Dual-oscillator body transient
+    const o1 = ctx.createOscillator(); o1.type = 'triangle';
+    o1.frequency.setValueAtTime(230, t); o1.frequency.exponentialRampToValueAtTime(120, t + 0.08);
+    const o2 = ctx.createOscillator(); o2.type = 'sine';
+    o2.frequency.setValueAtTime(340, t); o2.frequency.exponentialRampToValueAtTime(160, t + 0.06);
+    const bg = ctx.createGain(); bg.gain.setValueAtTime(0.32, t); bg.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+    o1.connect(bg); o2.connect(bg); bg.connect(stems.hats);
+    o1.start(t); o2.start(t); o1.stop(t + 0.15); o2.stop(t + 0.15);
+  }
+  function playBass(t, semi, vel) {
+    const f0 = freq(semi, 55);
+    const o1 = ctx.createOscillator(); o1.type = 'sawtooth'; o1.frequency.value = f0;
+    const o2 = ctx.createOscillator(); o2.type = 'square'; o2.frequency.value = f0; o2.detune.value = -6;
+    const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.Q.value = 9;
+    const base = 110 + cutoff * 900, peak = base + 500 + cutoff * 2600;
+    f.frequency.setValueAtTime(peak, t);
+    f.frequency.exponentialRampToValueAtTime(base, t + 0.17);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.5 * vel, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.21);
+    o1.connect(f); o2.connect(f); f.connect(g); g.connect(stems.bass);
+    o1.start(t); o2.start(t); o1.stop(t + 0.23); o2.stop(t + 0.23);
+  }
+  function playChord(t, chord, vel, dur) {
+    const notes = CHORD[chord.t].map(i => freq(chord.r + i, 220));
+    const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.Q.value = 2;
+    const base = 420 + cutoff * 2200;
+    f.frequency.setValueAtTime(base * 2.5 + 900, t);
+    f.frequency.exponentialRampToValueAtTime(base, t + dur * 0.6);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vel * 0.2, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    f.connect(g); g.connect(stems.chords);
+    notes.forEach((fr, i) => {
+      for (const det of [-7, 7]) {
+        const o = ctx.createOscillator();
+        o.type = i % 2 ? 'sawtooth' : 'triangle';
+        o.frequency.value = fr; o.detune.value = det;
+        o.connect(f); o.start(t); o.stop(t + dur + 0.05);
+      }
+    });
+  }
+  function playArp(t, chord, s) {
+    const iv = CHORD[chord.t];
+    const pool = iv.concat(iv.map(i => i + 12)).concat([iv[0] + 24]);
+    const L = pool.length, cyc = 2 * L - 2;
+    let idx = s % cyc; if (idx >= L) idx = cyc - idx;
+    const fr = freq(chord.r + pool[idx], 440);
+    const o = ctx.createOscillator(); o.type = tier >= 2 ? 'sawtooth' : 'square'; o.frequency.value = fr;
+    const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.Q.value = 1.5;
+    f.frequency.setValueAtTime(1500 + cutoff * 5000, t);
+    f.frequency.exponentialRampToValueAtTime(600 + cutoff * 1500, t + 0.12);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.15, t + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.17);
+    o.connect(f); f.connect(g); g.connect(stems.lead); g.connect(delayNode);
+    o.start(t); o.stop(t + 0.2);
+  }
+  function playPad(t, chord) {
+    const notes = CHORD[chord.t].map(i => freq(chord.r + i, 110));
+    const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 320 + cutoff * 1400; f.Q.value = 1;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.11, t + 0.5);
+    g.gain.setValueAtTime(0.11, t + BAR - 0.35);
+    g.gain.linearRampToValueAtTime(0.0001, t + BAR);
+    f.connect(g); g.connect(stems.pad);
+    notes.forEach(fr => {
+      for (const det of [-11, 11]) {
+        const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = fr * 2; o.detune.value = det;
+        o.connect(f); o.start(t); o.stop(t + BAR + 0.05);
+      }
+    });
+  }
+  function playCrash(t) {
+    const n = noiseSource(t, 1.6);
+    const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 2800;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.6, t); g.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
+    n.connect(f); f.connect(g); g.connect(fxGain);
+  }
+  function playBoom(t) {
+    const o = ctx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(95, t); o.frequency.exponentialRampToValueAtTime(28, t + 0.5);
+    const g = ctx.createGain(); g.gain.setValueAtTime(1, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.75);
+    o.connect(g); g.connect(fxGain); o.start(t); o.stop(t + 0.8);
+  }
+
+  // ---------- One-shots triggered by the game ----------
+  function click() {
+    if (!ensure()) return;
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(2600, t); o.frequency.exponentialRampToValueAtTime(700, t + 0.06);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.45, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+    o.connect(g); g.connect(fxGain); o.start(t); o.stop(t + 0.1);
+    const n = noiseSource(t, 0.04);
+    const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 5000;
+    const ng = ctx.createGain(); ng.gain.setValueAtTime(0.28, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+    n.connect(f); f.connect(ng); ng.connect(fxGain);
+  }
+  function blip(notes, len, type) {
+    if (!ensure()) return;
+    const t0 = ctx.currentTime;
+    notes.forEach((semi, i) => {
+      const t = t0 + i * len;
+      const o = ctx.createOscillator(); o.type = type || 'triangle'; o.frequency.value = freq(semi, 440);
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.25, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + len * 1.8);
+      o.connect(g); g.connect(fxGain); o.start(t); o.stop(t + len * 2);
+    });
+  }
+  const sfx = {
+    buy() { blip([0, 7], 0.07, 'triangle'); },
+    manager() { blip([0, 4, 7, 12], 0.08, 'triangle'); },
+    upgrade() { blip([0, 5, 9, 12, 16], 0.07, 'square'); },
+    coin() { blip([12, 16, 19, 24, 28], 0.05, 'sine'); },
+    deny() { blip([-12, -13], 0.12, 'sawtooth'); },
+    prestige() { blip([0, 4, 7, 12, 16, 19, 24], 0.1, 'triangle'); }
+  };
+
+  function triggerDrop() {
+    if (!ensure() || !dropFired) return;
+    const now = ctx.currentTime;
+    const stepsToBar = (16 - (step % 16)) % 16;
+    let start = nextTime + stepsToBar * STEP;
+    if (start < now) start = now;
+    dropStart = start; buildEnd = start + 2 * BAR; dropFired = false;
+    const n = noiseSource(start, 2 * BAR);
+    const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 1.4;
+    f.frequency.setValueAtTime(260, start); f.frequency.exponentialRampToValueAtTime(8000, buildEnd);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, start); g.gain.exponentialRampToValueAtTime(0.5, buildEnd - 0.02); g.gain.setValueAtTime(0.0001, buildEnd);
+    n.connect(f); f.connect(g); g.connect(fxGain);
+    const o = ctx.createOscillator(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(110, start); o.frequency.exponentialRampToValueAtTime(880, buildEnd);
+    const og = ctx.createGain(); og.gain.setValueAtTime(0.0001, start); og.gain.linearRampToValueAtTime(0.11, buildEnd - 0.01); og.gain.setValueAtTime(0.0001, buildEnd);
+    o.connect(og); og.connect(fxGain); o.start(start); o.stop(buildEnd + 0.02);
+  }
+
+  // ---------- Public controls ----------
+  function setStem(name, on) {
+    if (!(name in unlocked)) return;
+    unlocked[name] = !!on;
+    if (ctx && stems[name]) stems[name].gain.setTargetAtTime(on ? 1 : 0, ctx.currentTime, 0.4);
+  }
+  function setTier(n) { tier = clamp(n | 0, 0, PROG.length - 1); }
+  function raiseCutoff(amount) { cutoff = clamp(cutoff + amount, 0, 1); }
+  function setCutoff(v) { cutoff = clamp(v, 0, 1); }
+  function setVolume(v) {
+    volume = clamp(v, 0, 1);
+    if (ctx && master) master.gain.setTargetAtTime(muted ? 0 : volume, ctx.currentTime, 0.03);
+  }
+  function setMuted(m) {
+    muted = !!m;
+    if (ctx && master) master.gain.setTargetAtTime(muted ? 0 : volume, ctx.currentTime, 0.03);
+  }
+  function pollKick() {
+    if (!ctx) return false;
+    const now = ctx.currentTime;
+    let hit = false;
+    while (kickTimes.length && kickTimes[0] <= now) { kickTimes.shift(); hit = true; }
+    if (kickTimes.length > 64) kickTimes.length = 0;
+    return hit;
+  }
+  function getWaveform(arr) { if (analyser) analyser.getByteTimeDomainData(arr); return !!analyser; }
+  function getFrequency(arr) { if (analyser) analyser.getByteFrequencyData(arr); return !!analyser; }
+  function on(evt, fn) { if (listeners[evt]) listeners[evt].push(fn); }
+
+  document.addEventListener('visibilitychange', () => {
+    aheadSec = document.hidden ? 1.6 : 0.16;
+    if (timer) { clearInterval(timer); timer = setInterval(schedule, document.hidden ? 400 : LOOKAHEAD_MS); }
+  });
+
+  return { ensure, isReady: () => !!ctx, click, sfx, triggerDrop, setStem, setTier, raiseCutoff, setCutoff, getCutoff: () => cutoff,
+    setVolume, setMuted, pollKick, getWaveform, getFrequency, on, BPM, BEAT, isMuted: () => muted, stems: unlocked };
+})();
+
+/* ==========================================================================================
+   5. WORLD  — Three.js isometric festival compound
+   ========================================================================================== */
+
+/** Minimal orbit/pan/zoom controls, used only if THREE.OrbitControls failed to load. */
+function makeSimpleOrbit(camera, dom) {
+  const self = {
+    camera, dom, target: new THREE.Vector3(), enabled: true,
+    enableDamping: true, dampingFactor: 0.1, minDistance: 2, maxDistance: 100,
+    minPolarAngle: 0.05, maxPolarAngle: Math.PI / 2 - 0.05, enablePan: true, enableZoom: true, enableRotate: true
+  };
+  const sph = new THREE.Spherical(), delta = new THREE.Spherical(0, 0, 0), pan = new THREE.Vector3();
+  let scale = 1;
+  const pointers = new Map();
+  let mode = 0, last = { x: 0, y: 0 }, pinch = 0;
+  function rotate(dx, dy) { delta.theta -= 2 * Math.PI * dx / dom.clientHeight; delta.phi -= 2 * Math.PI * dy / dom.clientHeight; }
+  function doPan(dx, dy) {
+    const off = camera.position.clone().sub(self.target);
+    const dist = off.length() * 2 * Math.tan((camera.fov / 2) * Math.PI / 180) / dom.clientHeight;
+    const left = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0).multiplyScalar(-dx * dist);
+    const up = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 1).multiplyScalar(dy * dist);
+    pan.add(left).add(up);
+  }
+  function centroid() { let x = 0, y = 0; for (const p of pointers.values()) { x += p.x; y += p.y; } return { x: x / pointers.size, y: y / pointers.size }; }
+  function pinchDist() { const a = [...pointers.values()]; return Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); }
+  dom.addEventListener('pointerdown', e => {
+    if (!self.enabled) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { dom.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    if (pointers.size === 1) { mode = (e.button === 2 || e.ctrlKey || e.shiftKey) ? 2 : 1; last = { x: e.clientX, y: e.clientY }; }
+    else if (pointers.size === 2) { mode = 3; last = centroid(); pinch = pinchDist(); }
+  });
+  dom.addEventListener('pointermove', e => {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (mode === 1 && self.enableRotate) { rotate(e.clientX - last.x, e.clientY - last.y); last = { x: e.clientX, y: e.clientY }; }
+    else if (mode === 2 && self.enablePan) { doPan(e.clientX - last.x, e.clientY - last.y); last = { x: e.clientX, y: e.clientY }; }
+    else if (mode === 3 && pointers.size === 2) {
+      const c = centroid(); if (self.enablePan) doPan(c.x - last.x, c.y - last.y); last = c;
+      const d = pinchDist(); if (pinch > 0 && self.enableZoom) scale *= pinch / d; pinch = d;
+    }
+  });
+  const end = e => { pointers.delete(e.pointerId); if (pointers.size === 0) mode = 0; else if (pointers.size === 1) { mode = 1; const p = [...pointers.values()][0]; last = { x: p.x, y: p.y }; } };
+  dom.addEventListener('pointerup', end); dom.addEventListener('pointercancel', end);
+  dom.addEventListener('wheel', e => { if (!self.enableZoom) return; e.preventDefault(); scale *= e.deltaY > 0 ? 1.1 : 1 / 1.1; }, { passive: false });
+  dom.addEventListener('contextmenu', e => e.preventDefault());
+  self.update = function () {
+    const off = camera.position.clone().sub(self.target);
+    sph.setFromVector3(off);
+    sph.theta += delta.theta; sph.phi += delta.phi;
+    sph.phi = clamp(sph.phi, self.minPolarAngle, self.maxPolarAngle);
+    sph.radius = clamp(sph.radius * scale, self.minDistance, self.maxDistance);
+    sph.makeSafe();
+    self.target.add(pan);
+    off.setFromSpherical(sph);
+    camera.position.copy(self.target).add(off);
+    camera.lookAt(self.target);
+    if (self.enableDamping) { delta.theta *= 1 - self.dampingFactor; delta.phi *= 1 - self.dampingFactor; pan.multiplyScalar(1 - self.dampingFactor); }
+    else { delta.set(0, 0, 0); pan.set(0, 0, 0); }
+    scale = 1;
+  };
+  self.dispose = function () {};
+  return self;
+}
+
+const World = (function () {
+  let ok = false;
+  let container, renderer, scene, camera, controls;
+  let beatPulse = 0, elapsed = 0, lastKickClock = 0;
+  const speakers = [], cones = [], platters = [], neonMats = [], glows = [], cans = [], ledCells = [];
+  let crowdBody = null, crowdHead = null, crowdData = [];
+  let dust = null, dustVel = null, notes = [], noteTex = [];
+  let disc = null, discGlow = null, ripples = [];
+  let planet = null, stars = null, ground = null, grid = null, boothGroup = null;
+  let tierIdx = 0;
+  const raycaster = new THREE.Raycaster();
+  const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.62);
+  const dummy = new THREE.Object3D();
+  const freqData = new Uint8Array(32);
+  const callbacks = { tap: null, disc: null };
+  const LED_COLS = 12, LED_ROWS = 6;
+
+  function glowTexture(hex) {
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const g = c.getContext('2d');
+    const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grad.addColorStop(0, 'rgba(255,255,255,0.9)');
+    grad.addColorStop(0.25, hex + 'cc');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grad; g.fillRect(0, 0, 128, 128);
+    const t = new THREE.CanvasTexture(c); return t;
+  }
+  function noteTexture(glyph, hex) {
+    const c = document.createElement('canvas'); c.width = c.height = 64;
+    const g = c.getContext('2d');
+    g.font = 'bold 48px serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.shadowColor = hex; g.shadowBlur = 12; g.fillStyle = hex;
+    g.fillText(glyph, 32, 34);
+    return new THREE.CanvasTexture(c);
+  }
+  function neonMat(hex) { const m = new THREE.MeshBasicMaterial({ color: hex }); m.userData.base = new THREE.Color(hex); neonMats.push(m); return m; }
+  function addGlow(pos, hex, size) {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture('#' + hex.toString(16).padStart(6, '0')), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.85 }));
+    s.position.copy(pos); s.scale.set(size, size, 1); s.userData.size = size;
+    scene.add(s); glows.push(s); return s;
+  }
+
+  function init(el, cbs) {
+    container = el;
+    Object.assign(callbacks, cbs || {});
+    if (typeof THREE === 'undefined') throw new Error('Three.js not loaded');
+    renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(Math.max(1, el.clientWidth), Math.max(1, el.clientHeight));
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    el.appendChild(renderer.domElement);
+
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(TIERS[0].bg);
+    scene.fog = new THREE.Fog(TIERS[0].bg, 34, 80);
+
+    camera = new THREE.PerspectiveCamera(38, el.clientWidth / Math.max(1, el.clientHeight), 0.1, 300);
+    camera.position.set(17, 13.5, 17);
+
+    const Ctor = (typeof THREE.OrbitControls === 'function') ? THREE.OrbitControls : null;
+    controls = Ctor ? new Ctor(camera, renderer.domElement) : makeSimpleOrbit(camera, renderer.domElement);
+    if (!controls.target) controls.target = new THREE.Vector3();
+    controls.target.set(0, 1.4, 1);
+    controls.enableDamping = true; controls.dampingFactor = 0.08;
+    controls.minDistance = 9; controls.maxDistance = 48;
+    controls.maxPolarAngle = Math.PI * 0.47;
+    controls.update();
+
+    buildLights(); buildGround(); buildStage(); buildBooth(); buildSpeakers(); buildTruss(); buildLedWall();
+    buildCrowd(); buildDust(); buildNotes(); buildDisc(); buildStars(); buildRipples();
+
+    window.addEventListener('resize', resize);
+    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(resize).observe(el);
+    bindPointer();
+    ok = true;
+  }
+
+  // ---------- Builders ----------
+  function buildLights() {
+    scene.add(new THREE.AmbientLight(0x404060, 0.6));
+    const hemi = new THREE.HemisphereLight(0x8060ff, 0x100818, 0.5); scene.add(hemi);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.45); dir.position.set(10, 18, 8); scene.add(dir);
+    const p1 = new THREE.PointLight(TIERS[0].neon[0], 1.4, 30); p1.position.set(-6, 5, 2); scene.add(p1);
+    const p2 = new THREE.PointLight(TIERS[0].neon[1], 1.4, 30); p2.position.set(6, 5, 2); scene.add(p2);
+    cans.push({ light: p1, idx: 0, phase: 0 }, { light: p2, idx: 1, phase: Math.PI });
+  }
+  function buildGround() {
+    ground = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.MeshStandardMaterial({ color: 0x0a0616, roughness: 0.95, metalness: 0.05 }));
+    ground.rotation.x = -Math.PI / 2; ground.position.y = -0.01; scene.add(ground);
+    grid = new THREE.GridHelper(120, 60, TIERS[0].neon[1], TIERS[0].neon[0]);
+    grid.material.transparent = true; grid.material.opacity = 0.16; grid.position.y = 0.005; scene.add(grid);
+  }
+  function buildStage() {
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(14, 0.6, 9), new THREE.MeshStandardMaterial({ color: 0x1a1230, roughness: 0.7, metalness: 0.3 }));
+    deck.position.set(0, 0.3, -1.5); scene.add(deck);
+    const front = new THREE.Mesh(new THREE.BoxGeometry(14.2, 0.08, 0.1), neonMat(TIERS[0].neon[0])); front.position.set(0, 0.62, 3.0); scene.add(front);
+    const back = new THREE.Mesh(new THREE.BoxGeometry(14.2, 0.08, 0.1), neonMat(TIERS[0].neon[1])); back.position.set(0, 0.62, -6.0); scene.add(back);
+    const l = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 9.1), neonMat(TIERS[0].neon[1])); l.position.set(-7.05, 0.62, -1.5); scene.add(l);
+    const r = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 9.1), neonMat(TIERS[0].neon[0])); r.position.set(7.05, 0.62, -1.5); scene.add(r);
+    // Stairs
+    for (let i = 0; i < 3; i++) {
+      const s = new THREE.Mesh(new THREE.BoxGeometry(3, 0.2, 0.5), new THREE.MeshStandardMaterial({ color: 0x241a40, roughness: 0.8 }));
+      s.position.set(0, 0.1 + i * 0.2, 3.9 - i * 0.5 + 0.25); scene.add(s);
+    }
+  }
+  function buildBooth() {
+    const booth = new THREE.Group(); booth.position.set(0, 0.6, -3.2);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(4.2, 1.2, 1.4), new THREE.MeshStandardMaterial({ color: 0x120c26, roughness: 0.5, metalness: 0.5 }));
+    body.position.y = 0.6; booth.add(body);
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(4.3, 0.12, 0.06), neonMat(TIERS[0].accent)); strip.position.set(0, 0.5, 0.74); booth.add(strip);
+    const top = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.1, 1.6), new THREE.MeshStandardMaterial({ color: 0x2a2050, roughness: 0.4, metalness: 0.6 })); top.position.y = 1.25; booth.add(top);
+    // Turntables
+    for (const x of [-1.35, 1.35]) {
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.08, 32), new THREE.MeshStandardMaterial({ color: 0x1b1b1b, roughness: 0.6, metalness: 0.4 }));
+      base.position.set(x, 1.34, 0); booth.add(base);
+      const platter = new THREE.Group(); platter.position.set(x, 1.4, 0);
+      const vinyl = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.04, 48), new THREE.MeshStandardMaterial({ color: 0x0b0b0b, roughness: 0.35, metalness: 0.5 })); platter.add(vinyl);
+      const label = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.045, 24), neonMat(x < 0 ? TIERS[0].neon[0] : TIERS[0].neon[1])); platter.add(label);
+      const marker = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.046, 0.04), new THREE.MeshBasicMaterial({ color: 0xffffff })); marker.position.set(0.36, 0, 0); platter.add(marker);
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.7), new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.3 }));
+      arm.position.set(x + 0.55, 1.48, -0.3); arm.rotation.y = -0.5; booth.add(arm);
+      booth.add(platter); platters.push(platter);
+    }
+    // Mixer
+    const mixer = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.12, 0.9), new THREE.MeshStandardMaterial({ color: 0x222233, roughness: 0.5, metalness: 0.5 })); mixer.position.set(0, 1.36, 0); booth.add(mixer);
+    for (let i = 0; i < 4; i++) {
+      const knob = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.06, 12), neonMat(i % 2 ? TIERS[0].neon[0] : TIERS[0].neon[1]));
+      knob.position.set(-0.3 + i * 0.2, 1.45, -0.25); booth.add(knob);
+    }
+    // DJ figure (holographic)
+    const djMat = new THREE.MeshBasicMaterial({ color: TIERS[0].accent, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false });
+    const djBody = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 1.1, 8), djMat); djBody.position.set(0, 0.75, -0.95); booth.add(djBody);
+    const djHead = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 12), djMat); djHead.position.set(0, 1.55, -0.95); booth.add(djHead);
+    const phones = new THREE.Mesh(new THREE.TorusGeometry(0.27, 0.05, 8, 20), neonMat(TIERS[0].neon[0])); phones.position.set(0, 1.6, -0.95); phones.rotation.y = Math.PI / 2; booth.add(phones);
+    booth.userData.dj = { body: djBody, head: djHead, phones };
+    scene.add(booth);
+    boothGroup = booth;
+  }
+  function buildSpeakers() {
+    const boxMat = new THREE.MeshStandardMaterial({ color: 0x15102a, roughness: 0.8, metalness: 0.2 });
+    for (const side of [-1, 1]) {
+      const stack = new THREE.Group(); stack.position.set(side * 5.6, 0.6, -2.2);
+      const sizes = [[1.8, 1.4, 1.5], [1.6, 1.2, 1.3], [1.3, 1.0, 1.1]];
+      let y = 0;
+      sizes.forEach((sz, i) => {
+        const box = new THREE.Mesh(new THREE.BoxGeometry(sz[0], sz[1], sz[2]), boxMat);
+        box.position.y = y + sz[1] / 2; stack.add(box);
+        const coneCount = i === 0 ? 1 : 2;
+        for (let c = 0; c < coneCount; c++) {
+          const rad = i === 0 ? 0.55 : 0.28;
+          const ring = new THREE.Mesh(new THREE.TorusGeometry(rad, 0.05, 8, 32), neonMat(side < 0 ? TIERS[0].neon[0] : TIERS[0].neon[1]));
+          const cx = coneCount === 1 ? 0 : (c === 0 ? -0.35 : 0.35);
+          ring.position.set(cx, y + sz[1] / 2, sz[2] / 2 + 0.02); stack.add(ring);
+          const cone = new THREE.Mesh(new THREE.ConeGeometry(rad * 0.9, 0.25, 24, 1, true), new THREE.MeshStandardMaterial({ color: 0x0a0a12, roughness: 0.9, side: THREE.DoubleSide }));
+          cone.rotation.x = Math.PI / 2; cone.position.set(cx, y + sz[1] / 2, sz[2] / 2 - 0.1); stack.add(cone);
+          cones.push({ mesh: ring, cone, base: ring.position.z });
+        }
+        y += sz[1];
+      });
+      scene.add(stack); speakers.push(stack);
+      addGlow(new THREE.Vector3(side * 5.6, 2.4, -1.4), side < 0 ? TIERS[0].neon[0] : TIERS[0].neon[1], 3.2);
+    }
+  }
+  function buildTruss() {
+    const trussMat = new THREE.MeshStandardMaterial({ color: 0x8a8aa0, metalness: 0.8, roughness: 0.4 });
+    for (const x of [-6.5, 6.5]) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 7, 8), trussMat); post.position.set(x, 4.1, -5.2); scene.add(post); }
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(13.4, 0.2, 0.2), trussMat); beam.position.set(0, 7.5, -5.2); scene.add(beam);
+    const beam2 = new THREE.Mesh(new THREE.BoxGeometry(13.4, 0.2, 0.2), trussMat); beam2.position.set(0, 7.5, 1.2); scene.add(beam2);
+    for (const x of [-6.5, 6.5]) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 7, 8), trussMat); post.position.set(x, 4.1, 1.2); scene.add(post); }
+    for (const z of [-5.2, 1.2]) for (const x of [-6.5, 6.5]) { const cross = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 6.4), trussMat); cross.position.set(x, 7.5, -2); scene.add(cross); }
+    // Light cans with sweeping spotlights
+    const colors = [TIERS[0].neon[0], TIERS[0].neon[1], TIERS[0].accent, TIERS[0].neon[0], TIERS[0].neon[1]];
+    for (let i = 0; i < 5; i++) {
+      const x = -5 + i * 2.5;
+      const can = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.3, 0.5, 12), new THREE.MeshStandardMaterial({ color: 0x222228, metalness: 0.8, roughness: 0.4 }));
+      can.position.set(x, 7.15, 1.2); scene.add(can);
+      const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.06, 12), neonMat(colors[i])); lens.position.set(x, 6.88, 1.2); scene.add(lens);
+      const spot = new THREE.SpotLight(colors[i], 1.1, 24, Math.PI / 9, 0.6, 1.2);
+      spot.position.set(x, 7.1, 1.2);
+      spot.target.position.set(x * 0.4, 0.6, -2); scene.add(spot); scene.add(spot.target);
+      addGlow(new THREE.Vector3(x, 6.8, 1.25), colors[i], 1.6);
+      cans.push({ light: spot, idx: i % 2, phase: i * 1.3, x, sweep: true });
+      // Beam cone (visual)
+      const beamMesh = new THREE.Mesh(new THREE.ConeGeometry(2.2, 7, 20, 1, true), new THREE.MeshBasicMaterial({ color: colors[i], transparent: true, opacity: 0.07, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+      beamMesh.position.set(x, 3.6, 1.2); beamMesh.rotation.x = Math.PI; scene.add(beamMesh);
+      cans[cans.length - 1].beam = beamMesh;
+    }
+  }
+  function buildLedWall() {
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(12.4, 6.4, 0.3), new THREE.MeshStandardMaterial({ color: 0x08060f, roughness: 0.9 }));
+    wall.position.set(0, 3.9, -5.6); scene.add(wall);
+    const cellGeo = new THREE.BoxGeometry(0.86, 0.86, 0.1);
+    for (let r = 0; r < LED_ROWS; r++) for (let c = 0; c < LED_COLS; c++) {
+      const m = new THREE.MeshBasicMaterial({ color: 0x111122 });
+      const cell = new THREE.Mesh(cellGeo, m);
+      cell.position.set(-5.5 + c * 1.0, 1.4 + r * 1.0, -5.4);
+      scene.add(cell); ledCells.push({ mesh: cell, r, c });
+    }
+  }
+  function buildCrowd() {
+    const MAX = 160;
+    const mat = new THREE.MeshBasicMaterial({ color: TIERS[0].neon[0], transparent: true, opacity: 0.38, blending: THREE.AdditiveBlending, depthWrite: false });
+    crowdBody = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.17, 0.22, 0.85, 6), mat, MAX);
+    crowdHead = new THREE.InstancedMesh(new THREE.SphereGeometry(0.17, 8, 8), mat, MAX);
+    crowdData = [];
+    for (let i = 0; i < MAX; i++) {
+      const row = Math.floor(i / 16), col = i % 16;
+      crowdData.push({
+        x: -9 + col * 1.2 + rand(-0.4, 0.4) + (row % 2) * 0.6,
+        z: 4.8 + row * 1.15 + rand(-0.3, 0.3),
+        phase: rand(0, Math.PI * 2), speed: rand(1.6, 2.6), h: rand(0.8, 1.15), arms: Math.random() < 0.3
+      });
+    }
+    crowdBody.count = 0; crowdHead.count = 0;
+    crowdBody.instanceMatrix.setUsage(THREE.DynamicDrawUsage); crowdHead.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    scene.add(crowdBody); scene.add(crowdHead);
+  }
+  function buildDust() {
+    const N = 420;
+    const pos = new Float32Array(N * 3); dustVel = new Float32Array(N);
+    for (let i = 0; i < N; i++) { pos[i * 3] = rand(-16, 16); pos[i * 3 + 1] = rand(0, 14); pos[i * 3 + 2] = rand(-10, 18); dustVel[i] = rand(0.25, 0.9); }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    dust = new THREE.Points(geo, new THREE.PointsMaterial({ color: TIERS[0].neon[1], size: 0.11, transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true }));
+    scene.add(dust);
+  }
+  function buildNotes() {
+    noteTex = [noteTexture('♪', '#22d3ee'), noteTexture('♫', '#f472b6'), noteTexture('♬', '#facc15')];
+    for (let i = 0; i < 22; i++) {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: noteTex[i % 3], transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+      s.scale.set(0.7, 0.7, 1); s.visible = false; scene.add(s);
+      notes.push({ sprite: s, life: 0, vx: 0, vy: 0, vz: 0 });
+    }
+  }
+  function spawnNote(origin, burst) {
+    const n = notes.find(n => n.life <= 0); if (!n) return;
+    n.life = burst ? rand(2.2, 3.2) : rand(2.5, 3.8);
+    n.sprite.position.copy(origin).add(new THREE.Vector3(rand(-0.6, 0.6), 0, rand(-0.3, 0.3)));
+    n.vx = rand(-0.6, 0.6) * (burst ? 2.5 : 1); n.vy = rand(1.2, 2.2); n.vz = rand(-0.4, 0.4) * (burst ? 2.5 : 1);
+    n.sprite.visible = true; n.sprite.material.opacity = 1;
+    n.sprite.material.map = noteTex[Math.floor(Math.random() * 3)];
+  }
+  function buildDisc() {
+    disc = new THREE.Group();
+    const gold = new THREE.MeshStandardMaterial({ color: 0xffc83d, metalness: 0.95, roughness: 0.25, emissive: 0x7a4b00, emissiveIntensity: 0.6 });
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.08, 48), gold); disc.add(body);
+    const label = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.09, 24), new THREE.MeshBasicMaterial({ color: 0x1a0b2e })); disc.add(label);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.04, 8, 48), new THREE.MeshBasicMaterial({ color: 0xfff3b0 })); ring.rotation.x = Math.PI / 2; disc.add(ring);
+    disc.rotation.x = 0.5;
+    disc.visible = false; scene.add(disc);
+    discGlow = addGlow(new THREE.Vector3(), 0xffd54a, 4.5); discGlow.visible = false;
+  }
+  function buildStars() {
+    const N = 700; const pos = new Float32Array(N * 3);
+    for (let i = 0; i < N; i++) {
+      const th = rand(0, Math.PI * 2), ph = rand(0.05, Math.PI / 2.2), r = 120;
+      pos[i * 3] = r * Math.sin(ph) * Math.cos(th); pos[i * 3 + 1] = r * Math.cos(ph); pos[i * 3 + 2] = r * Math.sin(ph) * Math.sin(th);
+    }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    stars = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.6, transparent: true, opacity: 0.8, sizeAttenuation: true, fog: false }));
+    scene.add(stars);
+  }
+  function buildRipples() {
+    for (let i = 0; i < 10; i++) {
+      const m = new THREE.Mesh(new THREE.RingGeometry(0.75, 1, 48), new THREE.MeshBasicMaterial({ color: TIERS[0].neon[0], transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+      m.rotation.x = -Math.PI / 2; m.visible = false; scene.add(m); ripples.push({ mesh: m, life: 0 });
+    }
+  }
+
+  // ---------- Pointer ----------
+  function bindPointer() {
+    const el = renderer.domElement;
+    let down = null;
+    el.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId }; });
+    el.addEventListener('pointerup', e => {
+      if (!down || down.id !== e.pointerId) { down = null; return; }
+      const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
+      const dt = performance.now() - down.t;
+      down = null;
+      if (moved > 10 || dt > 700 || e.button === 2) return;
+      handleTap(e.clientX, e.clientY);
+    });
+    el.addEventListener('pointercancel', () => { down = null; });
+  }
+  function handleTap(cx, cy) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    const ndc = new THREE.Vector2(((cx - rect.left) / rect.width) * 2 - 1, -((cy - rect.top) / rect.height) * 2 + 1);
+    raycaster.setFromCamera(ndc, camera);
+    if (disc.visible) {
+      const hits = raycaster.intersectObject(disc, true);
+      if (hits.length) { if (callbacks.disc) callbacks.disc(); return; }
+    }
+    const pt = new THREE.Vector3();
+    const hit = raycaster.ray.intersectPlane(groundPlane, pt);
+    if (!hit) { pt.set(0, 0.62, 0); }
+    ripple(pt);
+    if (callbacks.tap) callbacks.tap(cx, cy);
+  }
+
+  // ---------- Effects ----------
+  function ripple(pt) {
+    const r = ripples.find(r => r.life <= 0) || ripples[0];
+    r.life = 1; r.mesh.visible = true; r.mesh.position.set(pt.x, Math.max(0.64, pt.y + 0.02), pt.z); r.mesh.scale.setScalar(0.3); r.mesh.material.opacity = 0.9;
+    r.mesh.material.color.setHex(TIERS[tierIdx].neon[Math.random() < 0.5 ? 0 : 1]);
+  }
+  function burst(count) { for (let i = 0; i < count; i++) spawnNote(new THREE.Vector3(0, 2.2, -3.2), true); }
+  function pulse(strength) { beatPulse = Math.max(beatPulse, strength); }
+  function showDisc() {
+    disc.visible = true; discGlow.visible = true;
+    disc.position.set(rand(-6, 6), 3.4, rand(-1, 7));
+    disc.userData.t = 0;
+  }
+  function hideDisc() { disc.visible = false; discGlow.visible = false; }
+  function setTier(idx) {
+    idx = clamp(idx, 0, TIERS.length - 1);
+    tierIdx = idx;
+    const T = TIERS[idx];
+    scene.background.setHex(T.bg); scene.fog.color.setHex(T.bg);
+    const palette = [T.neon[0], T.neon[1], T.accent];
+    neonMats.forEach((m, i) => { const c = palette[i % 2 === 0 ? 0 : 1]; m.userData.base.setHex(i % 5 === 4 ? T.accent : c); m.color.copy(m.userData.base); });
+    cans.forEach((c, i) => c.light.color.setHex(i % 3 === 2 ? T.accent : T.neon[c.idx]));
+    cans.forEach(c => { if (c.beam) c.beam.material.color.copy(c.light.color); });
+    if (grid.geometry.attributes.color) {
+      // GridHelper lays out 4 vertices per division line; the centre lines (division 30 of 60) take the first colour.
+      const col = grid.geometry.attributes.color; const a = new THREE.Color(T.neon[1]), b = new THREE.Color(T.neon[0]);
+      for (let k = 0; k < col.count; k++) { const c = Math.floor(k / 4) === 30 ? a : b; col.setXYZ(k, c.r, c.g, c.b); }
+      col.needsUpdate = true;
+    }
+    crowdBody.material.color.setHex(T.neon[0]);
+    dust.material.color.setHex(T.neon[1]);
+    glows.forEach((g, i) => { if (g === discGlow) return; g.material.map = glowTexture('#' + (i % 2 ? T.neon[1] : T.neon[0]).toString(16).padStart(6, '0')); g.material.needsUpdate = true; });
+    if (planet) { scene.remove(planet); planet = null; }
+    if (T.planet) {
+      planet = new THREE.Mesh(new THREE.SphereGeometry(T.planet.size, 32, 32), new THREE.MeshStandardMaterial({ color: T.planet.color, roughness: 1, emissive: T.planet.color, emissiveIntensity: 0.15, fog: false }));
+      planet.position.set(T.planet.pos[0], T.planet.pos[1], T.planet.pos[2]); scene.add(planet);
+    }
+  }
+
+  // ---------- Per-frame ----------
+  function update(dt, audioReady, crowdCount) {
+    if (!ok) return;
+    elapsed += dt;
+    // Beat detection: real kicks when audio runs, metronome otherwise
+    let kicked = false;
+    if (audioReady) kicked = AudioEngine.pollKick();
+    else { const beatLen = 60 / AudioEngine.BPM; if (elapsed - lastKickClock >= beatLen) { lastKickClock = elapsed; kicked = true; } }
+    if (kicked) beatPulse = 1;
+    beatPulse = Math.max(0, beatPulse - dt * 3.2);
+    const p = beatPulse;
+
+    // Speakers & cones
+    speakers.forEach(s => s.scale.setScalar(1 + p * 0.035));
+    cones.forEach(c => { c.mesh.scale.setScalar(1 + p * 0.18); c.mesh.position.z = c.base + p * 0.08; });
+    // Platters
+    platters.forEach(pl => { pl.rotation.y -= dt * 3.49; });
+    // Neon pulse
+    const k = 0.72 + 0.28 * p;
+    neonMats.forEach(m => m.color.copy(m.userData.base).multiplyScalar(k));
+    glows.forEach(g => { if (g !== discGlow) g.scale.setScalar(g.userData.size * (0.85 + 0.35 * p)); });
+    // Light cans sweep & colour pulse
+    cans.forEach(c => {
+      c.light.intensity = (c.sweep ? 0.9 : 1.1) + p * 1.4;
+      if (c.sweep) {
+        const tx = Math.sin(elapsed * 0.9 + c.phase) * 5, tz = -2 + Math.cos(elapsed * 0.7 + c.phase) * 3;
+        c.light.target.position.set(tx, 0.6, tz);
+        if (c.beam) {
+          // Anchor the visible cone at the can and point its base at the floor target.
+          const dir = new THREE.Vector3(tx - c.x, 0.6 - 7.1, tz - 1.2).normalize();
+          c.beam.position.set(c.x + dir.x * 3.5, 7.1 + dir.y * 3.5, 1.2 + dir.z * 3.5);
+          c.beam.lookAt(tx, 0.6, tz); c.beam.rotateX(-Math.PI / 2);
+          c.beam.material.opacity = 0.05 + p * 0.07;
+        }
+      }
+    });
+    // DJ bob
+    const dj = boothGroup && boothGroup.userData.dj;
+    if (dj) { const bob = Math.sin(elapsed * 6.6) * 0.04 + p * 0.08; dj.body.position.y = 0.75 + bob; dj.head.position.y = 1.55 + bob; dj.phones.position.y = 1.6 + bob; }
+    // LED wall
+    const haveFreq = audioReady && AudioEngine.getFrequency(freqData);
+    const T = TIERS[tierIdx]; const ca = new THREE.Color(T.neon[0]), cb = new THREE.Color(T.neon[1]);
+    for (const cell of ledCells) {
+      let level;
+      if (haveFreq) { const bandIdx = Math.floor(cell.c / LED_COLS * 24) + 1; level = freqData[bandIdx] / 255; }
+      else level = 0.35 + 0.35 * Math.sin(elapsed * 2 + cell.c * 0.6) + p * 0.3;
+      const lit = level * LED_ROWS > cell.r;
+      if (lit) cell.mesh.material.color.copy(ca).lerp(cb, cell.r / (LED_ROWS - 1)).multiplyScalar(0.6 + 0.4 * p);
+      else cell.mesh.material.color.setHex(0x0e0c1a);
+    }
+    // Crowd
+    const count = clamp(crowdCount | 0, 0, crowdData.length);
+    crowdBody.count = count; crowdHead.count = count;
+    for (let i = 0; i < count; i++) {
+      const d = crowdData[i];
+      const jump = Math.max(0, Math.sin(elapsed * d.speed + d.phase)) * 0.18 + p * 0.28 * (0.6 + 0.4 * Math.sin(d.phase));
+      dummy.position.set(d.x, 0.42 * d.h + jump, d.z); dummy.scale.set(1, d.h, 1); dummy.rotation.set(0, 0, 0); dummy.updateMatrix();
+      crowdBody.setMatrixAt(i, dummy.matrix);
+      dummy.position.set(d.x, 0.85 * d.h + 0.15 + jump, d.z); dummy.scale.set(1, 1, 1); dummy.updateMatrix();
+      crowdHead.setMatrixAt(i, dummy.matrix);
+    }
+    crowdBody.instanceMatrix.needsUpdate = true; crowdHead.instanceMatrix.needsUpdate = true;
+    // Dust
+    const pos = dust.geometry.attributes.position.array;
+    for (let i = 0; i < dustVel.length; i++) {
+      pos[i * 3 + 1] += dustVel[i] * dt * (1 + p * 0.5);
+      pos[i * 3] += Math.sin(elapsed * 0.5 + i) * dt * 0.15;
+      if (pos[i * 3 + 1] > 14) { pos[i * 3 + 1] = 0; pos[i * 3] = rand(-16, 16); pos[i * 3 + 2] = rand(-10, 18); }
+    }
+    dust.geometry.attributes.position.needsUpdate = true;
+    dust.material.opacity = 0.55 + p * 0.3;
+    // Notes
+    if (kicked && Math.random() < 0.9) spawnNote(new THREE.Vector3(0, 2.3, -3.2), false);
+    notes.forEach(n => {
+      if (n.life <= 0) return;
+      n.life -= dt;
+      n.sprite.position.x += n.vx * dt; n.sprite.position.y += n.vy * dt; n.sprite.position.z += n.vz * dt;
+      n.vx *= 0.98; n.vz *= 0.98;
+      n.sprite.material.opacity = clamp(n.life / 1.2, 0, 1);
+      n.sprite.material.rotation += dt * 1.5;
+      if (n.life <= 0) n.sprite.visible = false;
+    });
+    // Disc
+    if (disc.visible) {
+      disc.userData.t += dt;
+      disc.rotation.y += dt * 2.2; disc.rotation.x = 0.5 + Math.sin(disc.userData.t * 1.5) * 0.2;
+      disc.position.y = 3.4 + Math.sin(disc.userData.t * 2.4) * 0.35;
+      discGlow.position.copy(disc.position); discGlow.scale.setScalar(4.5 + Math.sin(disc.userData.t * 6) * 0.6);
+    }
+    // Ripples
+    ripples.forEach(r => {
+      if (r.life <= 0) return;
+      r.life -= dt * 1.6;
+      r.mesh.scale.addScalar(dt * 9);
+      r.mesh.material.opacity = Math.max(0, r.life) * 0.9;
+      if (r.life <= 0) r.mesh.visible = false;
+    });
+    // Planet & stars drift
+    if (planet) planet.rotation.y += dt * 0.03;
+    if (stars) stars.rotation.y += dt * 0.004;
+
+    controls.update();
+    renderer.render(scene, camera);
+  }
+
+  function resize() {
+    if (!ok || !container) return;
+    const w = Math.max(1, container.clientWidth), h = Math.max(1, container.clientHeight);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  }
+
+  return { init, update, resize, setTier, showDisc, hideDisc, burst, pulse, ripple, isDiscVisible: () => !!(disc && disc.visible), isOk: () => ok };
+})();
+
+/* ==========================================================================================
+   6. UI
+   ========================================================================================== */
+const UI = (function () {
+  const els = {};
+  const stageEls = {};
+  let currentTab = 'stages';
+  let lastRefresh = 0, lastPrestigeBuild = 0;
+  let vizCtx = null;
+  const wave = new Uint8Array(1024);
+  const freq = new Uint8Array(512);
+  let resetArmed = false;
+
+  function cache() {
+    ['cash', 'cps', 'fame', 'btn-mute', 'vol', 'btn-settings', 'tier-name', 'tier-place', 'stem-row', 'frenzy-badge', 'frenzy-time', 'btn-warp', 'warp-label',
+     'disc-hint', 'btn-drop', 'click-value', 'upg-count', 'prestige-dot', 'tab-stages', 'tab-upgrades', 'tab-managers', 'tab-prestige', 'toasts', 'splash',
+     'btn-start', 'modal-welcome', 'welcome-away', 'welcome-cash', 'btn-collect', 'modal-prestige', 'prestige-gain', 'prestige-newmult', 'btn-prestige-cancel',
+     'btn-prestige-confirm', 'modal-settings', 'btn-settings-close', 'btn-mute2', 'vol2', 'vol-label', 'st-lifetime', 'st-clicks', 'st-prestiges', 'st-airdrops',
+     'btn-export', 'btn-import', 'btn-reset', 'save-io', 'viz', 'stage-pane', 'buy-modes', 'three-container', 'three-fallback'].forEach(id => { els[id] = $(id); });
+  }
+
+  // ---------- Toasts & floating text ----------
+  function toast(msg, kind) {
+    const d = document.createElement('div');
+    const color = kind === 'gold' ? 'border-yellow-400/60 text-yellow-200' : kind === 'bad' ? 'border-red-400/60 text-red-200' : kind === 'pink' ? 'border-pink-400/60 text-pink-100' : 'border-cyan-400/60 text-cyan-100';
+    d.className = 'toast glass rounded-xl px-4 py-2 text-sm font-bold text-center border ' + color;
+    d.textContent = msg;
+    els.toasts.appendChild(d);
+    setTimeout(() => d.remove(), 3300);
+    while (els.toasts.children.length > 5) els.toasts.firstChild.remove();
+  }
+  function floatText(x, y, text, color) {
+    const rect = els['stage-pane'].getBoundingClientRect();
+    const d = document.createElement('div');
+    d.className = 'float-text text-lg';
+    if (color) d.style.color = color;
+    d.style.left = (x - rect.left) + 'px'; d.style.top = (y - rect.top) + 'px';
+    d.textContent = text;
+    els['stage-pane'].appendChild(d);
+    setTimeout(() => d.remove(), 950);
+    const r = document.createElement('div');
+    r.className = 'ripple-dom'; r.style.left = d.style.left; r.style.top = d.style.top;
+    els['stage-pane'].appendChild(r);
+    setTimeout(() => r.remove(), 750);
+  }
+
+  // ---------- Tabs ----------
+  function showTab(name) {
+    currentTab = name;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('hidden', p.id !== 'tab-' + name));
+    els['buy-modes'].classList.toggle('hidden', name !== 'stages');
+    refresh(true);
+  }
+  function setBuyMode(mode) {
+    Economy.buyMode = mode; state.settings.buyMode = mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+    refresh(true);
+  }
+
+  // ---------- Build panels ----------
+  function buildStages() {
+    els['tab-stages'].innerHTML = '';
+    for (const def of STAGES) {
+      const card = document.createElement('div');
+      card.className = 'stage-card glass rounded-2xl p-3';
+      card.dataset.stage = def.id;
+      card.innerHTML = `
+        <div class="flex items-center gap-3">
+          <button class="stage-run btn relative w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shrink-0" style="background: radial-gradient(circle at 30% 30%, ${def.color}33, #0b0718 70%); border:1px solid ${def.color}55" title="Run one cycle">
+            <span>${def.icon}</span>
+            <span class="stage-owned absolute -bottom-1 -right-1 mono text-[11px] font-black rounded-full px-1.5 py-0.5 bg-black/80 border" style="border-color:${def.color}; color:${def.color}">0</span>
+          </button>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-baseline justify-between gap-2">
+              <div class="font-bold text-sm truncate">${def.name} <span class="stage-mgr text-[10px] text-emerald-300 hidden">· AUTO</span></div>
+              <div class="stage-profit mono text-xs font-bold text-emerald-300 whitespace-nowrap">$0</div>
+            </div>
+            <div class="stage-blurb text-[10px] text-gray-400 truncate">${def.blurb}</div>
+            <div class="h-2.5 rounded-full bg-black/50 mt-1 overflow-hidden border border-white/5">
+              <div class="bar h-full rounded-full" style="width:0%; background: linear-gradient(90deg, ${def.color}, #ffffff80)"></div>
+            </div>
+            <div class="flex justify-between mono text-[10px] text-gray-400 mt-0.5">
+              <span class="stage-cycle">${def.baseTime}s</span>
+              <span class="stage-next"></span>
+            </div>
+          </div>
+          <button class="stage-buy btn btn-neon rounded-xl px-2 py-1.5 text-[11px] font-black w-[88px] shrink-0 leading-tight">
+            <div class="stage-buy-label">BUY 1</div>
+            <div class="stage-cost mono text-[10px] font-bold opacity-90">$0</div>
+          </button>
+        </div>`;
+      els['tab-stages'].appendChild(card);
+      const q = sel => card.querySelector(sel);
+      stageEls[def.id] = { card, run: q('.stage-run'), owned: q('.stage-owned'), mgr: q('.stage-mgr'), profit: q('.stage-profit'), bar: q('.bar'), cycle: q('.stage-cycle'), next: q('.stage-next'), buy: q('.stage-buy'), buyLabel: q('.stage-buy-label'), cost: q('.stage-cost') };
+      stageEls[def.id].run.addEventListener('click', () => Game.runStage(def));
+      stageEls[def.id].buy.addEventListener('click', () => Game.buyStage(def));
+    }
+  }
+  function buildUpgrades() {
+    const root = els['tab-upgrades']; root.innerHTML = '';
+    const list = UPGRADES.slice().sort((a, b) => (state.upgrades[a.id] ? 1 : 0) - (state.upgrades[b.id] ? 1 : 0) || a.cost - b.cost);
+    const header = document.createElement('div');
+    header.className = 'text-[11px] text-gray-400 px-1';
+    header.textContent = 'Permanent for this tour run. Each purchase brightens the mix and cranks the filter.';
+    root.appendChild(header);
+    for (const u of list) {
+      const owned = !!state.upgrades[u.id];
+      const target = u.target === 'all' ? 'ALL STAGES' : u.target === 'click' ? 'MANUAL DROPS' : stageDef(u.target).name.toUpperCase();
+      const card = document.createElement('div');
+      card.className = 'glass rounded-2xl p-3 flex items-center gap-3 ' + (owned ? 'opacity-50' : '');
+      card.innerHTML = `
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 bg-gradient-to-br from-pink-500/30 to-cyan-500/30">${u.target === 'all' ? '🎚️' : u.target === 'click' ? '📱' : stageDef(u.target).icon}</div>
+        <div class="flex-1 min-w-0">
+          <div class="font-bold text-sm">${u.name} <span class="text-[10px] text-pink-300 mono">×${u.mult}</span></div>
+          <div class="text-[10px] text-gray-400">${u.desc}</div>
+          <div class="text-[10px] text-cyan-300 tracking-wider">${target}</div>
+        </div>
+        <button class="btn btn-pink rounded-xl px-3 py-2 text-[11px] font-black w-[88px] shrink-0 mono" ${owned ? 'disabled' : ''} data-upg="${u.id}">${owned ? 'OWNED' : money(u.cost)}</button>`;
+      root.appendChild(card);
+      if (!owned) card.querySelector('button').addEventListener('click', () => Game.buyUpgrade(u));
+    }
+  }
+  function buildManagers() {
+    const root = els['tab-managers']; root.innerHTML = '';
+    const header = document.createElement('div');
+    header.className = 'text-[11px] text-gray-400 px-1';
+    header.textContent = 'Sound Engineers run a stage forever: no more tapping, and it keeps earning while you are away.';
+    root.appendChild(header);
+    for (const m of MANAGERS) {
+      const def = stageDef(m.stage); const hired = !!state.managers[m.stage];
+      const card = document.createElement('div');
+      card.className = 'glass rounded-2xl p-3 flex items-center gap-3 ' + (hired ? 'opacity-60' : '');
+      card.innerHTML = `
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0" style="background: radial-gradient(circle at 30% 30%, ${def.color}44, #0b0718 70%)">${def.icon}</div>
+        <div class="flex-1 min-w-0">
+          <div class="font-bold text-sm">${m.name}</div>
+          <div class="text-[10px] text-gray-400">${m.title}</div>
+          <div class="text-[10px] text-cyan-300">Automates ${def.name}</div>
+        </div>
+        <button class="btn btn-neon rounded-xl px-3 py-2 text-[11px] font-black w-[88px] shrink-0 mono" ${hired ? 'disabled' : ''}>${hired ? 'HIRED ✓' : money(m.cost)}</button>`;
+      root.appendChild(card);
+      if (!hired) card.querySelector('button').addEventListener('click', () => Game.buyManager(m));
+    }
+  }
+  function buildPrestige() {
+    const root = els['tab-prestige'];
+    const claim = Economy.claimableExecs();
+    const tier = Economy.tierIndex();
+    root.innerHTML = `
+      <div class="glass rounded-2xl p-4 text-center">
+        <div class="text-[10px] uppercase tracking-widest text-gray-400">Record Label Execs</div>
+        <div class="mono text-4xl font-black text-pink-300">${fmtInt(state.execs)}</div>
+        <div class="text-xs text-gray-300 mt-1">Global profit ×<span class="mono font-bold text-cyan-300">${fmtMult(Economy.prestigeMult())}</span> (compounding +2% each)</div>
+      </div>
+      <div class="glass rounded-2xl p-4 space-y-2">
+        <div class="flex justify-between text-xs"><span class="text-gray-400">Lifetime earnings</span><span class="mono font-bold text-emerald-300">${money(state.lifetimeEarnings)}</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-400">This tour</span><span class="mono font-bold">${money(state.runEarnings)}</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-400">Execs ready to sign</span><span class="mono font-bold text-yellow-300">${fmtInt(claim)}</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-400">Next exec at</span><span class="mono font-bold">${money(Economy.nextExecAt())}</span></div>
+        <div class="h-2 rounded-full bg-black/50 overflow-hidden mt-1"><div class="h-full bg-gradient-to-r from-yellow-400 to-pink-500" style="width:${prestigeProgressPct()}%"></div></div>
+        <button id="btn-prestige-open" class="btn btn-gold rounded-xl w-full py-3 font-black tracking-wider mt-2" ${claim > 0 ? '' : 'disabled'}>${claim > 0 ? 'SIGN ' + fmtInt(claim) + ' EXEC' + (claim > 1 ? 'S' : '') + ' & RESET TOUR' : 'REACH $100K LIFETIME TO PRESTIGE'}</button>
+        <div class="text-[10px] text-gray-500 text-center">Execs = ⌊√(lifetime ÷ $100K)⌋ minus what you already signed. Reset keeps execs, stats and settings.</div>
+      </div>
+      <div class="glass rounded-2xl p-4">
+        <div class="text-[10px] uppercase tracking-widest text-gray-400 mb-2">World tour progression</div>
+        ${TIERS.map((t, i) => `
+          <div class="flex items-center gap-2 py-1 ${i === tier ? 'text-white' : i < tier ? 'text-gray-400' : 'text-gray-600'}">
+            <span class="w-5 text-center">${i < tier ? '✅' : i === tier ? '🎶' : '🔒'}</span>
+            <div class="flex-1"><div class="text-xs font-bold">${t.name}</div><div class="text-[10px]">${t.place}</div></div>
+            <div class="mono text-[10px]">${t.threshold > 0 ? money(t.threshold) : 'start'}</div>
+          </div>`).join('')}
+      </div>`;
+    const btn = $('btn-prestige-open');
+    if (btn) btn.addEventListener('click', () => Game.openPrestige());
+  }
+  function prestigeProgressPct() {
+    const claimed = state.execsClaimedTotal + Economy.claimableExecs();
+    const lo = claimed * claimed * EXEC_BASE, hi = (claimed + 1) * (claimed + 1) * EXEC_BASE;
+    return clamp((state.lifetimeEarnings - lo) / (hi - lo) * 100, 0, 100).toFixed(1);
+  }
+  function buildStemRow() {
+    const names = { kick: 'KICK', bass: 'BASS', hats: 'HATS', chords: 'CHORDS', lead: 'LEAD', pad: 'PAD' };
+    els['stem-row'].innerHTML = STAGES.map(d => `<span data-stem="${d.stem}" class="text-[8px] tracking-widest rounded px-1 py-0.5 border border-white/10 text-gray-500">${names[d.stem]}</span>`).join('');
+  }
+  function refreshStemRow() {
+    els['stem-row'].querySelectorAll('[data-stem]').forEach(el => {
+      const on = AudioEngine.stems[el.dataset.stem];
+      el.className = 'text-[8px] tracking-widest rounded px-1 py-0.5 border ' + (on ? 'border-cyan-400/60 text-cyan-200 bg-cyan-500/10' : 'border-white/10 text-gray-500');
+    });
+  }
+
+  // ---------- Refresh ----------
+  function refresh(force) {
+    const now = performance.now();
+    if (!force && now - lastRefresh < 100) return;
+    lastRefresh = now;
+    els.cash.textContent = money(state.cash);
+    const cps = Economy.totalCPS();
+    els.cps.textContent = money(cps) + '/s';
+    els.fame.innerHTML = fmtInt(state.execs) + ' <span class="text-[10px] text-gray-400">(×' + fmtMult(Economy.prestigeMult()) + ')</span>';
+    els['click-value'].textContent = money(Economy.clickValue());
+    // Frenzy
+    const fr = Economy.frenzyActive();
+    els['frenzy-badge'].classList.toggle('hidden', !fr);
+    if (fr) els['frenzy-time'].textContent = Math.ceil((state.frenzyUntil - Date.now()) / 1000) + 's';
+    els['btn-drop'].classList.toggle('beat-pulse', fr);
+    // Warp
+    const ready = Economy.warpReady();
+    els['warp-label'].textContent = ready ? 'READY · +1h of earnings' : fmtTime((state.warpReadyAt - Date.now()) / 1000);
+    els['warp-label'].className = 'mono text-[11px] ' + (ready ? 'text-cyan-300' : 'text-gray-400');
+    // Tier
+    const T = TIERS[Economy.tierIndex()];
+    if (els['tier-name'].textContent !== T.name) { els['tier-name'].textContent = T.name; els['tier-place'].textContent = T.place; }
+    // Stage cards
+    for (const def of STAGES) {
+      const s = state.stages[def.id], e = stageEls[def.id];
+      e.owned.textContent = fmtInt(s.owned);
+      e.profit.textContent = s.owned > 0 ? money(Economy.stageProfit(def)) : '—';
+      e.cycle.textContent = Economy.stageCycle(def).toFixed(2) + 's / cycle';
+      const nm = Economy.nextMilestone(s.owned);
+      e.next.textContent = nm ? (nm - s.owned) + ' to ' + nm + ' → ×2 speed & profit' : 'MAXED';
+      const n = Economy.quantityForMode(def);
+      const cost = Economy.costOfN(def, n);
+      e.buyLabel.textContent = 'BUY ' + (Economy.buyMode === 'next' ? n + ' ↑' : Economy.buyMode === 'max' ? n + ' MAX' : n);
+      e.cost.textContent = money(cost);
+      e.buy.disabled = state.cash < cost;
+      e.mgr.classList.toggle('hidden', !state.managers[def.id]);
+      e.run.disabled = s.owned <= 0;
+      e.run.title = state.managers[def.id] ? 'Automated by your engineer' : s.owned > 0 ? 'Tap to run one cycle' : 'Buy one first';
+    }
+    // Upgrade badge
+    const affordable = UPGRADES.filter(u => !state.upgrades[u.id] && state.cash >= u.cost).length;
+    els['upg-count'].textContent = affordable; els['upg-count'].classList.toggle('hidden', affordable === 0);
+    document.querySelectorAll('[data-upg]').forEach(b => { const u = UPGRADES.find(x => x.id === b.dataset.upg); if (u && !state.upgrades[u.id]) b.disabled = state.cash < u.cost; });
+    els['prestige-dot'].classList.toggle('hidden', Economy.claimableExecs() <= 0);
+    if (currentTab === 'prestige' && (force || now - lastPrestigeBuild > 1000)) { buildPrestige(); lastPrestigeBuild = now; }
+    if (currentTab === 'managers') {
+      const btns = els['tab-managers'].querySelectorAll('button');
+      MANAGERS.forEach((m, i) => { if (btns[i] && !state.managers[m.stage]) btns[i].disabled = state.cash < m.cost; });
+    }
+    els['disc-hint'].classList.toggle('hidden', !World.isDiscVisible());
+    // Settings stats
+    if (!els['modal-settings'].classList.contains('hidden')) {
+      els['st-lifetime'].textContent = money(state.lifetimeEarnings);
+      els['st-clicks'].textContent = fmtInt(state.totalClicks);
+      els['st-prestiges'].textContent = fmtInt(state.stats.prestiges);
+      els['st-airdrops'].textContent = fmtInt(state.stats.airdrops);
+    }
+  }
+  function refreshBars() {
+    for (const def of STAGES) {
+      const s = state.stages[def.id], e = stageEls[def.id];
+      const cycle = Economy.stageCycle(def);
+      let pct = s.running ? clamp(s.progress, 0, 1) * 100 : 0;
+      if (state.managers[def.id] && cycle < 0.25) pct = 100; // too fast to animate; show as continuous
+      e.bar.style.width = pct + '%';
+    }
+  }
+  function flashPayout(def) {
+    const e = stageEls[def.id]; if (!e) return;
+    e.card.classList.remove('payout'); void e.card.offsetWidth; e.card.classList.add('payout');
+  }
+
+  // ---------- Visualizer ----------
+  function drawViz(audioReady, pulse) {
+    const c = els.viz; if (!c) return;
+    const W = c.clientWidth, H = c.clientHeight;
+    if (c.width !== Math.floor(W * (window.devicePixelRatio || 1)) || c.height !== Math.floor(H * (window.devicePixelRatio || 1))) {
+      c.width = Math.floor(W * (window.devicePixelRatio || 1)); c.height = Math.floor(H * (window.devicePixelRatio || 1));
+    }
+    if (!vizCtx) vizCtx = c.getContext('2d');
+    const g = vizCtx; const dpr = window.devicePixelRatio || 1;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, W, H);
+    const T = TIERS[Economy.tierIndex()];
+    const colA = '#' + T.neon[0].toString(16).padStart(6, '0'), colB = '#' + T.neon[1].toString(16).padStart(6, '0');
+    // Frequency bars (background)
+    const haveF = audioReady && AudioEngine.getFrequency(freq);
+    const bars = 48;
+    for (let i = 0; i < bars; i++) {
+      let v = haveF ? freq[Math.floor(i * 6)] / 255 : 0.15 + 0.12 * Math.sin(performance.now() / 300 + i * 0.4) + pulse * 0.2;
+      const h = v * (H - 8);
+      g.fillStyle = i % 2 ? colA + '33' : colB + '33';
+      g.fillRect(i * (W / bars), H - h, W / bars - 2, h);
+    }
+    // Waveform
+    const haveW = audioReady && AudioEngine.getWaveform(wave);
+    const grad = g.createLinearGradient(0, 0, W, 0); grad.addColorStop(0, colA); grad.addColorStop(1, colB);
+    g.strokeStyle = grad; g.lineWidth = 2; g.shadowColor = colA; g.shadowBlur = 8;
+    g.beginPath();
+    const N = wave.length;
+    for (let i = 0; i < N; i += 4) {
+      const x = i / N * W;
+      let y;
+      if (haveW) y = H / 2 + (wave[i] - 128) / 128 * (H / 2 - 4);
+      else y = H / 2 + Math.sin(i / N * Math.PI * 6 + performance.now() / 200) * (6 + pulse * 14);
+      if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+    }
+    g.stroke(); g.shadowBlur = 0;
+  }
+
+  // ---------- Modals ----------
+  function showWelcome(info) {
+    els['welcome-away'].textContent = 'Your engineers kept the party going for ' + fmtDuration(info.away) + (info.away > OFFLINE_CAP_SEC ? ' (12h counted)' : '');
+    els['modal-welcome'].classList.remove('hidden');
+    const start = performance.now(), dur = 1600, target = info.amount;
+    function anim(t) {
+      const k = clamp((t - start) / dur, 0, 1), e = 1 - Math.pow(1 - k, 3);
+      els['welcome-cash'].textContent = money(target * e);
+      if (k < 1) requestAnimationFrame(anim);
+    }
+    requestAnimationFrame(anim);
+  }
+  function openSettings() { els['modal-settings'].classList.remove('hidden'); resetArmed = false; els['btn-reset'].textContent = 'Hard reset'; refresh(true); }
+  function closeSettings() { els['modal-settings'].classList.add('hidden'); els['save-io'].classList.add('hidden'); }
+  function syncAudioControls() {
+    const muted = state.settings.muted, vol = state.settings.volume;
+    els['btn-mute'].textContent = muted ? '🔇' : vol < 0.01 ? '🔈' : '🔊';
+    els['btn-mute2'].textContent = els['btn-mute'].textContent;
+    els.vol.value = vol; els.vol2.value = vol; els['vol-label'].textContent = Math.round(vol * 100) + '%';
+  }
+
+  // ---------- Bind ----------
+  function bind() {
+    document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+    document.querySelectorAll('.mode-btn').forEach(b => b.addEventListener('click', () => setBuyMode(b.dataset.mode)));
+    els['btn-drop'].addEventListener('pointerdown', e => { e.preventDefault(); Game.tap(e.clientX, e.clientY); });
+    els['btn-drop'].addEventListener('keydown', e => { if (e.key === 'Enter') { const r = els['btn-drop'].getBoundingClientRect(); Game.tap(r.left + r.width / 2, r.top); } });
+    els['btn-warp'].addEventListener('click', () => Game.warp());
+    els['btn-start'].addEventListener('click', () => { els.splash.classList.add('hidden'); Game.startAudio(); });
+    els['btn-collect'].addEventListener('click', () => { els['modal-welcome'].classList.add('hidden'); Game.startAudio(); AudioEngine.sfx.coin(); World.burst(14); });
+    els['btn-settings'].addEventListener('click', openSettings);
+    els['btn-settings-close'].addEventListener('click', closeSettings);
+    els['modal-settings'].addEventListener('click', e => { if (e.target === els['modal-settings']) closeSettings(); });
+    const toggleMute = () => { Game.setMuted(!state.settings.muted); };
+    els['btn-mute'].addEventListener('click', toggleMute);
+    els['btn-mute2'].addEventListener('click', toggleMute);
+    const onVol = e => Game.setVolume(parseFloat(e.target.value));
+    els.vol.addEventListener('input', onVol); els.vol2.addEventListener('input', onVol);
+    els['btn-prestige-cancel'].addEventListener('click', () => els['modal-prestige'].classList.add('hidden'));
+    els['btn-prestige-confirm'].addEventListener('click', () => { els['modal-prestige'].classList.add('hidden'); Game.prestige(); });
+    els['btn-export'].addEventListener('click', () => {
+      els['save-io'].classList.remove('hidden'); els['save-io'].value = Persistence.exportString(); els['save-io'].select();
+      try { navigator.clipboard && navigator.clipboard.writeText(els['save-io'].value); toast('Save copied to clipboard'); } catch (e) { toast('Save shown below'); }
+    });
+    els['btn-import'].addEventListener('click', () => {
+      if (els['save-io'].classList.contains('hidden') || !els['save-io'].value.trim()) { els['save-io'].classList.remove('hidden'); els['save-io'].value = ''; els['save-io'].focus(); toast('Paste a save string, then press Import'); return; }
+      try { Persistence.importString(els['save-io'].value); Game.afterStateReplaced(); toast('Save imported'); closeSettings(); }
+      catch (e) { toast('That is not a valid save', 'bad'); }
+    });
+    els['btn-reset'].addEventListener('click', () => {
+      if (!resetArmed) { resetArmed = true; els['btn-reset'].textContent = 'Really? Click again'; setTimeout(() => { resetArmed = false; els['btn-reset'].textContent = 'Hard reset'; }, 4000); return; }
+      Game.hardReset(); closeSettings();
+    });
+    window.addEventListener('keydown', e => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      if (e.code === 'Space') { e.preventDefault(); if (e.repeat) return; const r = els['btn-drop'].getBoundingClientRect(); Game.tap(r.left + r.width / 2, r.top); }
+      else if (e.key === 'm' || e.key === 'M') toggleMute();
+      else if (e.key === 'Escape') { closeSettings(); els['modal-prestige'].classList.add('hidden'); }
+      else if (e.key === '1' || e.key === '2' || e.key === '3' || e.key === '4') showTab(['stages', 'upgrades', 'managers', 'prestige'][parseInt(e.key, 10) - 1]);
+    });
+  }
+
+  function init() {
+    cache(); bind(); buildStages(); buildUpgrades(); buildManagers(); buildPrestige(); buildStemRow(); refreshStemRow();
+    setBuyMode(state.settings.buyMode || '1');
+    syncAudioControls();
+  }
+  function rebuildShop() { buildUpgrades(); buildManagers(); buildPrestige(); }
+
+  return { init, refresh, refreshBars, drawViz, toast, floatText, flashPayout, showWelcome, syncAudioControls, rebuildShop, refreshStemRow, els,
+    openPrestigeModal(gain) { els['prestige-gain'].textContent = fmtInt(gain); els['prestige-newmult'].textContent = '×' + fmtMult(Math.pow(1.02, state.execs + gain)); els['modal-prestige'].classList.remove('hidden'); } };
+})();
+
+/* ==========================================================================================
+   7. GAME LOOP & BOOTSTRAP
+   ========================================================================================== */
+const Game = (function () {
+  let lastFrame = 0, nextAirdropAt = 0, discUntil = 0, saveTimer = null, audioStarted = false, lastSaveAt = 0;
+
+  function syncStems() {
+    for (const def of STAGES) AudioEngine.setStem(def.stem, state.stages[def.id].owned > 0);
+    UI.refreshStemRow();
+  }
+  function crowdCount() {
+    let total = 0; for (const d of STAGES) total += state.stages[d.id].owned;
+    return clamp(Math.floor(12 + Math.sqrt(total) * 9 + Economy.tierIndex() * 12), 12, 160);
+  }
+  function startAudio() {
+    const ok = AudioEngine.ensure();
+    if (ok && !audioStarted) { audioStarted = true; syncStems(); AudioEngine.setTier(Economy.tierIndex()); AudioEngine.setVolume(state.settings.volume); AudioEngine.setMuted(state.settings.muted); }
+    return ok;
+  }
+  function tap(x, y) {
+    startAudio();
+    const v = Economy.click();
+    AudioEngine.click();
+    World.pulse(0.6);
+    UI.floatText(x, y, '+' + money(v));
+    UI.refresh();
+  }
+  function runStage(def) {
+    startAudio();
+    if (state.managers[def.id]) { UI.toast(def.name + ' is already automated by your engineer'); return; }
+    if (Economy.startCycle(def)) AudioEngine.sfx.buy();
+  }
+  function buyStage(def) {
+    startAudio();
+    if (Economy.buyStage(def)) UI.refresh(true);
+  }
+  function buyManager(m) {
+    startAudio();
+    if (Economy.buyManager(m)) { UI.rebuildShop(); UI.refresh(true); }
+  }
+  function buyUpgrade(u) {
+    startAudio();
+    if (Economy.buyUpgrade(u)) { UI.rebuildShop(); UI.refresh(true); }
+  }
+  function warp() {
+    startAudio();
+    const r = Economy.warp();
+    if (!r.ok) {
+      if (r.reason === 'nocps') UI.toast('Hire a Sound Engineer first: Time Warp multiplies automated income', 'bad');
+      else UI.toast('Time Warp recharging: ' + fmtTime((state.warpReadyAt - Date.now()) / 1000), 'bad');
+      AudioEngine.sfx.deny();
+      return;
+    }
+    UI.toast('⏩ TIME WARP! +' + money(r.amount) + ' (one hour of earnings)', 'gold');
+    AudioEngine.sfx.coin(); AudioEngine.triggerDrop(); World.burst(24); World.pulse(1);
+    UI.refresh(true);
+  }
+  function openPrestige() {
+    const gain = Economy.claimableExecs();
+    if (gain <= 0) { UI.toast('Reach $100K lifetime earnings to sign your first exec', 'bad'); return; }
+    UI.openPrestigeModal(gain);
+  }
+  function prestige() {
+    const gain = Economy.claimableExecs();
+    if (!Economy.prestige()) return;
+    UI.toast('🖋️ Signed ' + fmtInt(gain) + ' Record Label Exec' + (gain > 1 ? 's' : '') + '! New tour begins at ×' + fmtMult(Economy.prestigeMult()), 'gold');
+    AudioEngine.sfx.prestige(); AudioEngine.setCutoff(0.3); AudioEngine.triggerDrop(); AudioEngine.setTier(Economy.tierIndex());
+    syncStems(); World.burst(30); World.pulse(1); World.setTier(Economy.tierIndex());
+    UI.rebuildShop(); UI.refresh(true); Persistence.save();
+  }
+  function onDiscClick() {
+    startAudio();
+    World.hideDisc();
+    Economy.startFrenzy();
+    scheduleAirdrop();
+    UI.toast('💿 GOLD VINYL! 3× FRENZY for 30 seconds', 'gold');
+    AudioEngine.sfx.coin(); AudioEngine.triggerDrop(); World.burst(26); World.pulse(1);
+    UI.refresh(true);
+  }
+  function scheduleAirdrop() { nextAirdropAt = Date.now() + rand(90000, 180000); discUntil = 0; }
+  function spawnAirdrop() {
+    if (!World.isOk() || World.isDiscVisible()) return false;
+    World.showDisc(); discUntil = Date.now() + DISC_VISIBLE_MS;
+    UI.toast('💿 A gold vinyl is floating over the stage. Tap it!', 'gold');
+    return true;
+  }
+  function tickTimers() {
+    const now = Date.now();
+    if (World.isOk()) {
+      if (!World.isDiscVisible() && now >= nextAirdropAt) spawnAirdrop();
+      else if (World.isDiscVisible() && now >= discUntil) { World.hideDisc(); scheduleAirdrop(); }
+    }
+    if (now - lastSaveAt > 10000) { Persistence.save(); lastSaveAt = now; }
+  }
+  function setMuted(m) { state.settings.muted = m; AudioEngine.setMuted(m); UI.syncAudioControls(); if (!m) startAudio(); }
+  function setVolume(v) { state.settings.volume = clamp(v, 0, 1); AudioEngine.setVolume(state.settings.volume); if (state.settings.muted && v > 0) { state.settings.muted = false; AudioEngine.setMuted(false); } UI.syncAudioControls(); }
+  function afterStateReplaced() {
+    Economy.buyMode = state.settings.buyMode || '1';
+    for (const def of STAGES) if (state.managers[def.id] && state.stages[def.id].owned > 0) state.stages[def.id].running = true;
+    syncStems(); AudioEngine.setTier(Economy.tierIndex()); World.setTier(Economy.tierIndex());
+    UI.rebuildShop(); UI.syncAudioControls(); UI.refresh(true);
+  }
+  function hardReset() {
+    Persistence.wipe();
+    const settings = state.settings;
+    state = defaultState(); state.settings = settings;
+    afterStateReplaced(); Persistence.save();
+    UI.toast('Fresh start. The basement awaits.', 'pink');
+  }
+
+  function bindEconomyEvents() {
+    Economy.on('payout', ({ def }) => { if (Economy.stageCycle(def) >= 0.4) UI.flashPayout(def); });
+    Economy.on('buy', ({ def, n }) => { AudioEngine.sfx.buy(); if (n >= 10) World.burst(6); });
+    Economy.on('stemUnlock', def => { AudioEngine.setStem(def.stem, true); UI.refreshStemRow(); UI.toast('🎵 New layer in the mix: ' + def.stem.toUpperCase() + ' (' + def.name + ')', 'pink'); AudioEngine.raiseCutoff(0.05); });
+    Economy.on('milestone', ({ def, milestone }) => { UI.toast('🏁 ' + def.name + ' hit ' + milestone + ': 2× faster, 2× profit. Beat drop incoming!', 'gold'); AudioEngine.raiseCutoff(0.1); AudioEngine.triggerDrop(); World.burst(20); World.pulse(1); });
+    Economy.on('manager', m => { AudioEngine.sfx.manager(); UI.toast('🎚️ ' + m.name + ' hired. ' + stageDef(m.stage).name + ' now runs itself.', 'pink'); });
+    Economy.on('upgrade', u => { AudioEngine.sfx.upgrade(); AudioEngine.raiseCutoff(0.06); UI.toast('⚡ ' + u.name + ' installed (×' + u.mult + ')', 'pink'); World.burst(8); });
+    Economy.on('tier', idx => { AudioEngine.setTier(idx); World.setTier(idx); AudioEngine.triggerDrop(); World.burst(30); UI.toast('🌍 NEW VENUE: ' + TIERS[idx].name + ' — ' + TIERS[idx].place, 'gold'); });
+    Economy.on('denied', () => { AudioEngine.sfx.deny(); });
+    AudioEngine.on('drop', () => { World.pulse(1); World.burst(16); });
+  }
+
+  function frame(now) {
+    const dt = lastFrame ? (now - lastFrame) / 1000 : 0.016;
+    lastFrame = now;
+    try { Economy.tick(dt); } catch (e) { console.error('[DJ Gem] economy tick', e); }
+    tickTimers();
+    try { World.update(Math.min(dt, 0.1), AudioEngine.isReady(), crowdCount()); } catch (e) { console.error('[DJ Gem] world update', e); }
+    try { UI.drawViz(AudioEngine.isReady(), 0); } catch (e) { /* visualizer is optional */ }
+    UI.refresh(false); UI.refreshBars();
+    requestAnimationFrame(frame);
+  }
+
+  function boot() {
+    const loaded = Persistence.load();
+    const now = Date.now();
+    let offline = null;
+    if (loaded) {
+      state = loaded;
+      Economy.buyMode = state.settings.buyMode || '1';
+      for (const def of STAGES) if (state.managers[def.id] && state.stages[def.id].owned > 0) state.stages[def.id].running = true;
+      offline = Economy.computeOffline(now);
+      if (offline.amount > 0 && offline.away > 30) Economy.earn(offline.amount, 'offline');
+    }
+    UI.init();
+    try {
+      World.init($('three-container'), { tap: (x, y) => tap(x, y), disc: onDiscClick });
+      World.setTier(Economy.tierIndex());
+    } catch (e) {
+      console.warn('[DJ Gem] 3D stage unavailable:', e);
+      $('three-fallback').classList.remove('hidden');
+    }
+    bindEconomyEvents();
+    scheduleAirdrop();
+    nextAirdropAt = Date.now() + rand(45000, 110000);
+    if (offline && offline.amount > 0 && offline.away > 30) { $('splash').classList.add('hidden'); UI.showWelcome(offline); }
+    // Keep autoplay policy happy: any first gesture resumes audio.
+    const firstGesture = () => { startAudio(); document.removeEventListener('pointerdown', firstGesture); document.removeEventListener('keydown', firstGesture); };
+    document.addEventListener('pointerdown', firstGesture); document.addEventListener('keydown', firstGesture);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) Persistence.save(); });
+    window.addEventListener('pagehide', () => Persistence.save());
+    window.addEventListener('beforeunload', () => Persistence.save());
+    UI.refresh(true);
+    requestAnimationFrame(frame);
+  }
+
+  return { boot, tap, runStage, buyStage, buyManager, buyUpgrade, warp, openPrestige, prestige, startAudio, setMuted, setVolume, afterStateReplaced, hardReset, spawnAirdrop, catchAirdrop: onDiscClick };
+})();
+
+window.addEventListener('error', e => { console.error('[DJ Gem]', e.message); });
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', Game.boot); else Game.boot();
+
+// Expose a tiny debug surface for curious DJs (console: DJGEM.state)
+window.DJGEM = { get state() { return state; }, Economy, AudioEngine, World, UI, Game, STAGES, UPGRADES, MANAGERS, TIERS };
+})();
+</script>
+</body>
+</html>
