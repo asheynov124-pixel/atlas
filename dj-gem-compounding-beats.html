@@ -111,6 +111,27 @@
   .disc-badge { animation: discPulse 1s ease-in-out infinite alternate; }
   @keyframes discPulse { from { box-shadow: 0 0 10px rgba(250,204,21,0.4); } to { box-shadow: 0 0 26px rgba(250,204,21,0.9); } }
   input[type=range] { accent-color: #22d3ee; }
+
+  /* ---------- Tab nav, hype meter, events, awards, booth, stats ---------- */
+  #tabnav { display: flex; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  #tabnav::-webkit-scrollbar { display: none; }
+  #tabnav .tab-btn { flex: 1 0 auto; min-width: 76px; padding: 0.7rem 0.6rem; white-space: nowrap; }
+  #hype-wrap { width: min(70%, 300px); }
+  #hype-bar { height: 8px; border-radius: 999px; background: rgba(0,0,0,0.5); overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+  #hype-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #22d3ee, #f472b6, #facc15); transition: width 0.15s linear; }
+  #hype-wrap.ready #hype-fill { animation: hypeGlow 0.4s ease-in-out infinite alternate; }
+  @keyframes hypeGlow { from { filter: brightness(1); } to { filter: brightness(1.7); } }
+  #btn-drop.hype-ready { background: linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6); box-shadow: 0 0 34px rgba(250,204,21,0.75); animation: beat 0.476s ease-out infinite; }
+  #event-timer { height: 100%; background: linear-gradient(90deg, #facc15, #f472b6); transition: width 0.25s linear; }
+  .ach-card.locked { opacity: 0.45; filter: grayscale(0.7); }
+  .ach-card.fresh { animation: payoutFlash 0.6s ease-out; }
+  .chord-pill { transition: background 0.15s ease, color 0.15s ease; }
+  .chord-pill.active { background: linear-gradient(135deg, #0891b2, #7c3aed); color: #fff; box-shadow: 0 0 12px rgba(34,211,238,0.5); }
+  .stem-toggle.off { opacity: 0.4; text-decoration: line-through; }
+  .perk-pip { width: 10px; height: 10px; border-radius: 999px; background: rgba(255,255,255,0.12); }
+  .perk-pip.on { background: linear-gradient(135deg, #facc15, #f472b6); box-shadow: 0 0 8px rgba(250,204,21,0.6); }
+  #stats-chart { width: 100%; height: 150px; display: block; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
 </style>
 </head>
 <body>
@@ -169,6 +190,8 @@
       <!-- HUD: top-right frenzy + warp -->
       <div class="hud-tr">
         <div id="frenzy-badge" class="hidden glass rounded-xl px-3 py-1.5 text-xs font-bold text-yellow-300 border-yellow-400/40 disc-badge">⚡ 3× FRENZY <span id="frenzy-time" class="mono">30s</span></div>
+        <div id="hype-badge" class="hidden glass rounded-xl px-3 py-1.5 text-xs font-bold text-pink-200 border-pink-400/40">🚀 HYPE ×2 <span id="hype-time" class="mono">15s</span></div>
+        <div id="event-badge" class="hidden glass rounded-xl px-3 py-1.5 text-xs font-bold text-cyan-200 border-cyan-400/40 text-right"><span id="event-label"></span> <span id="event-time" class="mono"></span><div id="event-sub" class="text-[10px] text-gray-300 font-normal"></div></div>
         <button id="btn-warp" class="btn btn-ghost glass rounded-xl px-3 py-2 text-xs font-bold text-left" title="Time Warp: instantly collect 1 hour of automated earnings. 45 minute recharge.">
           <div>⏩ TIME WARP</div>
           <div id="warp-label" class="mono text-[11px] text-cyan-300">READY</div>
@@ -182,8 +205,12 @@
 
       <!-- HUD: bottom controls -->
       <div class="hud-bottom">
+        <div id="hype-wrap" class="glass rounded-full px-3 py-1.5" title="Every manual drop builds hype. At 100% your next drop doubles all income for 15 seconds.">
+          <div class="flex justify-between text-[9px] uppercase tracking-widest text-gray-300"><span>Hype</span><span id="hype-label" class="mono">0%</span></div>
+          <div id="hype-bar"><div id="hype-fill"></div></div>
+        </div>
         <button id="btn-drop" class="btn btn-pink rounded-full px-8 py-3 font-black tracking-widest text-white text-base sm:text-lg shadow-2xl" title="Drop the beat (Space)">
-          <span class="relative z-10">🔥 DROP THE BEAT</span>
+          <span id="btn-drop-label" class="relative z-10">🔥 DROP THE BEAT</span>
         </button>
         <div class="text-[11px] text-gray-300 mono">+<span id="click-value">$1.00</span> per drop · tap the stage too</div>
       </div>
@@ -192,11 +219,14 @@
 
     <!-- ---------- RIGHT PANEL ---------- -->
     <aside id="panel" class="bg-[#0a0618] border-l border-white/5">
-      <nav class="flex text-xs sm:text-sm font-bold uppercase tracking-wider border-b border-white/10">
-        <button class="tab-btn btn flex-1 py-3 text-gray-400 active" data-tab="stages">Stages</button>
-        <button class="tab-btn btn flex-1 py-3 text-gray-400" data-tab="upgrades">Upgrades <span id="upg-count" class="ml-1 text-[10px] bg-pink-500/80 text-white rounded-full px-1.5 py-0.5 hidden">0</span></button>
-        <button class="tab-btn btn flex-1 py-3 text-gray-400" data-tab="managers">Engineers</button>
-        <button class="tab-btn btn flex-1 py-3 text-gray-400" data-tab="prestige">Prestige <span id="prestige-dot" class="ml-1 inline-block w-2 h-2 rounded-full bg-yellow-400 hidden"></span></button>
+      <nav id="tabnav" class="text-[11px] sm:text-xs font-bold uppercase tracking-wider border-b border-white/10">
+        <button class="tab-btn btn text-gray-400 active" data-tab="stages">🎚 Stages</button>
+        <button class="tab-btn btn text-gray-400" data-tab="upgrades">⚡ Upgrades <span id="upg-count" class="ml-1 text-[10px] bg-pink-500/80 text-white rounded-full px-1.5 py-0.5 hidden">0</span></button>
+        <button class="tab-btn btn text-gray-400" data-tab="managers">👷 Crew</button>
+        <button class="tab-btn btn text-gray-400" data-tab="prestige">🖋 Label <span id="prestige-dot" class="ml-1 inline-block w-2 h-2 rounded-full bg-yellow-400 hidden"></span></button>
+        <button class="tab-btn btn text-gray-400" data-tab="awards">🏆 Awards <span id="ach-count" class="ml-1 text-[10px] bg-yellow-500/80 text-black rounded-full px-1.5 py-0.5">0</span></button>
+        <button class="tab-btn btn text-gray-400" data-tab="booth">🎛 Booth</button>
+        <button class="tab-btn btn text-gray-400" data-tab="stats">📈 Stats</button>
       </nav>
 
       <div id="buy-modes" class="flex gap-1 p-2 border-b border-white/10">
@@ -211,6 +241,9 @@
         <div id="tab-upgrades" class="tab-panel p-2 space-y-2 hidden"></div>
         <div id="tab-managers" class="tab-panel p-2 space-y-2 hidden"></div>
         <div id="tab-prestige" class="tab-panel p-3 space-y-3 hidden"></div>
+        <div id="tab-awards" class="tab-panel p-3 space-y-3 hidden"></div>
+        <div id="tab-booth" class="tab-panel p-3 space-y-3 hidden"></div>
+        <div id="tab-stats" class="tab-panel p-3 space-y-3 hidden"></div>
       </div>
     </aside>
   </main>
@@ -256,6 +289,21 @@
       <button id="btn-prestige-cancel" class="btn btn-ghost rounded-xl px-4 py-2 flex-1 font-bold">Keep touring</button>
       <button id="btn-prestige-confirm" class="btn btn-gold rounded-xl px-4 py-2 flex-1 font-black">Sign the deal</button>
     </div>
+  </div>
+</div>
+
+<!-- ======================= LIVE EVENT MODAL ======================= -->
+<div id="modal-event" class="modal hidden">
+  <div class="modal-card glass rounded-3xl p-6 max-w-md w-full">
+    <div class="h-1 rounded-full bg-black/40 overflow-hidden mb-4"><div id="event-timer" class="rounded-full" style="width:100%"></div></div>
+    <div class="text-[10px] uppercase tracking-[0.3em] text-cyan-300">Live event</div>
+    <h2 id="event-title" class="text-xl font-black shine mt-1"></h2>
+    <p id="event-text" class="text-sm text-gray-300 mt-2"></p>
+    <div class="flex gap-2 mt-5">
+      <button id="btn-event-decline" class="btn btn-ghost rounded-xl px-4 py-2 flex-1 font-bold text-sm"></button>
+      <button id="btn-event-accept" class="btn btn-gold rounded-xl px-4 py-2 flex-1 font-black text-sm"></button>
+    </div>
+    <div class="text-[10px] text-gray-500 mt-3 text-center">No answer in 20 seconds counts as the left-hand choice.</div>
   </div>
 </div>
 
@@ -369,6 +417,89 @@ const TIERS = [
   { name: 'Martian Orbital Rave', place: 'Low Orbit · Mars',          threshold: 1e9,  bg: 0x120406, neon: [0xfb923c, 0xef4444], accent: 0xfacc15, planet: { color: 0xc2410c, size: 11, pos: [22, 12, -38] } }
 ];
 
+// ---- Hype (active play loop) ----
+const HYPE_PER_CLICK = 0.04;
+const HYPE_DECAY_PER_SEC = 0.01;
+const HYPE_MS = 15000;
+const HYPE_MULT = 2;
+
+// ---- Achievements: each one unlocked adds a permanent +2% to all income ----
+const ACH_BONUS = 0.02;
+function maxOwned(s) { let m = 0; for (const d of STAGES) m = Math.max(m, s.stages[d.id].owned); return m; }
+const ACHIEVEMENTS = [
+  { id: 'drop1',     icon: '🔥', name: 'First Drop',          desc: 'Drop the beat once.',                        test: s => s.totalClicks >= 1 },
+  { id: 'drop100',   icon: '🥁', name: 'Finger Drummer',      desc: 'Drop 100 beats by hand.',                   test: s => s.totalClicks >= 100 },
+  { id: 'drop1k',    icon: '🖐️', name: 'Carpal Tunnel Vision', desc: '1,000 manual drops.',                      test: s => s.totalClicks >= 1000 },
+  { id: 'drop10k',   icon: '🤖', name: 'Human Sequencer',     desc: '10,000 manual drops.',                      test: s => s.totalClicks >= 10000 },
+  { id: 'own25',     icon: '📦', name: 'Quarter Stack',       desc: 'Own 25 of any stage.',                      test: s => maxOwned(s) >= 25 },
+  { id: 'own100',    icon: '💯', name: 'Century',             desc: 'Own 100 of any stage.',                     test: s => maxOwned(s) >= 100 },
+  { id: 'own500',    icon: '🏙️', name: 'Monopoly',            desc: 'Own 500 of any stage.',                     test: s => maxOwned(s) >= 500 },
+  { id: 'allstages', icon: '🎪', name: 'Full Lineup',         desc: 'Own every stage at once.',                  test: s => STAGES.every(d => s.stages[d.id].owned > 0) },
+  { id: 'mgr1',      icon: '🎚️', name: 'Delegator',           desc: 'Hire your first Sound Engineer.',           test: s => Object.keys(s.managers).length >= 1 },
+  { id: 'mgrall',    icon: '👷', name: 'Full Crew',           desc: 'Hire every Sound Engineer.',                test: s => MANAGERS.every(m => s.managers[m.stage]) },
+  { id: 'upg5',      icon: '🔧', name: 'Gear Head',           desc: 'Install 5 upgrades in one tour.',           test: s => Object.keys(s.upgrades).length >= 5 },
+  { id: 'upgall',    icon: '🧪', name: 'Studio Nerd',         desc: 'Install every upgrade in one tour.',        test: s => UPGRADES.every(u => s.upgrades[u.id]) },
+  { id: 'earn1k',    icon: '🍺', name: 'Beer Money',          desc: 'Earn $1K lifetime.',                        test: s => s.lifetimeEarnings >= 1e3 },
+  { id: 'earn1m',    icon: '💰', name: 'Millionaire',         desc: 'Earn $1M lifetime.',                        test: s => s.lifetimeEarnings >= 1e6 },
+  { id: 'earn1b',    icon: '🏦', name: 'Billionaire',         desc: 'Earn $1B lifetime.',                        test: s => s.lifetimeEarnings >= 1e9 },
+  { id: 'earn1t',    icon: '🪐', name: 'Trillionaire',        desc: 'Earn $1T lifetime.',                        test: s => s.lifetimeEarnings >= 1e12 },
+  { id: 'prestige1', icon: '🖋️', name: 'Signed',              desc: 'Sign with the label once.',                 test: s => s.stats.prestiges >= 1 },
+  { id: 'execs10',   icon: '👔', name: 'Boardroom',           desc: 'Hold 10 execs at once.',                    test: s => s.execs >= 10 },
+  { id: 'execs100',  icon: '🏢', name: 'Conglomerate',        desc: 'Hold 100 execs at once.',                   test: s => s.execs >= 100 },
+  { id: 'perk1',     icon: '🎁', name: 'Perks of the Job',    desc: 'Buy your first Exec perk.',                 test: s => Object.keys(s.perks).length >= 1 },
+  { id: 'disc1',     icon: '💿', name: 'Gold Digger',         desc: 'Catch a gold vinyl airdrop.',               test: s => s.stats.airdrops >= 1 },
+  { id: 'disc25',    icon: '📀', name: 'Crate Digger',        desc: 'Catch 25 airdrops.',                        test: s => s.stats.airdrops >= 25 },
+  { id: 'warp5',     icon: '⏩', name: 'Time Lord',           desc: 'Use Time Warp 5 times.',                    test: s => s.stats.warps >= 5 },
+  { id: 'tier1',     icon: '🎆', name: 'Festival Season',     desc: 'Reach the Neon Festival.',                  test: s => s.lifetimeEarnings >= 1e5 },
+  { id: 'tier2',     icon: '🌙', name: 'Moonwalker',          desc: 'Reach the Lunar Arena.',                    test: s => s.lifetimeEarnings >= 1e7 },
+  { id: 'tier3',     icon: '🔴', name: 'Red Planet Rave',     desc: 'Reach the Martian Orbital Rave.',           test: s => s.lifetimeEarnings >= 1e9 },
+  { id: 'hype1',     icon: '🚀', name: 'Hands Up',            desc: 'Fire your first hype drop.',                test: s => s.stats.hypeDrops >= 1 },
+  { id: 'hype25',    icon: '📣', name: 'Hype Man',            desc: 'Fire 25 hype drops.',                       test: s => s.stats.hypeDrops >= 25 },
+  { id: 'events10',  icon: '📻', name: 'Crisis Manager',      desc: 'Resolve 10 live events.',                   test: s => s.stats.events >= 10 },
+  { id: 'scout',     icon: '🔭', name: 'Scouted',             desc: 'Win a Label Scout challenge.',              test: s => s.stats.scoutWins >= 1 },
+  { id: 'hour',      icon: '⏱️', name: 'All-Nighter',         desc: 'Play for one hour in total.',               test: s => s.stats.playTime >= 3600 }
+];
+
+// ---- Exec perks: spend Record Label Execs on permanent, tour-proof upgrades ----
+const PERKS = [
+  { id: 'headstart',   icon: '🎚️', name: 'Resident Engineer', max: 1, base: 3, desc: 'Every new tour starts with Lo-Fi Lena already hired.' },
+  { id: 'clickpower',  icon: '🎤', name: 'Signature Sound',   max: 5, base: 2, desc: 'Manual drops ×2 per level.' },
+  { id: 'hypeman',     icon: '📣', name: 'Hype Man',          max: 3, base: 3, desc: 'Hype builds 50% faster per level.' },
+  { id: 'longfrenzy',  icon: '💿', name: 'Extended Mix',      max: 4, base: 4, desc: 'Gold vinyl frenzy lasts 15s longer per level.' },
+  { id: 'fastwarp',    icon: '⏩', name: 'Flux Capacitor',    max: 3, base: 5, desc: 'Time Warp recharges 20% faster per level.' },
+  { id: 'nightshift',  icon: '🌙', name: 'Night Shift Crew',  max: 2, base: 6, desc: 'Offline earnings cap +6h per level.' },
+  { id: 'cheapstages', icon: '🤝', name: 'Promoter Network',  max: 4, base: 8, desc: 'Every stage costs 6% less per level.' }
+];
+
+// ---- Live events: decisions that fire every few minutes while you play ----
+const EVENT_DEFS = [
+  { id: 'viral', title: '🔥 Viral Moment', available: () => true,
+    text: () => 'A clip of your last drop is trending everywhere. Ride the wave while it lasts?',
+    accept: () => 'Ride it: manual drops ×5 for 45s', decline: () => 'Ignore it',
+    onAccept: () => ({ id: 'viral', label: '🔥 VIRAL ×5 DROPS', until: Date.now() + 45000, clickMult: 5 }), onDecline: () => null },
+  { id: 'feature', title: '📡 Streaming Feature', available: s => s.cash > 100, cost: s => s.cash * 0.2,
+    text: c => 'A streaming platform wants your label on its front page. They want ' + money(c.cost) + ' up front for 90 seconds of doubled reach.',
+    accept: () => 'Pay up: all income ×2 for 90s', decline: () => 'Pass',
+    onAccept: () => ({ id: 'feature', label: '📡 FEATURED ×2', until: Date.now() + 90000, globalMult: 2 }), onDecline: () => null },
+  { id: 'noise', title: '🚨 Noise Complaint', available: s => s.stages.club.owned > 0, cost: s => s.cash * 0.1,
+    text: c => 'The neighbours called the police on the Underground Club. Pay a ' + money(c.cost) + ' fine, or the club goes dark for 60 seconds.',
+    accept: () => 'Pay the fine', decline: () => 'Let them shut it',
+    onAccept: () => null, onDecline: () => ({ id: 'noise', label: '🚨 CLUB CLOSED', until: Date.now() + 60000, stageOff: 'club' }) },
+  { id: 'guest', title: '🎧 Surprise Guest DJ', available: () => true, needsStage: 'owned',
+    text: c => 'A world-famous headliner just walked into the ' + c.stage.name + ' unannounced. The crowd is losing its mind.',
+    accept: c => 'Hand over the decks: ' + c.stage.name + ' ×3 for 60s', decline: () => 'Keep the decks',
+    onAccept: c => ({ id: 'guest', label: '🎧 GUEST DJ ×3', until: Date.now() + 60000, stageMult: { [c.stage.id]: 3 } }), onDecline: () => null },
+  { id: 'scout', title: '🔭 Label Scout', available: () => true,
+    text: c => 'A label scout is in the crowd tonight. Earn ' + money(c.goal) + ' in the next 60 seconds and they sign you a brand-new Exec.',
+    accept: () => 'Show them what you have', decline: () => 'Not tonight',
+    onAccept: c => ({ id: 'scout', label: '🔭 SCOUT WATCHING', until: Date.now() + 60000, scout: { goal: c.goal, earned: 0 } }), onDecline: () => null },
+  { id: 'meltdown', title: '🔌 Mixer Meltdown', available: s => Object.keys(s.managers).length > 0, needsStage: 'managed', cost: s => s.cash * 0.05,
+    text: c => c.manager.name + ' just fried the board at the ' + c.stage.name + '. Repairs cost ' + money(c.cost) + ', or the stage runs on manual for 60 seconds.',
+    accept: () => 'Pay for repairs', decline: () => 'Run it by hand',
+    onAccept: () => null, onDecline: c => ({ id: 'meltdown', label: '🔌 MANUAL MODE', until: Date.now() + 60000, stageManual: c.stage.id }) }
+];
+const EVENT_DECISION_MS = 20000;
+
 const SUFFIXES = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
 function fmt(n) {
   if (!isFinite(n)) return '∞';
@@ -415,11 +546,19 @@ function defaultState() {
     stages,
     managers: {},
     upgrades: {},
+    achievements: {},
+    perks: {},
+    execsSpent: 0,
+    hype: 0,
+    hypeUntil: 0,
+    event: null,
+    history: [],
     warpReadyAt: 0,
     frenzyUntil: 0,
     totalClicks: 0,
-    stats: { prestiges: 0, warps: 0, airdrops: 0, milestones: 0 },
-    settings: { volume: 0.8, muted: false, buyMode: '1' },
+    stats: { prestiges: 0, warps: 0, airdrops: 0, milestones: 0, hypeDrops: 0, events: 0, scoutWins: 0, playTime: 0, bestCps: 0,
+      earnedByStage: { studio: 0, vinyl: 0, club: 0, rave: 0, neon: 0, lunar: 0 } },
+    settings: { volume: 0.8, muted: false, buyMode: '1', stemMutes: {}, echo: 0.38 },
     lastSave: Date.now(),
     firstPlayed: Date.now()
   };
@@ -449,9 +588,15 @@ const Persistence = {
     }
     merged.managers = Object.assign({}, data.managers || {});
     merged.upgrades = Object.assign({}, data.upgrades || {});
+    merged.achievements = Object.assign({}, data.achievements || {});
+    merged.perks = Object.assign({}, data.perks || {});
     merged.stats = Object.assign({}, base.stats, data.stats || {});
+    merged.stats.earnedByStage = Object.assign({}, base.stats.earnedByStage, (data.stats && data.stats.earnedByStage) || {});
     merged.settings = Object.assign({}, base.settings, data.settings || {});
-    for (const k of ['cash', 'lifetimeEarnings', 'runEarnings', 'execs', 'execsClaimedTotal', 'warpReadyAt', 'frenzyUntil', 'totalClicks', 'lastSave', 'firstPlayed']) {
+    merged.settings.stemMutes = Object.assign({}, (data.settings && data.settings.stemMutes) || {});
+    merged.history = Array.isArray(data.history) ? data.history.filter(h => h && isFinite(h.t) && isFinite(h.cps)).slice(-120) : [];
+    merged.event = (data.event && typeof data.event === 'object' && isFinite(data.event.until)) ? data.event : null;
+    for (const k of ['cash', 'lifetimeEarnings', 'runEarnings', 'execs', 'execsClaimedTotal', 'execsSpent', 'hype', 'hypeUntil', 'warpReadyAt', 'frenzyUntil', 'totalClicks', 'lastSave', 'firstPlayed']) {
       if (!isFinite(merged[k])) merged[k] = base[k];
     }
     return merged;
@@ -491,33 +636,114 @@ const Economy = {
   prestigeMult() { return Math.pow(1.02, state.execs); },
   frenzyActive() { return Date.now() < state.frenzyUntil; },
   frenzyMult() { return this.frenzyActive() ? FRENZY_MULT : 1; },
-  globalMult() { return this.globalUpgradeMult() * this.prestigeMult() * this.frenzyMult(); },
+  frenzyDuration() { return FRENZY_MS + 15000 * this.perkLevel('longfrenzy'); },
+  achievementMult() { return 1 + ACH_BONUS * Object.keys(state.achievements).length; },
+  hypeActive() { return Date.now() < state.hypeUntil; },
+  hypeMult() { return this.hypeActive() ? HYPE_MULT : 1; },
+  hypeReady() { return state.hype >= 1 && !this.hypeActive(); },
+  // Temporary multipliers from frenzy, hype and live events; everything else is permanent.
+  temporaryMult() { return this.frenzyMult() * this.hypeMult() * this.eventGlobalMult(); },
+  globalMult() { return this.globalUpgradeMult() * this.prestigeMult() * this.achievementMult() * this.temporaryMult(); },
+
+  // ---- Exec perks ----
+  perkLevel(id) { return state.perks[id] || 0; },
+  perkCost(p) { return p.base * Math.pow(2, this.perkLevel(p.id)); },
+  buyPerk(p) {
+    const lvl = this.perkLevel(p.id);
+    if (lvl >= p.max) return false;
+    const cost = this.perkCost(p);
+    if (state.execs < cost) { this.emit('denied', p.name); return false; }
+    state.execs -= cost;
+    state.execsSpent += cost;
+    state.perks[p.id] = lvl + 1;
+    if (p.id === 'headstart' && state.stages.studio.owned > 0) state.managers.studio = true;
+    this.emit('perk', p);
+    return true;
+  },
+  costFactor() { return 1 - 0.06 * this.perkLevel('cheapstages'); },
+  offlineCap() { return OFFLINE_CAP_SEC + 6 * 3600 * this.perkLevel('nightshift'); },
+  warpCooldown() { return WARP_COOLDOWN_MS * (1 - 0.2 * this.perkLevel('fastwarp')); },
+
+  // ---- Live events ----
+  event() {
+    const e = state.event;
+    if (!e) return null;
+    if (Date.now() >= e.until) { this.endEvent(false); return null; }
+    return e;
+  },
+  eventGlobalMult() { const e = state.event; return e && e.globalMult && Date.now() < e.until ? e.globalMult : 1; },
+  eventClickMult() { const e = state.event; return e && e.clickMult && Date.now() < e.until ? e.clickMult : 1; },
+  eventStageMult(id) {
+    const e = state.event;
+    if (!e || Date.now() >= e.until) return 1;
+    if (e.stageOff === id) return 0;
+    return e.stageMult && e.stageMult[id] ? e.stageMult[id] : 1;
+  },
+  stageManaged(id) {
+    const e = state.event;
+    return !!state.managers[id] && !(e && e.stageManual === id && Date.now() < e.until);
+  },
+  applyEvent(evt) { state.event = evt; if (evt) this.emit('eventStart', evt); },
+  endEvent(resolved) {
+    const e = state.event;
+    state.event = null;
+    if (e) this.emit('eventEnd', { event: e, resolved });
+  },
+
+  // ---- Hype ----
+  addHype(amount) {
+    if (this.hypeActive()) return;
+    state.hype = clamp(state.hype + amount * (1 + 0.5 * this.perkLevel('hypeman')), 0, 1);
+  },
+  fireHype() {
+    if (!this.hypeReady()) return false;
+    state.hypeUntil = Date.now() + HYPE_MS;
+    state.hype = 0;
+    state.stats.hypeDrops += 1;
+    this.emit('hype');
+    return true;
+  },
+
+  // ---- Achievements ----
+  checkAchievements() {
+    const newly = [];
+    for (const a of ACHIEVEMENTS) {
+      if (state.achievements[a.id]) continue;
+      let ok = false;
+      try { ok = !!a.test(state); } catch (e) { ok = false; }
+      if (ok) { state.achievements[a.id] = Date.now(); newly.push(a); }
+    }
+    if (newly.length) this.emit('achievement', newly);
+    return newly;
+  },
 
   stageProfit(def) {
     const s = state.stages[def.id];
-    return def.baseProfit * s.owned * Math.pow(2, this.milestonesReached(s.owned)) * this.stageUpgradeMult(def.id) * this.globalMult();
+    return def.baseProfit * s.owned * Math.pow(2, this.milestonesReached(s.owned)) * this.stageUpgradeMult(def.id) * this.eventStageMult(def.id) * this.globalMult();
   },
   stageCycle(def) { return def.baseTime / Math.pow(2, this.milestonesReached(state.stages[def.id].owned)); },
   stageCPS(def) {
     const s = state.stages[def.id];
-    if (s.owned <= 0 || !state.managers[def.id]) return 0;
+    if (s.owned <= 0 || !this.stageManaged(def.id)) return 0;
     return this.stageProfit(def) / this.stageCycle(def);
   },
   totalCPS() { let t = 0; for (const d of STAGES) t += this.stageCPS(d); return t; },
   totalCPSNoFrenzy() { return this.totalCPS() / this.frenzyMult(); },
+  baseCPS() { return this.totalCPS() / this.temporaryMult(); },
 
   clickValue() {
-    const cps = this.totalCPSNoFrenzy();
-    return (1 + cps * 0.02) * this.clickUpgradeMult() * this.prestigeMult() * this.frenzyMult();
+    const cps = this.baseCPS();
+    return (1 + cps * 0.02) * this.clickUpgradeMult() * Math.pow(2, this.perkLevel('clickpower')) * this.prestigeMult() * this.achievementMult()
+      * this.temporaryMult() * this.eventClickMult();
   },
 
   costOfN(def, n) {
     const owned = state.stages[def.id].owned;
-    return def.baseCost * Math.pow(COST_GROWTH, owned) * (Math.pow(COST_GROWTH, n) - 1) / (COST_GROWTH - 1);
+    return def.baseCost * this.costFactor() * Math.pow(COST_GROWTH, owned) * (Math.pow(COST_GROWTH, n) - 1) / (COST_GROWTH - 1);
   },
   maxAffordable(def) {
     const owned = state.stages[def.id].owned;
-    const unit = def.baseCost * Math.pow(COST_GROWTH, owned);
+    const unit = def.baseCost * this.costFactor() * Math.pow(COST_GROWTH, owned);
     let n = Math.floor(Math.log(state.cash * (COST_GROWTH - 1) / unit + 1) / Math.log(COST_GROWTH));
     if (!isFinite(n) || n < 0) n = 0;
     // Guard against floating-point rounding pushing the exact cost a hair above the cash balance.
@@ -541,6 +767,17 @@ const Economy = {
     state.lifetimeEarnings += amount;
     state.runEarnings += amount;
     const newTier = this.tierIndex();
+    if (state.stats.earnedByStage[source] !== undefined) state.stats.earnedByStage[source] += amount;
+    const e = state.event;
+    if (e && e.scout && Date.now() < e.until && source !== 'offline' && source !== 'catchup') {
+      e.scout.earned += amount;
+      if (e.scout.earned >= e.scout.goal) {
+        state.execs += 1;
+        state.stats.scoutWins += 1;
+        this.emit('scoutWin');
+        this.endEvent(true);
+      }
+    }
     if (newTier !== prevTier) this.emit('tier', newTier);
     this.emit('earn', { amount, source });
   },
@@ -602,10 +839,13 @@ const Economy = {
       if (amount > 0) this.earn(amount, 'catchup');
       return;
     }
+    state.stats.playTime += dt;
+    if (!this.hypeActive() && state.hype < 1) state.hype = Math.max(0, state.hype - dt * HYPE_DECAY_PER_SEC);
     for (const def of STAGES) {
       const s = state.stages[def.id];
       if (s.owned <= 0) continue;
-      const managed = !!state.managers[def.id];
+      if (this.eventStageMult(def.id) === 0) continue; // stage shut down by an event: progress freezes
+      const managed = this.stageManaged(def.id);
       if (managed && !s.running) s.running = true;
       if (!s.running) continue;
       const cycle = this.stageCycle(def);
@@ -635,8 +875,11 @@ const Economy = {
     state.runEarnings = 0;
     for (const def of STAGES) state.stages[def.id] = { owned: def.id === 'studio' ? 1 : 0, progress: 0, running: false };
     state.managers = {};
+    if (this.perkLevel('headstart') > 0) state.managers.studio = true;
     state.upgrades = {};
     state.frenzyUntil = 0;
+    state.hype = 0; state.hypeUntil = 0;
+    state.event = null;
     this.emit('prestige', gain);
     return true;
   },
@@ -649,7 +892,7 @@ const Economy = {
     if (cps <= 0) return { ok: false, reason: 'nocps' };
     const amount = cps * 3600 * WARP_HOURS;
     this.earn(amount, 'warp');
-    state.warpReadyAt = Date.now() + WARP_COOLDOWN_MS;
+    state.warpReadyAt = Date.now() + this.warpCooldown();
     state.stats.warps += 1;
     this.emit('warp', amount);
     return { ok: true, amount };
@@ -657,7 +900,7 @@ const Economy = {
 
   // ---- Frenzy ----
   startFrenzy() {
-    state.frenzyUntil = Math.max(Date.now(), state.frenzyUntil) + FRENZY_MS;
+    state.frenzyUntil = Math.max(Date.now(), state.frenzyUntil) + this.frenzyDuration();
     state.stats.airdrops += 1;
     this.emit('frenzy', state.frenzyUntil);
   },
@@ -665,16 +908,25 @@ const Economy = {
   // ---- Offline ----
   computeOffline(now) {
     const away = Math.max(0, (now - state.lastSave) / 1000);
-    const effective = Math.min(away, OFFLINE_CAP_SEC);
-    const cps = this.totalCPSNoFrenzy();
-    return { away, effective, amount: cps * effective };
+    const effective = Math.min(away, this.offlineCap());
+    const cps = this.baseCPS();
+    return { away, effective, amount: cps * effective, cap: this.offlineCap() };
   },
 
   click() {
     const v = this.clickValue();
     state.totalClicks += 1;
+    this.addHype(HYPE_PER_CLICK);
     this.earn(v, 'click');
     return v;
+  },
+
+  // ---- Earnings history for the Stats chart (one sample every 5s, last 10 minutes) ----
+  sampleHistory() {
+    const cps = this.totalCPS();
+    state.history.push({ t: Date.now(), cps });
+    if (state.history.length > 120) state.history.splice(0, state.history.length - 120);
+    if (cps > state.stats.bestCps) state.stats.bestCps = cps;
   }
 };
 
@@ -685,9 +937,13 @@ const AudioEngine = (function () {
   const BPM = 126, BEAT = 60 / BPM, STEP = BEAT / 4, BAR = BEAT * 4;
   const LOOKAHEAD_MS = 25;
   let ctx = null, master = null, comp = null, analyser = null, fxGain = null;
-  let delayNode = null, delayOut = null;
+  let delayNode = null, delayOut = null, delayFb = null;
   const stems = {};
   const unlocked = { kick: true, bass: false, hats: false, chords: false, lead: false, pad: false };
+  const userMuted = { kick: false, bass: false, hats: false, chords: false, lead: false, pad: false };
+  let curBar = 0;
+  const NOTE_NAMES = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#'];
+  const CHORD_SUFFIX = { m: 'm', M: '', M7: 'maj7', m7: 'm7' };
   let step = 0, nextTime = 0, timer = null, running = false, aheadSec = 0.16;
   let noiseBuf = null;
   let tier = 0, cutoff = 0.3;
@@ -742,14 +998,14 @@ const AudioEngine = (function () {
     comp.connect(master); master.connect(analyser); analyser.connect(ctx.destination);
     for (const n of Object.keys(unlocked)) {
       const g = ctx.createGain();
-      g.gain.value = unlocked[n] ? 1 : 0;
+      g.gain.value = (unlocked[n] && !userMuted[n]) ? 1 : 0;
       g.connect(comp);
       stems[n] = g;
     }
     fxGain = ctx.createGain(); fxGain.gain.value = 0.9; fxGain.connect(comp);
     // Dotted-eighth feedback delay for the lead arp
     delayNode = ctx.createDelay(1.0); delayNode.delayTime.value = STEP * 3;
-    const fb = ctx.createGain(); fb.gain.value = 0.38;
+    const fb = ctx.createGain(); fb.gain.value = 0.38; delayFb = fb;
     const dfilt = ctx.createBiquadFilter(); dfilt.type = 'lowpass'; dfilt.frequency.value = 2800;
     delayNode.connect(dfilt); dfilt.connect(fb); fb.connect(delayNode);
     delayOut = ctx.createGain(); delayOut.gain.value = 0.45;
@@ -794,7 +1050,7 @@ const AudioEngine = (function () {
       playCrash(t); playBoom(t);
       listeners.drop.forEach(fn => fn(t));
     }
-    if (st === 0) listeners.bar.forEach(fn => fn(t, bar));
+    if (st === 0) { curBar = bar; listeners.bar.forEach(fn => fn(t, bar)); }
 
     // Kick: four on the floor
     if (st % 4 === 0 && !inBuild && unlocked.kick) { playKick(t); kickTimes.push(t); }
@@ -1006,10 +1262,25 @@ const AudioEngine = (function () {
   }
 
   // ---------- Public controls ----------
+  function applyStem(name) {
+    if (ctx && stems[name]) stems[name].gain.setTargetAtTime((unlocked[name] && !userMuted[name]) ? 1 : 0, ctx.currentTime, 0.4);
+  }
   function setStem(name, on) {
     if (!(name in unlocked)) return;
     unlocked[name] = !!on;
-    if (ctx && stems[name]) stems[name].gain.setTargetAtTime(on ? 1 : 0, ctx.currentTime, 0.4);
+    applyStem(name);
+  }
+  function setUserMute(name, muted) {
+    if (!(name in userMuted)) return;
+    userMuted[name] = !!muted;
+    applyStem(name);
+  }
+  function setEcho(v) {
+    v = clamp(v, 0, 0.8);
+    if (ctx && delayFb) { delayFb.gain.setTargetAtTime(v, ctx.currentTime, 0.05); delayOut.gain.setTargetAtTime(0.15 + v, ctx.currentTime, 0.05); }
+  }
+  function getProgression() {
+    return PROG[tier].map(ch => NOTE_NAMES[((ch.r % 12) + 12) % 12] + CHORD_SUFFIX[ch.t]);
   }
   function setTier(n) { tier = clamp(n | 0, 0, PROG.length - 1); }
   function raiseCutoff(amount) { cutoff = clamp(cutoff + amount, 0, 1); }
@@ -1039,8 +1310,9 @@ const AudioEngine = (function () {
     if (timer) { clearInterval(timer); timer = setInterval(schedule, document.hidden ? 400 : LOOKAHEAD_MS); }
   });
 
-  return { ensure, isReady: () => !!ctx, click, sfx, triggerDrop, setStem, setTier, raiseCutoff, setCutoff, getCutoff: () => cutoff,
-    setVolume, setMuted, pollKick, getWaveform, getFrequency, on, BPM, BEAT, isMuted: () => muted, stems: unlocked };
+  return { ensure, isReady: () => !!ctx, click, sfx, triggerDrop, setStem, setUserMute, setEcho, getProgression, getBar: () => curBar,
+    setTier, getTier: () => tier, raiseCutoff, setCutoff, getCutoff: () => cutoff,
+    setVolume, setMuted, pollKick, getWaveform, getFrequency, on, BPM, BEAT, isMuted: () => muted, stems: unlocked, userMuted };
 })();
 
 /* ==========================================================================================
@@ -1496,7 +1768,7 @@ const World = (function () {
       else cell.mesh.material.color.setHex(0x0e0c1a);
     }
     // Crowd
-    const count = clamp(crowdCount | 0, 0, crowdData.length);
+    const count = clamp(crowdCount | 0, 0, crowdCap());
     crowdBody.count = count; crowdHead.count = count;
     for (let i = 0; i < count; i++) {
       const d = crowdData[i];
@@ -1556,8 +1828,20 @@ const World = (function () {
     camera.aspect = w / h; camera.updateProjectionMatrix();
     renderer.setSize(w, h);
   }
+  let lowQuality = false;
+  /** Drops to a lighter render path on slow devices: 1x pixel ratio, fewer particles, no light beams. */
+  function setLowQuality(on) {
+    if (!ok || lowQuality === !!on) return;
+    lowQuality = !!on;
+    renderer.setPixelRatio(lowQuality ? 1 : Math.min(window.devicePixelRatio || 1, 2));
+    resize();
+    if (dust) dust.visible = !lowQuality;
+    cans.forEach(c => { if (c.beam) c.beam.visible = !lowQuality; });
+  }
+  function crowdCap() { return lowQuality ? 60 : crowdData.length; }
 
-  return { init, update, resize, setTier, showDisc, hideDisc, burst, pulse, ripple, isDiscVisible: () => !!(disc && disc.visible), isOk: () => ok };
+  return { init, update, resize, setTier, showDisc, hideDisc, burst, pulse, ripple, setLowQuality, crowdCap, isLowQuality: () => lowQuality,
+    isDiscVisible: () => !!(disc && disc.visible), isOk: () => ok };
 })();
 
 /* ==========================================================================================
@@ -1567,7 +1851,7 @@ const UI = (function () {
   const els = {};
   const stageEls = {};
   let currentTab = 'stages';
-  let lastRefresh = 0, lastPrestigeBuild = 0;
+  let lastRefresh = 0, lastPrestigeBuild = 0, lastStatsBuild = 0, eventTimerId = null;
   let vizCtx = null;
   const wave = new Uint8Array(1024);
   const freq = new Uint8Array(512);
@@ -1578,8 +1862,11 @@ const UI = (function () {
      'disc-hint', 'btn-drop', 'click-value', 'upg-count', 'prestige-dot', 'tab-stages', 'tab-upgrades', 'tab-managers', 'tab-prestige', 'toasts', 'splash',
      'btn-start', 'modal-welcome', 'welcome-away', 'welcome-cash', 'btn-collect', 'modal-prestige', 'prestige-gain', 'prestige-newmult', 'btn-prestige-cancel',
      'btn-prestige-confirm', 'modal-settings', 'btn-settings-close', 'btn-mute2', 'vol2', 'vol-label', 'st-lifetime', 'st-clicks', 'st-prestiges', 'st-airdrops',
-     'btn-export', 'btn-import', 'btn-reset', 'save-io', 'viz', 'stage-pane', 'buy-modes', 'three-container', 'three-fallback'].forEach(id => { els[id] = $(id); });
+     'btn-export', 'btn-import', 'btn-reset', 'save-io', 'viz', 'stage-pane', 'buy-modes', 'three-container', 'three-fallback',
+     'hype-wrap', 'hype-fill', 'hype-label', 'btn-drop-label', 'hype-badge', 'hype-time', 'event-badge', 'event-label', 'event-time', 'event-sub', 'ach-count',
+     'tab-awards', 'tab-booth', 'tab-stats', 'modal-event', 'event-timer', 'event-title', 'event-text', 'btn-event-decline', 'btn-event-accept'].forEach(id => { els[id] = $(id); });
   }
+  function modalOpen() { return !!document.querySelector('.modal:not(.hidden)'); }
 
   // ---------- Toasts & floating text ----------
   function toast(msg, kind) {
@@ -1721,7 +2008,7 @@ const UI = (function () {
         <div class="flex justify-between text-xs"><span class="text-gray-400">Execs ready to sign</span><span class="mono font-bold text-yellow-300">${fmtInt(claim)}</span></div>
         <div class="flex justify-between text-xs"><span class="text-gray-400">Next exec at</span><span class="mono font-bold">${money(Economy.nextExecAt())}</span></div>
         <div class="h-2 rounded-full bg-black/50 overflow-hidden mt-1"><div class="h-full bg-gradient-to-r from-yellow-400 to-pink-500" style="width:${prestigeProgressPct()}%"></div></div>
-        <button id="btn-prestige-open" class="btn btn-gold rounded-xl w-full py-3 font-black tracking-wider mt-2" ${claim > 0 ? '' : 'disabled'}>${claim > 0 ? 'SIGN ' + fmtInt(claim) + ' EXEC' + (claim > 1 ? 'S' : '') + ' & RESET TOUR' : 'REACH $100K LIFETIME TO PRESTIGE'}</button>
+        <button id="btn-prestige-open" class="btn btn-gold rounded-xl w-full py-3 font-black tracking-wider mt-2" ${claim > 0 ? '' : 'disabled'}>${claim > 0 ? 'SIGN ' + fmtInt(claim) + ' EXEC' + (claim > 1 ? 'S' : '') + ' & RESET TOUR' : state.execsClaimedTotal > 0 ? 'NEXT EXEC AT ' + money(Economy.nextExecAt()) : 'REACH $100K LIFETIME TO PRESTIGE'}</button>
         <div class="text-[10px] text-gray-500 text-center">Execs = ⌊√(lifetime ÷ $100K)⌋ minus what you already signed. Reset keeps execs, stats and settings.</div>
       </div>
       <div class="glass rounded-2xl p-4">
@@ -1732,9 +2019,178 @@ const UI = (function () {
             <div class="flex-1"><div class="text-xs font-bold">${t.name}</div><div class="text-[10px]">${t.place}</div></div>
             <div class="mono text-[10px]">${t.threshold > 0 ? money(t.threshold) : 'start'}</div>
           </div>`).join('')}
+      </div>
+      <div class="glass rounded-2xl p-4">
+        <div class="text-[10px] uppercase tracking-widest text-gray-400">Exec perks</div>
+        <div class="text-[10px] text-gray-500 mb-1">Spend execs on permanent perks that survive every reset. Each exec spent lowers your ×1.02 multiplier, so choose with intent. You hold <span class="mono text-yellow-300 font-bold">${fmtInt(state.execs)}</span>.</div>
+        ${PERKS.map(p => { const lvl = Economy.perkLevel(p.id); const maxed = lvl >= p.max; const cost = Economy.perkCost(p); return `
+          <div class="flex items-center gap-3 py-2 border-t border-white/5">
+            <div class="text-xl w-8 text-center">${p.icon}</div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-bold">${p.name} <span class="text-[10px] text-gray-400">Lv ${lvl}/${p.max}</span></div>
+              <div class="text-[10px] text-gray-400">${p.desc}</div>
+              <div class="flex gap-1 mt-1">${Array.from({ length: p.max }, (_, i) => `<span class="perk-pip ${i < lvl ? 'on' : ''}"></span>`).join('')}</div>
+            </div>
+            <button class="btn btn-gold rounded-xl px-2 py-2 text-[11px] font-black w-[88px] shrink-0 mono" data-perk="${p.id}" ${maxed || state.execs < cost ? 'disabled' : ''}>${maxed ? 'MAXED' : cost + ' EXEC' + (cost > 1 ? 'S' : '')}</button>
+          </div>`; }).join('')}
       </div>`;
     const btn = $('btn-prestige-open');
     if (btn) btn.addEventListener('click', () => Game.openPrestige());
+    root.querySelectorAll('[data-perk]').forEach(b => b.addEventListener('click', () => Game.buyPerk(PERKS.find(p => p.id === b.dataset.perk))));
+  }
+
+  // ---------- Awards ----------
+  function buildAwards() {
+    const root = els['tab-awards'];
+    const n = Object.keys(state.achievements).length;
+    root.innerHTML = `
+      <div class="glass rounded-2xl p-4 text-center">
+        <div class="text-[10px] uppercase tracking-widest text-gray-400">Awards unlocked</div>
+        <div class="mono text-3xl font-black text-yellow-300">${n} <span class="text-base text-gray-400">/ ${ACHIEVEMENTS.length}</span></div>
+        <div class="text-xs text-gray-300 mt-1">Each award adds a permanent +2% to all income: currently ×<span class="mono font-bold text-cyan-300">${Economy.achievementMult().toFixed(2)}</span></div>
+        <div class="h-2 rounded-full bg-black/50 overflow-hidden mt-2"><div class="h-full bg-gradient-to-r from-yellow-400 to-pink-500" style="width:${(n / ACHIEVEMENTS.length * 100).toFixed(1)}%"></div></div>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        ${ACHIEVEMENTS.map(a => { const got = !!state.achievements[a.id]; return `
+          <div class="ach-card glass rounded-2xl p-3 flex items-center gap-2 ${got ? '' : 'locked'}" title="${escapeHtml(a.desc)}">
+            <div class="text-2xl w-9 text-center shrink-0">${a.icon}</div>
+            <div class="min-w-0"><div class="text-xs font-bold truncate">${a.name}</div><div class="text-[10px] text-gray-400 leading-tight">${a.desc}</div></div>
+          </div>`; }).join('')}
+      </div>`;
+  }
+
+  // ---------- Booth ----------
+  function buildBooth() {
+    const root = els['tab-booth'];
+    const names = { kick: 'Kick', bass: 'Bass', hats: 'Hats & Clap', chords: 'Chord Stabs', lead: 'Lead Arp', pad: 'Cosmic Pad' };
+    const prog = AudioEngine.getProgression();
+    const T = TIERS[Economy.tierIndex()];
+    root.innerHTML = `
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-baseline justify-between"><div class="text-[10px] uppercase tracking-widest text-gray-400">Now playing</div><div class="mono text-[10px] text-cyan-300">126 BPM · 4/4 · A minor</div></div>
+        <div class="text-sm font-bold mt-1">${T.name} set</div>
+        <div id="chord-row" class="flex gap-1 mt-2">${prog.map((c, i) => `<span class="chord-pill flex-1 text-center mono text-xs font-bold rounded-lg py-1.5 border border-white/10 text-gray-300" data-bar="${i}">${c}</span>`).join('')}</div>
+        <div class="text-[10px] text-gray-500 mt-1">One chord per bar. The progression changes with every venue tier.</div>
+      </div>
+      <div class="glass rounded-2xl p-4">
+        <div class="text-[10px] uppercase tracking-widest text-gray-400 mb-2">Stems</div>
+        <div class="grid grid-cols-3 gap-2">
+          ${STAGES.map(d => { const unlocked = AudioEngine.stems[d.stem]; const muted = !!state.settings.stemMutes[d.stem]; return `
+            <button class="stem-toggle btn btn-ghost rounded-xl px-2 py-2 text-[11px] font-bold ${muted ? 'off' : ''}" data-stemtoggle="${d.stem}" ${unlocked ? '' : 'disabled'} style="border-color:${d.color}66">${unlocked ? '' : '🔒 '}${names[d.stem]}</button>`; }).join('')}
+        </div>
+        <div class="text-[10px] text-gray-500 mt-2">Stems unlock as you buy stages. Tap one to mute it in your mix.</div>
+      </div>
+      <div class="glass rounded-2xl p-4 space-y-3">
+        <div>
+          <div class="flex justify-between text-[10px] uppercase tracking-widest text-gray-400"><span>Filter cutoff</span><span id="cutoff-label" class="mono">${Math.round(AudioEngine.getCutoff() * 100)}%</span></div>
+          <input id="cutoff" type="range" min="0" max="1" step="0.01" value="${AudioEngine.getCutoff()}" class="w-full" aria-label="Filter cutoff">
+          <div class="text-[10px] text-gray-500">Milestones push this up on their own. Drag it down for a dark, submerged mix.</div>
+        </div>
+        <div>
+          <div class="flex justify-between text-[10px] uppercase tracking-widest text-gray-400"><span>Echo on the lead</span><span id="echo-label" class="mono">${Math.round(state.settings.echo * 100)}%</span></div>
+          <input id="echo" type="range" min="0" max="0.8" step="0.01" value="${state.settings.echo}" class="w-full" aria-label="Echo">
+        </div>
+        <button id="btn-booth-drop" class="btn btn-neon rounded-xl w-full py-3 font-black tracking-wider">🎚 BUILD &amp; DROP (two bars)</button>
+      </div>`;
+    root.querySelectorAll('[data-stemtoggle]').forEach(b => b.addEventListener('click', () => Game.toggleStem(b.dataset.stemtoggle)));
+    $('cutoff').addEventListener('input', e => { Game.setCutoff(parseFloat(e.target.value)); $('cutoff-label').textContent = Math.round(e.target.value * 100) + '%'; });
+    $('echo').addEventListener('input', e => { Game.setEcho(parseFloat(e.target.value)); $('echo-label').textContent = Math.round(e.target.value * 100) + '%'; });
+    $('btn-booth-drop').addEventListener('click', () => { Game.startAudio(); AudioEngine.triggerDrop(); toast('Riser building. Hands up in two bars.', 'pink'); });
+  }
+  function refreshBooth() {
+    const bar = AudioEngine.getBar();
+    els['tab-booth'].querySelectorAll('.chord-pill').forEach(p => p.classList.toggle('active', AudioEngine.isReady() && parseInt(p.dataset.bar, 10) === bar));
+    const cut = $('cutoff');
+    if (cut && document.activeElement !== cut) { cut.value = AudioEngine.getCutoff(); const l = $('cutoff-label'); if (l) l.textContent = Math.round(AudioEngine.getCutoff() * 100) + '%'; }
+  }
+
+  // ---------- Stats ----------
+  function buildStats() {
+    const root = els['tab-stats'];
+    const s = state.stats;
+    const total = STAGES.reduce((a, d) => a + s.earnedByStage[d.id], 0);
+    root.innerHTML = `
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-baseline justify-between"><div class="text-[10px] uppercase tracking-widest text-gray-400">Income per second · last 10 min</div><div id="chart-now" class="mono text-xs font-bold text-cyan-300"></div></div>
+        <canvas id="stats-chart" class="mt-2" aria-label="Income per second over the last ten minutes"></canvas>
+        <div class="flex justify-between text-[10px] text-gray-500 mono"><span>10 min ago</span><span>now</span></div>
+      </div>
+      <div class="glass rounded-2xl p-4">
+        <div class="text-[10px] uppercase tracking-widest text-gray-400 mb-2">Where the money came from</div>
+        ${STAGES.map(d => { const v = s.earnedByStage[d.id]; const pct = total > 0 ? v / total * 100 : 0; return `
+          <div class="flex items-center gap-2 py-1 text-xs">
+            <span class="w-5 text-center">${d.icon}</span>
+            <span class="w-24 truncate">${d.name}</span>
+            <div class="flex-1 h-2 rounded-full bg-black/50 overflow-hidden"><div class="h-full rounded-full" style="width:${pct.toFixed(1)}%; background:${d.color}"></div></div>
+            <span class="mono w-10 text-right text-gray-300">${pct.toFixed(0)}%</span>
+          </div>`; }).join('')}
+        ${total === 0 ? '<div class="text-[10px] text-gray-500">Automated stages report here once your engineers start earning.</div>' : ''}
+      </div>
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        ${[['Best income/sec', money(s.bestCps) + '/s'], ['Play time', fmtDuration(s.playTime)], ['Beats dropped', fmtInt(state.totalClicks)], ['Hype drops', fmtInt(s.hypeDrops)],
+           ['Events resolved', fmtInt(s.events)], ['Scouts impressed', fmtInt(s.scoutWins)], ['Airdrops caught', fmtInt(s.airdrops)], ['Time warps', fmtInt(s.warps)],
+           ['Milestones hit', fmtInt(s.milestones)], ['Tours completed', fmtInt(s.prestiges)], ['Execs spent on perks', fmtInt(state.execsSpent)], ['Lifetime earnings', money(state.lifetimeEarnings)]]
+          .map(([k, v]) => `<div class="glass rounded-xl p-3 min-w-0"><div class="text-gray-400 text-[10px] uppercase tracking-wider">${k}</div><div class="mono font-bold truncate">${v}</div></div>`).join('')}
+      </div>`;
+    drawStatsChart();
+  }
+  function drawStatsChart() {
+    const c = $('stats-chart'); if (!c) return;
+    const dpr = window.devicePixelRatio || 1;
+    const W = c.clientWidth || 300, H = 150;
+    if (c.width !== Math.floor(W * dpr) || c.height !== Math.floor(H * dpr)) { c.width = Math.floor(W * dpr); c.height = Math.floor(H * dpr); }
+    const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+    const T = TIERS[Economy.tierIndex()];
+    const colA = '#' + T.neon[0].toString(16).padStart(6, '0'), colB = '#' + T.neon[1].toString(16).padStart(6, '0');
+    const now = Date.now(), span = 600000;
+    const pts = state.history.filter(h => now - h.t <= span).concat([{ t: now, cps: Economy.totalCPS() }]);
+    const peak = Math.max(...pts.map(p => p.cps), 0);
+    const max = Math.max(1, peak) * 1.1;
+    const padL = 48, padR = 10, padT = 10, padB = 8;
+    const x = t => padL + (1 - (now - t) / span) * (W - padL - padR);
+    const y = v => padT + (1 - v / max) * (H - padT - padB);
+    g.strokeStyle = 'rgba(255,255,255,0.08)'; g.fillStyle = 'rgba(229,231,235,0.65)';
+    g.font = '10px ui-monospace, SFMono-Regular, Menlo, monospace'; g.textAlign = 'right'; g.textBaseline = 'middle'; g.lineWidth = 1;
+    for (let i = 0; i <= 2; i++) {
+      const v = Math.max(1, peak) * i / 2, yy = y(v);
+      g.beginPath(); g.moveTo(padL, yy); g.lineTo(W - padR, yy); g.stroke();
+      g.fillText('$' + fmt(v), padL - 6, yy);
+    }
+    if (pts.length < 3) { g.textAlign = 'center'; g.fillText('Collecting samples, check back in a minute.', (padL + W - padR) / 2, H / 2); return; }
+    const grad = g.createLinearGradient(0, padT, 0, H); grad.addColorStop(0, colA + '66'); grad.addColorStop(1, colA + '00');
+    g.beginPath(); g.moveTo(x(pts[0].t), y(0));
+    pts.forEach(p => g.lineTo(x(p.t), y(p.cps)));
+    g.lineTo(x(pts[pts.length - 1].t), y(0)); g.closePath(); g.fillStyle = grad; g.fill();
+    g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(x(p.t), y(p.cps)) : g.moveTo(x(p.t), y(p.cps)));
+    const lg = g.createLinearGradient(padL, 0, W, 0); lg.addColorStop(0, colA); lg.addColorStop(1, colB);
+    g.strokeStyle = lg; g.lineWidth = 2; g.lineJoin = 'round'; g.stroke();
+    const last = pts[pts.length - 1];
+    g.fillStyle = colB; g.beginPath(); g.arc(x(last.t), y(last.cps), 3.5, 0, Math.PI * 2); g.fill();
+    const nowEl = $('chart-now'); if (nowEl) nowEl.textContent = money(last.cps) + '/s';
+  }
+
+  // ---------- Live event modal ----------
+  function showEvent(def, ctx, onChoice) {
+    els['event-title'].textContent = def.title;
+    els['event-text'].textContent = def.text(ctx);
+    els['btn-event-accept'].textContent = def.accept(ctx);
+    els['btn-event-decline'].textContent = def.decline(ctx);
+    els['event-timer'].style.width = '100%';
+    els['modal-event'].classList.remove('hidden');
+    const start = performance.now();
+    const finish = accepted => {
+      if (eventTimerId) { clearInterval(eventTimerId); eventTimerId = null; }
+      els['modal-event'].classList.add('hidden');
+      els['btn-event-accept'].onclick = null; els['btn-event-decline'].onclick = null;
+      onChoice(accepted);
+    };
+    els['btn-event-accept'].onclick = () => finish(true);
+    els['btn-event-decline'].onclick = () => finish(false);
+    eventTimerId = setInterval(() => {
+      const k = 1 - (performance.now() - start) / EVENT_DECISION_MS;
+      els['event-timer'].style.width = Math.max(0, k * 100) + '%';
+      if (k <= 0) finish(false);
+    }, 250);
   }
   function prestigeProgressPct() {
     const claimed = state.execsClaimedTotal + Economy.claimableExecs();
@@ -1802,6 +2258,26 @@ const UI = (function () {
       MANAGERS.forEach((m, i) => { if (btns[i] && !state.managers[m.stage]) btns[i].disabled = state.cash < m.cost; });
     }
     els['disc-hint'].classList.toggle('hidden', !World.isDiscVisible());
+    // Hype meter and drop button state
+    const hypeOn = Economy.hypeActive(), hypeRdy = Economy.hypeReady();
+    els['hype-fill'].style.width = (hypeOn ? 100 : state.hype * 100) + '%';
+    els['hype-label'].textContent = hypeOn ? 'LIVE ×2' : Math.round(state.hype * 100) + '%';
+    els['hype-wrap'].classList.toggle('ready', hypeRdy);
+    els['btn-drop'].classList.toggle('hype-ready', hypeRdy);
+    els['btn-drop-label'].textContent = hypeRdy ? '🚀 DROP IT!' : '🔥 DROP THE BEAT';
+    els['hype-badge'].classList.toggle('hidden', !hypeOn);
+    if (hypeOn) els['hype-time'].textContent = Math.ceil((state.hypeUntil - Date.now()) / 1000) + 's';
+    // Live event badge
+    const ev = Economy.event();
+    els['event-badge'].classList.toggle('hidden', !ev);
+    if (ev) {
+      els['event-label'].textContent = ev.label;
+      els['event-time'].textContent = Math.ceil((ev.until - Date.now()) / 1000) + 's';
+      els['event-sub'].textContent = ev.scout ? money(ev.scout.earned) + ' of ' + money(ev.scout.goal) : '';
+    }
+    els['ach-count'].textContent = Object.keys(state.achievements).length;
+    if (currentTab === 'booth') refreshBooth();
+    if (currentTab === 'stats' && (force || now - lastStatsBuild > 2000)) { buildStats(); lastStatsBuild = now; }
     // Settings stats
     if (!els['modal-settings'].classList.contains('hidden')) {
       els['st-lifetime'].textContent = money(state.lifetimeEarnings);
@@ -1864,7 +2340,8 @@ const UI = (function () {
 
   // ---------- Modals ----------
   function showWelcome(info) {
-    els['welcome-away'].textContent = 'Your engineers kept the party going for ' + fmtDuration(info.away) + (info.away > OFFLINE_CAP_SEC ? ' (12h counted)' : '');
+    els['welcome-away'].textContent = 'Your engineers kept the party going for ' + fmtDuration(info.away) + (info.away > info.cap ? ' (' + fmtDuration(info.cap) + ' counted)' : '');
+    $('welcome-note').textContent = 'Based on your automated stages (capped at ' + fmtDuration(info.cap) + ').';
     els['modal-welcome'].classList.remove('hidden');
     const start = performance.now(), dur = 1600, target = info.amount;
     function anim(t) {
@@ -1920,18 +2397,19 @@ const UI = (function () {
       if (e.code === 'Space') { e.preventDefault(); if (e.repeat) return; const r = els['btn-drop'].getBoundingClientRect(); Game.tap(r.left + r.width / 2, r.top); }
       else if (e.key === 'm' || e.key === 'M') toggleMute();
       else if (e.key === 'Escape') { closeSettings(); els['modal-prestige'].classList.add('hidden'); }
-      else if (e.key === '1' || e.key === '2' || e.key === '3' || e.key === '4') showTab(['stages', 'upgrades', 'managers', 'prestige'][parseInt(e.key, 10) - 1]);
+      else if (/^[1-7]$/.test(e.key)) showTab(['stages', 'upgrades', 'managers', 'prestige', 'awards', 'booth', 'stats'][parseInt(e.key, 10) - 1]);
     });
   }
 
   function init() {
-    cache(); bind(); buildStages(); buildUpgrades(); buildManagers(); buildPrestige(); buildStemRow(); refreshStemRow();
+    cache(); bind(); buildStages(); buildUpgrades(); buildManagers(); buildPrestige(); buildAwards(); buildBooth(); buildStats(); buildStemRow(); refreshStemRow();
     setBuyMode(state.settings.buyMode || '1');
     syncAudioControls();
   }
-  function rebuildShop() { buildUpgrades(); buildManagers(); buildPrestige(); }
+  function rebuildShop() { buildUpgrades(); buildManagers(); buildPrestige(); buildAwards(); buildBooth(); }
 
   return { init, refresh, refreshBars, drawViz, toast, floatText, flashPayout, showWelcome, syncAudioControls, rebuildShop, refreshStemRow, els,
+    showEvent, modalOpen, rebuildAwards: buildAwards, rebuildBooth: buildBooth,
     openPrestigeModal(gain) { els['prestige-gain'].textContent = fmtInt(gain); els['prestige-newmult'].textContent = '×' + fmtMult(Math.pow(1.02, state.execs + gain)); els['modal-prestige'].classList.remove('hidden'); } };
 })();
 
@@ -1939,10 +2417,13 @@ const UI = (function () {
    7. GAME LOOP & BOOTSTRAP
    ========================================================================================== */
 const Game = (function () {
-  let lastFrame = 0, nextAirdropAt = 0, discUntil = 0, saveTimer = null, audioStarted = false, lastSaveAt = 0;
+  let lastFrame = 0, nextAirdropAt = 0, discUntil = 0, audioStarted = false, lastSaveAt = 0;
+  let nextEventAt = 0, lastAchCheck = 0, lastSample = 0, slowFrames = 0, bootedAt = 0;
 
   function syncStems() {
     for (const def of STAGES) AudioEngine.setStem(def.stem, state.stages[def.id].owned > 0);
+    for (const def of STAGES) AudioEngine.setUserMute(def.stem, !!state.settings.stemMutes[def.stem]);
+    AudioEngine.setEcho(state.settings.echo);
     UI.refreshStemRow();
   }
   function crowdCount() {
@@ -1956,11 +2437,72 @@ const Game = (function () {
   }
   function tap(x, y) {
     startAudio();
+    if (Economy.hypeReady()) fireHype();
     const v = Economy.click();
     AudioEngine.click();
     World.pulse(0.6);
     UI.floatText(x, y, '+' + money(v));
+    try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) { /* not supported */ }
     UI.refresh();
+  }
+  function fireHype() {
+    if (!Economy.fireHype()) return;
+    UI.toast('🚀 HYPE DROP! All income ×2 for 15 seconds', 'gold');
+    AudioEngine.triggerDrop(); AudioEngine.raiseCutoff(0.04);
+    World.burst(30); World.pulse(1);
+    try { if (navigator.vibrate) navigator.vibrate([30, 40, 60]); } catch (e) { /* not supported */ }
+  }
+  function buyPerk(p) {
+    startAudio();
+    if (p && Economy.buyPerk(p)) { UI.rebuildShop(); UI.refresh(true); }
+  }
+  function toggleStem(name) {
+    startAudio();
+    const muted = !state.settings.stemMutes[name];
+    if (muted) state.settings.stemMutes[name] = true; else delete state.settings.stemMutes[name];
+    AudioEngine.setUserMute(name, muted);
+    UI.rebuildBooth();
+  }
+  function setCutoff(v) { startAudio(); AudioEngine.setCutoff(v); }
+  function setEcho(v) { startAudio(); state.settings.echo = clamp(v, 0, 0.8); AudioEngine.setEcho(state.settings.echo); }
+
+  // ---- Live events ----
+  function scheduleEvent(first) { nextEventAt = Date.now() + (first ? rand(75000, 120000) : rand(150000, 300000)); }
+  function spawnEvent() {
+    const pool = EVENT_DEFS.filter(d => { try { return d.available(state); } catch (e) { return false; } });
+    if (!pool.length) return false;
+    const def = pool[Math.floor(Math.random() * pool.length)];
+    const ctx = {};
+    if (def.needsStage === 'owned') {
+      const owned = STAGES.filter(d => state.stages[d.id].owned > 0);
+      ctx.stage = owned[Math.floor(Math.random() * owned.length)];
+    }
+    if (def.needsStage === 'managed') {
+      const managed = STAGES.filter(d => state.managers[d.id]);
+      if (!managed.length) return false;
+      ctx.stage = managed[Math.floor(Math.random() * managed.length)];
+      ctx.manager = MANAGERS.find(m => m.stage === ctx.stage.id);
+    }
+    if (def.cost) ctx.cost = def.cost(state);
+    if (def.id === 'scout') ctx.goal = Math.max(50, Economy.baseCPS() * 60 * 1.3 + Economy.clickValue() * 40);
+    AudioEngine.sfx.manager();
+    UI.showEvent(def, ctx, accepted => {
+      let evt = null;
+      if (accepted) { if (ctx.cost) Economy.spend(ctx.cost); evt = def.onAccept(ctx); }
+      else evt = def.onDecline(ctx);
+      state.stats.events += 1;
+      if (evt) {
+        Economy.applyEvent(evt);
+        const bad = !!(evt.stageOff || evt.stageManual);
+        UI.toast(evt.label + ' for ' + Math.round((evt.until - Date.now()) / 1000) + 's', bad ? 'bad' : 'pink');
+        if (!bad) { AudioEngine.sfx.coin(); World.burst(12); }
+      } else {
+        UI.toast(accepted ? 'Handled. The show goes on.' : 'You let it slide.', accepted ? 'pink' : undefined);
+      }
+      scheduleEvent(false);
+      UI.refresh(true);
+    });
+    return true;
   }
   function runStage(def) {
     startAudio();
@@ -2028,6 +2570,9 @@ const Game = (function () {
       else if (World.isDiscVisible() && now >= discUntil) { World.hideDisc(); scheduleAirdrop(); }
     }
     if (now - lastSaveAt > 10000) { Persistence.save(); lastSaveAt = now; }
+    if (now - lastAchCheck > 1000) { lastAchCheck = now; Economy.checkAchievements(); Economy.event(); }
+    if (now - lastSample > 5000) { lastSample = now; Economy.sampleHistory(); }
+    if (audioStarted && !state.event && now >= nextEventAt && !UI.modalOpen() && (Economy.totalCPS() > 0 || state.totalClicks >= 25)) spawnEvent();
   }
   function setMuted(m) { state.settings.muted = m; AudioEngine.setMuted(m); UI.syncAudioControls(); if (!m) startAudio(); }
   function setVolume(v) { state.settings.volume = clamp(v, 0, 1); AudioEngine.setVolume(state.settings.volume); if (state.settings.muted && v > 0) { state.settings.muted = false; AudioEngine.setMuted(false); } UI.syncAudioControls(); }
@@ -2054,6 +2599,18 @@ const Game = (function () {
     Economy.on('upgrade', u => { AudioEngine.sfx.upgrade(); AudioEngine.raiseCutoff(0.06); UI.toast('⚡ ' + u.name + ' installed (×' + u.mult + ')', 'pink'); World.burst(8); });
     Economy.on('tier', idx => { AudioEngine.setTier(idx); World.setTier(idx); AudioEngine.triggerDrop(); World.burst(30); UI.toast('🌍 NEW VENUE: ' + TIERS[idx].name + ' — ' + TIERS[idx].place, 'gold'); });
     Economy.on('denied', () => { AudioEngine.sfx.deny(); });
+    Economy.on('achievement', list => {
+      list.forEach(a => UI.toast('🏆 ' + a.name + ': ' + a.desc + ' (+2% income forever)', 'gold'));
+      AudioEngine.sfx.upgrade(); World.burst(10);
+      UI.rebuildAwards();
+    });
+    Economy.on('perk', p => { AudioEngine.sfx.prestige(); UI.toast('🎁 ' + p.name + ' is now level ' + Economy.perkLevel(p.id), 'gold'); });
+    Economy.on('scoutWin', () => { AudioEngine.sfx.prestige(); UI.toast('🔭 The scout loved it: +1 Record Label Exec!', 'gold'); World.burst(24); });
+    Economy.on('eventEnd', ({ event, resolved }) => {
+      if (event.scout && !resolved) UI.toast('🔭 The scout left before you hit ' + money(event.scout.goal) + '. Next time.', 'bad');
+      else if (!resolved && (event.stageOff || event.stageManual)) UI.toast('Back to normal: ' + event.label.replace(/^\S+\s/, '') + ' is over.');
+      UI.refresh(true);
+    });
     AudioEngine.on('drop', () => { World.pulse(1); World.burst(16); });
   }
 
@@ -2063,6 +2620,11 @@ const Game = (function () {
     try { Economy.tick(dt); } catch (e) { console.error('[DJ Gem] economy tick', e); }
     tickTimers();
     try { World.update(Math.min(dt, 0.1), AudioEngine.isReady(), crowdCount()); } catch (e) { console.error('[DJ Gem] world update', e); }
+    // Adaptive quality: after warm-up, a sustained run of slow frames switches the stage to the lighter render path.
+    if (bootedAt && now - bootedAt > 6000 && !World.isLowQuality()) {
+      slowFrames = dt > 0.045 ? slowFrames + 1 : Math.max(0, slowFrames - 2);
+      if (slowFrames > 90) { World.setLowQuality(true); UI.toast('Switched to lite graphics so the beat stays smooth'); }
+    }
     try { UI.drawViz(AudioEngine.isReady(), 0); } catch (e) { /* visualizer is optional */ }
     UI.refresh(false); UI.refreshBars();
     requestAnimationFrame(frame);
@@ -2090,6 +2652,9 @@ const Game = (function () {
     bindEconomyEvents();
     scheduleAirdrop();
     nextAirdropAt = Date.now() + rand(45000, 110000);
+    scheduleEvent(true);
+    bootedAt = performance.now();
+    Economy.checkAchievements();
     if (offline && offline.amount > 0 && offline.away > 30) { $('splash').classList.add('hidden'); UI.showWelcome(offline); }
     // Keep autoplay policy happy: any first gesture resumes audio.
     const firstGesture = () => { startAudio(); document.removeEventListener('pointerdown', firstGesture); document.removeEventListener('keydown', firstGesture); };
@@ -2101,14 +2666,15 @@ const Game = (function () {
     requestAnimationFrame(frame);
   }
 
-  return { boot, tap, runStage, buyStage, buyManager, buyUpgrade, warp, openPrestige, prestige, startAudio, setMuted, setVolume, afterStateReplaced, hardReset, spawnAirdrop, catchAirdrop: onDiscClick };
+  return { boot, tap, runStage, buyStage, buyManager, buyUpgrade, warp, openPrestige, prestige, startAudio, setMuted, setVolume, afterStateReplaced, hardReset,
+    spawnAirdrop, catchAirdrop: onDiscClick, fireHype, buyPerk, toggleStem, setCutoff, setEcho, spawnEvent };
 })();
 
 window.addEventListener('error', e => { console.error('[DJ Gem]', e.message); });
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', Game.boot); else Game.boot();
 
 // Expose a tiny debug surface for curious DJs (console: DJGEM.state)
-window.DJGEM = { get state() { return state; }, Economy, AudioEngine, World, UI, Game, STAGES, UPGRADES, MANAGERS, TIERS };
+window.DJGEM = { get state() { return state; }, Economy, AudioEngine, World, UI, Game, STAGES, UPGRADES, MANAGERS, TIERS, ACHIEVEMENTS, PERKS, EVENT_DEFS };
 })();
 </script>
 </body>
