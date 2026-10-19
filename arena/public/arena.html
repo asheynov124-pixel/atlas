@@ -385,6 +385,41 @@ details.bg{font-size:14px;color:var(--muted)} details.bg summary{cursor:pointer;
 .lean .ends .a{color:var(--a-ink)} .lean .ends .b{color:var(--b-ink)}
 .lean input[type=range]{width:100%;accent-color:var(--fg);height:28px}
 .lean .read{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);text-align:center}
+.spec{position:relative;height:54px;margin:4px 0 2px}
+.spec .track{position:absolute;left:0;right:0;top:30px;height:8px;border-radius:999px;background:linear-gradient(90deg,var(--a) 0,var(--surface-2) 50%,var(--b) 100%);opacity:.9}
+.spec .midband{position:absolute;left:40%;width:20%;top:24px;height:20px;border-radius:999px;border:1px dashed var(--muted);display:grid;place-items:center;font-family:var(--font-mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);background:var(--surface)}
+.spec .tick{position:absolute;top:42px;transform:translateX(-50%);font-family:var(--font-mono);font-size:10px;color:var(--muted)}
+.spec .pin{position:absolute;top:0;transform:translateX(-50%);display:grid;justify-items:center;gap:2px;font-family:var(--font-body);font-size:11.5px;font-weight:700;white-space:nowrap}
+.spec .pin i{width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.spec .pin.a{color:var(--a-ink)} .spec .pin.a i{background:var(--a)} .spec .pin.b{color:var(--b-ink)} .spec .pin.b i{background:var(--b)}
+.spec .you{position:absolute;top:26px;transform:translateX(-50%);width:4px;height:16px;border-radius:2px;background:var(--fg);transition:left .15s}
+.spec .you[hidden]{display:none}
+.podium .spot{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;color:var(--muted)}
+.stage .podium .spot{color:var(--stage-muted)}
+.phases{display:flex;gap:6px;flex-wrap:wrap;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--stage-muted)}
+.phases span{border:1px solid var(--stage-line);border-radius:999px;padding:3px 9px;display:inline-flex;gap:6px;align-items:center}
+.phases span.now{color:var(--stage-fg);border-color:var(--stage-fg)}
+.phases span.done{opacity:.55} .phases span.done::before{content:'✓'}
+.phases span.now::before{content:'';width:7px;height:7px;border-radius:50%;background:#e05a4e;animation:pulse 1.2s ease-in-out infinite}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;font-family:var(--font-mono);font-size:11px}
+.seg button{border:0;background:var(--surface);color:var(--muted);padding:5px 9px;cursor:pointer;font:inherit}
+.seg button[aria-pressed=true]{background:var(--fg);color:var(--bg)}
+.seg button.a[aria-pressed=true]{background:var(--a);color:var(--a-ink-on,#fff)} .seg button.b[aria-pressed=true]{background:var(--b);color:#fff}
+.seg[hidden]{display:none}
+.feed[data-filt="a"] .speech-card.b,.feed[data-filt="b"] .speech-card.a,.feed[data-filt="a"] .nocol,.feed[data-filt="b"] .nocol{display:none}
+.feed[data-filt="a"] .pair,.feed[data-filt="b"] .pair{grid-template-columns:1fr}
+.feed[data-filt="a"] .pair+.pair,.feed[data-filt="b"] .pair+.pair{margin-top:0}
+.feed[data-filt="a"] .bs-what-grid .bw.b,.feed[data-filt="b"] .bs-what-grid .bw.a{opacity:.45}
+.ledger{display:grid;gap:6px;font-family:var(--font-mono);font-size:12px;font-variant-numeric:tabular-nums}
+.ledger .lr{display:grid;grid-template-columns:minmax(0,1fr) 120px minmax(0,1fr);gap:10px;align-items:center}
+.ledger .lr .nm{text-align:center;font-family:var(--font-body);font-size:13px;color:var(--paper-muted)}
+.ledger .bar{display:flex;align-items:center;gap:8px}
+.ledger .bar i{display:block;height:9px;border-radius:999px;flex:0 0 auto}
+.ledger .bar.a{flex-direction:row-reverse} .ledger .bar.a i{background:var(--a)} .ledger .bar.b i{background:var(--b)}
+.ledger .bar b{font-weight:500;color:var(--paper-ink);white-space:nowrap}
+.ledger .lr.sum{border-top:1px solid var(--paper-ink);padding-top:6px;font-weight:600}
+.ledger .hint{grid-column:1/-1}
+@media (max-width:560px){.ledger{font-size:10.5px}.ledger .lr{grid-template-columns:minmax(0,1fr) 84px minmax(0,1fr);gap:6px}.ledger .lr .nm{font-size:11.5px}.ledger .bar{gap:5px}.ledger .bar i{height:7px}.spec .pin{font-size:10px}}
 .yourcall{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--paper-line);padding-top:10px}
 .yourcall .eyebrow{color:var(--paper-muted)}
 .yourcall .vb{border:1px solid var(--paper-ink);background:transparent;color:var(--paper-ink);border-radius:999px;padding:5px 12px;font-family:var(--font-body);font-weight:700;font-size:13.5px;cursor:pointer;min-height:32px}
@@ -572,7 +607,7 @@ details.bg{font-size:14px;color:var(--muted)} details.bg summary{cursor:pointer;
         <div class="field"><label for="tier">Model depth</label>
           <select id="tier"><option value="quick">Quick (fast, shallower)</option><option value="default" selected>Balanced</option><option value="complex">Deep (slowest, strongest)</option></select></div>
         <div class="field debate-only"><label for="openings">Statements</label><label class="toggle"><input type="checkbox" id="openings" checked> Opening and closing statements</label></div>
-        <div class="field debate-only"><label for="press">The moderator</label><label class="toggle"><input type="checkbox" id="press" checked> Presses a candidate who dodges the question</label><label class="toggle"><input type="checkbox" id="cross" checked> Cross-examination round before closings</label></div>
+        <div class="field debate-only"><label for="press">The moderator</label><label class="toggle"><input type="checkbox" id="press" checked> Presses a candidate who dodges the question</label><label class="toggle"><input type="checkbox" id="cross" checked> Cross-examination round before closings</label><label class="toggle"><input type="checkbox" id="middle" checked> Middle-ground round: each concedes the other's best point and names the one claim they keep</label></div>
         <div class="field"><label for="voiceOn">Audio</label><label class="toggle"><input type="checkbox" id="voiceOn"> Read speeches aloud as they finish</label></div>
         <div class="field debate-only" style="grid-column:1/-1"><label for="hBlind">Bench hardening · off by default, so you can compare the bench before and after</label>
           <div class="harden">
@@ -600,6 +635,8 @@ details.bg{font-size:14px;color:var(--muted)} details.bg summary{cursor:pointer;
       <button class="btn small" id="digest" aria-pressed="true">Reading: digest</button>
       <button class="btn small" id="speakAll" hidden>Play whole debate</button>
       <button class="btn small" id="stopAudio" hidden>Stop audio</button>
+      <span class="seg" id="speed" hidden title="Read-aloud speed"><button type="button" data-speed="0.8">0.8×</button><button type="button" data-speed="1">1×</button><button type="button" data-speed="1.25">1.25×</button><button type="button" data-speed="1.5">1.5×</button></span>
+      <span class="seg" id="filt" hidden title="Show one speaker"><button type="button" data-filt="all" aria-pressed="true">Both</button><button type="button" class="a" data-filt="a">A</button><button type="button" class="b" data-filt="b">B</button></span>
       <button class="btn small danger" id="stop" hidden>Stop</button>
       <button class="btn small" id="copy" hidden>Copy transcript</button>
       <button class="btn small" id="save" hidden>Save transcript</button>
@@ -1258,11 +1295,11 @@ const state = {
   category:'Geopolitics & War', topic:TOPICS['Geopolitics & War'][0],
   answerSec:90, rebuttalSec:45, tier:'default', openings:true, voiceOn:false, digest:true,
   brief:null, questions:[], selected:new Set(),
-  rounds:[], statements:{open:{}, close:{}}, final:null, totals:{a:0,b:0}, won:{a:0,b:0,tie:0},
+  rounds:[], statements:{open:{}, close:{}, middle:{}}, final:null, totals:{a:0,b:0}, won:{a:0,b:0,tie:0},
   harden:{blind:false, both:false, perJudge:false}, audit:null, priorRun:null, tone:'spirited', heat:'spirited',
   mode:'debate', minds:DEFAULT_MINDS.map((id, k) => mindFrom(ROSTER_BY_ID[id], k)), lineup:[], lineupFinal:null,
   cast:{a:null, b:null}, lineupCast:[],
-  press:true, cross:true, ballot:{start:null, end:null}, crossExam:[], runId:null, records:[], portraits:{},
+  press:true, cross:true, middle:true, speed:1, filt:'all', phase:'', ballot:{start:null, end:null}, crossExam:[], runId:null, records:[], portraits:{},
   depth:'snap', advanced:false,
   running:false, ctl:null,
 };
@@ -1293,7 +1330,7 @@ function parseJSONish(s){
   if (a >= 0 && b > a) { try { return JSON.parse(t.slice(a, b+1)); } catch {} }
   throw {code:'invalid_json', message:'The reply held no JSON.', text:t};
 }
-function save(){ try{ localStorage.setItem('arena.v2', JSON.stringify({answerSec:state.answerSec, rebuttalSec:state.rebuttalSec, tier:state.tier, openings:state.openings, voiceOn:state.voiceOn, harden:state.harden, tone:state.tone, heat:state.heat, mode:state.mode, press:state.press, cross:state.cross, digest:state.digest, depth:state.depth, advanced:state.advanced})); }catch{} }
+function save(){ try{ localStorage.setItem('arena.v2', JSON.stringify({answerSec:state.answerSec, rebuttalSec:state.rebuttalSec, tier:state.tier, openings:state.openings, voiceOn:state.voiceOn, harden:state.harden, tone:state.tone, heat:state.heat, mode:state.mode, press:state.press, cross:state.cross, middle:state.middle, speed:state.speed, digest:state.digest, depth:state.depth, advanced:state.advanced})); }catch{} }
 function load(){ try{ const s = JSON.parse(localStorage.getItem('arena.v2')||'null'); if (s){ const h = Object.assign({blind:false, both:false, perJudge:false}, s.harden || {}); delete s.harden; Object.assign(state, s); state.harden = h; if (!['debate','lineup'].includes(state.mode)) state.mode = 'debate'; } }catch{}
   try{ const r = JSON.parse(localStorage.getItem('arena.records') || '[]'); state.records = Array.isArray(r) ? r : []; }catch{ state.records = []; }
   try{ const p = JSON.parse(localStorage.getItem('arena.portraits') || '{}'); state.portraits = p && typeof p === 'object' ? p : {}; }catch{ state.portraits = {}; } }
@@ -1373,8 +1410,8 @@ function showNotice(id, msg){ const n = $(id); n.textContent = msg || ''; n.hidd
 
 /* ---------- Prompts ---------- */
 const DEPTHS = {
-  snap:{tier:'quick', answerSec:60, rebuttalSec:30, openings:false, press:false, cross:false, pick:1, lean:{questions:3, panel:3, rubric:'three', rubricN:3}},
-  short:{tier:'default', answerSec:90, rebuttalSec:45, openings:false, press:true, cross:false, pick:3, lean:{questions:5, panel:3, rubric:'three or four', rubricN:3}},
+  snap:{tier:'quick', answerSec:60, rebuttalSec:30, openings:false, press:false, cross:false, middle:false, pick:1, lean:{questions:3, panel:3, rubric:'three', rubricN:3}},
+  short:{tier:'default', answerSec:90, rebuttalSec:45, openings:false, press:true, cross:false, middle:true, pick:3, lean:{questions:5, panel:3, rubric:'three or four', rubricN:3}},
   full:null,
 };
 function briefPrompt(lean){
@@ -1390,10 +1427,11 @@ ${rosterList()}
 Build the debate brief. Be scrupulously neutral. Choose the two most serious, interesting positions on this topic: for a yes/no question, A argues yes and B argues no; if the topic pits two named ideas, schools, thinkers, faiths, or traditions against each other (X vs. Y), A champions X and B champions Y; otherwise pick the two strongest rival readings.
 ${castInstruction()}
 Each candidate argues from their own tradition, so write each stance in a way that tradition would actually hold it, and let the two traditions collide where it is most revealing. Also choose the five roster members whose traditions would split most interestingly on this topic for a vote-only format ("lineup")${state.lineupCast.length ? `; the producer has already seated ${state.lineupCast.map(id => ROSTER_BY_ID[id].name).join(', ')}, so keep them and fill the rest` : ''}. If the topic names real thinkers or historical figures on each side, ignore the roster for the podiums: the candidates ARE those figures, with their real names, arguing from their actual writings and known views in their own voice, aware of the world as it stands today; then make one of the twelve questions ask each what they would now revise in their own thought.
+Place each candidate on the audience's own six-point scale for the title question: 1 is the far end on one side, 6 the far end on the other, and a candidate need not sit at an extreme (a cautious yes is a 5, a reluctant no a 2). For a yes/no question the ends are exactly "Strongly disagree" (1) and "Strongly agree" (6); for X vs. Y the ends are "All in for X" and "All in for Y".
 Name the moderator: a full name and one sentence on how they run the room (dry, relentless, courteous, impatient with evasion). Write the moderator's OPENING QUESTION: not background, not a summary, but a provocative, uncomfortable question that goes straight at the nerve of the topic, the thing people actually fight about at dinner, phrased so that each candidate's tradition will take it somewhere different. Write the moderator's CLOSING QUESTION too: what the audience should walk out believing, and what it would cost them to be wrong. Assemble a judging panel of ${words[nPanel] || nPanel} experts whose fields genuinely matter to this topic (for a war: a military strategist, a historian of the region, an economist, a humanitarian ethicist, a domestic-politics analyst; for a question about God: a philosopher of religion, a physicist, a historian of faiths, a psychologist of belief, an ordinary thoughtful believer or doubter), each with a one-sentence lens and the two criteria they weigh most. Then break the topic into ${words[nQ] || nQ} sub-questions${lean ? ', the sharpest first: the one question that decides the most, then the next most revealing' : ' that together cover its real complexity: the human stakes, the strongest evidence each way, the second-order effects, the moral questions, the historical record, what each side\'s strongest objection is, the uncomfortable question each side would rather not face, and anything else the topic demands'}. Group questions by theme. Each must be concrete and debatable, the kind a sharp moderator would actually ask. Finally write a topic-specific scoring rubric: ${lean ? lean.rubric : 'four to six'} criteria that matter for THIS topic in particular (for a war: honesty about casualties, strategic logic, historical grounding, cost accounting; for the existence of God: handling of evidence, philosophical rigor, engagement with the strongest objection, intellectual humility), each with one sentence on what a 10 looks like and an integer weight, weights summing to 100, most important first. The panel scores every answer on the six universal criteria plus this rubric.
 
 Reply with only a JSON object of this exact shape:
-{"title": "a short debate title, under 12 words", "moderator": {"name": "the moderator's full name", "style": "one sentence on how they run the room"}, "hook": "the moderator's opening question, one or two sentences", "closer": "the moderator's closing question, one sentence", "context": "three to five sentences of neutral background a smart viewer needs, including the key facts in dispute (shown on request, not read aloud)", "cast": {"a": "roster id for podium A, or empty if the candidates are real historical figures", "b": "roster id for podium B, or empty", "lineup": ["five roster ids"]}, "positions": {"a": {"name": "the roster member's name, or for a historical figure their real name", "label": "a two-to-four-word stance label", "stance": "one sentence stating the position A will argue, in the voice of A's tradition", "worldview": "two sentences on how A sees this topic and tends to argue it (for a historical figure, from their actual thought)", "style": "one sentence on how A speaks", "avatar": "one emoji", "color": "one of teal, crimson, indigo, amber, forest, plum, slate, rust"}, "b": {"name": "...", "label": "...", "stance": "...", "worldview": "...", "style": "...", "avatar": "...", "color": "..."}}, "panel": [{"name": "a judge's full name", "title": "their expertise in a few words", "lens": "one sentence on what they weigh most", "focus": ["two of: insight, evidence, reasoning, responsiveness, eloquence, nuance"]}], "questions": [{"theme": "a one-or-two-word theme", "question": "the question as the moderator will ask it", "why": "one sentence on what hangs on it"}], "rubric": [{"name": "a topic-specific criterion in two to five words", "desc": "one sentence on what a 10 looks like on this topic", "weight": 25}]}
+{"title": "a short debate title, under 12 words", "scale": {"low": "label for the 1 end, three words or fewer", "high": "label for the 6 end"}, "moderator": {"name": "the moderator's full name", "style": "one sentence on how they run the room"}, "hook": "the moderator's opening question, one or two sentences", "closer": "the moderator's closing question, one sentence", "context": "three to five sentences of neutral background a smart viewer needs, including the key facts in dispute (shown on request, not read aloud)", "cast": {"a": "roster id for podium A, or empty if the candidates are real historical figures", "b": "roster id for podium B, or empty", "lineup": ["five roster ids"]}, "positions": {"a": {"name": "the roster member's name, or for a historical figure their real name", "label": "a two-to-four-word stance label", "spot": 5, "stance": "one sentence stating the position A will argue, in the voice of A's tradition", "worldview": "two sentences on how A sees this topic and tends to argue it (for a historical figure, from their actual thought)", "style": "one sentence on how A speaks", "avatar": "one emoji", "color": "one of teal, crimson, indigo, amber, forest, plum, slate, rust"}, "b": {"name": "...", "label": "...", "spot": 2, "stance": "...", "worldview": "...", "style": "...", "avatar": "...", "color": "..."}}, "panel": [{"name": "a judge's full name", "title": "their expertise in a few words", "lens": "one sentence on what they weigh most", "focus": ["two of: insight, evidence, reasoning, responsiveness, eloquence, nuance"]}], "questions": [{"theme": "a one-or-two-word theme", "question": "the question as the moderator will ask it", "why": "one sentence on what hangs on it"}], "rubric": [{"name": "a topic-specific criterion in two to five words", "desc": "one sentence on what a 10 looks like on this topic", "weight": 25}]}
 Exactly ${words[nPanel] || nPanel} panel entries, ${words[nQ] || nQ} questions, and ${lean ? lean.rubric : 'four to six'} rubric criteria whose weights sum to 100. Give the two candidates different colors.${lean ? ' Be brisk: every string short, nothing padded.' : ''}`;
 }
 function rosterList(){ return ROSTER.map(r => `- ${r.id}: ${r.name}, ${r.school}. ${r.bio.split('. ')[0]}.`).join('\n'); }
@@ -1493,6 +1531,11 @@ function statementPrompt(kind, side){
   const transcript = state.rounds.filter(r => r.turns.length).map(r => `Q: ${r.q.question}\n${r.turns.map(t => `[${state.brief.positions[t.side].name}, ${t.kind}] ${t.text}`).join('\n')}`).join('\n\n');
   return `${briefContext()}\n\nFULL DEBATE SO FAR:\n${transcript}\n\nTHE MODERATOR'S CLOSING QUESTION, TO BOTH OF YOU: ${state.brief.closer}\n\nYou have ${clock(state.answerSec)}, about ${n} words. Answer it. Crystallize what the debate revealed: the two or three questions where the real disagreement lives, what you concede, and why your reading deserves the audience's judgment. No new arguments. End on a line they will remember. Write only your spoken statement.`;
 }
+function middlePrompt(side){
+  const n = wordsFor(45); const me = state.brief.positions[side].name, opp = state.brief.positions[other(side)].name;
+  const transcript = state.rounds.filter(r => r.turns.length).map(r => `Q: ${r.q.question}\n${r.turns.map(t => `[${state.brief.positions[t.side].name}, ${t.kind}] ${t.text}`).join('\n')}`).join('\n\n');
+  return `${briefContext()}\n\nFULL DEBATE SO FAR:\n${transcript}\n\nTHE MODERATOR, ${state.brief.moderator.name}, ASKS BOTH OF YOU: Step toward the center. Name the single strongest point ${opp} made tonight that you accept as true, and say honestly what it costs your position. Then name the one claim you will not give up, and why that claim, not the rhetoric, is where the real disagreement lives.\n\nYou, ${me}, have forty-five seconds, about ${n} words. Your first sentence, in **bold**, is the concession itself, quoting ${opp}'s actual words. Your last sentence is the claim you keep. No new arguments, no victory lap. Write only your spoken reply.`;
+}
 function scrubNames(text){
   let t = String(text);
   for (const side of ['a','b']){ const n = state.brief.positions[side].name; if (n && n.length > 2) t = t.split(n).join('the other speaker'); }
@@ -1534,7 +1577,8 @@ function finalPrompt(){
   const transcript = state.rounds.filter(r => r.turns.length).map((r) => `Q${r.index+1}: ${r.q.question}\n${r.turns.map(t => `[${b.positions[t.side].name}, ${t.kind}] ${t.text}`).join('\n')}`).join('\n\n');
   const closes = ['a','b'].filter(s => state.statements.close[s]).map(s => `[${b.positions[s].name}, closing] ${state.statements.close[s]}`).join('\n');
   const cross = state.crossExam.filter(x => x.answer).map(x => `[${b.positions[x.asker].name} asks] ${x.question}\n[${b.positions[other(x.asker)].name} answers] ${x.answer}`).join('\n');
-  return `You are the chief judge writing the final summation of a presidential-style debate for an intelligent audience that will make its own decision.\n\n${briefContext()}\n\nSCOREBOARD (panel of ${b.panel.length}, averaged):\n${per}\nOverall totals: A ${state.totals.a.toFixed(1)}, B ${state.totals.b.toFixed(1)}. Questions won: A ${state.won.a}, B ${state.won.b}, even ${state.won.tie}.\n\nFULL TRANSCRIPT:\n${transcript}${cross ? '\n\nCROSS-EXAMINATION:\n' + cross : ''}${closes ? '\n\nCLOSING STATEMENTS:\n' + closes : ''}\n\nWrite the summation. Weigh the cross-examination: a question that drew a concession or exposed a contradiction counts. Rank the questions by how decisively they were won and explain each in one sentence. Pull out the five best ideas on each side across the whole debate (the ones worth remembering, not merely the ones that scored). Then list the three to five open cruxes the audience must now decide for themselves, and for each say what evidence or value judgment would settle it. Declare an overall winner only if the debating was clearly better on one side; if it was close, say it is too close to call and why. Be candid and specific; quote the debate.\n\nReply with only a JSON object of this exact shape:\n{"headline": "one sentence, like a newspaper's verdict on the night", "winner": "a" or "b" or "tie", "why": "three to five sentences explaining the call, quoting the debate", "ranked": [{"q": 1, "winner": "a" or "b" or "tie", "why": "one sentence"}], "bestIdeas": {"a": ["idea in one or two sentences, with the question number"], "b": ["..."]}, "forYou": [{"crux": "the open question in one sentence", "settle": "what would settle it, in one sentence"}], "agreed": ["a point both sides conceded or shared, one sentence each; up to three; empty list if none"], "decide": [{"if": "If you believe ..., in one clause", "then": "a" or "b"}], "closingNote": "two sentences to the audience about what this debate taught, and what it could not"}\nIn "decide" give three honest forks: the belief that, if you hold it, should send you to one side.`;
+  const mid = state.statements.middle || {}; const middle = ['a','b'].filter(s => mid[s]).map(s => `[${b.positions[s].name}, middle ground] ${mid[s]}`).join('\n');
+  return `You are the chief judge writing the final summation of a presidential-style debate for an intelligent audience that will make its own decision.\n\n${briefContext()}\n\nSCOREBOARD (panel of ${b.panel.length}, averaged):\n${per}\nOverall totals: A ${state.totals.a.toFixed(1)}, B ${state.totals.b.toFixed(1)}. Questions won: A ${state.won.a}, B ${state.won.b}, even ${state.won.tie}.\n\nFULL TRANSCRIPT:\n${transcript}${cross ? '\n\nCROSS-EXAMINATION:\n' + cross : ''}${middle ? '\n\nMIDDLE GROUND (each was asked to concede the other\'s strongest point and name the one claim they keep):\n' + middle : ''}${closes ? '\n\nCLOSING STATEMENTS:\n' + closes : ''}\n\nWrite the summation. Weigh the cross-examination: a question that drew a concession or exposed a contradiction counts.${middle ? ' Weigh the middle-ground round too: an honest, costly concession is a mark of a better debater, a cosmetic one is not, and the claim each kept tells you where the real crux is; build "agreed" and "forYou" from it.' : ''} Rank the questions by how decisively they were won and explain each in one sentence. Pull out the five best ideas on each side across the whole debate (the ones worth remembering, not merely the ones that scored). Then list the three to five open cruxes the audience must now decide for themselves, and for each say what evidence or value judgment would settle it. Declare an overall winner only if the debating was clearly better on one side; if it was close, say it is too close to call and why. Be candid and specific; quote the debate.\n\nReply with only a JSON object of this exact shape:\n{"headline": "one sentence, like a newspaper's verdict on the night", "winner": "a" or "b" or "tie", "why": "three to five sentences explaining the call, quoting the debate", "ranked": [{"q": 1, "winner": "a" or "b" or "tie", "why": "one sentence"}], "bestIdeas": {"a": ["idea in one or two sentences, with the question number"], "b": ["..."]}, "forYou": [{"crux": "the open question in one sentence", "settle": "what would settle it, in one sentence"}], "agreed": ["a point both sides conceded or shared, one sentence each; up to three; empty list if none"], "decide": [{"if": "If you believe ..., in one clause", "then": "a" or "b"}], "closingNote": "two sentences to the audience about what this debate taught, and what it could not"}\nIn "decide" give three honest forks: the belief that, if you hold it, should send you to one side.`;
 }
 
 /* ---------- Setup rendering ---------- */
@@ -1630,7 +1674,7 @@ function renderTopics(){
   $('buildHint').textContent = `Topic: ${state.topic}`;
 }
 function syncSettingsUI(){
-  $('press').checked = state.press; $('cross').checked = state.cross; syncDigest();
+  $('press').checked = state.press; $('cross').checked = state.cross; $('middle').checked = !!state.middle; syncDigest(); syncSpeed();
   $('answerSec').value = String(state.answerSec); $('rebuttalSec').value = String(state.rebuttalSec); $('tier').value = state.tier;
   $('openings').checked = !!state.openings; $('voiceOn').checked = !!state.voiceOn;
   $('hBlind').checked = !!state.harden.blind; $('hBoth').checked = !!state.harden.both; $('hPer').checked = !!state.harden.perJudge;
@@ -1668,7 +1712,8 @@ function normalizePosition(p, fallbackName, fallbackColor){
   return {name:String((p && p.name) || fallbackName), label:String((p && p.label) || ''), stance:String((p && p.stance) || ''), worldview:String((p && p.worldview) || ''),
     style:String((p && p.style) || ''), avatar:String((p && p.avatar) || '').trim().slice(0, 2), color: COLOR_NAMES.includes(p && p.color) ? p.color : fallbackColor,
     temper:num(p && p.temper, 50), risk:num(p && p.risk, 50), voice:String((p && p.voice) || ''), rate:Number(p && p.rate) || 1, pitch:Number(p && p.pitch) || 1,
-    school:String((p && p.school) || ''), moves:String((p && p.moves) || ''), rosterId:String((p && p.rosterId) || ''), portrait:String((p && p.portrait) || '')};
+    school:String((p && p.school) || ''), moves:String((p && p.moves) || ''), rosterId:String((p && p.rosterId) || ''), portrait:String((p && p.portrait) || ''),
+    spot:(() => { const v = Math.round(Number(p && p.spot)); return v >= 1 && v <= 6 ? v : 0; })()};
 }
 function normalizeJudge(j, i){
   const focus = (Array.isArray(j && j.focus) ? j.focus : []).map(String).map(x => x.toLowerCase().trim()).filter(x => CRIT_IDS.includes(x)).slice(0, 3);
@@ -1684,12 +1729,15 @@ function normalizeBrief(b){
   const bb = normalizePosition(b && b.positions && b.positions.b, 'Candidate B', 'crimson');
   const cast = (b && b.cast && typeof b.cast === 'object') ? b.cast : {};
   const pos = {a, b:bb};
-  for (const side of ['a','b']){ const r = ROSTER_BY_ID[state.cast[side]] || ROSTER_BY_ID[String(cast[side] || '')]; if (r){ const keep = {label:pos[side].label, stance:pos[side].stance}; castFromRoster(pos[side], r); if (cast[side] === r.id && String((b.positions && b.positions[side] && b.positions[side].worldview) || '').length > 40) pos[side].worldview = `${r.bio} On this topic: ${b.positions[side].worldview}`; Object.assign(pos[side], keep); } }
+  if (!a.spot) a.spot = bb.spot ? (bb.spot <= 3 ? 5 : 2) : 5; if (!bb.spot) bb.spot = a.spot <= 3 ? 5 : 2; if (a.spot === bb.spot) bb.spot = a.spot <= 3 ? 5 : 2;
+  const sc = (b && b.scale && typeof b.scale === 'object') ? b.scale : {};
+  const scale = {low:String(sc.low || 'Strongly disagree').trim().slice(0, 40), high:String(sc.high || 'Strongly agree').trim().slice(0, 40)};
+  for (const side of ['a','b']){ const r = ROSTER_BY_ID[state.cast[side]] || ROSTER_BY_ID[String(cast[side] || '')]; if (r){ const keep = {label:pos[side].label, stance:pos[side].stance, spot:pos[side].spot}; castFromRoster(pos[side], r); if (cast[side] === r.id && String((b.positions && b.positions[side] && b.positions[side].worldview) || '').length > 40) pos[side].worldview = `${r.bio} On this topic: ${b.positions[side].worldview}`; Object.assign(pos[side], keep); } }
   if (a.color === bb.color) bb.color = COLOR_NAMES.find(c => c !== a.color);
   const lineupIds = [...state.lineupCast, ...(Array.isArray(cast.lineup) ? cast.lineup : [])].map(String).filter(id => ROSTER_BY_ID[id]);
   if (lineupIds.length){ const ids = [...new Set(lineupIds)]; for (const r of ROSTER){ if (ids.length >= 5) break; if (!ids.includes(r.id)) ids.push(r.id); } state.minds = ids.slice(0, 5).map((id, k) => mindFrom(ROSTER_BY_ID[id], k)); }
   const mod = (b && b.moderator && typeof b.moderator === 'object') ? b.moderator : {};
-  return {title:String((b && b.title) || state.topic), moderator:{name:String(mod.name || 'The Moderator'), style:String(mod.style || '')}, hook:String((b && b.hook) || state.topic), closer:String((b && b.closer) || 'What should the audience walk out believing tonight, and what would it cost them to be wrong?'), context:String((b && b.context) || ''), positions:pos, panel, questions, rubric: normalizeRubric(b && b.rubric)};
+  return {title:String((b && b.title) || state.topic), scale, moderator:{name:String(mod.name || 'The Moderator'), style:String(mod.style || '')}, hook:String((b && b.hook) || state.topic), closer:String((b && b.closer) || 'What should the audience walk out believing tonight, and what would it cost them to be wrong?'), context:String((b && b.context) || ''), positions:pos, panel, questions, rubric: normalizeRubric(b && b.rubric)};
 }
 function normalizeRubric(r){
   let rows = (Array.isArray(r) ? r : []).filter(x => x && x.name).map(x => ({name:String(x.name).trim(), desc:String(x.desc || '').trim(), weight:Math.max(1, Math.round(Number(x.weight)) || 1)})).slice(0, 6);
@@ -1744,7 +1792,7 @@ function renderQuickCast(){
 function syncDepth(){ document.querySelectorAll('[data-depth]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.depth === state.depth))); }
 function applyDepth(d){
   const p = DEPTHS[d]; if (!p) return;
-  Object.assign(state, {tier:p.tier, answerSec:p.answerSec, rebuttalSec:p.rebuttalSec, openings:p.openings, press:p.press, cross:p.cross}); state.mode = 'debate';
+  Object.assign(state, {tier:p.tier, answerSec:p.answerSec, rebuttalSec:p.rebuttalSec, openings:p.openings, press:p.press, cross:p.cross, middle:p.middle}); state.mode = 'debate';
   save(); syncSettingsUI(); syncMode();
 }
 async function quickGo(){
@@ -1760,7 +1808,7 @@ async function quickGo(){
 function showQuick(){ state.advanced = false; save(); $('setup').hidden = true; $('briefSec').hidden = true; $('stage').hidden = true; $('quick').hidden = false; renderQuickCast(); window.scrollTo({top:0}); }
 function showSetup(){ state.advanced = true; save(); $('quick').hidden = true; $('briefSec').hidden = true; $('stage').hidden = true; $('setup').hidden = false; renderRoster(); window.scrollTo({top:0}); }
 function podiumHTML(side, p, extra){
-  return `<div class="panel podium ${side}" id="podium-${side}"><span class="live">Speaking</span><div class="side">${SIDE[side]} · ${esc(p.label)}</div><div class="speaker" style="gap:10px">${avatarHTML(side, 'lg')}<div><div class="name">${esc(p.name)}</div>${p.school ? `<div class="school">${esc(p.school)}</div>` : ''}</div></div><div class="stance">${esc(p.stance)}</div>${extra ? `<div class="worldview">${esc(p.worldview)}</div>` : ''}</div>`;
+  return `<div class="panel podium ${side}" id="podium-${side}"><span class="live">Speaking</span><div class="side">${SIDE[side]} · ${esc(p.label)}</div><div class="speaker" style="gap:10px">${avatarHTML(side, 'lg')}<div><div class="name">${esc(p.name)}</div>${p.school ? `<div class="school">${esc(p.school)}</div>` : ''}</div></div><div class="stance">${esc(p.stance)}</div>${p.spot ? `<div class="spot">On the scale: ${esc(spotLabel(side))}</div>` : ''}${extra ? `<div class="worldview">${esc(p.worldview)}</div>` : ''}</div>`;
 }
 function renderBrief(){
   const b = state.brief; applyColors();
@@ -1935,8 +1983,8 @@ function updateEstimate(){
   if (!state.brief) return;
   const n = state.selected.size; const panelCalls = (state.harden.both ? 2 : 1) * (state.harden.perJudge ? state.brief.panel.length : 1);
   const lineup = state.mode === 'lineup';
-  const calls = lineup ? n * (state.minds.length + 1) + 1 : n * (4 + panelCalls + (state.press ? 1.6 : 0)) + (state.openings ? 4 : 0) + (state.cross ? 4 : 0) + 1;
-  const beats = lineup ? n * (state.minds.length + 1) + 1 : n * (2 + (state.press ? 0.9 : 0) + 0.2) + (state.openings ? 2 : 0) + (state.cross ? 2 : 0) + 1.2;
+  const calls = lineup ? n * (state.minds.length + 1) + 1 : n * (4 + panelCalls + (state.press ? 1.6 : 0)) + (state.openings ? 4 : 0) + (state.cross ? 4 : 0) + (state.middle ? 2 : 0) + 1;
+  const beats = lineup ? n * (state.minds.length + 1) + 1 : n * (2 + (state.press ? 0.9 : 0) + 0.2) + (state.openings ? 2 : 0) + (state.cross ? 2 : 0) + (state.middle ? 1 : 0) + 1.2;
   const perBeat = (state.tier === 'quick' ? 0.2 : state.tier === 'complex' ? 1.1 : 0.55) * (lineup ? 0.45 : 1) * (state.answerSec / 90);
   const perCall = perBeat * (beats / Math.max(1, calls));
   $('qCount').textContent = `${n} of ${state.questions.length} selected`;
@@ -1992,12 +2040,18 @@ function renderBoard(){
   const b = state.brief; const done = state.rounds.filter(r => r.score).length; const total = state.rounds.length;
   const sum = state.totals.a + state.totals.b; const pct = sum ? Math.round(state.totals.a / sum * 1000) / 10 : 50;
   const dots = state.rounds.map((r, i) => { const cls = r.score ? r.score.winner : (i === done && state.running ? 'now' : ''); const title = r.score ? (r.score.winner === 'tie' ? 'Even' : `${b.positions[r.score.winner].name} +${Math.abs(r.score.margin).toFixed(1)}`) : r.q.question; return `<span class="${cls}" title="${esc(title)}">${i+1}</span>`; }).join('');
-  $('board').innerHTML = `<div class="bd-top"><span class="live"><i></i>${state.running ? 'Live' : 'Final'}</span><span>Steelman Arena</span><span class="bd-title">${esc(b.title)}</span><span>${total ? (done >= total ? `${total} questions` : `Question ${Math.min(done + 1, total)} of ${total}`) : 'Warming up'}</span></div>
+  $('board').innerHTML = `<div class="bd-top"><span class="live"><i></i>${state.running ? 'Live' : 'Final'}</span><span>Steelman Arena</span><span class="bd-title">${esc(b.title)}</span><span>${total ? (done >= total ? `${total} questions` : `Question ${Math.min(done + 1, total)} of ${total}`) : 'Warming up'}</span></div>${phasesHTML()}
     <div class="score">
       <div class="cand a"><div class="num">${state.totals.a.toFixed(1)}</div><div class="cn">${esc(b.positions.a.name)}</div><div class="school">${esc(b.positions.a.school || b.positions.a.label)}</div><div class="cl">${esc(b.positions.a.label)} · ${state.won.a} won</div></div>
       <div class="mid"><div class="mom"><div class="mom-l"><span>${state.won.a} won</span><span>momentum</span><span>${state.won.b} won</span></div><div class="mom-bar" style="--pct:${pct}%"><i></i></div><div class="calls">${dots}</div></div><span>of 100 per question${state.won.tie ? ` · ${state.won.tie} even` : ''}${(() => { const c = state.rounds.filter(r => r.you && r.you.winner && r.score); return c.length ? ` · you with the panel ${c.filter(r => r.you.winner === r.score.winner).length} of ${c.length}` : ''; })()}</span></div>
       <div class="cand b r"><div class="num">${state.totals.b.toFixed(1)}</div><div class="cn">${esc(b.positions.b.name)}</div><div class="school">${esc(b.positions.b.school || b.positions.b.label)}</div><div class="cl">${esc(b.positions.b.label)} · ${state.won.b} won</div></div>
     </div>${storyHTML()}`;
+}
+const PHASES = () => [state.openings && ['openings', 'Openings'], ['questions', 'Questions'], state.middle && ['middle', 'Middle ground'], state.cross && ['cross', 'Cross-examination'], state.openings && ['closings', 'Closings'], ['verdict', 'Verdict']].filter(Boolean);
+function setPhase(p){ state.phase = p; renderBoard(); }
+function phasesHTML(){
+  const list = PHASES(); const at = list.findIndex(x => x[0] === state.phase); if (state.mode === 'lineup' || !state.rounds.length) return '';
+  return `<div class="phases">${list.map((x, i) => `<span class="${state.phase === 'done' || i < at ? 'done' : i === at ? 'now' : ''}">${x[1]}</span>`).join('')}</div>`;
 }
 function storyHTML(){
   const b = state.brief; const done = state.rounds.filter(r => r.score && r.panel);
@@ -2017,17 +2071,40 @@ function setMove(card, title){
   let m = card.querySelector('.sc-head .move'); if (!m){ m = document.createElement('span'); m.className = 'move'; card.querySelector('.sc-head .kind').after(m); }
   m.textContent = `· ${title}`;
 }
-function leanRead(v){ const b = state.brief; if (v == null) return 'Slide to where you stand.'; const d = v - 50; if (Math.abs(d) < 5) return 'Undecided, right in the middle.'; const side = d < 0 ? 'a' : 'b'; const n = Math.abs(d); return `${n < 20 ? 'Leaning' : n < 40 ? 'With' : 'Firmly with'} ${b.positions[side].label.toLowerCase()} (${b.positions[side].name}).`; }
+/* The spectrum: the audience's six-point scale for the title question, with both candidates pinned on it.
+   The ballot slider keeps its A-left, B-right axis (0 to 100); the scale is drawn so that A's end is whichever end A sits nearer. */
+const AGREE_BANDS = ['Strongly disagree', 'Disagree', 'Slightly disagree', 'Slightly agree', 'Agree', 'Strongly agree'];
+function spectrum(){
+  const b = state.brief; const sc = b.scale || {low:'Strongly disagree', high:'Strongly agree'};
+  const pa = b.positions.a, pb = b.positions.b; const flip = pa.spot > pb.spot;
+  const shown = (spot) => flip ? 7 - spot : spot;           // 1..6 as displayed, left to right
+  const pct = (spot) => (shown(spot) - 1) / 5 * 100;
+  const agree = /disagree/i.test(sc.low) && /agree/i.test(sc.high);
+  const bands = agree ? AGREE_BANDS : null;
+  const left = flip ? sc.high : sc.low, right = flip ? sc.low : sc.high;
+  return {flip, left, right, agree, bands, a:{spot:pa.spot, shown:shown(pa.spot), pct:pct(pa.spot)}, b:{spot:pb.spot, shown:shown(pb.spot), pct:pct(pb.spot)}};
+}
+function spotLabel(side){ const sp = spectrum(); const s = sp[side]; return sp.bands ? `${s.spot}: ${sp.bands[s.spot - 1]}` : `${s.spot} of 6, toward ${s.spot >= 4 ? (state.brief.scale || {}).high || 'the high end' : (state.brief.scale || {}).low || 'the low end'}`; }
+function bandOf(v){ const sp = spectrum(); const shown = Math.min(6, Math.max(1, Math.round(1 + (v / 100) * 5))); const spot = sp.flip ? 7 - shown : shown; return sp.bands ? `${spot}: ${sp.bands[spot - 1]}` : `${spot} of 6`; }
+function spectrumHTML(){
+  const b = state.brief; const sp = spectrum();
+  const ticks = [1,2,3,4,5,6].map(k => `<span class="tick" style="left:${(k - 1) / 5 * 100}%">${sp.flip ? 7 - k : k}</span>`).join('');
+  const pin = (side) => `<span class="pin ${side}" style="left:${sp[side].pct}%" title="${esc(b.positions[side].name)} sits at ${esc(spotLabel(side))}"><i></i>${esc(b.positions[side].name.split(' ').slice(-1)[0])} · ${sp[side].spot}</span>`;
+  return `<div class="spec" aria-hidden="true"><div class="track"></div><div class="midband">middle ground</div>${pin('a')}${pin('b')}<span class="you" hidden></span>${ticks}</div>`;
+}
+function leanRead(v){ const b = state.brief; if (v == null) return 'Slide to where you stand.'; const d = v - 50; const band = `${bandOf(v)} · `; if (Math.abs(d) < 5) return band + 'Undecided, right in the middle.'; const side = d < 0 ? 'a' : 'b'; const n = Math.abs(d); return `${band}${n < 20 ? 'Leaning' : n < 40 ? 'With' : 'Firmly with'} ${b.positions[side].label.toLowerCase()} (${b.positions[side].name}).`; }
 function leanHTML(which){
   const b = state.brief; const v = state.ballot[which]; const val = v == null ? 50 : v;
-  return `<div class="lean"><div class="ends"><span class="a">${esc(b.positions.a.label)} · ${esc(b.positions.a.name)}</span><span class="b">${esc(b.positions.b.name)} · ${esc(b.positions.b.label)}</span></div><input type="range" min="0" max="100" value="${val}" data-lean="${which}" aria-label="Where you stand"><div class="read" data-read="${which}">${esc(leanRead(v))}</div></div>`;
+  const sp = spectrum();
+  return `<div class="lean"><div class="ends"><span class="a">${esc(sp.left)} · ${esc(b.positions.a.name)}</span><span class="b">${esc(b.positions.b.name)} · ${esc(sp.right)}</span></div>${spectrumHTML()}<input type="range" min="0" max="100" value="${val}" data-lean="${which}" aria-label="Where you stand, 1 to 6"><div class="read" data-read="${which}">${esc(leanRead(v))}</div></div>`;
 }
 function wireLean(root){
-  root.querySelectorAll('input[data-lean]').forEach(inp => inp.addEventListener('input', () => { const w = inp.dataset.lean; state.ballot[w] = Number(inp.value); const rd = root.querySelector(`[data-read="${w}"]`); if (rd) rd.textContent = leanRead(state.ballot[w]); if (w === 'end'){ const m = root.querySelector('.moved'); if (m) m.innerHTML = movedHTML(); saveDebateRecord(); } }));
+  root.querySelectorAll('input[data-lean]').forEach(inp => { const you = inp.closest('.lean').querySelector('.spec .you'); const place = () => { if (!you) return; const v = state.ballot[inp.dataset.lean]; if (v == null){ you.hidden = true; return; } you.hidden = false; you.style.left = v + '%'; }; place(); inp.addEventListener('input', () => { const w = inp.dataset.lean; state.ballot[w] = Number(inp.value); place(); const rd = root.querySelector(`[data-read="${w}"]`); if (rd) rd.textContent = leanRead(state.ballot[w]); if (w === 'end'){ const m = root.querySelector('.moved'); if (m) m.innerHTML = movedHTML(); saveDebateRecord(); } }); });
 }
 function seatCard(){
   const el = document.createElement('div'); el.className = 'panel seat';
-  el.innerHTML = `<div class="eyebrow">Your seat · before the first word</div><div class="q">Where do you stand on this tonight?</div>${leanHTML('start')}<div class="hint">You will be asked again at the end. The difference is the only score that is really yours.</div>`;
+  const b = state.brief;
+  el.innerHTML = `<div class="eyebrow">Your seat · before the first word</div><div class="q">Where do you stand on this tonight?</div>${leanHTML('start')}<div class="hint">${esc(b.positions.a.name)} sits at ${esc(spotLabel('a'))}; ${esc(b.positions.b.name)} at ${esc(spotLabel('b'))}. You will be asked again at the end. The difference is the only score that is really yours.</div>`;
   wireLean(el); return el;
 }
 function movedHTML(){
@@ -2112,7 +2189,7 @@ function enqueue(side, intro, text, card){
   for (const s of [intro, ...sentences(text)].filter(Boolean)){
     const u = new SpeechSynthesisUtterance(s); if (v) u.voice = v; u.lang = (v && v.lang) || 'en-US';
     const p = state.brief && state.brief.positions[side];
-    u.pitch = p ? (Number(p.pitch) || 1) * (side === 'a' ? 0.9 : 1.05) : 1.0; u.rate = p ? (Number(p.rate) || 1) : 1.0;
+    u.pitch = p ? (Number(p.pitch) || 1) * (side === 'a' ? 0.9 : 1.05) : 1.0; u.rate = (p ? (Number(p.rate) || 1) : 1.0) * (Number(state.speed) || 1);
     audio.queue.push({u, card});
   }
 }
@@ -2126,6 +2203,7 @@ function pump(){
   next.u.onend = next.u.onerror = () => { audio.speaking = false; pump(); };
   try { speechSynthesis.speak(next.u); } catch { audio.speaking = false; pump(); }
 }
+function syncSpeed(){ const box = $('speed'); if (!box) return; box.querySelectorAll('[data-speed]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.speed) === (Number(state.speed) || 1)))); }
 function stopAudio(){
   audio.queue = []; audio.speaking = false; try { speechSynthesis.cancel(); } catch {}
   if (audio.current){ const b = audio.current.querySelector('[data-act="speak"]'); if (b) b.setAttribute('aria-pressed','false'); audio.current = null; }
@@ -2350,6 +2428,17 @@ function officialResult(){
   if (Math.abs(perQ) >= 3 || Math.abs(wonDiff) >= 2) return {winner: lead, reason: `${Math.abs(perQ).toFixed(1)} points per question on average, ${state.won.a} questions to ${state.won.b}.`};
   return {winner:'tie', reason:`Only ${Math.abs(perQ).toFixed(1)} points per question separated them, ${state.won.a} questions to ${state.won.b}.`};
 }
+function ledgerHTML(){
+  const b = state.brief; const rs = state.rounds.filter(r => r.score); const n = rs.length; if (!n) return '';
+  const rows = CRITERIA.map(c => ({name:c.name, a:rs.reduce((x, r) => x + r.score.avg.a[c.id], 0), b:rs.reduce((x, r) => x + r.score.avg.b[c.id], 0), max:10 * n}));
+  const topic = {name:'Topic rubric', a:rs.reduce((x, r) => x + ((r.score.parts && r.score.parts.a.topic) || 0), 0), b:rs.reduce((x, r) => x + ((r.score.parts && r.score.parts.b.topic) || 0), 0), max:40 * n};
+  const pen = {a:rs.reduce((x, r) => x + ((r.score.parts && r.score.parts.a.pen) || 0), 0), b:rs.reduce((x, r) => x + ((r.score.parts && r.score.parts.b.pen) || 0), 0)};
+  const all = [...rows, topic]; const gap = all.map(r => ({name:r.name, d:r.a - r.b, rel:(r.a - r.b) / r.max})).sort((x, y) => Math.abs(y.rel) - Math.abs(x.rel))[0];
+  const bar = (side, v, max) => `<div class="bar ${side}"><i style="width:${Math.max(2, Math.min(100, v / max * 100)).toFixed(0)}%"></i><b>${v.toFixed(0)} / ${max}</b></div>`;
+  const line = (r) => `<div class="lr">${bar('a', r.a, r.max)}<span class="nm">${esc(r.name)}</span>${bar('b', r.b, r.max)}</div>`;
+  const lead = gap && Math.abs(gap.d) >= 1 ? `${gap.d > 0 ? b.positions.a.name : b.positions.b.name} won the most ground on <strong>${esc(gap.name)}</strong>, ${Math.abs(gap.d).toFixed(1)} points across ${n} question${n === 1 ? '' : 's'}.` : 'No single criterion separated them.';
+  return `<h3>Where the points came from · ${n} question${n === 1 ? '' : 's'}</h3><div class="ledger">${rows.map(line).join('')}${line(topic)}<div class="lr"><div class="bar a"><b>${pen.a > 0.05 ? '−' + pen.a.toFixed(1) : '0'}</b></div><span class="nm">Penalties</span><div class="bar b"><b>${pen.b > 0.05 ? '−' + pen.b.toFixed(1) : '0'}</b></div></div><div class="lr sum"><div class="bar a"><b>${state.totals.a.toFixed(1)} / ${100 * n}</b></div><span class="nm">Total</span><div class="bar b"><b>${state.totals.b.toFixed(1)} / ${100 * n}</b></div></div><div class="hint">${lead} ${pen.a + pen.b > 0 ? `Penalties cost ${b.positions.a.name} ${pen.a.toFixed(1)} and ${b.positions.b.name} ${pen.b.toFixed(1)}.` : 'The bench caught no incorrect claims or fallacies worth a penalty.'}</div></div>`;
+}
 function renderFinal(){
   const b = state.brief, f = state.final, o = officialResult();
   const w = o.winner;
@@ -2366,6 +2455,7 @@ function renderFinal(){
     <div class="deck">${esc(o.reason)}</div>
     <div class="score"><div class="cand a"><div class="num" style="color:var(--a-ink)">${state.totals.a.toFixed(1)}</div><div class="cn">${esc(b.positions.a.name)}</div><div class="cl" style="color:var(--muted)">${state.won.a} questions won</div></div><div class="mid"><b>${state.won.a} · ${state.won.tie} even · ${state.won.b}</b><span>questions won · panel points of 100 per question</span></div><div class="cand b r"><div class="num" style="color:var(--b-ink)">${state.totals.b.toFixed(1)}</div><div class="cn">${esc(b.positions.b.name)}</div><div class="cl" style="color:var(--muted)">${state.won.b} questions won</div></div></div>
     ${f ? `<p class="lead"><strong>${esc(f.headline)}</strong> ${esc(f.why)}</p>` : '<p class="lead">The chief judge did not return a summation; the scoreboard above stands.</p>'}
+    ${ledgerHTML()}
     ${ranked.length ? `<h3>The questions, ranked by how decisively they were won</h3><div class="ranked">${ranked.map((r, i) => { const rd = state.rounds[r.q-1]; return `<div class="rk"><span class="n">${i+1}</span><div><div>${esc(rd.q.question)}</div><div class="why">${esc(r.why)}</div></div><span class="pill ${r.winner}">${r.winner==='tie' ? 'Even' : esc(b.positions[r.winner].name)}</span></div>`; }).join('')}</div>` : ''}
     ${(ideas('a').length || ideas('b').length) ? `<h3>The ideas worth keeping</h3><div class="ideas"><div class="idea a"><span class="eyebrow">${esc(b.positions.a.name)}</span>${ideas('a').map(i=>`<div>· ${esc(i)}</div>`).join('')}</div><div class="idea b"><span class="eyebrow">${esc(b.positions.b.name)}</span>${ideas('b').map(i=>`<div>· ${esc(i)}</div>`).join('')}</div></div>` : ''}
     ${decide.length ? `<h3>How to decide</h3><div class="foryou">${decide.map(x=>`<div class="fy decide"><div>${esc(x.cond)}</div><span class="pill ${x.then}">then ${esc(b.positions[x.then].name)}</span></div>`).join('')}</div>` : ''}
@@ -2416,12 +2506,14 @@ async function runDebate(){
   if (state.mode === 'lineup') return runLineup();
   const qs = state.questions.filter(q => state.selected.has(q.id)); if (!qs.length) return;
   state.running = true; state.ctl = new AbortController(); const signal = state.ctl.signal;
-  state.rounds = qs.map((q, i) => ({q, index:i, turns:[], panel:null, score:null, sc:null, audit:null, you:null})); state.statements = {open:{}, close:{}}; state.final = null; state.audit = null; state.crossExam = []; state.ballot = {start:null, end:null}; state.runId = 'd' + Date.now().toString(36); recomputeTotals();
+  state.rounds = qs.map((q, i) => ({q, index:i, turns:[], panel:null, score:null, sc:null, audit:null, you:null})); state.statements = {open:{}, close:{}, middle:{}}; state.final = null; state.audit = null; state.crossExam = []; state.ballot = {start:null, end:null}; state.phase = state.openings ? 'openings' : 'questions'; state.runId = 'd' + Date.now().toString(36); recomputeTotals();
   $('audit').hidden = true; $('rematch').hidden = true;
   stopAudio();
   $('briefSec').hidden = true; $('stage').hidden = false; $('feed').innerHTML = ''; $('finalWrap').innerHTML = ''; showNotice('stageNotice', '');
   $('stop').hidden = false; $('copy').hidden = true; $('save').hidden = true; $('speakAll').hidden = true;
   applyColors(); renderBoard(); $('podiums').innerHTML = podiumHTML('a', state.brief.positions.a, false) + podiumHTML('b', state.brief.positions.b, false);
+  state.filt = 'all'; $('feed').dataset.filt = 'all'; $('filt').hidden = false; $('filt').querySelectorAll('[data-filt]').forEach(x => { x.setAttribute('aria-pressed', String(x.dataset.filt === 'all')); if (x.dataset.filt !== 'all') x.textContent = state.brief.positions[x.dataset.filt].name.split(' ').slice(-1)[0]; });
+  $('speed').hidden = !window.speechSynthesis; syncSpeed();
   window.scrollTo({top:0, behavior:'smooth'});
   const t0 = Date.now();
   $('feed').appendChild(howCard()); $('feed').appendChild(seatCard());
@@ -2434,6 +2526,7 @@ async function runDebate(){
       cards.b.dataset.noscroll = '1';
       await Promise.all(['a','b'].map(async s => { state.statements.open[s] = await speakInto(cards[s], s, 'opening statement', state.answerSec, statementPrompt('open', s), 'Openings', signal); }));
     }
+    setPhase('questions');
     for (const round of state.rounds){
       const i = round.index; const first = i % 2 === 0 ? 'a' : 'b'; const second = other(first);
       const wrap = document.createElement('div'); wrap.className='qblock'; wrap.appendChild(modCard(i, round.q));
@@ -2474,7 +2567,17 @@ async function runDebate(){
     progress('The panel is finishing its ballots…');
     await Promise.all(state.rounds.map(r => r.scoring || Promise.resolve()));
     if (signal.aborted) throw {code:'cancelled'};
+    if (state.middle && state.rounds.some(r => r.turns.length)){
+      setPhase('middle');
+      const wrap = document.createElement('div'); wrap.className='qblock';
+      wrap.innerHTML = `<div class="panel modcard"><div class="eyebrow">${esc(state.brief.moderator.name)} · the middle ground</div><div class="q">Step toward the center. Name the strongest point the other side made tonight that you accept, say what it costs you, and then name the one claim you will not give up.</div><div class="why">The test of a mind is not whether it moved, but whether it can say exactly what it would take to move it.</div></div>`;
+      const pair = document.createElement('div'); pair.className='pair'; wrap.appendChild(pair); $('feed').appendChild(wrap);
+      const cards = {a: speechCard('a', 'middle ground', 45), b: speechCard('b', 'middle ground', 45)}; pair.append(cards.a, cards.b); cards.b.dataset.noscroll = '1';
+      await pause(600, signal);
+      await Promise.all(['a','b'].map(async s => { state.statements.middle[s] = await speakInto(cards[s], s, 'middle ground', 45, middlePrompt(s), 'Middle ground', signal); }));
+    }
     if (state.cross && state.rounds.some(r => r.turns.length)){
+      setPhase('cross');
       const wrap = document.createElement('div'); wrap.className='qblock';
       wrap.innerHTML = `<div class="panel modcard"><div class="eyebrow">${esc(state.brief.moderator.name)} · cross-examination</div><div class="q">Each of you may put one question to the other. Answer the question you are asked.</div></div>`;
       $('feed').appendChild(wrap);
@@ -2490,6 +2593,7 @@ async function runDebate(){
       await Promise.all(xs.map(async x => { const target = other(x.asker); x.answer = (await speakInto(acards[target], target, 'cross-examination answer', 60, crossAnswerPrompt(target, x.question), 'Cross-examination', signal)).trim(); }));
     }
     if (state.openings){
+      setPhase('closings');
       const wrap = document.createElement('div'); wrap.className='qblock';
       wrap.innerHTML = `<div class="panel modcard"><div class="eyebrow">${esc(state.brief.moderator.name)} · the closing question</div><div class="q">${esc(state.brief.closer)}</div></div>`;
       const pair = document.createElement('div'); pair.className='pair'; wrap.appendChild(pair); $('feed').appendChild(wrap);
@@ -2499,14 +2603,14 @@ async function runDebate(){
       cards[order[1]].dataset.noscroll = '1';
       await Promise.all(order.map(async s => { state.statements.close[s] = await speakInto(cards[s], s, 'closing statement', state.answerSec, statementPrompt('close', s), 'Closings', signal); }));
     }
-    progress('The chief judge is writing the summation…');
+    progress('The chief judge is writing the summation…'); setPhase('verdict');
     $('finalWrap').innerHTML = `<div class="panel final"><div class="eyebrow">Final summation</div><div class="pending">Reading the whole debate…</div></div>`;
     $('finalWrap').scrollIntoView({behavior:'smooth', block:'start'});
     try {
       const raw = await backend.complete({prompt: finalPrompt(), json:true, signal, tier: state.tier, effort:'high', onText: ({text}) => { const el = $('finalWrap').querySelector('.pending'); if (el) el.textContent = `Writing… ${text.length.toLocaleString()} characters`; }});
       state.final = raw && typeof raw === 'object' ? raw : null;
     } catch (e) { if (e && e.code === 'cancelled') throw e; state.final = null; }
-    renderFinal();
+    state.phase = 'done'; renderFinal();
     progress(`Done in ${Math.round((Date.now()-t0)/6000)/10} minutes.`);
   } catch (e) {
     const code = (e && e.code) || 'upstream_error';
@@ -2669,7 +2773,7 @@ function lineupMarkdown(){
 /* ---------- Export ---------- */
 function transcriptMarkdown(){
   if (state.mode === 'lineup' && state.lineup.length) return lineupMarkdown();
-  const b = state.brief; const L = [`# ${b.title}`, '', `*${state.topic}*`, '', b.context, '', `**${b.positions.a.name}**${b.positions.a.school ? `, ${b.positions.a.school}` : ''} (${b.positions.a.label}): ${b.positions.a.stance}`, `**${b.positions.b.name}**${b.positions.b.school ? `, ${b.positions.b.school}` : ''} (${b.positions.b.label}): ${b.positions.b.stance}`, '', `Moderator: ${b.moderator.name}.`, `Panel: ${b.panel.map(j => `${j.name} (${j.title})`).join('; ')}`, `Rubric: ${b.rubric.map(c => `${c.name} (${c.weight}%)`).join('; ')}`, `Tone: ${(TONES[state.tone] || TONES.spirited).name}.`, ''];
+  const b = state.brief; const L = [`# ${b.title}`, '', `*${state.topic}*`, '', b.context, '', `**${b.positions.a.name}**${b.positions.a.school ? `, ${b.positions.a.school}` : ''} (${b.positions.a.label}, ${spotLabel('a')}): ${b.positions.a.stance}`, `**${b.positions.b.name}**${b.positions.b.school ? `, ${b.positions.b.school}` : ''} (${b.positions.b.label}, ${spotLabel('b')}): ${b.positions.b.stance}`, '', `Moderator: ${b.moderator.name}.`, `Panel: ${b.panel.map(j => `${j.name} (${j.title})`).join('; ')}`, `Rubric: ${b.rubric.map(c => `${c.name} (${c.weight}%)`).join('; ')}`, `Tone: ${(TONES[state.tone] || TONES.spirited).name}.`, ''];
   if (state.statements.open.a || state.statements.open.b){ L.push('## Opening statements', '', `**Moderator:** ${b.hook}`, ''); for (const s of ['a','b']) if (state.statements.open[s]) L.push(`### ${b.positions[s].name}`, '', state.statements.open[s], ''); }
   state.rounds.forEach((r, i) => {
     if (!r.turns.length) return;
@@ -2680,6 +2784,8 @@ function transcriptMarkdown(){
     if (r.you && r.you.winner && r.score) L.push(`**Your call:** ${r.you.winner === 'tie' ? 'even' : b.positions[r.you.winner].name}${r.you.note ? ` (${r.you.note})` : ''}.`, '');
     if (r.score){ const t = r.score; L.push(`**Panel:** ${t.winner==='tie' ? 'Even' : b.positions[t.winner].name + ' takes it'}, ${t.a.toFixed(1)} to ${t.b.toFixed(1)} of 100.`, '', '| Criterion | A | B |', '|---|---|---|'); for (const c of CRITERIA) L.push(`| ${c.name} | ${t.avg.a[c.id].toFixed(1)} | ${t.avg.b[c.id].toFixed(1)} |`); if (t.tavg) for (const c of b.rubric) L.push(`| ${c.name} (topic, ${c.weight}%) | ${(t.tavg.a[c.id] ?? 5).toFixed(1)} | ${(t.tavg.b[c.id] ?? 5).toFixed(1)} |`); if (t.parts) L.push(`| Penalties | −${t.parts.a.pen.toFixed(1)} | −${t.parts.b.pen.toFixed(1)} |`); L.push('', `- Best idea, ${b.positions.a.name}: ${r.panel.bestIdea.a}`, `- Best idea, ${b.positions.b.name}: ${r.panel.bestIdea.b}`); if (r.panel.unresolved) L.push(`- Left open: ${r.panel.unresolved}`); L.push(''); for (const bl of r.panel.ballots) L.push(`> **${bl.judge.name}** (${bl.judge.title}): ${bl.note}`); L.push(''); }
   });
+  const mid = state.statements.middle || {};
+  if (mid.a || mid.b){ L.push('## The middle ground', '', `**${b.moderator.name}:** Name the strongest point the other side made that you accept, what it costs you, and the one claim you will not give up.`, ''); for (const s of ['a','b']) if (mid[s]) L.push(`### ${b.positions[s].name}`, '', mid[s], ''); }
   if (state.crossExam.some(x => x.answer)){ L.push('## Cross-examination', ''); for (const x of state.crossExam.filter(x => x.answer)) L.push(`**${b.positions[x.asker].name} asks:** ${x.question}`, '', `### ${b.positions[other(x.asker)].name}`, '', x.answer, ''); }
   if (state.statements.close.a || state.statements.close.b){ L.push('## Closing statements', '', `**Moderator:** ${b.closer}`, ''); for (const s of ['a','b']) if (state.statements.close[s]) L.push(`### ${b.positions[s].name}`, '', state.statements.close[s], ''); }
   const o = officialResult(); L.push('## Final', '', `**${o.winner==='tie' ? 'Too close to call' : b.positions[o.winner].name + ' wins the night'}.** A ${state.totals.a.toFixed(1)}, B ${state.totals.b.toFixed(1)}; questions won A ${state.won.a}, B ${state.won.b}, even ${state.won.tie}.`, '');
@@ -2721,6 +2827,9 @@ function wire(){
   $('clearRecords').onclick = () => { if (!state.records.length) return; if (!confirm('Clear every record on this device?')) return; state.records = []; saveRecords(); renderRoster(); };
   $('press').onchange = (e) => { state.press = e.target.checked; save(); updateEstimate(); };
   $('cross').onchange = (e) => { state.cross = e.target.checked; save(); updateEstimate(); };
+  $('middle').onchange = (e) => { state.middle = e.target.checked; save(); updateEstimate(); };
+  $('speed').querySelectorAll('[data-speed]').forEach(b => b.onclick = () => { state.speed = Number(b.dataset.speed) || 1; save(); syncSpeed(); });
+  $('filt').querySelectorAll('[data-filt]').forEach(b => b.onclick = () => { state.filt = b.dataset.filt; $('feed').dataset.filt = state.filt; $('filt').querySelectorAll('[data-filt]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
   $('addJudgePreset').onchange = (e) => { const v = e.target.value; if (!v) return; addJudge(v === 'blank' ? null : JUDGE_PRESETS[Number(v)]); e.target.value = ''; };
   $('build').onclick = () => { if (!state.ctl) buildBrief(); };
   $('rebuild').onclick = () => { $('briefSec').hidden = true; if (state.advanced) $('setup').hidden = false; else $('quick').hidden = false; buildBrief(state.advanced ? {} : {quick:true}); };
@@ -2747,6 +2856,7 @@ function wire(){
     if (state.mode === 'lineup' && state.lineup.length){ for (const r of state.lineup){ if (!r.votes.some(v => v.done)) continue; enqueue('m', `Question ${r.index+1}. ${r.q.question}`, '', null); for (const v of r.votes.filter(v => v.done)) enqueue(v.mind.id, `${v.mind.name} votes ${v.answer}.`, v.take, null); } pump(); return; }
     for (const s of ['a','b']) if (state.statements.open[s]) enqueue(s, `${b.positions[s].name}, opening statement.`, state.statements.open[s], null);
     for (const r of state.rounds){ if (!r.turns.length) continue; enqueue('m', `Question ${r.index+1}. ${r.q.question}`, '', null); for (const t of r.turns) enqueue(t.side, `${b.positions[t.side].name}, ${t.kind}.`, t.text, null); }
+    for (const s of ['a','b']) if ((state.statements.middle || {})[s]) enqueue(s, `${b.positions[s].name}, the middle ground.`, state.statements.middle[s], null);
     for (const x of state.crossExam.filter(x => x.answer)){ enqueue(x.asker, `${b.positions[x.asker].name} asks.`, x.question, null); enqueue(other(x.asker), `${b.positions[other(x.asker)].name} answers.`, x.answer, null); }
     for (const s of ['a','b']) if (state.statements.close[s]) enqueue(s, `${b.positions[s].name}, closing statement.`, state.statements.close[s], null);
     pump();

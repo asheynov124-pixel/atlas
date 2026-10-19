@@ -26,6 +26,17 @@ What makes the channel work is not the spectacle of AI; it is that the judging i
 4. **The lineup.** A second format: five minds, no assigned sides, one vote each on every question, with the majority, the dissenters, and whoever stood alone counted on a board, a moderator's call per question, and a closing read of the patterns in how the room split. This is the trolley-problem and quiz format, with personas standing in for the five models.
 5. **Minds across time.** A category of matchups between real thinkers (Nietzsche vs. Jung, Keynes vs. Hayek in 2026, Lincoln vs. Douglass in 2026). When a topic names real figures, the candidates are those figures, arguing from their own writings with knowledge of the present, and one question asks each what they would now revise.
 
+## A second look: Gemini's "Jubilee Spectrum"
+
+A Gemini-built app on the same idea was shared for comparison (screenshots only; the share link is gated behind a sign-in). Most of what it does the arena already did: a guest ballot, a before-and-after stance with a "perspective delta", a criteria explainer, an exportable transcript, read-aloud with a speaking chyron, and a 300-point scorecard with bars. Four things were worth taking, and the arena now has them:
+
+1. **The spectrum.** Jubilee's own device: a 1-to-6 strongly-disagree-to-strongly-agree scale for the title question with both debaters pinned on it (Atlas at 6, Vesper at 1) and a "middle ground" zone between. The arena's seat was a slider between the two candidates with no scale behind it. The brief now places each candidate on the six-point scale (and they need not sit at the ends), the scale is drawn with both pinned, a dashed middle-ground band, and your own marker, and the readback says "4: Slightly agree". For "X vs. Y" topics the ends become "All in for X" and "All in for Y".
+2. **A middle-ground round.** Gemini's five rounds were Spectrum, Direct Clash, Middle Ground, Closing, AI Judges; the arena had no segment where each side had to move. It now does: each candidate quotes the strongest point the other made, says what accepting it costs, and names the one claim they keep. The chief judge weighs an honest concession over a cosmetic one and builds "where they agreed" and the open cruxes from it.
+3. **Where the points came from.** Gemini's scorecard showed each criterion as a bar out of 60 across the whole debate. The arena scored per question only; the final now carries a ledger of the six criteria and the topic rubric summed across the night, the penalties, and the one criterion that decided the most ground.
+4. **Small things that help you follow along:** a phase strip on the scoreboard, a speaker filter for the transcript, and a read-aloud speed control.
+
+Not taken: the "cognitive engine" bios (the roster's traditions do that job with more character), a fixed Atlas-versus-Vesper pair (the arena casts from thirty), and declaring a winner by a two-point margin on 300 (the arena keeps its threshold so a close night reads as even).
+
 ## What the app does differently
 
 - The channel uses five different model vendors as referees; the app uses one model and gives it five judges with distinct lenses, strictness, and focus criteria, plus a bias audit (blind, both orders, one call per judge, swapped rematch) to test whether the bench is doing the deciding.
