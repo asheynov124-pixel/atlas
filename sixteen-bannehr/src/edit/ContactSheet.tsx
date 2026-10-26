@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import {
   DndContext,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -75,7 +76,9 @@ export function ContactSheet({ current, layout, onTurn }: { current: Placed; lay
   const [picker, setPicker] = useState<null | 'add' | 'change' | 'move'>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    // On a phone the strip scrolls sideways; a press-and-hold picks a spread up instead.
+    useSensor(TouchSensor, { activationConstraint: { delay: 260, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 

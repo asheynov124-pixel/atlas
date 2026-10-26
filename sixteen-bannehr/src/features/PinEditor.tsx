@@ -12,7 +12,7 @@ export function PinEditor({ spreadId, pin, onClose }: { spreadId: string; pin: P
   const set = (patch: Partial<Pin>) => updatePin(spreadId, pin.id, patch);
   return (
     <div className="pin-edit" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
-      <InlineText as="h4" className="pin-card__title" value={pin.title} onCommit={(v) => set({ title: v })} placeholder="What is here?" />
+      <InlineText as="h3" className="pin-card__title" value={pin.title} onCommit={(v) => set({ title: v })} placeholder="What is here?" />
       <InlineText as="p" className="pin-card__text" value={pin.text} onCommit={(v) => set({ text: v })} placeholder="A note" multiline />
       <InlineText as="p" className="pin-card__link" value={pin.url} onCommit={(v) => set({ url: v })} placeholder="A link (optional)" raw inputMode="url" />
       <label className="pin-edit__item">
@@ -47,6 +47,7 @@ export function usePinActions(spreadId: string) {
   const drag = useRef<{ id: string; moved: boolean; x: number; y: number; pointer: number } | null>(null);
   return {
     add: (x: number, y: number) => addPin(spreadId, x, y),
+    move: (id: string, x: number, y: number) => updatePin(spreadId, id, { x: Math.min(98, Math.max(2, x)), y: Math.min(98, Math.max(2, y)) }),
     startDrag: (e: PointerEvent, id: string) => {
       const btn = e.currentTarget as HTMLElement;
       const wrap = btn.parentElement as HTMLElement;

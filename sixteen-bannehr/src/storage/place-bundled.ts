@@ -13,16 +13,30 @@ export function placeBundled(book: Book, list = bundledPhotos): { book: Book; pl
   const next = structuredClone(book);
   const done = new Set(next.placedBundled);
   for (const chapter of next.chapters) {
-    const photos = list(chapter.slug).filter((p) => !done.has(p.id));
-    if (!photos.length) continue;
+    const fresh = list(chapter.slug).filter((p) => !done.has(p.id));
+    if (!fresh.length) continue;
+    // Photos meant for options claim them first; the rest fill pages, then any options left.
+    const photos = [...fresh.filter((p) => p.target === 'items'), ...fresh.filter((p) => p.target !== 'items')];
     const refs: ImageRef[] = [];
     const itemRefs: ImageRef[] = [];
     for (const spread of chapter.spreads)
-      for (const ref of imageRefsOf(spread, next)) (ref.kind === 'item' ? itemRefs : refs).push(ref);
-    const empty = [...refs, ...itemRefs].filter((r) => readImage(next, r)?.assetId === null);
-    for (let i = 0; i < photos.length && i < empty.length; i++) {
-      write(next, empty[i], photos[i].id);
-      next.placedBundled.push(photos[i].id);
+      for (const ref of imageRefsOf(spread, next)) {
+        // An essay's margin picture is optional; it is filled by hand, never by import.
+        if (ref.kind === 'slot' && spread.template === 'essay') continue;
+        (ref.kind === 'item' ? itemRefs : refs).push(ref);
+      }
+    const isEmpty = (r: ImageRef) => readImage(next, r)?.assetId === null;
+    const anywhere = [...refs, ...itemRefs].filter(isEmpty);
+    const itemsOnly = itemRefs.filter(isEmpty);
+    const taken = new Set<ImageRef>();
+    for (const photo of photos) {
+      // Photos from an items/ folder go to options and materials only.
+      const pool = photo.target === 'items' ? itemsOnly : anywhere;
+      const ref = pool.find((r) => !taken.has(r));
+      if (!ref) continue;
+      taken.add(ref);
+      write(next, ref, photo.id);
+      next.placedBundled.push(photo.id);
       placed++;
     }
   }

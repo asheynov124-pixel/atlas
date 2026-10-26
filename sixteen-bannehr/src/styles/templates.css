@@ -111,10 +111,9 @@
   content: '';
   position: absolute;
   inset: 0;
-  background-image: var(--grain);
+  background-image: var(--grain-flat);
   background-size: 200px;
-  opacity: 0.09;
-  mix-blend-mode: overlay;
+  opacity: 0.9;
   pointer-events: none;
 }
 
@@ -478,6 +477,11 @@
 }
 
 /* ─── Chapter opener ───────────────────────────────────────────────────────── */
+
+.opener {
+  /* Dark under the photograph, so its type always has something to stand on. */
+  background-color: #2a241e;
+}
 
 .opener .pic {
   position: absolute;

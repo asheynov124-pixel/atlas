@@ -63,7 +63,7 @@ function startAutosave() {
     pending = s.book;
     useSaveStatus.setState({ state: 'saving' });
     if (timer) clearTimeout(timer);
-    timer = setTimeout(() => void flushSave(), 400);
+    timer = setTimeout(() => void flushSave(), 250);
   });
   const flush = () => void flushSave();
   document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && flush());

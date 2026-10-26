@@ -114,6 +114,28 @@ test.describe('editing in place', () => {
   });
 });
 
+test.describe('the contact sheet', () => {
+  test('reorders spreads by dragging, and undo puts them back', async ({ page }, info) => {
+    test.skip(info.project.name !== 'laptop', 'Mouse drag at laptop size.');
+    await freshBook(page, '#/p/sp-kitchen-essay');
+    await startEditing(page);
+    const order = () => page.locator('.cs__thumb').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')));
+    const before = await order();
+    const essay = page.locator('.cs__thumb[aria-current="page"]');
+    const opener = page.locator('.cs__thumb').nth((before.findIndex((l) => l === before.find((x, i) => i === before.indexOf(before.find((y) => y?.startsWith('Essay, pp. 40')) ?? '') - 1))));
+    const from = (await essay.boundingBox())!;
+    const to = (await opener.boundingBox())!;
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(from.x + from.width / 2 - 10, from.y + from.height / 2, { steps: 3 });
+    await page.mouse.move(to.x + 4, to.y + to.height / 2, { steps: 10 });
+    await page.mouse.up();
+    await expect.poll(order).not.toEqual(before);
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect.poll(order).toEqual(before);
+  });
+});
+
 test.describe('editing on the phone', () => {
   test('adds a photo from the library and a note', async ({ page }, info) => {
     test.skip(info.project.name !== 'iphone', 'Phone-sized check.');

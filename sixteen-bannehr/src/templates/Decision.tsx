@@ -44,7 +44,7 @@ export function Decision() {
         <span className="sc">Decision</span>
         {editing ? <DecisionTools.Status spreadId={spread.id} status={status} /> : <Stamp status={status} />}
       </p>
-      <Editable as="h3" single className="decision__title" html={html('title')} onCommit={(h) => setSlotText(spread.id, 'title', h)} placeholder="What is being decided" />
+      <Editable as="h2" single className="decision__title" html={html('title')} onCommit={(h) => setSlotText(spread.id, 'title', h)} placeholder="What is being decided" />
     </header>
   );
 
@@ -87,7 +87,7 @@ export function Decision() {
         )}
       </div>
       <p className="sc decision__sub">The choice</p>
-      <h4 className="decision__chosen">{chosen ? chosen.name : status === 'thinking' ? 'Not yet' : 'Unmarked'}</h4>
+      <h3 className="decision__chosen">{chosen ? chosen.name : status === 'thinking' ? 'Not yet' : 'Unmarked'}</h3>
       <Editable as="div" className="decision__why" html={html('body')} onCommit={(h) => setSlotText(spread.id, 'body', h)} placeholder="Why this one?" />
       <dl className="facts">
         <div>

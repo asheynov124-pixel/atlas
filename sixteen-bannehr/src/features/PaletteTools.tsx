@@ -93,7 +93,7 @@ export function MaterialTools({ item }: { item: Item }) {
   const edit = (recipe: (it: Item) => void) => updateItem(item.id, recipe);
   return (
     <div className="mat__fields">
-      <InlineText as="h4" className="mat__name" value={item.name} onCommit={(v) => edit((it) => void (it.name = v || 'Untitled'))} placeholder="Name" />
+      <InlineText as="h3" className="mat__name" value={item.name} onCommit={(v) => edit((it) => void (it.name = v || 'Untitled'))} placeholder="Name" />
       <InlineText className="mat__meta" value={item.finish} onCommit={(v) => edit((it) => void (it.finish = v))} placeholder="Finish" />
       <InlineText className="mat__meta" value={item.brand} onCommit={(v) => edit((it) => void (it.brand = v))} placeholder="Maker" />
       <span className="mat__price-row">

@@ -54,7 +54,7 @@ export function MaterialCard({ item }: { item: Item }) {
           <MaterialTools item={item} />
         ) : (
           <>
-            <h4 className="mat__name">{item.name}</h4>
+            <h3 className="mat__name">{item.name}</h3>
             {meta ? <p className="mat__meta">{meta}</p> : null}
             {price || href ? (
               <p className="mat__price">
@@ -103,7 +103,7 @@ export function Palette() {
   const header = (
     <header className="palette__head">
       <p className="sc palette__kicker">Palette &amp; materials</p>
-      <Editable as="h3" single className="palette__title" html={html('title')} onCommit={(h) => setSlotText(spread.id, 'title', h)} placeholder="Title" />
+      <Editable as="h2" single className="palette__title" html={html('title')} onCommit={(h) => setSlotText(spread.id, 'title', h)} placeholder="Title" />
       <Editable as="div" className="palette__intro" html={html('body')} onCommit={(h) => setSlotText(spread.id, 'body', h)} placeholder="A line about the palette (optional)" />
     </header>
   );

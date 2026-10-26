@@ -37,7 +37,7 @@ export function Shopping() {
   const summary = (
     <header className="shop__head">
       <p className="sc shop__kicker">Shopping list</p>
-      <Editable as="h3" single className="shop__title" html={html('title')} onCommit={(h) => setSlotText(spread.id, 'title', h)} placeholder="What we are buying" />
+      <Editable as="h2" single className="shop__title" html={html('title')} onCommit={(h) => setSlotText(spread.id, 'title', h)} placeholder="What we are buying" />
       <div className="shop__total">
         <span className="shop__sum">{formatMoney(sum)}</span>
         <span className="shop__total-label">
@@ -161,9 +161,9 @@ export function Library() {
 
   const group = (g: (typeof groups)[number]) => (
     <section key={g.spreadId} className="lib__group">
-      <h4 className="lib__chapter">
+      <h3 className="lib__chapter">
         <a href={hrefFor(g.spreadId)}>{g.title}</a>
-      </h4>
+      </h3>
       <ul>
         {g.items.map((it) => {
           const n = cleanChecked(it.clean);
@@ -185,7 +185,7 @@ export function Library() {
   const header = (
     <header className="lib__head">
       <p className="sc lib__kicker">Materials library · {count}</p>
-      <Editable as="h3" single className="lib__title" html={html('title')} onCommit={(h) => setSlotText(spread.id, 'title', h)} placeholder="Materials library" />
+      <Editable as="h2" single className="lib__title" html={html('title')} onCommit={(h) => setSlotText(spread.id, 'title', h)} placeholder="Materials library" />
       <Editable as="div" className="lib__intro" html={html('body')} onCommit={(h) => setSlotText(spread.id, 'body', h)} placeholder="A line about the library" />
     </header>
   );
@@ -223,9 +223,9 @@ export function StillToDecide() {
 
   const decisions = (
     <section className="still__section" aria-labelledby={`${spread.id}-dec`}>
-      <h4 id={`${spread.id}-dec`} className="sc still__sub">
+      <h3 id={`${spread.id}-dec`} className="sc still__sub">
         Decisions still at Thinking · {s.decisions.length}
-      </h4>
+      </h3>
       {s.decisions.length ? (
         <ol className="still__list">
           {s.decisions.map((d) => (
@@ -249,9 +249,9 @@ export function StillToDecide() {
 
   const purchases = (
     <section className="still__section" aria-labelledby={`${spread.id}-buy`}>
-      <h4 id={`${spread.id}-buy`} className="sc still__sub">
+      <h3 id={`${spread.id}-buy`} className="sc still__sub">
         Not yet ordered · {s.purchases.length}
-      </h4>
+      </h3>
       {s.purchases.length ? (
         <ul className="still__buy">
           {s.purchases.map(({ item, placed: p }) => (
@@ -279,7 +279,7 @@ export function StillToDecide() {
   const header = (
     <header className="still__head">
       <p className="sc still__kicker">Epilogue</p>
-      <Editable as="h3" single className="still__title" html={html('title')} onCommit={(h) => setSlotText(spread.id, 'title', h)} placeholder="Still to Decide" />
+      <Editable as="h2" single className="still__title" html={html('title')} onCommit={(h) => setSlotText(spread.id, 'title', h)} placeholder="Still to Decide" />
       <Editable as="div" className="still__intro" html={html('body')} onCommit={(h) => setSlotText(spread.id, 'body', h)} placeholder="A line for the epilogue" />
     </header>
   );

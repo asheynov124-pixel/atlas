@@ -19,7 +19,8 @@ function isTyping(t: EventTarget | null) {
 
 function SaveStatus() {
   const { state, error } = useSaveStatus();
-  const text = state === 'saving' ? 'Saving…' : state === 'error' ? 'Not saved' : 'Saved';
+  // Nothing to say until something has been written.
+  const text = state === 'saving' ? 'Saving…' : state === 'error' ? 'Not saved' : state === 'saved' ? 'Saved' : '';
   return (
     <span className={`edit-bar__status is-${state}`} role="status" title={error ?? undefined}>
       {text}

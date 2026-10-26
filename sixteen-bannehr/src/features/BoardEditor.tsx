@@ -134,6 +134,20 @@ export default function BoardEditor({ spreadId, elements }: { spreadId: string; 
               }
             }}
             onDoubleClick={() => isText && setEditingText(el.id)}
+            onFocus={() => setSelected(el.id)}
+            onKeyDown={(e) => {
+              const step = e.shiftKey ? 5 : e.altKey ? 0.5 : GRID / 2;
+              const moves: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+              const m = moves[e.key];
+              if (m) {
+                e.preventDefault();
+                e.stopPropagation();
+                updateBoardEl(spreadId, el.id, { x: Math.round((el.x + m[0]) * 10) / 10, y: Math.round((el.y + m[1]) * 10) / 10 });
+              } else if (e.key === 'Enter' && isText) {
+                e.preventDefault();
+                setEditingText(el.id);
+              }
+            }}
             onDragOver={(e: DragEvent) => {
               if (el.type === 'image' && e.dataTransfer.types.includes('Files')) e.preventDefault();
             }}
@@ -143,7 +157,7 @@ export default function BoardEditor({ spreadId, elements }: { spreadId: string; 
               void putPhoto(Array.from(e.dataTransfer.files), el.id);
             }}
           >
-            <BoardElement el={el} />
+            <BoardElement el={el} focusable />
           </div>
         );
       })}

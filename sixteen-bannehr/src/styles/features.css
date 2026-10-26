@@ -49,6 +49,33 @@
   color: var(--author-sonny);
 }
 
+/* Dense grids carry their marks on the photo, along its foot, like a contact sheet. */
+.card__img .card__acts--compact {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 7;
+  margin: 0;
+  padding: 10px 2px 0 6px;
+  color: #f7f3ec;
+  background: linear-gradient(to top, rgb(20 18 15 / 0.42), rgb(20 18 15 / 0));
+}
+
+.card__img .card__acts--compact .heart,
+.card__img .card__acts--compact .card__compare {
+  color: #f7f3ec;
+  text-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+}
+
+.card__img .card__acts--compact .heart[aria-pressed='true'] {
+  color: color-mix(in oklab, var(--author) 55%, white);
+}
+
+.card__img .card__acts--compact .card__compare[aria-pressed='true'] {
+  color: #ffd9c9;
+}
+
 .card__acts--compact .card__loved span {
   width: 6px;
   height: 6px;

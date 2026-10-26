@@ -212,6 +212,24 @@ describe('bundled photos', async () => {
     if (opener.kind === 'image') opener.assetId = null;
     expect(placeBundled(placed, photos).placed).toBe(0);
   });
+
+  it('skips the optional essay picture, and sends items/ photos to options only', () => {
+    const list = (slug: string) =>
+      slug === 'archer-bath'
+        ? [
+            { id: 'bundled:archer-bath/hero', chapter: slug, name: 'hero', width: 3000, height: 2000, variants: [800] },
+            ...[1, 2].map((n) => ({ id: `bundled:archer-bath/items/v${n}`, chapter: slug, name: `v${n}`, width: 1600, height: 2000, variants: [800], target: 'items' as const })),
+          ]
+        : [];
+    const { book } = placeBundled(createSeedBook(), list);
+    const archer = book.chapters.find((c) => c.slug === 'archer-bath')!;
+    const opener = archer.spreads[0].slots.image;
+    expect(opener.kind === 'image' && opener.assetId).toBe('bundled:archer-bath/hero');
+    const essayImage = archer.spreads[1].slots.image;
+    expect(essayImage.kind === 'image' && essayImage.assetId).toBeNull();
+    expect(book.items['it-vanity-01'].assetId).toBe('bundled:archer-bath/items/v1');
+    expect(book.items['it-vanity-02'].assetId).toBe('bundled:archer-bath/items/v2');
+  });
 });
 
 describe('migration', async () => {

@@ -109,7 +109,7 @@ export function TitlePage() {
       <Page side="recto">
         <div className="title-page">
           <Editable
-            as="h3"
+            as="h2"
             single
             className="title-page__title"
             html={html('title')}

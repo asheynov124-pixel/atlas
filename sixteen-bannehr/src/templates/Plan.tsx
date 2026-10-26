@@ -60,7 +60,7 @@ export function Plan() {
         ) : (
           <>
             <p className="pin-card__no sc">No. {i + 1}</p>
-            <h4 className="pin-card__title">{pin.title}</h4>
+            <h3 className="pin-card__title">{pin.title}</h3>
             {pin.text ? <p className="pin-card__text">{pin.text}</p> : null}
             {item ? <p className="pin-card__item sc">{item.name}</p> : null}
             {href ? (
@@ -101,6 +101,19 @@ export function Plan() {
                 setOpen(open === pin.id ? null : pin.id);
               }}
               onPointerDown={editing ? (e) => actions.startDrag(e, pin.id) : undefined}
+              onKeyDown={
+                editing
+                  ? (e) => {
+                      const step = e.shiftKey ? 5 : 1;
+                      const moves: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+                      const m = moves[e.key];
+                      if (!m) return;
+                      e.preventDefault();
+                      e.stopPropagation();
+                      actions.move(pin.id, pin.x + m[0], pin.y + m[1]);
+                    }
+                  : undefined
+              }
             >
               {i + 1}
             </button>
@@ -117,7 +130,7 @@ export function Plan() {
   const header = (
     <header className="plan__head">
       <p className="sc plan__kicker">Plan</p>
-      <Editable as="h3" single className="plan__title" html={html('title')} onCommit={(h) => setSlotText(spread.id, 'title', h)} placeholder="Title" />
+      <Editable as="h2" single className="plan__title" html={html('title')} onCommit={(h) => setSlotText(spread.id, 'title', h)} placeholder="Title" />
       <Editable as="div" className="plan__body" html={html('body')} onCommit={(h) => setSlotText(spread.id, 'body', h)} placeholder="A line about the plan (optional)" />
     </header>
   );

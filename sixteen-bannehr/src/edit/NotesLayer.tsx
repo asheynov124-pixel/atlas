@@ -95,12 +95,23 @@ function EditableNote({ note: n, spreadId }: { note: Note; spreadId: string }) {
       className={['note', 'note--editing', n.resolved && 'note--resolved'].filter(Boolean).join(' ')}
       data-author={n.author}
       style={{ left: `${n.x}%`, top: `${n.y}%`, '--tilt': `${tilt(n.id)}deg` } as CSSProperties}
-      aria-label={`Note from ${AUTHORS[n.author].name}`}
+      aria-label={`Note from ${AUTHORS[n.author].name}. Arrow keys move it.`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       onClick={(e) => e.stopPropagation()}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        const step = e.shiftKey ? 5 : 1;
+        const moves: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+        const m = moves[e.key];
+        if (!m) return;
+        e.preventDefault();
+        e.stopPropagation();
+        updateNote(spreadId, n.id, { x: Math.min(97, Math.max(3, n.x + m[0])), y: Math.min(97, Math.max(3, n.y + m[1])) });
+      }}
     >
       <span className="note__grip" aria-hidden="true" title="Drag to move" />
       <p

@@ -11,6 +11,8 @@ export interface SpreadEnv {
   active: boolean;
   /** A copy drawn only for the page-turn animation: inert, never editable. */
   decorative: boolean;
+  /** Laid out for print: every photo loads at once, nothing moves. */
+  print?: boolean;
 }
 
 const SpreadContext = createContext<SpreadEnv | null>(null);
@@ -26,5 +28,5 @@ export function useSpread(): SpreadEnv {
 export function useEditing(): boolean {
   const editing = useMode((s) => s.editing);
   const env = useContext(SpreadContext);
-  return editing && !env?.decorative;
+  return editing && !env?.decorative && !env?.print;
 }

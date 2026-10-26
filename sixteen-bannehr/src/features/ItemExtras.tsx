@@ -42,7 +42,7 @@ export function ItemExtras({ item, spreadId, compact }: { item: Item; spreadId?:
         aria-pressed={inCompare}
         disabled={!inCompare && full}
         onClick={() => toggleCompare(item.id)}
-        aria-label={`${inCompare ? 'Remove' : 'Add'} ${item.name} ${inCompare ? 'from' : 'to'} comparison`}
+        aria-label={`Compare ${item.name}`}
         title={!inCompare && full ? 'Three is the most to compare at once' : undefined}
       >
         {compact ? (inCompare ? '☑' : '☐') : inCompare ? '☑ Comparing' : '☐ Compare'}

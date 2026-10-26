@@ -6,7 +6,9 @@ import { AUTHORS, type BoardEl, type BoardSlot, type TextSlot } from '../model/t
 
 const BoardEditor = lazy(() => import('../features/BoardEditor'));
 
-export function BoardElement({ el }: { el: BoardEl }) {
+const DESCRIBE: Record<BoardEl['type'], string> = { image: 'Photo', swatch: 'Swatch', text: 'Words', note: 'Note' };
+
+export function BoardElement({ el, focusable }: { el: BoardEl; focusable?: boolean }) {
   const style = {
     left: `${el.x}%`,
     top: `${el.y}%`,
@@ -15,10 +17,13 @@ export function BoardElement({ el }: { el: BoardEl }) {
     zIndex: el.z,
     '--rot': `${el.rotate}deg`,
   } as CSSProperties;
+  const focus = focusable
+    ? { tabIndex: 0, role: 'button', 'aria-label': `${DESCRIBE[el.type]}: ${el.label || el.text || ''}. Arrow keys move it.` }
+    : {};
   switch (el.type) {
     case 'image':
       return (
-        <div className="bel bel--image" style={style} data-el={el.id}>
+        <div className="bel bel--image" style={style} data-el={el.id} {...focus}>
           <div className="bel__print">
             <Picture assetId={el.assetId ?? null} focal={el.focal} label={el.label ?? ''} alt={el.label ?? ''} slip="bl" />
           </div>
@@ -26,20 +31,20 @@ export function BoardElement({ el }: { el: BoardEl }) {
       );
     case 'swatch':
       return (
-        <div className="bel bel--swatch" style={{ ...style, '--chip': el.hex } as CSSProperties} data-el={el.id}>
+        <div className="bel bel--swatch" style={{ ...style, '--chip': el.hex } as CSSProperties} data-el={el.id} {...focus}>
           <span className="bel__chip" aria-hidden="true" />
           <span className="bel__chip-name sc">{el.label}</span>
         </div>
       );
     case 'text':
       return (
-        <div className="bel bel--text" style={style} data-el={el.id}>
+        <div className="bel bel--text" style={style} data-el={el.id} {...focus}>
           <p>{el.text}</p>
         </div>
       );
     case 'note':
       return (
-        <div className="bel bel--note" style={style} data-el={el.id} data-author={el.author ?? 'adi'}>
+        <div className="bel bel--note" style={style} data-el={el.id} data-author={el.author ?? 'adi'} {...focus}>
           <p>{el.text}</p>
           {el.author ? <span className="bel__by">— {AUTHORS[el.author].initial}.</span> : null}
         </div>
@@ -71,7 +76,7 @@ export function MoodBoard() {
   const head = (
     <div className="board__head">
       <span className="sc board__kicker">Mood board</span>
-      <Editable as="h3" single className="board__title" html={title} onCommit={(h) => setSlotText(spread.id, 'title', h)} placeholder="Title" />
+      <Editable as="h2" single className="board__title" html={title} onCommit={(h) => setSlotText(spread.id, 'title', h)} placeholder="Title" />
     </div>
   );
 

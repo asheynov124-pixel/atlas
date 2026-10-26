@@ -136,16 +136,14 @@
   background: transparent;
 }
 
-/* Grain, multiplied in at under 3 %. */
+/* Grain: a faint noise laid over the page as a plain transparent layer (under 3 %). */
 .page::after,
 .cover::after {
   content: '';
   position: absolute;
   inset: 0;
-  background-image: var(--grain);
+  background-image: var(--grain-flat);
   background-size: 240px;
-  opacity: var(--grain-opacity);
-  mix-blend-mode: multiply;
   pointer-events: none;
   z-index: 15;
 }
@@ -155,8 +153,7 @@
 }
 
 :root[data-theme='night'] .page::after {
-  mix-blend-mode: screen;
-  opacity: 0.02;
+  opacity: 0.5;
 }
 
 /* The page's type area, inside its margins. */

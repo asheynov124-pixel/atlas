@@ -246,7 +246,7 @@ export function Picture({
   const asset = useAsset(assetId);
   const developing = useDeveloping(assetId);
   const editing = useEditing();
-  const { placed } = useSpread();
+  const { placed, print } = useSpread();
   const chapterTone = tone ?? placed.chapter.tone;
 
   let framed = false;
@@ -255,7 +255,9 @@ export function Picture({
     scale = fit === 'cover' ? Math.max(box.w / asset.width, box.h / asset.height) : Math.min(box.w / asset.width, box.h / asset.height);
     framed = scale > 1.1;
   }
-  const sizes = box ? `${Math.ceil(framed ? Math.min(box.w, asset?.width ?? box.w) : box.w)}px` : '100vw';
+  // Covering a tall slot with a wide photo needs the photo at the slot's height, not width.
+  const rendered = box && asset ? (framed ? Math.min(box.w, asset.width) : fit === 'cover' ? Math.max(box.w, box.h * (asset.width / asset.height)) : box.w) : 0;
+  const sizes = box ? `${Math.ceil(rendered || box.w)}px` : '100vw';
 
   return (
     <div
@@ -270,7 +272,7 @@ export function Picture({
           srcSet={asset.srcset || undefined}
           sizes={sizes}
           alt={decorative ? '' : alt}
-          loading={eager ? 'eager' : 'lazy'}
+          loading={eager || print ? 'eager' : 'lazy'}
           decoding="async"
           draggable={false}
           width={asset.width}

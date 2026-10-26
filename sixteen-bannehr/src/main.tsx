@@ -16,9 +16,15 @@ import './styles/pages.css';
 import './styles/turn.css';
 import './styles/edit.css';
 import './styles/features.css';
+import './styles/print.css';
 
 import { App } from './App';
 import { boot } from './store/persistence';
+
+// Offline and home screen: the service worker precaches the book's shell and type.
+if (import.meta.env.PROD) {
+  void import('virtual:pwa-register').then(({ registerSW }) => registerSW({ immediate: true }));
+}
 
 // Open the saved book (or the seed) before the first paint, so the book never flickers
 // from the seed to her edits.

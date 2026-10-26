@@ -57,7 +57,7 @@ src/
 (`retitleChapter`, `setSlotImage`, `moveSpread`…) so undo steps read like a history.
 Text commits on blur and mood-board moves commit on drop, so one gesture is one
 undo step, never a keystroke or a pixel. Autosave writes the whole book to IndexedDB
-400 ms after the last change.
+250 ms after the last change, and at once when the tab is hidden or closed.
 
 **Assets.** Blobs never enter the store. `Asset` metadata (size, mime) and the original
 blob live in Dexie; WebP variants (800 / 1600 / 2800 px, never larger than the original)
@@ -180,7 +180,7 @@ Each phase is committed (and pushed) on its own.
 
 1. **Essay layout for short essays.** The seed essays run 45–110 words. Set as two
    literal columns they would leave a spread mostly empty and look unfinished. So the
-   essay template adapts to length. Under ~180 words it sets the standfirst and pull
+   essay template adapts to length. Under ~170 words it sets the standfirst and pull
    quote on the verso and the essay on the recto in a lead size (two columns' worth of
    measure). Over that, it flows into two true columns across the spread. That is
    faithful in spirit, but it is a deviation.

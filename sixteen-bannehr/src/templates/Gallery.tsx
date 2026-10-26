@@ -55,10 +55,11 @@ export function ItemCard({ item, index, compact, spreadId }: { item: Item; index
         <span className="card__no" aria-hidden="true">
           {String(index + 1).padStart(2, '0')}
         </span>
+        {compact ? <ItemExtras item={item} spreadId={spreadId} compact /> : null}
       </div>
       {editing ? (
         <div className="card__fields">
-          <InlineText as="h4" className="card__name" value={item.name} onCommit={(v) => edit((it) => void (it.name = v || 'Untitled'))} placeholder="Name" />
+          <InlineText as="h3" className="card__name" value={item.name} onCommit={(v) => edit((it) => void (it.name = v || 'Untitled'))} placeholder="Name" />
           <InlineText className="card__meta" value={item.brand} onCommit={(v) => edit((it) => void (it.brand = v))} placeholder="Maker" />
           <InlineText
             className="card__meta"
@@ -82,7 +83,7 @@ export function ItemCard({ item, index, compact, spreadId }: { item: Item; index
         </div>
       ) : (
         <>
-          <h4 className="card__name">{item.name}</h4>
+          <h3 className="card__name">{item.name}</h3>
           {meta ? <p className="card__meta">{meta}</p> : null}
           {!compact && href ? (
             <a className="card__meta card__link" href={href} target="_blank" rel="noopener noreferrer">
@@ -92,7 +93,7 @@ export function ItemCard({ item, index, compact, spreadId }: { item: Item; index
           {!compact && item.tags.length ? <p className="card__tags">{item.tags.join(' · ')}</p> : null}
         </>
       )}
-      <ItemExtras item={item} spreadId={spreadId} compact={compact} />
+      {compact ? null : <ItemExtras item={item} spreadId={spreadId} />}
     </article>
   );
 }
@@ -120,7 +121,7 @@ export function Gallery() {
       <p className="gallery__count sc">
         {n ? `${countWords(n)} ${n === 1 ? 'option' : 'options'}` : 'No options yet'}
       </p>
-      <Editable as="h3" single className="gallery__title" html={html('title')} onCommit={(h) => setSlotText(spread.id, 'title', h)} placeholder="What are we choosing?" />
+      <Editable as="h2" single className="gallery__title" html={html('title')} onCommit={(h) => setSlotText(spread.id, 'title', h)} placeholder="What are we choosing?" />
       <Editable as="div" className="gallery__intro" html={html('body')} onCommit={(h) => setSlotText(spread.id, 'body', h)} placeholder="A line about the choice (optional)" />
     </header>
   );

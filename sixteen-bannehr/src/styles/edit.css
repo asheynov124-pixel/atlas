@@ -88,6 +88,10 @@
   cursor: default;
 }
 
+.edit-bar .edit-bar__who {
+  opacity: 1;
+}
+
 .edit-bar__who strong {
   font-weight: 600;
   color: var(--author-adi);
@@ -1370,4 +1374,46 @@
   padding: 0 14px;
   border: 1px dashed var(--muted);
   color: var(--ink);
+}
+
+/* ── Share ────────────────────────────────────────────────────────────────── */
+
+.share {
+  padding: 18px 0 24px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.share__h {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.share__p {
+  margin: 8px 0 14px;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.share__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.share__confirm {
+  padding: 14px 16px;
+  border-left: 3px solid var(--clay);
+  background: color-mix(in oklab, var(--clay) 6%, var(--paper));
+}
+
+.share__confirm p {
+  margin-bottom: 10px;
+}
+
+.sheet-note--error {
+  color: var(--clay);
+  font-style: normal;
 }

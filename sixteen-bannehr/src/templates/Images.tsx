@@ -90,7 +90,7 @@ export function BeforeAfter() {
   const caption = (
     <div className="ba__captions">
       <Editable
-        as="h3"
+        as="h2"
         single
         className="ba__title"
         html={title}
