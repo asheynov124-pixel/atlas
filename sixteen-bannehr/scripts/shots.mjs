@@ -66,8 +66,10 @@ for (const vp of VIEWPORTS) {
     await page.waitForSelector(`[data-spread="${id}"]`);
     await page.evaluate(() => document.fonts.ready);
     if (flags.has('--edit')) {
-      const edit = page.getByRole('button', { name: 'Edit' });
+      const edit = page.getByRole('button', { name: 'Edit', exact: true });
       if (await edit.count()) await edit.first().click();
+      const who = page.getByRole('button', { name: 'Sonny', exact: true });
+      if (await who.count().catch(() => 0)) await who.first().click().catch(() => {});
     }
     await page.waitForTimeout(500);
     const suffix = flags.has('--night') ? '-night' : flags.has('--edit') ? '-edit' : '';

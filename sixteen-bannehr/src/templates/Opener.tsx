@@ -56,7 +56,7 @@ export function Opener() {
       label={image.label}
       alt={image.alt}
       decorative={image.decorative}
-      kenBurns={active}
+      kenBurns={active && !editing}
       eager={active}
       slip="tl"
     >

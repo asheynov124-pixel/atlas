@@ -14,11 +14,17 @@ import './styles/book.css';
 import './styles/templates.css';
 import './styles/pages.css';
 import './styles/turn.css';
+import './styles/edit.css';
 
 import { App } from './App';
+import { boot } from './store/persistence';
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+// Open the saved book (or the seed) before the first paint, so the book never flickers
+// from the seed to her edits.
+void boot().finally(() => {
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
+});

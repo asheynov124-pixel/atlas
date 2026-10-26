@@ -193,3 +193,38 @@ describe('gallery grid', async () => {
     expect(g.cols).toBeLessThanOrEqual(6);
   });
 });
+
+describe('bundled photos', async () => {
+  const { placeBundled } = await import('../storage/place-bundled');
+  const photos = (slug: string) =>
+    slug === 'kitchen'
+      ? ['a', 'b', 'c'].map((n) => ({ id: `bundled:kitchen/${n}`, chapter: 'kitchen', name: n, width: 3000, height: 2000, variants: [800, 1600, 2800] }))
+      : [];
+
+  it('fills a chapter’s empty image places in order, once', () => {
+    const book = createSeedBook();
+    const { book: placed, placed: n } = placeBundled(book, photos);
+    expect(n).toBe(3);
+    const kitchen = placed.chapters.find((c) => c.slug === 'kitchen')!;
+    const opener = kitchen.spreads[0].slots.image;
+    expect(opener.kind === 'image' && opener.assetId).toBe('bundled:kitchen/a');
+    // A photo Sonny removes is not placed again.
+    if (opener.kind === 'image') opener.assetId = null;
+    expect(placeBundled(placed, photos).placed).toBe(0);
+  });
+});
+
+describe('migration', async () => {
+  const { migrate } = await import('./migrate');
+  it('opens an older or partial book', () => {
+    const book = createSeedBook() as unknown as Record<string, unknown>;
+    delete book.placedBundled;
+    delete book.theme;
+    const m = migrate(book);
+    expect(m.placedBundled).toEqual([]);
+    expect(m.theme.day.paper).toBe('#F5F1EA');
+  });
+  it('refuses something that is not a book', () => {
+    expect(() => migrate({ hello: 1 })).toThrow();
+  });
+});

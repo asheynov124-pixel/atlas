@@ -15,6 +15,8 @@ import { useAsset, useDeveloping } from '../store/assets';
 import { isBlank, sanitizeHtml } from '../model/sanitize';
 import type { Focal, PageSide } from '../model/types';
 import { NotesLayer } from '../edit/NotesLayer';
+import { useEditTool, usePrefs } from '../store/prefs';
+import { addNote } from '../store/actions';
 
 // ── Pages ──────────────────────────────────────────────────────────────────────
 
@@ -38,6 +40,9 @@ interface PageProps {
 export function Page({ side, children, head, folio = true, bare, onImage, empty, className, style, body = true }: PageProps) {
   const { placed, layout } = useSpread();
   const book = useBook();
+  const editing = useEditing();
+  const tool = useEditTool((s) => s.tool);
+  const placingNote = editing && tool === 'note' && !empty;
   const number = side === 'verso' ? placed.verso : placed.recto;
   const front = placed.chapter.kind === 'front';
   const defaultHead = front ? false : side === 'verso' ? book.title : placed.chapter.title;
@@ -49,13 +54,32 @@ export function Page({ side, children, head, folio = true, bare, onImage, empty,
     bare && 'page--bare',
     onImage && 'page--on-image',
     empty && 'page--empty',
+    placingNote && 'page--placing',
     className,
   ]
     .filter(Boolean)
     .join(' ');
   const label = number !== null ? `Page ${number}` : side === 'recto' ? 'Cover' : 'Endpaper';
   return (
-    <section className={cls} style={style} aria-label={empty ? undefined : label} aria-hidden={empty || undefined} data-side={side}>
+    <section
+      className={cls}
+      style={style}
+      aria-label={empty ? undefined : label}
+      aria-hidden={empty || undefined}
+      data-side={side}
+      onClickCapture={
+        placingNote
+          ? (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const r = e.currentTarget.getBoundingClientRect();
+              const who = usePrefs.getState().who ?? 'adi';
+              const id = addNote(placed.spread.id, side, ((e.clientX - r.left) / r.width) * 100, ((e.clientY - r.top) / r.height) * 100, who);
+              useEditTool.setState({ tool: 'none', focusNote: id });
+            }
+          : undefined
+      }
+    >
       {body ? <div className="page__body">{children}</div> : children}
       {runningHead && (layout === 'spread' || side === 'verso' || !onImage) ? (
         <p className="rh" aria-hidden="true">
@@ -253,7 +277,7 @@ export function Picture({
           height={asset.height}
           style={{
             objectFit: framed ? 'contain' : fit,
-            objectPosition: `${focal.x}% ${focal.y}%`,
+            objectPosition: 'var(--fx) var(--fy)',
             ...(framed ? { maxWidth: asset.width, maxHeight: asset.height } : null),
           }}
         />

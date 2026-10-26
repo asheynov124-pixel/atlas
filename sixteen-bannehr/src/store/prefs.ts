@@ -47,3 +47,13 @@ export const useMode = create<{ editing: boolean; setEditing: (v: boolean) => vo
   editing: false,
   setEditing: (editing) => set({ editing }),
 }));
+
+/** The tool in hand in Edit mode: placing a note, or nothing. */
+export const useEditTool = create<{ tool: 'none' | 'note'; focusNote: string | null; set: (tool: 'none' | 'note') => void; setFocusNote: (id: string | null) => void }>()(
+  (set) => ({
+    tool: 'none',
+    focusNote: null,
+    set: (tool) => set({ tool }),
+    setFocusNote: (focusNote) => set({ focusNote }),
+  }),
+);

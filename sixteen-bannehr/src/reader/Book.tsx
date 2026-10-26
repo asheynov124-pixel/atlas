@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo } from 'react';
 import { useLayout } from '../store/book';
 import { useNav } from '../store/nav';
 import { useMode } from '../store/prefs';
@@ -6,6 +6,8 @@ import { useLayoutMode } from './useLayoutMode';
 import { SpreadStage } from './SpreadStage';
 import { PhoneScroll } from './PhoneScroll';
 import { ReaderBar } from './ReaderBar';
+
+const EditChrome = lazy(() => import('../edit/EditChrome'));
 
 export function Book() {
   const layout = useLayoutMode();
@@ -52,7 +54,13 @@ export function Book() {
       ) : (
         <PhoneScroll current={current} />
       )}
-      <ReaderBar current={current} total={placed.length} onTurn={turn} layout={layout} />
+      {editing ? (
+        <Suspense fallback={null}>
+          <EditChrome current={current} layout={layout} onTurn={turn} />
+        </Suspense>
+      ) : (
+        <ReaderBar current={current} total={placed.length} onTurn={turn} layout={layout} />
+      )}
     </div>
   );
 }
