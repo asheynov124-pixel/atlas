@@ -122,7 +122,21 @@ test.describe('the contact sheet', () => {
     const order = () => page.locator('.cs__thumb').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')));
     const before = await order();
     const essay = page.locator('.cs__thumb[aria-current="page"]');
-    const opener = page.locator('.cs__thumb').nth((before.findIndex((l) => l === before.find((x, i) => i === before.indexOf(before.find((y) => y?.startsWith('Essay, pp. 40')) ?? '') - 1))));
+    const opener = page.locator('.cs__thumb').nth(before.findIndex((l) => l?.startsWith('Essay, pp. 40')) - 1);
+    // The strip glides the current spread into view; measure only once it has stopped.
+    const strip = page.locator('.cs__strip');
+    let last = -1;
+    await expect
+      .poll(
+        async () => {
+          const now = await strip.evaluate((e) => e.scrollLeft);
+          const settled = now === last;
+          last = now;
+          return settled;
+        },
+        { intervals: [150] },
+      )
+      .toBe(true);
     const from = (await essay.boundingBox())!;
     const to = (await opener.boundingBox())!;
     await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);

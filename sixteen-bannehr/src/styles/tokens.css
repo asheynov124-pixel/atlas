@@ -47,7 +47,7 @@
   color-scheme: light;
 }
 
-:root[data-theme='night'] {
+:root[data-book-theme='night'] {
   --desk: color-mix(in oklab, var(--paper) 70%, black);
   --desk-deep: color-mix(in oklab, var(--paper) 50%, black);
   --cloth: color-mix(in oklab, var(--olive) 55%, black);

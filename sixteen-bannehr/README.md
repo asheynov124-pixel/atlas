@@ -33,6 +33,7 @@ Open `http://localhost:5173/#/specimen` for the type specimen (every face, size 
 | `npm run shots` | Screenshots of the key pages at 390 px and 1440 px into `screenshots/`. |
 | `npm run import-photos` | Turns your photos into web copies and places them in the book (below). |
 | `npm run icons` | Redraws the home-screen icons from the book's own type. |
+| `npm run build:artifact` | Builds the version that opens as a claude.ai artifact, into `dist-artifact/` (below). |
 
 The first `npm run e2e` needs Playwright's browser once: `npx playwright install chromium`.
 
@@ -107,6 +108,18 @@ Create a Netlify site from this repository and set **Base directory** to
 
 Open the URL in Safari, tap **Share → Add to Home Screen**. It opens full screen, like an
 app, and works offline after the first visit.
+
+### Or open it as a claude.ai artifact
+
+`npm run build:artifact` builds a copy for claude.ai's artifact viewer:
+`dist-artifact/sixteen-bannehr.html` plus the `assets/` folder beside it, published
+together. The viewer frames the page and refuses some things, so this copy differs from
+the deployed site:
+
+- No offline mode and no Add to Home Screen; no Print and no Send (the viewer blocks both).
+- **Save as .zip** goes through the viewer's own "save this file?" prompt.
+- The book is kept in that browser's storage, per person and per device, exactly as on
+  the site. It opens where you left off.
 
 ## Sharing between the two phones
 

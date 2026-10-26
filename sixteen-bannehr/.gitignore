@@ -11,3 +11,4 @@ content/photos/**/*
 !content/photos/**/
 !content/photos/README.md
 !content/photos/**/.gitkeep
+dist-artifact

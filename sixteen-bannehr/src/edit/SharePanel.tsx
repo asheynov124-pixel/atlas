@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Sheet } from './Panels';
 import { getBook, replaceBook } from '../store/book';
 import { useAssets } from '../store/assets';
@@ -8,8 +8,9 @@ import { repository } from '../storage/dexie';
 import { exportZip, importZip, zipName } from '../storage/zip';
 import { printBook } from '../reader/Print';
 import { useMode } from '../store/prefs';
+import { IN_ARTIFACT, artifactDownloads } from '../platform';
 
-function download(blob: Blob, name: string) {
+function downloadLink(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -18,6 +19,25 @@ function download(blob: Blob, name: string) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 30_000);
+}
+
+/** Hand the file over: the viewer's save prompt inside claude.ai, a plain download elsewhere. */
+async function download(blob: Blob, name: string): Promise<boolean> {
+  if (!IN_ARTIFACT) {
+    downloadLink(blob, name);
+    return true;
+  }
+  const saver = await artifactDownloads();
+  if (!saver) throw new Error('This view cannot save files. Open the book in claude.ai to save it.');
+  try {
+    await saver.save({ filename: name, data: blob });
+    return true;
+  } catch (e) {
+    const code = (e as { code?: string })?.code;
+    if (code === 'declined') return false;
+    if (code === 'rate_limited') throw new Error('A save is already waiting for an answer. Try again in a moment.');
+    throw new Error((e as { message?: string })?.message || 'The book could not be saved.');
+  }
 }
 
 /** Share the book between our two phones: one .zip out, one .zip in. And print. */
@@ -29,6 +49,11 @@ export default function SharePanel({ onClose }: { onClose: () => void }) {
   const input = useRef<HTMLInputElement>(null);
   const go = useNav((s) => s.go);
   const setEditing = useMode((s) => s.setEditing);
+  // Inside the viewer, saving needs its `downloads` prompt; hide the button where it is missing.
+  const [canSave, setCanSave] = useState(!IN_ARTIFACT);
+  useEffect(() => {
+    if (IN_ARTIFACT) void artifactDownloads().then((d) => setCanSave(!!d));
+  }, []);
 
   const make = async () => {
     await flushSave();
@@ -45,14 +70,14 @@ export default function SharePanel({ onClose }: { onClose: () => void }) {
     setError(null);
     try {
       const { blob, name } = await make();
-      download(blob, name);
-      setMessage(`Saved ${name} (${(blob.size / 1_048_576).toFixed(1)} MB).`);
+      const saved = await download(blob, name);
+      setMessage(saved ? `Saved ${name} (${(blob.size / 1_048_576).toFixed(1)} MB).` : 'Not saved.');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'The book could not be exported.');
     }
   };
 
-  const canShareFiles = typeof navigator !== 'undefined' && 'canShare' in navigator;
+  const canShareFiles = !IN_ARTIFACT && typeof navigator !== 'undefined' && 'canShare' in navigator;
   const onSend = async () => {
     setError(null);
     try {
@@ -62,7 +87,7 @@ export default function SharePanel({ onClose }: { onClose: () => void }) {
         await navigator.share({ files: [file], title: getBook().title, text: 'The latest edition of the book.' });
         setMessage('Sent.');
       } else {
-        download(blob, name);
+        await download(blob, name);
         setMessage(`This browser cannot send files directly, so ${name} was saved instead.`);
       }
     } catch (e) {
@@ -95,14 +120,17 @@ export default function SharePanel({ onClose }: { onClose: () => void }) {
         <h3 className="share__h">Send it</h3>
         <p className="share__p">The whole book in one .zip: every word, every photo, every edition. Open it on the other phone and it is the same book.</p>
         <div className="share__row">
+          {!canShareFiles && !canSave ? <p className="share__p">Saving a .zip is not available in this view.</p> : null}
           {canShareFiles ? (
             <button type="button" className="btn btn--primary" onClick={() => void onSend()} disabled={!!busy}>
               Send the book…
             </button>
           ) : null}
-          <button type="button" className={canShareFiles ? 'btn' : 'btn btn--primary'} onClick={() => void onExport()} disabled={!!busy}>
-            Save as .zip
-          </button>
+          {canSave ? (
+            <button type="button" className={canShareFiles ? 'btn' : 'btn btn--primary'} onClick={() => void onExport()} disabled={!!busy}>
+              Save as .zip
+            </button>
+          ) : null}
         </div>
       </section>
 
@@ -141,21 +169,23 @@ export default function SharePanel({ onClose }: { onClose: () => void }) {
         )}
       </section>
 
-      <section className="share">
-        <h3 className="share__h">Print it</h3>
-        <p className="share__p">Each spread becomes one landscape page, 11 × 8.5 in. Choose “Save as PDF” in the print dialog for a book you can send to a printer.</p>
-        <button
-          type="button"
-          className="btn"
-          onClick={() => {
-            setEditing(false);
-            onClose();
-            setTimeout(() => void printBook(), 60);
-          }}
-        >
-          Print or save as PDF…
-        </button>
-      </section>
+      {IN_ARTIFACT ? null : (
+        <section className="share">
+          <h3 className="share__h">Print it</h3>
+          <p className="share__p">Each spread becomes one landscape page, 11 × 8.5 in. Choose “Save as PDF” in the print dialog for a book you can send to a printer.</p>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              setEditing(false);
+              onClose();
+              setTimeout(() => void printBook(), 60);
+            }}
+          >
+            Print or save as PDF…
+          </button>
+        </section>
+      )}
 
       {busy ? (
         <p className="sheet-note" role="status">

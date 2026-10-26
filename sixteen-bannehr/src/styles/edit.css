@@ -163,7 +163,7 @@
   flex-direction: column;
 }
 
-:root[data-theme='night'] .cs {
+:root[data-book-theme='night'] .cs {
   background: color-mix(in oklab, var(--paper) 70%, black);
   color: var(--ink);
 }
@@ -691,9 +691,9 @@
   color: var(--ink);
 }
 
-:root[data-theme='night'] .field input,
-:root[data-theme='night'] .img-details input:not([type='checkbox']),
-:root[data-theme='night'] .img-details textarea {
+:root[data-book-theme='night'] .field input,
+:root[data-book-theme='night'] .img-details input:not([type='checkbox']),
+:root[data-book-theme='night'] .img-details textarea {
   background: color-mix(in oklab, var(--paper) 80%, white);
 }
 

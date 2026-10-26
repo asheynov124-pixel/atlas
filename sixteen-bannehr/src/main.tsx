@@ -22,7 +22,8 @@ import { App } from './App';
 import { boot } from './store/persistence';
 
 // Offline and home screen: the service worker precaches the book's shell and type.
-if (import.meta.env.PROD) {
+// (Not in the claude.ai artifact build: the viewer refuses service workers.)
+if (import.meta.env.PROD && import.meta.env.MODE !== 'artifact') {
   void import('virtual:pwa-register').then(({ registerSW }) => registerSW({ immediate: true }));
 }
 

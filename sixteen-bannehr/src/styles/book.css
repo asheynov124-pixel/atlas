@@ -152,7 +152,7 @@
   display: none;
 }
 
-:root[data-theme='night'] .page::after {
+:root[data-book-theme='night'] .page::after {
   opacity: 0.5;
 }
 

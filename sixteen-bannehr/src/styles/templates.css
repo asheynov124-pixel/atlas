@@ -118,11 +118,11 @@
 }
 
 /* At night a placeholder should glow no brighter than the page around it. */
-:root[data-theme='night'] .ph {
+:root[data-book-theme='night'] .ph {
   filter: brightness(0.62) saturate(0.85);
 }
 
-:root[data-theme='night'] .pic__img {
+:root[data-book-theme='night'] .pic__img {
   filter: brightness(0.94);
 }
 

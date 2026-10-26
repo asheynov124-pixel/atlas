@@ -5,13 +5,27 @@ import type { ThemeColors } from '../model/types';
 
 const dark = typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
+// A host page (the claude.ai viewer) may set data-theme="dark" | "light" on the root to
+// pass on the reader's own choice; that wins over the operating system's setting.
+function hostDark(): boolean {
+  const host = typeof document !== 'undefined' ? document.documentElement.dataset.theme : undefined;
+  if (host === 'dark') return true;
+  if (host === 'light') return false;
+  return !!dark?.matches;
+}
+
 function useSystemDark(): boolean {
   return useSyncExternalStore(
     (cb) => {
       dark?.addEventListener('change', cb);
-      return () => dark?.removeEventListener('change', cb);
+      const watch = new MutationObserver(cb);
+      watch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+      return () => {
+        dark?.removeEventListener('change', cb);
+        watch.disconnect();
+      };
     },
-    () => !!dark?.matches,
+    hostDark,
   );
 }
 
@@ -28,7 +42,7 @@ export function useApplyTheme() {
   useEffect(() => {
     const colors: ThemeColors = night ? theme.night : theme.day;
     const root = document.documentElement;
-    root.dataset.theme = night ? 'night' : 'day';
+    root.dataset.bookTheme = night ? 'night' : 'day';
     for (const [k, v] of Object.entries(colors)) root.style.setProperty(`--${k}`, v);
     const meta = document.querySelector('meta[name="theme-color"]');
     meta?.setAttribute('content', night ? colors.paper : theme.day.sage);

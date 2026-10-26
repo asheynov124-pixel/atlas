@@ -16,7 +16,8 @@
     <style>
       /* Before the app paints: paper, not white. */
       html { background: #e6dfd3; }
-      @media (prefers-color-scheme: dark) { html { background: #0d0c0a; } }
+      @media (prefers-color-scheme: dark) { html:not([data-theme='light']) { background: #0d0c0a; } }
+      html[data-theme='dark'] { background: #0d0c0a; }
     </style>
   </head>
   <body>
