@@ -6,6 +6,8 @@ import { useLayoutMode } from './useLayoutMode';
 import { SpreadStage } from './SpreadStage';
 import { PhoneScroll } from './PhoneScroll';
 import { ReaderBar } from './ReaderBar';
+import { WhoPrompt } from './WhoPrompt';
+import { CompareDrawer } from '../features/Compare';
 
 const EditChrome = lazy(() => import('../edit/EditChrome'));
 
@@ -61,6 +63,8 @@ export function Book() {
       ) : (
         <ReaderBar current={current} total={placed.length} onTurn={turn} layout={layout} />
       )}
+      <CompareDrawer />
+      <WhoPrompt />
     </div>
   );
 }

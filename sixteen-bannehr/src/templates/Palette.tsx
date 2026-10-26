@@ -45,7 +45,9 @@ export function MaterialCard({ item }: { item: Item }) {
   return (
     <article className="mat" data-item={item.id}>
       <div className="mat__img">
-        <Picture assetId={item.assetId} focal={item.focal} label={item.label} alt={item.name} slip="none" />
+        <Picture assetId={item.assetId} focal={item.focal} label={item.label} alt={item.name} slip="none">
+          {editing ? <MaterialTools.Image item={item} /> : null}
+        </Picture>
       </div>
       <div className="mat__text">
         {editing ? (
@@ -77,7 +79,7 @@ export function SwatchChip({ swatch, spreadId }: { swatch: Swatch; spreadId: str
   const editing = useEditing();
   return (
     <li className="swatch" style={{ '--chip': swatch.hex } as CSSProperties}>
-      <span className="swatch__chip" aria-hidden="true" />
+      {editing ? null : <span className="swatch__chip" aria-hidden="true" />}
       {editing ? (
         <SwatchTools spreadId={spreadId} swatch={swatch} />
       ) : (

@@ -15,6 +15,7 @@ import './styles/templates.css';
 import './styles/pages.css';
 import './styles/turn.css';
 import './styles/edit.css';
+import './styles/features.css';
 
 import { App } from './App';
 import { boot } from './store/persistence';

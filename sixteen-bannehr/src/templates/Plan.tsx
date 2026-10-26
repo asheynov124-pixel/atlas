@@ -80,7 +80,7 @@ export function Plan() {
         className={['plan__plate', editing && 'plan__plate--editing'].filter(Boolean).join(' ')}
         style={{ '--ar': ar } as CSSProperties}
         onClick={(e) => {
-          if (!editing || (e.target as HTMLElement).closest('.pin, .pin-card, .image-tools')) return;
+          if (!editing || (e.target as HTMLElement).closest('.pin, .pin-card, .image-tools button, .image-tools form, .focal')) return;
           const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
           const id = actions.add(((e.clientX - r.left) / r.width) * 100, ((e.clientY - r.top) / r.height) * 100);
           setOpen(id);

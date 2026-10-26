@@ -356,3 +356,121 @@ export function removeItemFromSlot(spreadId: string, key: string, itemId: string
 function clamp(n: number, lo: number, hi: number) {
   return Math.min(hi, Math.max(lo, n));
 }
+
+// ── Mood boards ─────────────────────────────────────────────────────────────
+
+function boardOf(b: Draft<Book>, spreadId: string) {
+  const s = findSpread(b, spreadId)?.spread.slots.board;
+  return s && s.kind === 'board' ? s : null;
+}
+
+export function addBoardEl(spreadId: string, el: Omit<BoardEl, 'id' | 'z'>): string {
+  const id = uid('el');
+  mutate((b) => {
+    const board = boardOf(b, spreadId);
+    if (!board) return;
+    const z = Math.max(0, ...board.elements.map((e) => e.z)) + 1;
+    board.elements.push({ ...el, id, z });
+  });
+  return id;
+}
+
+export function updateBoardEl(spreadId: string, elId: string, patch: Partial<BoardEl>): void {
+  mutate((b) => {
+    const el = boardOf(b, spreadId)?.elements.find((e) => e.id === elId);
+    if (el) Object.assign(el, patch);
+  });
+}
+
+export function deleteBoardEl(spreadId: string, elId: string): void {
+  mutate((b) => {
+    const board = boardOf(b, spreadId);
+    if (board) board.elements = board.elements.filter((e) => e.id !== elId);
+  });
+}
+
+/** Bring forward (+1) or send back (-1) one layer. */
+export function restackBoardEl(spreadId: string, elId: string, delta: 1 | -1): void {
+  mutate((b) => {
+    const board = boardOf(b, spreadId);
+    if (!board) return;
+    const sorted = [...board.elements].sort((x, y) => x.z - y.z);
+    const i = sorted.findIndex((e) => e.id === elId);
+    const j = i + delta;
+    if (i < 0 || j < 0 || j >= sorted.length) return;
+    [sorted[i], sorted[j]] = [sorted[j], sorted[i]];
+    sorted.forEach((e, k) => (e.z = k + 1));
+  });
+}
+
+// ── Pins ────────────────────────────────────────────────────────────────────
+
+function pinsOf(b: Draft<Book>, spreadId: string) {
+  const s = findSpread(b, spreadId)?.spread.slots.plan;
+  return s && s.kind === 'pins' ? s : null;
+}
+
+export function addPin(spreadId: string, x: number, y: number): string {
+  const id = uid('pin');
+  mutate((b) => {
+    pinsOf(b, spreadId)?.pins.push({ id, x: clamp(x, 2, 98), y: clamp(y, 2, 98), title: '', text: '', url: '', itemId: null });
+  });
+  return id;
+}
+
+export function updatePin(spreadId: string, pinId: string, patch: Partial<Omit<import('../model/types').Pin, 'id'>>): void {
+  mutate((b) => {
+    const p = pinsOf(b, spreadId)?.pins.find((x) => x.id === pinId);
+    if (p) Object.assign(p, patch);
+  });
+}
+
+export function deletePin(spreadId: string, pinId: string): void {
+  mutate((b) => {
+    const s = pinsOf(b, spreadId);
+    if (s) s.pins = s.pins.filter((p) => p.id !== pinId);
+  });
+}
+
+// ── Swatches ────────────────────────────────────────────────────────────────
+
+function swatchesOf(b: Draft<Book>, spreadId: string) {
+  const s = findSpread(b, spreadId)?.spread.slots.swatches;
+  return s && s.kind === 'swatches' ? s : null;
+}
+
+export function addSwatch(spreadId: string): void {
+  mutate((b) => {
+    swatchesOf(b, spreadId)?.swatches.push({ id: uid('sw'), name: 'New colour', hex: '#B08B5E', note: '' });
+  });
+}
+
+export function updateSwatch(spreadId: string, swatchId: string, patch: Partial<{ name: string; hex: string; note: string }>): void {
+  mutate((b) => {
+    const s = swatchesOf(b, spreadId)?.swatches.find((x) => x.id === swatchId);
+    if (s) Object.assign(s, patch);
+  });
+}
+
+export function deleteSwatch(spreadId: string, swatchId: string): void {
+  mutate((b) => {
+    const s = swatchesOf(b, spreadId);
+    if (s) s.swatches = s.swatches.filter((x) => x.id !== swatchId);
+  });
+}
+
+// ── Decisions ───────────────────────────────────────────────────────────────
+
+export function setMeta(spreadId: string, key: string, value: string): void {
+  mutate((b) => {
+    const s = findSpread(b, spreadId)?.spread.slots.meta;
+    if (s && s.kind === 'meta') s.values[key] = value;
+  });
+}
+
+export function toggleFavorite(itemId: string, who: Author): void {
+  mutate((b) => {
+    const it = b.items[itemId];
+    if (it) it.favorites[who] = !it.favorites[who];
+  });
+}

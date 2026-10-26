@@ -11,6 +11,8 @@ interface Props {
   target?: ImageRef;
   /** Hide the toolbar (tiny slots); dropping and tapping still work. */
   compact?: boolean;
+  /** Keep the image itself free for other clicks (plans take pins); tools sit in a corner. */
+  corner?: boolean;
 }
 
 /** Where the extra photos of a multi-file drop go: the next empty places after this one. */
@@ -43,7 +45,7 @@ function followingEmpty(ref: ImageRef): ImageRef[] {
   return refs.slice(start + 1).filter((r) => readImage(book, r)?.assetId === null);
 }
 
-export function ImageTools({ spreadId, slotKey, target, compact }: Props) {
+export function ImageTools({ spreadId, slotKey, target, compact, corner }: Props) {
   const ref: ImageRef = target ?? { kind: 'slot', spreadId: spreadId!, key: slotKey! };
   const book = useBook();
   const fields = readImage(book, ref);
@@ -106,12 +108,11 @@ export function ImageTools({ spreadId, slotKey, target, compact }: Props) {
   return (
     <div
       ref={root}
-      className={['image-tools', over && 'is-over', !hasPhoto && 'is-empty', compact && 'is-compact', mode !== 'idle' && `is-${mode}`].filter(Boolean).join(' ')}
+      className={['image-tools', over && 'is-over', !hasPhoto && 'is-empty', compact && 'is-compact', corner && 'is-corner', mode !== 'idle' && `is-${mode}`].filter(Boolean).join(' ')}
       onDragOver={onDragOver}
       onDragEnter={onDragOver}
       onDragLeave={() => setOver(false)}
       onDrop={onDrop}
-      onClick={(e) => e.stopPropagation()}
     >
       <input
         ref={input}
@@ -125,7 +126,13 @@ export function ImageTools({ spreadId, slotKey, target, compact }: Props) {
         }}
       />
 
-      {!hasPhoto ? (
+      {!hasPhoto && corner ? (
+        <button type="button" className="image-tools__corner" onClick={() => input.current?.click()} disabled={busy}>
+          {busy ? 'Developing…' : '+ Add the drawing'}
+        </button>
+      ) : null}
+
+      {!hasPhoto && !corner ? (
         <button type="button" className="image-tools__empty" onClick={() => input.current?.click()} disabled={busy}>
           <span className="sc">{busy ? 'Developing…' : compact ? '+ Photo' : 'Drop a photo, or tap to choose'}</span>
         </button>

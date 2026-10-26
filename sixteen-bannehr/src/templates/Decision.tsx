@@ -3,6 +3,8 @@ import { useSpread, useEditing } from '../reader/context';
 import { setSlotText, useBook } from '../store/book';
 import { useItems, priceLabel } from './items';
 import { DecisionTools } from '../features/DecisionTools';
+import { ImageTools } from '../edit/ImageTools';
+import { ItemExtras } from '../features/ItemExtras';
 import { DECISION_STATUSES, type DecisionStatus, type MetaSlot, type TextSlot } from '../model/types';
 
 export function statusLabel(s: string): string {
@@ -55,7 +57,9 @@ export function Decision() {
         {options.map((it, i) => (
           <li key={it.id} className={['thumb', chosen?.id === it.id && 'is-chosen'].filter(Boolean).join(' ')}>
             <div className="thumb__img">
-              <Picture assetId={it.assetId} focal={it.focal} label="" alt={it.name} slip="none" />
+              <Picture assetId={it.assetId} focal={it.focal} label="" alt={it.name} slip="none">
+                {editing ? <ImageTools target={{ kind: 'item', itemId: it.id }} compact /> : null}
+              </Picture>
             </div>
             <span className="thumb__name">
               <span className="thumb__no">{String(i + 1).padStart(2, '0')}</span> {it.name}
@@ -64,6 +68,7 @@ export function Decision() {
           </li>
         ))}
       </ul>
+      {editing ? <ItemExtras.Add spreadId={spread.id} label="+ Add an option" /> : null}
     </section>
   );
 

@@ -5,7 +5,8 @@ import { useEditTool, useMode, usePrefs } from '../store/prefs';
 import { useSaveStatus } from '../store/persistence';
 import { ContactSheet } from './ContactSheet';
 import { EditionsPanel, ThemePanel } from './Panels';
-import { AUTHORS, type Author } from '../model/types';
+import { AUTHORS } from '../model/types';
+import { requireWho } from '../reader/WhoPrompt';
 import type { Placed } from '../model/pages';
 import type { LayoutMode } from '../reader/context';
 
@@ -26,25 +27,6 @@ function SaveStatus() {
   );
 }
 
-function WhoDialog({ onPick }: { onPick: (a: Author) => void }) {
-  return (
-    <div className="who" role="dialog" aria-modal="true" aria-labelledby="who-title">
-      <div className="who__card">
-        <p className="sc who__kicker">Before you edit</p>
-        <h2 id="who-title" className="who__title">Who is holding the pen?</h2>
-        <p className="who__text">Notes and favourites are signed. This device will remember.</p>
-        <div className="who__choices">
-          {(Object.keys(AUTHORS) as Author[]).map((a) => (
-            <button key={a} type="button" className="who__choice" data-author={a} onClick={() => onPick(a)} autoFocus={a === 'sonny'}>
-              {AUTHORS[a].name}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /** Everything Edit mode adds around the book: the top bar, the contact sheet, the panels. */
 export default function EditChrome({ current, layout, onTurn }: { current: Placed; layout: LayoutMode; onTurn: (d: 1 | -1) => void }) {
   const who = usePrefs((s) => s.who);
@@ -58,6 +40,10 @@ export default function EditChrome({ current, layout, onTurn }: { current: Place
   const canRedo = useStore(useBookStore.temporal, (s) => s.futureStates.length > 0);
   const [panel, setPanel] = useState<null | 'editions' | 'theme' | 'share'>(null);
   const [menu, setMenu] = useState(false);
+
+  useEffect(() => {
+    if (!usePrefs.getState().who) void requireWho();
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -166,7 +152,6 @@ export default function EditChrome({ current, layout, onTurn }: { current: Place
           <SharePanel onClose={() => setPanel(null)} />
         </Suspense>
       ) : null}
-      {!who ? <WhoDialog onPick={setWho} /> : null}
     </>
   );
 }

@@ -2,7 +2,10 @@ import type { CSSProperties, ReactNode } from 'react';
 import { Editable, Page, Picture } from './kit';
 import { useSpread, useEditing } from '../reader/context';
 import { setSlotText } from '../store/book';
-import { useItems, priceLabel } from './items';
+import { useItems, priceLabel, parsePrice, safeHref, hostOf } from './items';
+import { InlineText } from '../edit/InlineText';
+import { ImageTools } from '../edit/ImageTools';
+import { updateItem } from '../store/actions';
 import { numberWord } from '../model/pages';
 import { ItemExtras } from '../features/ItemExtras';
 import type { Item, TextSlot } from '../model/types';
@@ -37,29 +40,68 @@ export function countWords(n: number): string {
   return n <= 20 ? numberWord(n).toLowerCase() : String(n);
 }
 
-export function ItemCard({ item, index, compact }: { item: Item; index: number; compact?: boolean }) {
+export function ItemCard({ item, index, compact, spreadId }: { item: Item; index: number; compact?: boolean; spreadId?: string }) {
+  const editing = useEditing();
   const price = priceLabel(item);
   const meta = [item.brand, price].filter(Boolean).join(' · ');
+  const href = safeHref(item.url);
+  const edit = (recipe: (it: Item) => void) => updateItem(item.id, recipe);
   return (
     <article className={['card', compact && 'card--compact'].filter(Boolean).join(' ')} data-item={item.id}>
       <div className="card__img">
-        <Picture assetId={item.assetId} focal={item.focal} label={item.label} alt={item.name} slip={compact ? 'none' : 'bl'} />
+        <Picture assetId={item.assetId} focal={item.focal} label={item.label} alt={item.name} slip={compact ? 'none' : 'bl'}>
+          {editing ? <ImageTools target={{ kind: 'item', itemId: item.id }} compact={compact} /> : null}
+        </Picture>
         <span className="card__no" aria-hidden="true">
           {String(index + 1).padStart(2, '0')}
         </span>
       </div>
-      <h4 className="card__name">{item.name}</h4>
-      {meta ? <p className="card__meta">{meta}</p> : null}
-      <ItemExtras item={item} />
+      {editing ? (
+        <div className="card__fields">
+          <InlineText as="h4" className="card__name" value={item.name} onCommit={(v) => edit((it) => void (it.name = v || 'Untitled'))} placeholder="Name" />
+          <InlineText className="card__meta" value={item.brand} onCommit={(v) => edit((it) => void (it.brand = v))} placeholder="Maker" />
+          <InlineText
+            className="card__meta"
+            value={item.price === null ? '' : String(item.price)}
+            onCommit={(v) => edit((it) => void (it.price = parsePrice(v)))}
+            placeholder="Price"
+            raw
+            inputMode="decimal"
+          />
+          {!compact ? (
+            <>
+              <InlineText className="card__meta card__url" value={item.url} onCommit={(v) => edit((it) => void (it.url = v))} placeholder="Link" raw inputMode="url" />
+              <InlineText
+                className="card__meta"
+                value={item.tags.join(', ')}
+                onCommit={(v) => edit((it) => void (it.tags = v.split(',').map((t) => t.trim()).filter(Boolean)))}
+                placeholder="Tags, with commas"
+              />
+            </>
+          ) : null}
+        </div>
+      ) : (
+        <>
+          <h4 className="card__name">{item.name}</h4>
+          {meta ? <p className="card__meta">{meta}</p> : null}
+          {!compact && href ? (
+            <a className="card__meta card__link" href={href} target="_blank" rel="noopener noreferrer">
+              {hostOf(href)} ↗
+            </a>
+          ) : null}
+          {!compact && item.tags.length ? <p className="card__tags">{item.tags.join(' · ')}</p> : null}
+        </>
+      )}
+      <ItemExtras item={item} spreadId={spreadId} compact={compact} />
     </article>
   );
 }
 
-function Grid({ items, offset, cols, align, compact }: { items: Item[]; offset: number; cols: number; align: 'start' | 'end'; compact: boolean }) {
+function Grid({ items, offset, cols, align, compact, spreadId }: { items: Item[]; offset: number; cols: number; align: 'start' | 'end'; compact: boolean; spreadId: string }) {
   return (
     <div className="gallery__grid" style={{ '--cols': cols, alignContent: align } as CSSProperties}>
       {items.map((item, i) => (
-        <ItemCard key={item.id} item={item} index={offset + i} compact={compact} />
+        <ItemCard key={item.id} item={item} index={offset + i} compact={compact} spreadId={spreadId} />
       ))}
     </div>
   );
@@ -91,12 +133,12 @@ export function Gallery() {
       <>
         <Page side="verso">
           {header}
-          <Grid items={first} offset={0} cols={2} align="start" compact={false} />
+          <Grid items={first} offset={0} cols={2} align="start" compact={false} spreadId={spread.id} />
           {editing ? <ItemExtras.Add spreadId={spread.id} /> : null}
         </Page>
         {rest.map((chunk, i) => (
           <Page key={i} side="recto">
-            <Grid items={chunk} offset={4 + i * 6} cols={2} align="start" compact={false} />
+            <Grid items={chunk} offset={4 + i * 6} cols={2} align="start" compact={false} spreadId={spread.id} />
           </Page>
         ))}
       </>
@@ -110,12 +152,12 @@ export function Gallery() {
       <Page side="verso">
         <div className="gallery__page" style={{ '--head': `${(g.header / AREA_H) * 100}%` } as CSSProperties}>
           {header}
-          <Grid items={items.slice(0, g.verso)} offset={0} cols={g.cols} align="end" compact={compact} />
+          <Grid items={items.slice(0, g.verso)} offset={0} cols={g.cols} align="end" compact={compact} spreadId={spread.id} />
         </div>
       </Page>
       <Page side="recto">
         <div className="gallery__page gallery__page--recto">
-          <Grid items={items.slice(g.verso)} offset={g.verso} cols={g.cols} align="end" compact={compact} />
+          <Grid items={items.slice(g.verso)} offset={g.verso} cols={g.cols} align="end" compact={compact} spreadId={spread.id} />
           {editing ? <ItemExtras.Add spreadId={spread.id} /> : null}
         </div>
       </Page>
