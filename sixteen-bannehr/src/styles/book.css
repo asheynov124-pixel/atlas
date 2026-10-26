@@ -1,0 +1,446 @@
+/* ─── The book: stage, spread, page ──────────────────────────────────────────── */
+
+.book {
+  position: relative;
+  min-height: 100%;
+}
+
+/* The desk the book lies on: a soft pool of light, darker at the edges. */
+.book::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 42%, transparent 40%, color-mix(in oklab, var(--desk-deep) 60%, transparent) 100%),
+    var(--desk);
+  z-index: -1;
+}
+
+/* ── Spread layout (desktop, iPad landscape) ────────────────────────────────── */
+
+.book[data-layout='spread'] .stage {
+  position: fixed;
+  inset: 0 0 var(--bar-h) 0;
+  container-type: size;
+  display: grid;
+  place-items: center;
+}
+
+.sheet {
+  position: relative;
+  width: min(100cqw - 72px, (100cqh - 48px) * 1.5);
+  aspect-ratio: 3 / 2;
+  transition: transform 650ms var(--ease-calm);
+}
+
+/* The closed book: only the cover (a recto) shows, slid to the middle of the desk. */
+.sheet[data-closed] {
+  transform: translateX(-25%);
+}
+
+.spread {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  isolation: isolate;
+}
+
+.book[data-layout='spread'] .spread--open {
+  box-shadow:
+    0 1px 1px rgb(var(--shade) / 0.06),
+    0 22px 44px -22px rgb(var(--shade) / 0.5),
+    0 48px 90px -50px rgb(var(--shade) / 0.45);
+}
+
+/* Page-block edges: the thickness of the pages under this spread. */
+.book[data-layout='spread'] .spread--open::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  box-shadow:
+    -1px 1px 0 0 color-mix(in oklab, var(--paper) 92%, var(--ink)),
+    -2px 2px 0 0 var(--paper),
+    -3px 3px 0 0 color-mix(in oklab, var(--paper) 88%, var(--ink)),
+    -4px 4px 0 0 var(--paper),
+    -5px 5px 0 0 color-mix(in oklab, var(--paper) 84%, var(--ink)),
+    1px 1px 0 0 color-mix(in oklab, var(--paper) 92%, var(--ink)),
+    2px 2px 0 0 var(--paper),
+    3px 3px 0 0 color-mix(in oklab, var(--paper) 88%, var(--ink)),
+    4px 4px 0 0 var(--paper),
+    5px 5px 0 0 color-mix(in oklab, var(--paper) 84%, var(--ink));
+}
+
+/* The gutter: pages curve into the spine. Drawn over images too, as print is. */
+.book[data-layout='spread'] .spread--open::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 44%;
+  width: 12%;
+  z-index: 20;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgb(var(--shade) / 0.035) 28%,
+    rgb(var(--shade) / 0.11) 44%,
+    rgb(var(--shade) / 0.2) 49.6%,
+    rgb(255 255 255 / 0.05) 50%,
+    rgb(var(--shade) / 0.12) 51%,
+    rgb(var(--shade) / 0.04) 70%,
+    transparent 100%
+  );
+}
+
+/* A full-bleed layer under both pages (openers, full-bleed images). */
+.spread__span {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* ── Page ──────────────────────────────────────────────────────────────────── */
+
+.page {
+  position: relative;
+  overflow: hidden;
+  background: var(--paper);
+  container-type: inline-size;
+  container-name: page;
+  z-index: 1;
+
+  --fs-body: clamp(15px, 2.95cqi, 19px);
+  --fs-lead: clamp(17px, 3.55cqi, 23px);
+  --fs-caption: clamp(11.5px, 2.05cqi, 14px);
+  --fs-label: clamp(9px, 1.55cqi, 11.5px);
+  --fs-folio: clamp(11px, 1.95cqi, 13.5px);
+  --fs-h3: clamp(18px, 3.6cqi, 24px);
+  --fs-h2: clamp(22px, 5.2cqi, 36px);
+  --fs-h1: clamp(30px, 8.6cqi, 62px);
+  --fs-display: clamp(40px, 13cqi, 96px);
+  --fs-numeral: 36cqi;
+
+  --m-outer: 9cqi;
+  --m-inner: 7cqi;
+  --m-top: 10cqi;
+  --m-bottom: 11.5cqi;
+  --gap: 2.4cqi;
+  --rule: 1px solid var(--hairline);
+}
+
+.page--bare {
+  background: transparent;
+}
+
+/* Grain, multiplied in at under 3 %. */
+.page::after,
+.cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--grain);
+  background-size: 240px;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: 15;
+}
+
+.page--empty::after {
+  display: none;
+}
+
+:root[data-theme='night'] .page::after {
+  mix-blend-mode: screen;
+  opacity: 0.02;
+}
+
+/* The page's type area, inside its margins. */
+.page__body {
+  position: absolute;
+  top: var(--m-top);
+  bottom: var(--m-bottom);
+}
+
+.page--verso .page__body {
+  left: var(--m-outer);
+  right: var(--m-inner);
+}
+
+.page--recto .page__body {
+  left: var(--m-inner);
+  right: var(--m-outer);
+}
+
+.grid12 {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--gap);
+}
+
+/* Running heads and folios */
+
+.rh,
+.folio {
+  position: absolute;
+  z-index: 12;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.rh {
+  top: calc(var(--m-top) * 0.42);
+  font-family: var(--font-label);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  letter-spacing: var(--track-label-wide);
+  text-transform: uppercase;
+  font-feature-settings: 'case' 1;
+}
+
+.folio {
+  bottom: calc(var(--m-bottom) * 0.38);
+  font-family: var(--font-text);
+  font-size: var(--fs-folio);
+  font-variant-numeric: oldstyle-nums;
+  letter-spacing: 0.02em;
+}
+
+.page--verso .rh,
+.page--verso .folio {
+  left: var(--m-outer);
+}
+
+.page--recto .rh,
+.page--recto .folio {
+  right: var(--m-outer);
+}
+
+.page--on-image .rh,
+.page--on-image .folio {
+  color: color-mix(in oklab, white 88%, transparent);
+  text-shadow: 0 1px 8px rgb(0 0 0 / 0.35);
+}
+
+/* ── Phone layout: one page per screen, vertical swipe with snap ───────────── */
+
+.book[data-layout='phone'] .stage {
+  height: 100svh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-snap-type: y mandatory;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.book[data-layout='phone'] .sheet {
+  width: 100%;
+  aspect-ratio: auto;
+  transform: none;
+}
+
+.book[data-layout='phone'] .spread {
+  position: relative;
+  display: block;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 100svh;
+}
+
+.book[data-layout='phone'] .spread__span {
+  position: relative;
+  height: 100svh;
+  scroll-snap-align: start;
+}
+
+.book[data-layout='phone'] .page {
+  min-height: 100svh;
+  scroll-snap-align: start;
+  border-bottom: 1px solid var(--hairline);
+
+  --fs-body: 17px;
+  --fs-lead: 20px;
+  --fs-caption: 13.5px;
+  --fs-label: 10.5px;
+  --fs-folio: 12.5px;
+  --fs-h3: 20px;
+  --fs-h2: 27px;
+  --fs-h1: 40px;
+  --fs-display: 54px;
+  --fs-numeral: 150px;
+
+  --m-outer: 26px;
+  --m-inner: 26px;
+  --m-top: 68px;
+  --m-bottom: 92px;
+  --gap: 14px;
+}
+
+.book[data-layout='phone'] .page__body {
+  position: relative;
+  inset: auto;
+  min-height: 100svh;
+  padding: var(--m-top) var(--m-outer) var(--m-bottom);
+}
+
+.book[data-layout='phone'] .page--verso .page__body,
+.book[data-layout='phone'] .page--recto .page__body {
+  left: auto;
+  right: auto;
+}
+
+.book[data-layout='phone'] .rh {
+  top: 26px;
+}
+
+.book[data-layout='phone'] .folio {
+  bottom: 70px;
+}
+
+.book[data-layout='phone'] .page--recto .rh,
+.book[data-layout='phone'] .page--recto .folio {
+  right: var(--m-outer);
+}
+
+/* Empty pages exist only to complete a spread; on a phone they are skipped. */
+.book[data-layout='phone'] .page--empty {
+  display: none;
+}
+
+/* ── Reader bar ────────────────────────────────────────────────────────────── */
+
+.reader-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--bar-h);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 clamp(16px, 3vw, 40px);
+  color: var(--ink);
+  font-family: var(--font-label);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: var(--track-label-wide);
+  text-transform: uppercase;
+  z-index: 50;
+}
+
+.book[data-layout='phone'] .reader-bar {
+  background: color-mix(in oklab, var(--paper) 86%, transparent);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  border-top: 1px solid var(--hairline);
+  padding-bottom: env(safe-area-inset-bottom);
+  height: calc(var(--bar-h) + env(safe-area-inset-bottom));
+}
+
+.reader-bar__group {
+  display: flex;
+  gap: clamp(14px, 2.4vw, 28px);
+  align-items: center;
+}
+
+.reader-bar__group--end {
+  justify-content: flex-end;
+}
+
+.reader-bar button,
+.reader-bar a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  text-decoration: none;
+  color: inherit;
+  opacity: 0.78;
+  transition: opacity var(--t-quick);
+}
+
+.reader-bar button:hover,
+.reader-bar a:hover,
+.reader-bar button[aria-pressed='true'] {
+  opacity: 1;
+}
+
+.reader-bar__folio {
+  font-family: var(--font-text);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-variant-numeric: oldstyle-nums;
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.reader-bar__arrow {
+  font-family: var(--font-text);
+  font-size: 20px;
+  line-height: 1;
+  width: 44px;
+  justify-content: center;
+}
+
+.reader-bar__arrow:disabled {
+  opacity: 0.2 !important;
+  cursor: default;
+}
+
+/* Page-edge hit areas for turning on desktop. */
+.turn-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 9%;
+  z-index: 30;
+  cursor: pointer;
+  background: none;
+}
+
+.turn-zone--prev {
+  left: 0;
+  cursor: w-resize;
+}
+
+.turn-zone--next {
+  right: 0;
+  cursor: e-resize;
+}
+
+.turn-zone::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 26px;
+  height: 26px;
+  opacity: 0;
+  transition: opacity var(--t-quick);
+}
+
+.turn-zone--next::after {
+  right: 0;
+  bottom: 0;
+  top: auto;
+  background: linear-gradient(315deg, var(--desk) 0 49%, color-mix(in oklab, var(--paper) 90%, var(--ink)) 50%, var(--paper) 100%);
+  box-shadow: -2px -2px 6px rgb(var(--shade) / 0.18);
+}
+
+.turn-zone--prev::after {
+  left: 0;
+  bottom: 0;
+  top: auto;
+  background: linear-gradient(45deg, var(--desk) 0 49%, color-mix(in oklab, var(--paper) 90%, var(--ink)) 50%, var(--paper) 100%);
+  box-shadow: 2px -2px 6px rgb(var(--shade) / 0.18);
+}
+
+.turn-zone:hover::after,
+.turn-zone:focus-visible::after {
+  opacity: 1;
+}
