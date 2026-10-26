@@ -13,7 +13,8 @@ interface Turn {
 }
 
 const DURATION = 0.65;
-const EASE = [0.22, 0.61, 0.36, 1] as const;
+const EASE = [0.5, 0.02, 0.2, 1] as const;
+const FADE_EASE = [0.22, 0.61, 0.36, 1] as const;
 
 /** Half of a spread, cut out of a full rendering so full-bleed images stay continuous. */
 function Half({ side, children }: { side: 'left' | 'right'; children: ReactNode }) {
@@ -82,7 +83,7 @@ export function SpreadStage({ current, onTurn }: { current: Placed; onTurn: (d: 
           className={['stage__base', opening && 'stage__base--opening'].filter(Boolean).join(' ')}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: reduce ? 0.15 : 0.32, ease: EASE }}
+          transition={{ duration: reduce ? 0.15 : 0.32, ease: FADE_EASE }}
         >
           <Spread placed={current} layout="spread" active />
         </motion.div>

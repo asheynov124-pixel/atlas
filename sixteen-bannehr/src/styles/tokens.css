@@ -14,10 +14,11 @@
   --hairline: #d9d2c7;
 
   /* Derived: the table the book lies on, and the cloth it is bound in */
-  --desk: color-mix(in oklab, var(--paper) 82%, var(--oak) 8%, var(--ink) 10%);
+  --desk: color-mix(in oklab, color-mix(in oklab, var(--paper) 91%, var(--oak)) 89%, var(--ink));
   --desk-deep: color-mix(in oklab, var(--desk) 88%, var(--ink));
   --cloth: var(--olive);
-  --cloth-ink: var(--paper);
+  /* Stamped in paper-white whatever the theme: the cover is cloth, not a page. */
+  --cloth-ink: #f3eee5;
   --endpaper: var(--sage);
   --shade: 30 25 20; /* rgb triplet for shadows */
 

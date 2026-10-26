@@ -179,3 +179,17 @@ describe('sanitizing', () => {
     expect(isBlank('<p>a</p>')).toBe(false);
   });
 });
+
+describe('gallery grid', async () => {
+  const { galleryGrid } = await import('../templates/Gallery');
+  it('puts a handful of options on the recto alone', () => {
+    expect(galleryGrid(3)).toMatchObject({ verso: 0, recto: 3, cols: 3 });
+    expect(galleryGrid(6)).toMatchObject({ verso: 0, recto: 6, cols: 3 });
+  });
+  it('fits thirty-two vanities on one spread in full verso rows', () => {
+    const g = galleryGrid(32);
+    expect(g.verso + g.recto).toBe(32);
+    expect(g.verso % g.cols).toBe(0);
+    expect(g.cols).toBeLessThanOrEqual(6);
+  });
+});

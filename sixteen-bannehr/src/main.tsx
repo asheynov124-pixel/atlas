@@ -12,6 +12,7 @@ import './styles/tokens.css';
 import './styles/base.css';
 import './styles/book.css';
 import './styles/templates.css';
+import './styles/pages.css';
 import './styles/turn.css';
 
 import { App } from './App';

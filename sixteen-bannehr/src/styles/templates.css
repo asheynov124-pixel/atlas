@@ -118,6 +118,33 @@
   pointer-events: none;
 }
 
+/* At night a placeholder should glow no brighter than the page around it. */
+:root[data-theme='night'] .ph {
+  filter: brightness(0.62) saturate(0.85);
+}
+
+:root[data-theme='night'] .pic__img {
+  filter: brightness(0.94);
+}
+
+/* Small placeholders (cards, thumbnails, prints) drop the slide-mount frame. */
+.card .ph::before,
+.thumb .ph::before,
+.mat .ph::before,
+.bel .ph::before,
+.essay__figure .ph::before {
+  display: none;
+}
+
+/* The second of a pair is lit from the other side, so before and after differ. */
+.ph:has(.ph__slip--tr) {
+  background:
+    radial-gradient(130% 95% at 80% 16%,
+      color-mix(in oklab, var(--soft) 40%, #f5f1ea) 0%,
+      color-mix(in oklab, var(--soft) 82%, #f5f1ea) 44%,
+      color-mix(in oklab, var(--soft) 78%, #16130f) 100%);
+}
+
 .ph--loading {
   filter: saturate(0.6);
 }
