@@ -29,19 +29,25 @@ describe('learning', () => {
   });
 
   it('is exactly reversible: removing a signal removes its effect', () => {
-    const a = sig('like', v.id, 1);
-    const b = sig('like', cat.videos[50].id, 1);
-    const both = foldSignals([a, b], lookup);
-    const onlyB = foldSignals([b], lookup);
-    const removed = foldSignals([b], lookup);
-    expect(removed.tagW).toEqual(onlyB.tagW);
-    expect(both.likeMass).toBeGreaterThan(onlyB.likeMass);
+    const now = Date.UTC(2026, 9, 27);
+    const a = sig('like', v.id, 1, now - 3 * 86400000);
+    const b = sig('dislike', cat.videos[50].id, -1, now - 86400000);
+    const neverHadA = foldSignals([b], lookup, undefined, now);
+    const withA = foldSignals([a, b], lookup, undefined, now);
+    // `a` really changed the model…
+    expect(withA.tagW.neon).toBeGreaterThan(neverHadA.tagW.neon ?? 0);
+    expect(withA.likeMass).toBeGreaterThan(0);
+    // …and deleting it from the log lands exactly where we'd be without it.
+    const log = [a, b];
+    const afterDelete = foldSignals(log.filter((x) => x.id !== a.id), lookup, undefined, now);
+    expect(afterDelete).toEqual(neverHadA);
   });
 
-  it('decays old signals', () => {
-    const fresh = foldSignals([sig('like', v.id, 1)], lookup).tagW.neon;
-    const old = foldSignals([sig('like', v.id, 1, Date.now() - 90 * 86400000)], lookup).tagW.neon;
-    expect(old).toBeCloseTo(fresh / 4, 2);
+  it('decays old signals (45-day half-life)', () => {
+    const now = Date.UTC(2026, 9, 27);
+    const fresh = foldSignals([sig('like', v.id, 1, now)], lookup, undefined, now).tagW.neon;
+    const old = foldSignals([sig('like', v.id, 1, now - 90 * 86400000)], lookup, undefined, now).tagW.neon;
+    expect(old).toBeCloseTo(fresh / 4, 6);
   });
 
   it('overrides replace learned weights but keep the learned value visible', () => {
