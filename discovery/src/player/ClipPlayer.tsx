@@ -3,13 +3,15 @@
  *   embed → direct source → "open original" card.
  *
  * Mock URLs (mock-embed://, mock-source://) render the procedural clip;
- * http(s) URLs use a sandboxed iframe or a <video>. Either way the parent
- * gets the same handle (play/pause/seek) and progress callbacks.
+ * http(s) URLs use a sandboxed iframe or a <video>; imported stills render
+ * full-screen. Either way the parent gets the same handle (play/pause/seek)
+ * and progress callbacks.
  */
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { PlaybackOption, VideoDetail, VideoSummary } from '../data/types';
 import { drawFrame, visualParams } from './renderer';
 import { performerLookup } from '../state/taxonomy';
+import { useStore } from '../state/store';
 import { IconExternal } from '../components/Icons';
 
 export interface PlayerHandle {
@@ -76,21 +78,32 @@ export const ClipPlayer = forwardRef<PlayerHandle, Props>(function ClipPlayer(
   const advance = useCallback(() => setOptIndex((i) => i + 1), []);
 
   if (!detail || !opt) {
-    return <ProceduralStill summary={summary} />;
+    return summary.source === 'import' ? <RemoteBackdrop url={summary.thumbnailUrl} /> : <ProceduralStill summary={summary} />;
   }
   if (opt.kind === 'original') {
+    const imported = summary.source === 'import';
+    const pageOnly = imported && options.length === 1;
     return (
       <div className="player-fallback">
-        <ProceduralStill summary={summary} dim />
+        {imported ? <RemoteBackdrop url={summary.thumbnailUrl} /> : <ProceduralStill summary={summary} dim />}
         <div className="player-fallback__card" data-no-gesture>
-          <strong>Can’t play this one here</strong>
-          <span>Embed and direct source both failed.</span>
+          <strong>{pageOnly ? 'A page, not a file' : 'Can’t play this one here'}</strong>
+          <span>
+            {pageOnly
+              ? `No media could be read from ${hostLabel(opt.url)} here. Like, save, and swipe work as usual.`
+              : imported
+                ? 'The file didn’t load here (moved, private, or hotlink-protected).'
+                : 'Embed and direct source both failed.'}
+          </span>
           <a className="btn btn--primary" href={opt.url} target="_blank" rel="noopener noreferrer">
             Open original <IconExternal />
           </a>
         </div>
       </div>
     );
+  }
+  if (opt.kind === 'image') {
+    return <ImageStill ref={ref} src={opt.url} clip={summary.clipDuration} playing={playing} onError={advance} onReady={() => onResolved?.('image')} onProgress={onProgress} onTime={onTime} />;
   }
   if (isMock(opt.url)) {
     return (
@@ -118,6 +131,85 @@ export const ClipPlayer = forwardRef<PlayerHandle, Props>(function ClipPlayer(
     );
   }
   return <EmbedFrame src={opt.url} onTimeout={advance} onReady={() => onResolved?.('embed')} />;
+});
+
+function hostLabel(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return 'the site';
+  }
+}
+
+function RemoteBackdrop({ url }: { url?: string }) {
+  if (!url) return <div className="player-canvas player-canvas--dim player-remote-empty" />;
+  return <div className="player-image__backdrop player-image__backdrop--dim" style={{ backgroundImage: `url("${url.replace(/"/g, '%22')}")` }} />;
+}
+
+/** Long looks at a still count like a replay, but only after a real stare. */
+const STILL_LOOP_SEC = 20;
+
+interface StillProps {
+  src: string;
+  clip: number;
+  playing: boolean;
+  onError: () => void;
+  onReady: () => void;
+  onProgress?: (dt: number, looped: boolean) => void;
+  onTime?: (t: number, d: number) => void;
+}
+
+/**
+ * Full-screen still. "Playing" means on screen and in focus: dwell time
+ * accrues like watch time, so lingering teaches the model just as a video does.
+ */
+const ImageStill = forwardRef<PlayerHandle, StillProps>(function ImageStill({ src, clip, playing, onError, onReady, onProgress, onTime }, ref) {
+  const fit = useStore((s) => s.settings.imageFit);
+  const [loaded, setLoaded] = useState(false);
+  const tRef = useRef(0);
+  const cbRef = useRef({ onProgress, onTime });
+  cbRef.current = { onProgress, onTime };
+  useImperativeHandle(ref, () => ({ seek: () => undefined, time: () => tRef.current, duration: () => clip }), [clip]);
+  useEffect(() => {
+    tRef.current = 0;
+    setLoaded(false);
+  }, [src]);
+  useEffect(() => {
+    if (!playing || !loaded) return;
+    let raf = 0;
+    let last = performance.now();
+    const frame = (now: number) => {
+      const dt = Math.min(0.25, (now - last) / 1000);
+      last = now;
+      const prev = tRef.current;
+      tRef.current = prev + dt;
+      const looped = Math.floor(tRef.current / STILL_LOOP_SEC) > Math.floor(prev / STILL_LOOP_SEC);
+      cbRef.current.onProgress?.(dt, looped);
+      cbRef.current.onTime?.(Math.min(tRef.current, clip), clip);
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [playing, loaded, clip]);
+  const bg = `url("${src.replace(/"/g, '%22')}")`;
+  return (
+    <div className={`player-image player-image--${fit}`}>
+      {fit === 'contain' && loaded && <div className="player-image__backdrop" style={{ backgroundImage: bg }} />}
+      <img
+        src={src}
+        alt=""
+        draggable={false}
+        decoding="async"
+        referrerPolicy="no-referrer"
+        onLoad={() => {
+          setLoaded(true);
+          onReady();
+        }}
+        onError={onError}
+      />
+      {!loaded && <div className="player-loading" aria-label="Loading image" />}
+    </div>
+  );
 });
 
 /** Single static frame — used for preloading slots and loading states. */

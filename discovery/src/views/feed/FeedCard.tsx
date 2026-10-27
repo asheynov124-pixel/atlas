@@ -24,7 +24,8 @@ interface Props {
   hasNext: boolean;
 }
 
-const VIA: Record<string, string> = { embed: 'Embed', source: 'Direct source', original: 'Original', failed: 'Unavailable' };
+const VIA: Record<string, string> = { embed: 'Embed', source: 'Direct source', original: 'Original', failed: 'Unavailable', image: 'Image' };
+const KIND_LABEL = { image: 'Image', video: 'Video', page: 'Page' } as const;
 
 export const FeedCard = memo(function FeedCard({ videoId, idx, active, playing, registerEl, registerPlayer, onIntent, hasPrev, hasNext }: Props) {
   const { summary, detail, error, retry } = useVideoDetail(videoId);
@@ -73,6 +74,9 @@ export const FeedCard = memo(function FeedCard({ videoId, idx, active, playing, 
 
   const cast = summary.performerIds.map((id) => performers.get(id)).filter(Boolean);
   const shownTags = summary.tags.filter((t) => !['hd', '4k', 'vertical', 'solo', 'couple'].includes(t)).slice(0, 3);
+  const imported = summary.source === 'import';
+  // Personal tags that didn't map onto the taxonomy still show (and search your imports).
+  const personal = imported ? (summary.userTags ?? []).filter((t) => !shownTags.some((id) => tags.get(id)?.label.toLowerCase() === t.toLowerCase())).slice(0, Math.max(0, 3 - shownTags.length)) : [];
 
   return (
     <div className={`card${active ? ' card--active' : ''}`} ref={setEl} data-video-id={videoId}>
@@ -120,9 +124,27 @@ export const FeedCard = memo(function FeedCard({ videoId, idx, active, playing, 
                 #{tags.get(t)?.label ?? t}
               </button>
             ))}
+            {personal.map((t) => (
+              <button
+                key={`u:${t}`}
+                type="button"
+                className="tag-chip tag-chip--personal"
+                onClick={() => startPath({ kind: 'search', query: { text: t, imports: {} }, label: `#${t}` }, { startWith: [videoId] })}
+              >
+                #{t}
+              </button>
+            ))}
             <span className="card__meta">
-              {summary.quality} · {formatDuration(summary.duration)}
-              {via && via !== 'embed' && <> · {VIA[via]}</>}
+              {imported ? (
+                <>
+                  <span className="pill pill--import">Imported</span> {KIND_LABEL[summary.mediaType ?? 'page']} · {summary.studioId.replace(/^site:/, '')}
+                </>
+              ) : (
+                <>
+                  {summary.quality} · {formatDuration(summary.duration)}
+                  {via && via !== 'embed' && <> · {VIA[via]}</>}
+                </>
+              )}
             </span>
           </div>
         </div>

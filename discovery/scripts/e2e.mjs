@@ -3,7 +3,8 @@
 //   node scripts/e2e.mjs [baseUrl] [screenshotDir]
 // Drives real pointer/touch gestures and checks the app's state after each step.
 import { createRequire } from 'node:module';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
+import { GALLERY_URL, LOCKED_URL, installImportFixtures } from './fixtures.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');
 const base = process.argv[2] ?? 'http://localhost:4173/';
@@ -14,8 +15,14 @@ const browser = await chromium.launch();
 const ctx = await browser.newContext({ ...devices['iPhone 14'] });
 const page = await ctx.newPage();
 const problems = [];
+/** Console errors a step deliberately provokes (a refused page, a missing file). */
+const expected = [];
 page.on('pageerror', (e) => problems.push(`pageerror: ${e.message}`));
-page.on('console', (m) => m.type() === 'error' && problems.push(`console: ${m.text()}`));
+page.on('console', (m) => {
+  if (m.type() !== 'error') return;
+  const where = `${m.text()} ${m.location()?.url ?? ''}`;
+  if (!expected.some((re) => re.test(where))) problems.push(`console: ${m.text()}`);
+});
 
 let step = 0;
 const results = [];
@@ -412,6 +419,217 @@ await check('release-year box accepts typing digit by digit', async () => {
   await page.keyboard.press('Tab');
   assert((await yearMin.inputValue()) === '2019', 'value changed on blur');
   await page.keyboard.press('Escape');
+});
+
+// ---------------------------------------------------------------------------
+// Personal Import
+
+await installImportFixtures(page);
+expected.push(/locked\.test/, /img\.example\.test\/clip\.mp4/);
+const importSheet = () => page.locator('.import-sheet');
+const rowByTitle = (t) => page.locator('.ipreview__row', { has: page.locator('.ipreview__title', { hasText: t }) });
+const IMPORT_TEXT = [
+  GALLERY_URL,
+  LOCKED_URL,
+  'Beach day | https://img.example.test/beach-01.png',
+  'https://img.example.test/beach-02.png?utm_source=newsletter',
+  'https://img.example.test/beach-02.png',
+  'https://img.example.test/clip.mp4',
+].join('\n');
+let exported = null;
+
+await check('import: paste gallery + direct links → live preview with type badges and dedupe', async () => {
+  await page.keyboard.press('Escape');
+  await tab('Library').click();
+  await page.getByRole('button', { name: 'Import media' }).click();
+  await importSheet().waitFor();
+  await page.getByLabel('Links to import').fill(IMPORT_TEXT);
+  await rowByTitle('Beach day').waitFor({ timeout: 3000 });
+  const summary = await page.locator('.ipreview__summary').textContent();
+  assert(/1 duplicate merged/.test(summary), `summary: ${summary}`);
+  assert((await page.locator('.ipreview__row .ibadge--page').count()) === 2, 'expected 2 page rows');
+  assert((await page.locator('.ipreview__row .ibadge--video').count()) === 1, 'expected 1 video row');
+  assert(/Find media in 2 pages/.test(await page.locator('.import-foot .btn--primary').textContent()), 'primary should offer to scan');
+  await shot('40-import-preview');
+});
+
+await check('import: “Find media” scans the CORS-enabled gallery; the refusing page fails honestly', async () => {
+  await page.keyboard.press('Control+Enter');
+  await rowByTitle('Golden hour').waitFor({ timeout: 6000 });
+  await rowByTitle('Boardwalk lights').waitFor();
+  await rowByTitle('Lamp posts').waitFor();
+  const locked = rowByTitle('locked.test');
+  assert(/Couldn’t read/.test(await locked.textContent()), 'locked page not flagged');
+  assert(await locked.locator('input[type=checkbox]').isChecked(), 'failed page should still import as open-original');
+  assert(await page.locator('.scanfail').isVisible(), 'no CORS explanation');
+  const summary = await page.locator('.ipreview__summary').textContent();
+  assert(/icons\/ads skipped/.test(summary), `junk not skipped: ${summary}`);
+  assert((await page.locator('.ipreview__title', { hasText: /logo|pixel/i }).count()) === 0, 'logo or pixel leaked in');
+  await shot('41-import-scanned');
+});
+
+await check('import: select + Delete excludes rows; a checkbox excludes one', async () => {
+  const before = Number((await page.locator('.ipreview__all span').textContent()).match(/^(\d+)/)[1]);
+  await rowByTitle('Gulls over the water').click();
+  await rowByTitle('Lamp posts').click({ modifiers: ['Control'] });
+  await page.keyboard.press('Delete');
+  await rowByTitle('Clip').locator('input[type=checkbox]').uncheck();
+  const after = Number((await page.locator('.ipreview__all span').textContent()).match(/^(\d+)/)[1]);
+  assert(after === before - 3, `included ${before} → ${after}`);
+  assert(await rowByTitle('Gulls over the water').evaluate((el) => el.classList.contains('ipreview__row--out')), 'row not marked excluded');
+});
+
+await check('import: ⌘E bulk editor before import — prefix, undo/redo, ⌘S saves', async () => {
+  await page.keyboard.press('Control+e');
+  const first = page.getByLabel('Title 1', { exact: true });
+  await first.waitFor();
+  const original = await first.inputValue();
+  await page.getByLabel('Prefix text').fill('Pier · ');
+  await page.getByRole('button', { name: /^Apply/ }).click();
+  assert((await first.inputValue()) === `Pier · ${original}`, 'prefix not applied');
+  await page.keyboard.press('Control+z');
+  assert((await first.inputValue()) === original, 'undo failed');
+  await page.keyboard.press('Control+Shift+z');
+  assert((await first.inputValue()) === `Pier · ${original}`, 'redo failed');
+  await shot('42-bulk-editor');
+  await page.keyboard.press('Control+s');
+  await page.locator('.toast', { hasText: /Saved \d+ titles/ }).waitFor({ timeout: 2000 });
+  await rowByTitle('Pier · Golden hour').waitFor();
+});
+
+await check('import: tags + name → Import creates the batch, its board, and the Imported path', async () => {
+  await page.getByLabel('Tags for this import').fill('pier, golden hour');
+  await page.getByLabel('Import name').fill('Pier at sunset');
+  await page.keyboard.press('Control+Enter');
+  await page.locator('.sheet__head h2', { hasText: /Imported \d+ clips/ }).waitFor({ timeout: 3000 });
+  await shot('43-imported');
+  await wait(700);
+  const s = await state();
+  const d = s.data[s.activeProfileId];
+  const batch = d.imports.batches[0];
+  assert(batch && batch.name === 'Pier at sunset', 'batch missing');
+  const items = batch.itemIds.map((id) => d.imports.items[id]);
+  assert(items.length === 7, `expected 7 items, got ${items.length}`);
+  assert(items.every((i) => i.tags.includes('pier') && i.tags.includes('golden hour')), 'batch tags not applied');
+  assert(items.some((i) => i.title === 'Pier · Golden hour'), 'edited title lost');
+  assert(items.some((i) => i.mediaType === 'page' && i.url === LOCKED_URL), 'failed page not imported as open-original');
+  const board = d.boards.find((b) => b.id === batch.boardId);
+  assert(board && board.name === 'Pier at sunset' && board.videoIds.length === 7, 'board missing');
+  assert(d.paths.some((p) => p.id === 'imported' && p.pinned), 'Imported path missing');
+});
+
+await check('import: bulk edit titles after import (Title Case on a selection) updates the library', async () => {
+  await page.getByRole('button', { name: /Edit titles/ }).click();
+  await page.getByLabel('Title 3', { exact: true }).waitFor();
+  await page.getByLabel('Title 3', { exact: true }).focus();
+  await page.keyboard.press('Shift+ArrowDown');
+  await page.getByText('Title Case', { exact: true }).click();
+  await page.getByRole('button', { name: 'Save titles' }).click();
+  await wait(600);
+  const s = await state();
+  const d = s.data[s.activeProfileId];
+  const titles = d.imports.batches[0].itemIds.map((id) => d.imports.items[id].title);
+  // Rows 3–4 were selected: only they change.
+  assert(titles.includes('Pier · Golden Hour'), `selection not title-cased: ${titles.join(' | ')}`);
+  assert(titles.includes('Pier · locked.test – #1'), `rows outside the selection changed: ${titles.join(' | ')}`);
+});
+
+await check('import: ⌘⇧E exports the batch as re-importable JSON, plus a URL list', async () => {
+  const dl = page.waitForEvent('download');
+  await page.keyboard.press('Control+Shift+E');
+  const file = await dl;
+  assert(/^import-pier-at-sunset-\d{4}-\d{2}-\d{2}\.json$/.test(file.suggestedFilename()), `filename ${file.suggestedFilename()}`);
+  const path = `${shots}/export.json`;
+  await file.saveAs(path);
+  exported = path;
+  const json = JSON.parse(await readFile(path, 'utf8'));
+  assert(json.app === 'ph-discovery-import' && json.version === 1, 'wrong export header');
+  assert(json.items.length === 7 && json.items.every((i) => i.url && i.title && i.mediaType && i.originalUrl && i.added && Array.isArray(i.tags)), 'export items incomplete');
+  const dl2 = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'URL list' }).click();
+  const list = await readFile(await (await dl2).path(), 'utf8');
+  assert(list.trim().split('\n').length === 7, 'URL list wrong length');
+});
+
+await check('import: Swipe imported now → stills full-screen; like and save work on them', async () => {
+  await page.getByRole('button', { name: /Swipe imported now/ }).click();
+  await page.locator('.card--active').waitFor();
+  assert(/Pier at sunset/.test(await pathLabel()), `path label ${await pathLabel()}`);
+  // First item: the page that couldn't be read — an open-original card, still swipeable.
+  await page.locator('.card--active .player-fallback__card', { hasText: 'Open original' }).waitFor({ timeout: 3000 });
+  await drag(W * 0.3, H * 0.25, W * 0.5, 8); // start above the card: it's a no-gesture zone
+  await page.locator('.card--active .player-image img').waitFor({ timeout: 3000 });
+  await wait(900);
+  await shot('44-import-still');
+  const stillId = await activeId();
+  assert(stillId.startsWith('imp-'), 'not an imported clip');
+  await drag(W * 0.5, H * 0.55, 0, -H * 0.3);
+  await page.locator('.toast', { hasText: /^Saved/ }).waitFor({ timeout: 2000 });
+  await wait(700);
+  const s = await state();
+  const d = s.data[s.activeProfileId];
+  assert(d.signals.some((x) => x.kind === 'like' && x.videoId.startsWith('imp-')), 'no like on an import');
+  assert(d.saves.some((x) => x.videoId === stillId), 'save on the still not recorded');
+});
+
+await check('import: tap on a still toggles fit/fill without pausing', async () => {
+  const before = await page.locator('.card--active .player-image').getAttribute('class');
+  await page.mouse.click(W * 0.4, H * 0.3);
+  await wait(450);
+  const after = await page.locator('.card--active .player-image').getAttribute('class');
+  assert(before !== after && /player-image--(contain|cover)/.test(after), `fit did not toggle (${before} → ${after})`);
+  assert((await page.locator('.paused-badge').count()) === 0, 'tap paused a still');
+});
+
+await check('import: board, history, and imports persist across reload', async () => {
+  await page.reload({ waitUntil: 'networkidle' });
+  await tab('Library').click();
+  await page.getByRole('tab', { name: 'Imports' }).click();
+  await page.locator('.batch-list__name', { hasText: 'Pier at sunset' }).waitFor({ timeout: 4000 });
+  await shot('45-import-history');
+  await page.getByRole('tab', { name: 'Boards' }).click();
+  await page.locator('.board-card', { hasText: 'Pier at sunset' }).waitFor();
+  await page.getByRole('tab', { name: 'Smart' }).click();
+  await page.getByText('⇪ Imports').waitFor();
+});
+
+await check('import: re-importing the exported file is recognised as already in the library', async () => {
+  await page.getByRole('tab', { name: 'Imports' }).click();
+  await page.getByRole('button', { name: 'New import' }).click();
+  await page.locator('.import-sheet input[type=file]').setInputFiles(exported);
+  await page.locator('.ipreview__row').first().waitFor({ timeout: 3000 });
+  const n = await page.locator('.ipreview__row').count();
+  const dupes = await page.locator('.ipreview__row .ibadge--in-library').count();
+  assert(n === 7 && dupes === 7, `rows ${n}, already-imported ${dupes}`);
+  assert(await page.locator('.import-foot .btn--primary').isDisabled(), 'import should be disabled');
+  await page.getByRole('button', { name: 'Clear' }).click();
+  await page.keyboard.press('Escape');
+});
+
+await check('import: edit details from the library (title, personal tags, notes)', async () => {
+  const tile = page.locator('.library .tile').first();
+  await tile.click({ button: 'right' });
+  await page.getByLabel('Title', { exact: true }).fill('Renamed from the library');
+  await page.getByLabel('Add tags').fill('keeper');
+  await page.getByLabel('Add tags').press('Enter');
+  await page.getByPlaceholder('Anything you want to remember').fill('the good light');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await wait(600);
+  const s = await state();
+  const items = Object.values(s.data[s.activeProfileId].imports.items);
+  const it = items.find((i) => i.title === 'Renamed from the library');
+  assert(it && it.tags.includes('keeper') && it.notes === 'the good light', 'metadata not saved');
+});
+
+await check('import: incognito warns that an import won’t persist', async () => {
+  await tab('You').click();
+  await page.getByText('Incognito session').click();
+  await tab('Library').click();
+  await page.getByRole('button', { name: 'Import media' }).click();
+  await page.locator('.notice--warn', { hasText: /Incognito is on/ }).waitFor({ timeout: 2000 });
+  await page.keyboard.press('Escape');
+  await tab('You').click();
+  await page.getByText('Incognito session').click();
 });
 
 console.log(results.join('\n'));

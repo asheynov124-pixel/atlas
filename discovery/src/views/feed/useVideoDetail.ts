@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { cachedDetail, cachedSummary, ensureSummaries, loadDetail } from '../../data/api';
 import type { VideoDetail, VideoSummary } from '../../data/types';
-import { useStore } from '../../state/store';
+import { useStore, activeData } from '../../state/store';
+import { isImportId } from '../../import/model';
 
-/** Summary (sync, from caches) + detail (async, with retry). */
+/** Summary (sync, from caches) + detail (async, with retry). Imports re-render on every edit. */
 export function useVideoDetail(id: string | undefined) {
-  const content = useStore((s) => (id ? s.content[id] : undefined));
-  const [summary, setSummary] = useState<VideoSummary | undefined>(() => (id ? content ?? cachedSummary(id) : undefined));
+  const content = useStore((s) => (id ? (isImportId(id) ? activeData(s).imports.items[id] : s.content[id]) : undefined));
+  const [summary, setSummary] = useState<VideoSummary | undefined>(() => (id ? cachedOrContent(id, content) : undefined));
   const [detail, setDetail] = useState<VideoDetail | null>(() => (id ? cachedDetail(id) ?? null : null));
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -14,7 +15,7 @@ export function useVideoDetail(id: string | undefined) {
   useEffect(() => {
     if (!id) return;
     let alive = true;
-    const s = content ?? cachedSummary(id);
+    const s = cachedOrContent(id, content);
     setSummary(s);
     if (!s) {
       ensureSummaries([id])
@@ -43,4 +44,9 @@ export function useVideoDetail(id: string | undefined) {
 
   const retry = useCallback(() => setAttempt((a) => a + 1), []);
   return { summary, detail, error, retry };
+}
+
+function cachedOrContent(id: string, content: unknown): VideoSummary | undefined {
+  if (isImportId(id)) return cachedSummary(id);
+  return (content as VideoSummary | undefined) ?? cachedSummary(id);
 }

@@ -19,6 +19,7 @@ import { SuggestionBanner } from './SuggestionBanner';
 import { CoachMarks } from './CoachMarks';
 import { IconHeart, IconPause, IconPlay } from '../../components/Icons';
 import { PATH_KINDS } from '../../engine/paths';
+import { lookupVideo } from '../../state/selectors';
 
 const EASE = 'cubic-bezier(.2,.8,.2,1)';
 const DUR = 280;
@@ -33,7 +34,7 @@ export function FeedView() {
   const locked = useUI((s) => s.locked);
   const overlayHidden = useUI((s) => s.overlayHidden);
   const [userPaused, setUserPaused] = useState(false);
-  const [flash, setFlash] = useState<{ kind: 'play' | 'pause' | 'heart'; x: number; y: number; key: number } | null>(null);
+  const [flash, setFlash] = useState<{ kind: 'play' | 'pause' | 'heart' | 'fit' | 'fill'; x: number; y: number; key: number } | null>(null);
   const [enter, setEnter] = useState<'left' | 'right' | null>(null);
   const [visible, setVisible] = useState(() => document.visibilityState === 'visible');
 
@@ -341,7 +342,7 @@ export function FeedView() {
     bounce();
   };
 
-  const showFlash = (kind: 'play' | 'pause' | 'heart', x: number, y: number) => setFlash({ kind, x, y, key: Date.now() });
+  const showFlash = (kind: 'play' | 'pause' | 'heart' | 'fit' | 'fill', x: number, y: number) => setFlash({ kind, x, y, key: Date.now() });
 
   useStageGestures(stageRef, {
     enabled: () => !busy.current && !useUI.getState().capture && useUI.getState().sheets.length === 0,
@@ -353,6 +354,15 @@ export function FeedView() {
       const ui = useUI.getState();
       if (ui.overlayHidden && useStore.getState().settings.immersive) {
         ui.setOverlayHidden(false);
+        return;
+      }
+      // A still has nothing to pause: tap switches between fitting and filling the screen.
+      const current = lookupVideo(pathRef.current.queue[pathRef.current.index] ?? '');
+      if (current?.mediaType === 'image') {
+        const st = useStore.getState();
+        const next = st.settings.imageFit === 'contain' ? 'cover' : 'contain';
+        st.setSettings({ imageFit: next });
+        showFlash(next === 'cover' ? 'fill' : 'fit', x, y);
         return;
       }
       setUserPaused((v) => {
@@ -465,7 +475,15 @@ export function FeedView() {
         <div className="path-peek" ref={peekRef} aria-hidden="true" />
         {flash && (
           <span key={flash.key} className={`tap-flash tap-flash--${flash.kind}`} style={{ left: flash.x, top: flash.y }} onAnimationEnd={() => setFlash(null)}>
-            {flash.kind === 'heart' ? <IconHeart filled size={84} /> : flash.kind === 'pause' ? <IconPause size={46} /> : <IconPlay size={46} />}
+            {flash.kind === 'heart' ? (
+              <IconHeart filled size={84} />
+            ) : flash.kind === 'pause' ? (
+              <IconPause size={46} />
+            ) : flash.kind === 'play' ? (
+              <IconPlay size={46} />
+            ) : (
+              <span className="tap-flash__word">{flash.kind === 'fill' ? 'Fill' : 'Fit'}</span>
+            )}
           </span>
         )}
         {userPaused && !capture && (

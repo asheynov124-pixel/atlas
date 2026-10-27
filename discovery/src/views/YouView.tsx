@@ -372,7 +372,7 @@ function PrivacyPanel() {
 
   return (
     <Section title="Privacy & data">
-      <Toggle checked={incognito} onChange={setIncognito} label="Incognito session" hint="Writes nothing to the device; turning it off rewinds to where you were" />
+      <Toggle checked={incognito} onChange={setIncognito} label="Incognito session" hint="Writes nothing to the device; turning it off rewinds to where you were (imports made meanwhile are dropped)" />
       <Toggle checked={settings.pauseLearning} onChange={(v) => setSettings({ pauseLearning: v })} label="Pause learning" hint="Taste stops updating; history still records" />
       <Toggle checked={settings.discreet} onChange={(v) => setSettings({ discreet: v })} label="Discreet thumbnails" hint="Blur grids and lists until you press on them" />
       <div className="toggle-row">
@@ -504,7 +504,7 @@ function PlaybackPanel() {
       <Toggle checked={s.muted} onChange={(v) => set({ muted: v })} label="Start muted" />
       <Toggle checked={s.leftHanded} onChange={(v) => set({ leftHanded: v })} label="Left-handed layout" hint="Moves the action rail to the left" />
       <Toggle checked={s.immersive} onChange={(v) => set({ immersive: v })} label="Immersive overlay" hint="Hide controls after a few seconds; tap to bring them back" />
-      <Toggle checked={s.dataSaver} onChange={(v) => set({ dataSaver: v })} label="Data saver" hint="Preload one clip ahead instead of two" />
+      <Toggle checked={s.dataSaver} onChange={(v) => set({ dataSaver: v })} label="Data saver" hint="Preload one clip ahead instead of two, and hold imported thumbnails until you ask" />
       <button className="btn btn--ghost btn--block" onClick={resetHints}>
         Show the gesture guide again
       </button>

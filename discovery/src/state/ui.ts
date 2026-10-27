@@ -16,7 +16,12 @@ export type Sheet =
   | { kind: 'visual-search' }
   | { kind: 'board'; boardId: string }
   | { kind: 'collection'; title: string; videoIds: string[]; refId?: string }
-  | { kind: 'edit-save'; videoId: string };
+  | { kind: 'edit-save'; videoId: string }
+  /** Personal Import. With `batchId`, reopens that past batch. */
+  | { kind: 'import'; batchId?: string }
+  /** Bulk title editor over the import draft, or a committed batch. */
+  | { kind: 'bulk-titles'; target: 'draft' | { batchId: string }; focus?: string }
+  | { kind: 'edit-import'; videoId: string };
 
 export interface Toast {
   id: number;

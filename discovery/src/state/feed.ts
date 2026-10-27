@@ -190,7 +190,7 @@ export function startPath(seed: PathSeed, opts: StartOptions = {}): Path {
   const label = opts.label ?? pathLabel(seed, names());
   const parentId = opts.parentId ?? activePath(useStore.getState()).id;
   // Ordered paths start at the right place instead of prepending the clip.
-  const ordered = seed.kind === 'series';
+  const ordered = seed.kind === 'series' || (seed.kind === 'imported' && !!seed.batchId);
   const path = createPath(seed, label, { startWith: ordered ? undefined : opts.startWith, parentId });
   if (ordered && opts.startWith?.[0]) path.startAt = opts.startWith[0];
   if (seed.kind === 'collection') {
@@ -231,7 +231,8 @@ export function refreshAhead(pathId?: string) {
   if (path.queue.length <= keep + 1) return;
   const head = path.queue.slice(0, keep);
   const tail = path.queue.slice(keep).filter((id) => !model.disliked.has(id) || kind === 'collection' || kind === 'series');
-  if (kind === 'forYou' || kind === 'cluster' || kind === 'contrast') {
+  const tasteDriven = kind === 'forYou' || kind === 'cluster' || kind === 'contrast' || (path.seed.kind === 'imported' && !path.seed.batchId);
+  if (tasteDriven) {
     const n = tail.length;
     const scored = tail.map((id, i) => {
       const v = lookupVideo(id);

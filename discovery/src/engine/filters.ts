@@ -20,6 +20,7 @@ export function emptyFilters(): Filters {
     year: {},
     exploration: 0.25,
     preferNew: false,
+    source: 'all',
   };
 }
 
@@ -46,6 +47,7 @@ export function normalizeFilters(f?: Partial<Filters>): Filters {
     year: f.year ?? {},
     exploration: f.exploration ?? base.exploration,
     preferNew: f.preferNew ?? false,
+    source: f.source === 'catalog' || f.source === 'imports' ? f.source : 'all',
   };
 }
 
@@ -90,6 +92,7 @@ export function mergeFilters(globalF: Partial<Filters> | undefined, local: Parti
     year: { min: l.year.min ?? g.year.min, max: l.year.max ?? g.year.max },
     exploration: local.exploration ?? g.exploration,
     preferNew: local.preferNew ?? g.preferNew,
+    source: l.source !== 'all' ? l.source : g.source,
   };
 }
 
@@ -106,6 +109,7 @@ export function countActive(f?: Partial<Filters>): number {
   c += (n.duration.min != null ? 1 : 0) + (n.duration.max != null ? 1 : 0);
   c += (n.year.min != null ? 1 : 0) + (n.year.max != null ? 1 : 0);
   c += n.preferNew ? 1 : 0;
+  c += n.source !== 'all' ? 1 : 0;
   return c;
 }
 
@@ -125,6 +129,8 @@ function performerMatches(p: Performer, a: PerformerAttrs): boolean {
 export type PerformerLookup = (id: string) => Performer | undefined;
 
 export function matchesFilters(v: VideoSummary, f: Filters, performer: PerformerLookup): boolean {
+  if (f.source === 'imports' && v.source !== 'import') return false;
+  if (f.source === 'catalog' && v.source === 'import') return false;
   const pf = f.performers;
   if (pf.include.length && !v.performerIds.some((id) => pf.include.includes(id))) return false;
   if (pf.exclude.length && v.performerIds.some((id) => pf.exclude.includes(id))) return false;
@@ -144,9 +150,10 @@ export function matchesFilters(v: VideoSummary, f: Filters, performer: Performer
   if (f.studios.exclude.includes(v.studioId)) return false;
   if (f.styles.length && !f.styles.includes(v.style)) return false;
   if (f.quality.length && !f.quality.includes(v.quality)) return false;
+  // Length only constrains clips that have one (stills and unprobed imports don't).
   const minutes = v.duration / 60;
-  if (f.duration.min != null && minutes < f.duration.min) return false;
-  if (f.duration.max != null && minutes > f.duration.max) return false;
+  if (v.duration > 0 && f.duration.min != null && minutes < f.duration.min) return false;
+  if (v.duration > 0 && f.duration.max != null && minutes > f.duration.max) return false;
   const year = Number(v.releaseDate.slice(0, 4));
   if (f.year.min != null && year < f.year.min) return false;
   if (f.year.max != null && year > f.year.max) return false;

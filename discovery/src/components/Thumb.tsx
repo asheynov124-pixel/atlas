@@ -31,10 +31,13 @@ function schedule() {
 }
 
 export function useThumb(v: VideoSummary | undefined, width = 180): string | null {
-  const key = v ? `${v.id}:${width}` : '';
+  const remote = v?.thumbnail.kind === 'url' ? v.thumbnail.url : null;
+  // Imports never get a procedural stand-in: it would invent a picture that isn't theirs.
+  const procedural = !!v && !remote && v.source !== 'import';
+  const key = procedural ? `${v!.id}:${width}` : '';
   const [url, setUrl] = useState<string | null>(() => (key ? ready.get(key) ?? null : null));
   useEffect(() => {
-    if (!v) return;
+    if (!v || !procedural) return;
     const hit = ready.get(key);
     if (hit) {
       setUrl(hit);
@@ -46,18 +49,51 @@ export function useThumb(v: VideoSummary | undefined, width = 180): string | nul
     return () => {
       alive = false;
     };
-  }, [key, v, width]);
-  return url;
+  }, [key, v, width, procedural]);
+  return remote ?? url;
+}
+
+const TYPE_ICON = { image: '▧', video: '▶', page: '↗' } as const;
+
+/** Stand-in for a remote thumbnail that isn't loaded (data saver, broken link, or none). */
+export function RemotePlaceholder({ video, note }: { video: Pick<VideoSummary, 'mediaType' | 'originalUrl' | 'id'>; note?: string }) {
+  let host = '';
+  try {
+    host = new URL(video.originalUrl).hostname.replace(/^www\./, '');
+  } catch {
+    /* ignore */
+  }
+  const hue = [...video.id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
+  return (
+    <div className="thumb__remote" style={{ background: `linear-gradient(160deg, hsl(${hue} 45% 22%), hsl(${(hue + 60) % 360} 50% 12%))` }}>
+      <span className="thumb__remote-icon" aria-hidden="true">
+        {TYPE_ICON[video.mediaType ?? 'page']}
+      </span>
+      <span className="thumb__remote-host">{host}</span>
+      {note && <span className="thumb__remote-note">{note}</span>}
+    </div>
+  );
 }
 
 export function Thumb({ video, width = 180, className = '' }: { video: VideoSummary; width?: number; className?: string }) {
   const url = useThumb(video, width);
   const discreet = useStore((s) => s.settings.discreet);
-  return (
-    <div className={`thumb ${discreet ? 'thumb--discreet' : ''} ${className}`}>
-      {url ? <img src={url} alt="" draggable={false} /> : <div className="skeleton thumb__ph" />}
-    </div>
-  );
+  const dataSaver = useStore((s) => s.settings.dataSaver);
+  const [broken, setBroken] = useState<string | null>(null);
+  const remote = video.thumbnail.kind === 'url';
+  let body: React.ReactNode;
+  if (video.source === 'import' && !remote) body = <RemotePlaceholder video={video} />; // no picture known: never fake one
+  else if (remote && video.source === 'import' && dataSaver) body = <RemotePlaceholder video={video} note="Data saver" />;
+  else if (remote && (!url || broken === url)) body = <RemotePlaceholder video={video} />;
+  else if (url) {
+    body = remote ? (
+      <img src={url} alt="" draggable={false} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setBroken(url)} />
+    ) : (
+      <img src={url} alt="" draggable={false} />
+    );
+  } else if (video.source === 'import') body = <RemotePlaceholder video={video} />;
+  else body = <div className="skeleton thumb__ph" />;
+  return <div className={`thumb ${discreet ? 'thumb--discreet' : ''} ${className}`}>{body}</div>;
 }
 
 export function VideoTile({
@@ -109,12 +145,18 @@ export function VideoTile({
     >
       <div className="tile__media">
         <Thumb video={video} className="tile__thumb" />
-        <span className="tile__dur">{formatDuration(video.duration)}</span>
+        {video.source === 'import' ? (
+          <span className="tile__dur">{video.mediaType === 'image' ? 'Image' : video.mediaType === 'video' ? 'Video' : 'Page'}</span>
+        ) : (
+          <span className="tile__dur">{formatDuration(video.duration)}</span>
+        )}
         {video.quality === '4K' && <span className="tile__q">4K</span>}
         {badge && <span className="tile__badge">{badge}</span>}
       </div>
       <span className="tile__title">{video.title}</span>
-      <span className="tile__meta">{meta ?? `${performers.slice(0, 2).join(', ')} · ${formatCount(video.views)} views`}</span>
+      <span className="tile__meta">
+        {meta ?? (video.source === 'import' ? `Imported · ${video.studioId.replace(/^site:/, '')}` : `${performers.slice(0, 2).join(', ')} · ${formatCount(video.views)} views`)}
+      </span>
     </button>
   );
 }

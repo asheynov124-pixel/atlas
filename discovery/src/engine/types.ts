@@ -56,7 +56,8 @@ export type PathKind =
   | 'aspect'
   | 'cluster'
   | 'search'
-  | 'collection';
+  | 'collection'
+  | 'imported';
 
 export type PathSeed =
   | { kind: 'forYou' }
@@ -71,7 +72,9 @@ export type PathSeed =
   | { kind: 'aspect'; videoId: string; vector: Vec; facets: FacetWeights; tagIds: string[]; excludeTagIds: string[]; label: string }
   | { kind: 'cluster'; vector: Vec; facets: FacetWeights; tagIds: string[]; label: string }
   | { kind: 'search'; query: SearchQuery; filters?: Partial<Filters>; label: string }
-  | { kind: 'collection'; videoIds: string[]; source: 'board' | 'saved' | 'smart' | 'history'; refId?: string; label: string };
+  | { kind: 'collection'; videoIds: string[]; source: 'board' | 'saved' | 'smart' | 'history'; refId?: string; label: string }
+  /** Your imports, ranked by taste — or one batch in import order. */
+  | { kind: 'imported'; batchId?: string; label: string };
 
 export interface Path {
   id: string;

@@ -172,6 +172,20 @@ export function FiltersSheet({ scope: initialScope }: { scope: 'global' | 'path'
       </div>
 
       <div className="fgroup">
+        <h3>Source</h3>
+        <Segmented
+          value={draft.source}
+          onChange={(v) => patch((f) => ((f.source = v), f))}
+          label="Content source"
+          options={[
+            { value: 'all', label: 'Everything' },
+            { value: 'catalog', label: 'Catalogue' },
+            { value: 'imports', label: 'My imports' },
+          ]}
+        />
+      </div>
+
+      <div className="fgroup">
         <h3>Performers</h3>
         <input className="search-input" value={pq} onChange={(e) => setPq(e.target.value)} placeholder="Find a performer to include or exclude" aria-label="Find performer" />
         {performers.length > 0 && (

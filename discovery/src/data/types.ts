@@ -95,13 +95,21 @@ export interface VideoSummary {
   embedding: Vec;
   /** Canonical page on the origin site. Always present so "open original" never dead-ends. */
   originalUrl: string;
+  /** Set on clips the user imported (Personal Import); absent for source content. */
+  source?: 'import';
+  mediaType?: 'image' | 'video' | 'page';
+  batchId?: string;
+  /** Free-text personal tags (imports). Taxonomy matches live in `tags`. */
+  userTags?: string[];
+  thumbnailUrl?: string;
 }
 
 /**
  * Playback is an ordered fallback chain: try an embed, then a direct source,
- * then send the user to the original page.
+ * then send the user to the original page. Imported stills use `image`.
  */
 export type PlaybackOption =
+  | { kind: 'image'; url: string }
   | { kind: 'embed'; url: string }
   | { kind: 'source'; url: string; mime?: string }
   | { kind: 'original'; url: string };
@@ -144,6 +152,8 @@ export interface Filters {
   /** 0 = only what you already like, 1 = mostly new territory. */
   exploration: number;
   preferNew: boolean;
+  /** Catalogue clips, your imports, or both. */
+  source: 'all' | 'catalog' | 'imports';
 }
 
 /** Text + structured query. Text is interpreted by the AI layer when present. */
@@ -158,6 +168,8 @@ export interface SearchQuery {
   /** Soft visual target produced by NL interpretation or aspect capture. */
   visual?: VisualTarget;
   sort?: 'relevance' | 'popular' | 'newest' | 'rating';
+  /** Restrict to imported clips (optionally specific batches). Sources without imports return nothing. */
+  imports?: { batchIds?: string[] };
 }
 
 /**

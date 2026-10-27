@@ -5,6 +5,7 @@ import { dataSource } from '../data/api';
 import type { PathNames } from '../engine/paths';
 import { cachedSummary } from '../data/api';
 import { useStore } from './store';
+import { isImportId, isSiteStudio, SITE_PREFIX } from '../import/model';
 
 interface TaxState {
   tx: Taxonomy | null;
@@ -46,10 +47,10 @@ export function names(): PathNames {
   return {
     tag: (id) => t.tag.get(id)?.label ?? id,
     performer: (id) => t.performer.get(id)?.name ?? 'Unknown performer',
-    studio: (id) => t.studio.get(id)?.name ?? 'Unknown studio',
+    studio: (id) => t.studio.get(id)?.name ?? (isSiteStudio(id) ? id.slice(SITE_PREFIX.length) : 'Unknown studio'),
     series: (id) => t.series.get(id)?.title ?? 'Series',
     video: (id) => {
-      const v = useStore.getState().content[id] ?? cachedSummary(id);
+      const v = isImportId(id) ? cachedSummary(id) : useStore.getState().content[id] ?? cachedSummary(id);
       if (!v) return 'this clip';
       return v.title.length > 26 ? `${v.title.slice(0, 24)}…` : v.title;
     },

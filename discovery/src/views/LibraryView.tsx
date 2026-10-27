@@ -12,10 +12,12 @@ import { PATH_KINDS } from '../engine/paths';
 import { Chip, EmptyState, Section, Segmented } from '../components/common';
 import { Thumb, VideoTile } from '../components/Thumb';
 import { playCollection } from '../components/sheets/LibrarySheets';
-import { IconBookmark, IconBranch, IconClock, IconPlay, IconPlus, IconSparkle, IconTrash, IconX } from '../components/Icons';
-import { clockTime, dayLabel, formatDuration, timeAgo } from '../lib/format';
+import { exportJSON, openImport } from '../components/sheets/ImportSheets';
+import { importSummary } from '../import/model';
+import { IconBookmark, IconBranch, IconClock, IconDownload, IconPlay, IconPlus, IconSparkle, IconTrash, IconUpload, IconX } from '../components/Icons';
+import { clockTime, dayLabel, formatDuration, plural, timeAgo } from '../lib/format';
 
-type LibTab = 'saved' | 'boards' | 'smart' | 'history';
+type LibTab = 'saved' | 'boards' | 'smart' | 'history' | 'imports';
 
 export function LibraryView() {
   const [tab, setTab] = useState<LibTab>('saved');
@@ -23,6 +25,9 @@ export function LibraryView() {
     <div className="page library">
       <header className="page__head">
         <h1>Library</h1>
+        <button type="button" className="btn btn--small" onClick={() => openImport()} aria-label="Import media">
+          <IconPlus size={16} /> Import
+        </button>
       </header>
       <Segmented
         value={tab}
@@ -33,13 +38,102 @@ export function LibraryView() {
           { value: 'boards', label: 'Boards' },
           { value: 'smart', label: 'Smart' },
           { value: 'history', label: 'History' },
+          { value: 'imports', label: 'Imports' },
         ]}
       />
       {tab === 'saved' && <Saved />}
       {tab === 'boards' && <Boards />}
       {tab === 'smart' && <Smart />}
       {tab === 'history' && <History />}
+      {tab === 'imports' && <Imports />}
     </div>
+  );
+}
+
+/** Import history: every batch with its date, count, and actions, plus everything imported. */
+function Imports() {
+  const imports = useStore((s) => activeData(s).imports);
+  const deleteImportBatch = useStore((s) => s.deleteImportBatch);
+  const openSheet = useUI((s) => s.openSheet);
+  const [confirm, setConfirm] = useState<string | null>(null);
+  const all = useMemo(() => imports.batches.flatMap((b) => b.itemIds.map((id) => imports.items[id]).filter(Boolean)), [imports]);
+  if (!imports.batches.length) {
+    return (
+      <EmptyState icon="⇪" title="Bring your own media" body="Paste links to images, videos, or gallery pages and they become clips you can swipe, like, save, and filter — stored only on this device.">
+        <button type="button" className="btn btn--primary" onClick={() => openImport()}>
+          <IconUpload size={16} /> Import links
+        </button>
+      </EmptyState>
+    );
+  }
+  return (
+    <>
+      <div className="row row--wrap">
+        <button type="button" className="btn btn--primary" onClick={() => startPath({ kind: 'imported', label: 'Imported' }, { show: true })}>
+          <IconPlay size={16} /> Swipe all imports
+        </button>
+        <button type="button" className="btn" onClick={() => openImport()}>
+          <IconPlus size={16} /> New import
+        </button>
+      </div>
+      <Section title={`Import history · ${plural(imports.batches.length, 'batch', 'batches')}`}>
+        <ul className="batch-list">
+          {imports.batches.map((b) => {
+            const items = b.itemIds.map((id) => imports.items[id]).filter(Boolean);
+            return (
+              <li key={b.id} className="batch-list__item">
+                <button type="button" className="batch-list__main" onClick={() => openSheet({ kind: 'import', batchId: b.id })} aria-label={`Re-open ${b.name}`}>
+                  <Mosaic ids={b.itemIds} />
+                  <span className="batch-list__text">
+                    <span className="batch-list__name">{b.name}</span>
+                    <small>
+                      {dayLabel(b.createdAt)} · {plural(items.length, 'item')}
+                      {b.stats.failed ? ` · ${b.stats.failed} open-original` : ''}
+                    </small>
+                  </span>
+                </button>
+                <div className="batch-list__actions">
+                  <button type="button" className="icon-btn icon-btn--small" aria-label={`Swipe ${b.name}`} onClick={() => startPath({ kind: 'imported', batchId: b.id, label: b.name }, { show: true })}>
+                    <IconPlay size={16} />
+                  </button>
+                  <button type="button" className="icon-btn icon-btn--small" aria-label={`Export ${b.name}`} onClick={() => exportJSON(b, items)}>
+                    <IconDownload size={16} />
+                  </button>
+                  <button type="button" className="icon-btn icon-btn--small" aria-label={`Delete ${b.name}`} onClick={() => setConfirm(confirm === b.id ? null : b.id)}>
+                    <IconTrash size={16} />
+                  </button>
+                </div>
+                {confirm === b.id && (
+                  <div className="confirm batch-list__confirm">
+                    <span>Delete “{b.name}”? Its clips leave saves, boards, history, and learning.</span>
+                    <div className="row">
+                      <button type="button" className="btn btn--danger btn--small" onClick={() => { deleteImportBatch(b.id); setConfirm(null); }}>
+                        Delete
+                      </button>
+                      <button type="button" className="btn btn--ghost btn--small" onClick={() => setConfirm(null)}>
+                        Keep
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </Section>
+      <Section title={`Everything imported · ${all.length}`}>
+        <div className="grid">
+          {all.slice(0, 120).map((it) => (
+            <VideoTile
+              key={it.id}
+              video={importSummary(it)}
+              onOpen={() => playCollection('Imports', all.map((x) => x.id), 'smart', 'imports', it.id)}
+              onLongPress={() => openSheet({ kind: 'edit-import', videoId: it.id })}
+            />
+          ))}
+        </div>
+      </Section>
+    </>
   );
 }
 
@@ -226,8 +320,10 @@ function Smart() {
     const longWatch = [...new Set(d.signals.filter((s) => s.kind === 'watch').map((s) => s.videoId))].reverse();
     const week = d.saves.filter((s) => Date.now() - s.savedAt < 7 * 86400000).map((s) => s.videoId);
     const fourK = saved.filter((v) => v.quality === '4K').map((v) => v.id);
+    const imported = d.imports.batches.flatMap((b) => b.itemIds).filter((id) => d.imports.items[id]);
     return {
       rules: [
+        { key: 'imports', label: '⇪ Imports', ids: imported },
         { key: 'liked', label: '♥ Everything you liked', ids: liked },
         { key: 'rewatched', label: '↻ Replayed', ids: rewatched },
         { key: 'long', label: '◷ Watched to the end', ids: longWatch },
@@ -236,10 +332,10 @@ function Smart() {
       ].filter((g) => g.ids.length),
       performer: by((v) => v.performerIds, (k) => performers.get(k)?.name ?? k),
       act: by((v) => v.tags.filter((t) => tags.get(t)?.category === 'act' && !['solo', 'couple'].includes(t)), (k) => tags.get(k)?.label ?? k),
-      studio: by((v) => [v.studioId], (k) => studios.get(k)?.name ?? k),
+      studio: by((v) => [v.studioId], (k) => studios.get(k)?.name ?? k.replace(/^site:/, '')),
       custom: by((v) => d.saves.find((s) => s.videoId === v.id)?.customTags ?? [], (k) => k),
     };
-  }, [d.saves, d.signals, tags, performers, studios]);
+  }, [d.saves, d.signals, d.imports, tags, performers, studios]);
 
   const open = (g: Group) => openSheet({ kind: 'collection', title: g.label, videoIds: g.ids, refId: g.key });
   const Row = ({ title, list }: { title: string; list: Group[] }) =>

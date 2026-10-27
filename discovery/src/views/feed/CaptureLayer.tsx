@@ -64,8 +64,10 @@ export function CaptureLayer() {
     return w * h > 0.0015 ? { x, y, w, h } : null;
   }, [points]);
 
+  // Imported media is never read by a face/body model, so a mark on it is only a note; words steer.
+  const imported = video?.source === 'import';
   const hit = useMemo(() => {
-    if (!region || !video) return null;
+    if (!region || !video || video.source === 'import') return null;
     const el = canvasRef.current;
     const aspect = el ? el.clientHeight / el.clientWidth : 844 / 390;
     return hitTest(visualParams(video, video.performerIds.map(performerLookup)), capture.time, region, aspect);
@@ -188,11 +190,16 @@ export function CaptureLayer() {
           </button>
         </div>
       </div>
-      {!region && <div className="capture__hint">Circle what caught your eye — a face, a body, a pose, or the light.</div>}
+      {!region && (
+        <div className="capture__hint">
+          {imported ? 'Mark what caught your eye, then say why — on imports your words steer the new path.' : 'Circle what caught your eye — a face, a body, a pose, or the light.'}
+        </div>
+      )}
       {breakdown && <div className="capture__read">Reads as: {breakdown}</div>}
+      {imported && region && <div className="capture__read">Noted. Imports aren’t read by a face or body model — describe it below.</div>}
       <div className="capture__panel">
         <div className="capture__quick">
-          {QUICK.map((q) => (
+          {QUICK.filter((q) => !imported || q.facet === 'pose' || q.facet === 'composition').map((q) => (
             <button key={q.facet} type="button" className={`chip chip--button${quick === q.facet ? ' chip--active' : ''}`} onClick={() => setQuick(quick === q.facet ? undefined : q.facet)}>
               <span className="chip__body">{q.label}</span>
             </button>

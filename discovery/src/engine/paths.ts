@@ -33,6 +33,7 @@ export const PATH_KINDS: Record<PathKind, PathKindInfo> = {
   cluster: { icon: '✧', title: 'AI cluster', blurb: 'A pocket of your taste the AI spotted' },
   search: { icon: '⌕', title: 'Search', blurb: 'Results as a feed' },
   collection: { icon: '▤', title: 'Collection', blurb: 'A board, collection, or history slice' },
+  imported: { icon: '⇪', title: 'Imported', blurb: 'Media you imported, ranked by your taste' },
 };
 
 export const FACET_LABEL: Record<string, string> = {
@@ -78,15 +79,19 @@ export function pathLabel(seed: PathSeed, n: PathNames): string {
     case 'cluster':
     case 'search':
     case 'collection':
+    case 'imported':
       return seed.label;
   }
 }
+
+/** The one persistent "all imports" path has a fixed id; batch paths get their own. */
+export const IMPORTED_PATH_ID = 'imported';
 
 export function createPath(seed: PathSeed, label: string, opts: { startWith?: string[]; filters?: Partial<Filters>; parentId?: string; pinned?: boolean } = {}): Path {
   const now = Date.now();
   const queue = seed.kind === 'collection' ? seed.videoIds.slice() : opts.startWith?.slice() ?? [];
   return {
-    id: seed.kind === 'forYou' ? 'for-you' : uid('path-'),
+    id: seed.kind === 'forYou' ? 'for-you' : seed.kind === 'imported' && !seed.batchId ? IMPORTED_PATH_ID : uid('path-'),
     seed,
     label,
     createdAt: now,
@@ -196,6 +201,8 @@ async function fetchPage(
       return ds.search(seed.query, mergeFilters(filters, seed.filters), page);
     case 'collection':
       return { items: [] };
+    case 'imported':
+      return ds.search({ imports: { batchIds: seed.batchId ? [seed.batchId] : undefined } }, filters, page);
   }
 }
 
@@ -260,6 +267,10 @@ function rankOptions(seed: PathSeed, ctx: PathContext, filters: Filters, exclude
       return { ...base, pathWeight: 0.9, profileWeight: 0.5 };
     case 'search':
       return { ...base, pathWeight: 1, profileWeight: 0.35 };
+    case 'imported':
+      return seed.batchId
+        ? { ...base, preserveOrder: true, dropDisliked: false, exploration: 0 }
+        : { ...base, pathWeight: 0.45, profileWeight: 0.9, recent: ctx.recent };
   }
 }
 

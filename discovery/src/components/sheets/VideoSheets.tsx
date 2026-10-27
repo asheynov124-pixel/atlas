@@ -42,16 +42,34 @@ export function DetailsSheet({ videoId }: { videoId: string }) {
     startPath(seed, { startWith: [videoId] });
     useUI.getState().closeAllSheets();
   };
+  const imported = summary.source === 'import';
+  const host = summary.studioId.replace(/^site:/, '');
   return (
-    <Sheet onClose={close} title={summary.title} subtitle={`${detail?.studio.name ?? ''} · ${summary.releaseDate.slice(0, 4)}`} tall>
+    <Sheet
+      onClose={close}
+      title={summary.title}
+      subtitle={imported ? `Imported from ${host} · ${summary.releaseDate}` : `${detail?.studio.name ?? ''} · ${summary.releaseDate.slice(0, 4)}`}
+      tall
+    >
       <div className="details">
-        <div className="details__stats">
-          <span>{formatDuration(summary.duration)}</span>
-          <span>{summary.quality}</span>
-          <span>{formatCount(summary.views)} views</span>
-          <span>{Math.round(summary.rating * 100)}% 👍</span>
-          <span>{summary.orientation === 'vertical' ? 'Shot vertical' : 'Cropped to vertical'}</span>
-        </div>
+        {imported ? (
+          <div className="details__stats">
+            <span>{summary.mediaType === 'image' ? 'Image' : summary.mediaType === 'video' ? 'Video' : 'Page link'}</span>
+            <span>{summary.quality}</span>
+            <span>Personal import</span>
+            <button type="button" className="link" onClick={() => openSheet({ kind: 'edit-import', videoId })}>
+              <IconPencil size={14} /> Edit details
+            </button>
+          </div>
+        ) : (
+          <div className="details__stats">
+            <span>{formatDuration(summary.duration)}</span>
+            <span>{summary.quality}</span>
+            <span>{formatCount(summary.views)} views</span>
+            <span>{Math.round(summary.rating * 100)}% 👍</span>
+            <span>{summary.orientation === 'vertical' ? 'Shot vertical' : 'Cropped to vertical'}</span>
+          </div>
+        )}
         {error && !detail && (
           <p className="muted">
             Details didn’t load ({error}). <button className="link" onClick={retry}>Retry</button>
@@ -59,7 +77,7 @@ export function DetailsSheet({ videoId }: { videoId: string }) {
         )}
         {detail && <p className="details__desc">{detail.description}</p>}
 
-        <h3 className="details__h">Performers</h3>
+        {!imported && <h3 className="details__h">Performers</h3>}
         <div className="details__people">
           {(detail?.performers ?? []).map((p) => (
             <button key={p.id} type="button" className="person" onClick={() => go({ kind: 'performer', performerId: p.id })}>
@@ -79,9 +97,22 @@ export function DetailsSheet({ videoId }: { videoId: string }) {
               #{tags.get(t)?.label ?? t}
             </Chip>
           ))}
+          {(summary.userTags ?? [])
+            .filter((t) => !summary.tags.some((id) => tags.get(id)?.label.toLowerCase() === t.toLowerCase()))
+            .map((t) => (
+              <Chip key={`u:${t}`} tone="muted" onClick={() => go({ kind: 'search', query: { text: t, imports: {} }, label: `#${t}` })}>
+                #{t}
+              </Chip>
+            ))}
+          {imported && !summary.tags.length && !(summary.userTags ?? []).length && <span className="muted small">No tags yet — add some in Edit details.</span>}
         </div>
 
         <div className="details__links">
+          {imported && (
+            <button type="button" className="link-row" onClick={() => go({ kind: 'related', videoId })}>
+              ⟡ More from this set <IconChevron size={14} />
+            </button>
+          )}
           {detail && (
             <button type="button" className="link-row" onClick={() => go({ kind: 'studio', studioId: detail.studioId })}>
               ▣ More from {detail.studio.name} <IconChevron size={14} />
@@ -115,7 +146,7 @@ export function DetailsSheet({ videoId }: { videoId: string }) {
         <ol className="playback-chain">
           {(detail?.playback ?? []).map((p, i) => (
             <li key={i}>
-              <b>{p.kind === 'embed' ? 'Embed' : p.kind === 'source' ? 'Direct source' : 'Open original'}</b>
+              <b>{p.kind === 'embed' ? 'Embed' : p.kind === 'source' ? 'Direct source' : p.kind === 'image' ? 'Image' : 'Open original'}</b>
               <code>{p.url.replace(/^https?:\/\//, '')}</code>
             </li>
           ))}
@@ -183,6 +214,7 @@ export function MenuSheet({ videoId }: { videoId: string }) {
         <MenuItem icon={<IconPlus />} label="Save to board…" onClick={() => openSheet({ kind: 'save', videoId })} />
         <MenuItem icon="↓" label="Less like this" hint="Soft signal — keeps it possible" onClick={run(() => moreOrLess(videoId, 'less'))} />
         <MenuItem icon={<IconInfo />} label="Details & why this?" onClick={() => openSheet({ kind: 'details', videoId })} />
+        {summary.source === 'import' && <MenuItem icon={<IconPencil />} label="Edit details…" hint="Title, personal tags, notes" onClick={() => openSheet({ kind: 'edit-import', videoId })} />}
         <MenuItem icon={<IconBan />} label="Never show…" hint="Hard block, separate from Pass" onClick={() => setBlockOpen((v) => !v)} tone="danger" />
         {blockOpen && (
           <div className="menu__sub">
@@ -190,7 +222,11 @@ export function MenuSheet({ videoId }: { videoId: string }) {
             {summary.performerIds.map((p) => (
               <MenuItem key={p} label={performers.get(p)?.name ?? p} hint="Performer" onClick={run(() => block('performers', p, performers.get(p)?.name ?? 'this performer'))} tone="danger" />
             ))}
-            <MenuItem label={studios.get(summary.studioId)?.name ?? 'This studio'} hint="Studio" onClick={run(() => block('studios', summary.studioId, studios.get(summary.studioId)?.name ?? 'this studio'))} tone="danger" />
+            {summary.source === 'import' ? (
+              <MenuItem label={summary.studioId.replace(/^site:/, '')} hint="Every import from this site" onClick={run(() => block('studios', summary.studioId, summary.studioId.replace(/^site:/, '')))} tone="danger" />
+            ) : (
+              <MenuItem label={studios.get(summary.studioId)?.name ?? 'This studio'} hint="Studio" onClick={run(() => block('studios', summary.studioId, studios.get(summary.studioId)?.name ?? 'this studio'))} tone="danger" />
+            )}
             <div className="chips chips--pad">
               {summary.tags.map((t) => (
                 <Chip key={t} tone="dislike" onClick={run(() => block('tags', t, `#${tags.get(t)?.label ?? t}`))}>
@@ -236,6 +272,28 @@ export function MoreLikeSheet({ videoId, title }: { videoId: string; title?: str
     closeAll();
   };
   const facets: ('face' | 'body' | 'pose' | 'composition')[] = ['face', 'body', 'pose', 'composition'];
+  if (summary.source === 'import') {
+    const host = summary.studioId.replace(/^site:/, '');
+    return (
+      <Sheet onClose={close} title={title ?? 'More like this'} subtitle="Each option opens a parallel Smart Path. This clip stays on screen.">
+        <div className="morelike">
+          <div className="morelike__hero">
+            <Thumb video={summary} width={120} className="morelike__thumb" />
+            <div>
+              <strong>{summary.title}</strong>
+              <small>Imported from {host}</small>
+            </div>
+          </div>
+          <MenuItem icon={PATH_KINDS.related.icon} label="More from this set" hint="Same page or gallery first, then the same site" onClick={() => go(seedFrom('related', summary))} />
+          <MenuItem icon={PATH_KINDS.studio.icon} label={`Everything from ${host}`} onClick={() => go(seedFrom('studio', summary))} />
+          {summary.tags.length > 0 && <MenuItem icon={PATH_KINDS.tags.icon} label="Catalogue clips with these tags" hint={PATH_KINDS.tags.blurb} onClick={() => go(seedFrom('tags', summary))} />}
+          <MenuItem icon={PATH_KINDS.imported.icon} label="All my imports" hint={PATH_KINDS.imported.blurb} onClick={() => go({ kind: 'imported', label: 'Imported' })} />
+          <MenuItem icon={PATH_KINDS.contrast.icon} label="Contrast" hint={PATH_KINDS.contrast.blurb} onClick={() => go(seedFrom('contrast', summary))} />
+          <p className="muted small">Imported media is never matched by face or body — “more like this” follows the set, the site, and your tags.</p>
+        </div>
+      </Sheet>
+    );
+  }
   return (
     <Sheet onClose={close} title={title ?? 'More like this'} subtitle="Each option opens a parallel Smart Path. This clip stays on screen.">
       <div className="morelike">

@@ -4,6 +4,7 @@ import { DetailsSheet, EditSaveSheet, MenuSheet, MoreLikeSheet, SaveSheet } from
 import { AspectResultSheet, PathsSheet, ProfilesSheet } from './PathSheets';
 import { FiltersSheet } from './FiltersSheet';
 import { BoardSheet, CollectionSheet, VisualSearchSheet } from './LibrarySheets';
+import { BulkTitleSheet, EditImportSheet, ImportSheet } from './ImportSheets';
 import type { Sheet } from '../../state/ui';
 
 function render(s: Sheet) {
@@ -32,6 +33,12 @@ function render(s: Sheet) {
       return <BoardSheet boardId={s.boardId} />;
     case 'collection':
       return <CollectionSheet title={s.title} videoIds={s.videoIds} refId={s.refId} />;
+    case 'import':
+      return <ImportSheet batchId={s.batchId} />;
+    case 'bulk-titles':
+      return <BulkTitleSheet target={s.target} focus={s.focus} />;
+    case 'edit-import':
+      return <EditImportSheet videoId={s.videoId} />;
   }
 }
 
