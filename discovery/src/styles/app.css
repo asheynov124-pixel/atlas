@@ -1162,6 +1162,7 @@ input[type='range'] {
   padding: 0 10px 0 4px;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(167, 139, 250, 0.45);
   border: 1px solid color-mix(in srgb, var(--pc, #a78bfa) 55%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -1174,6 +1175,7 @@ input[type='range'] {
   border-radius: 50%;
   display: grid;
   place-items: center;
+  background: rgba(167, 139, 250, 0.2);
   background: color-mix(in srgb, var(--pc, #a78bfa) 30%, transparent);
 }
 
@@ -1569,6 +1571,7 @@ input[type='range'] {
   bottom: 0;
   margin: 0 auto;
   max-width: 600px;
+  max-height: 88vh;
   max-height: 88dvh;
   display: flex;
   flex-direction: column;
@@ -1584,6 +1587,7 @@ input[type='range'] {
 }
 
 .sheet--tall {
+  height: 88vh;
   height: 88dvh;
 }
 
@@ -2032,6 +2036,7 @@ input[type='range'] {
 
 .proflist__item--on {
   border-color: var(--pc);
+  background: rgba(167, 139, 250, 0.2);
   background: color-mix(in srgb, var(--pc) 14%, var(--surface-2));
 }
 
@@ -2042,6 +2047,7 @@ input[type='range'] {
   display: grid;
   place-items: center;
   font-size: 1.3rem;
+  background: rgba(167, 139, 250, 0.2);
   background: color-mix(in srgb, var(--pc) 28%, transparent);
 }
 
@@ -2251,6 +2257,11 @@ input[type='range'] {
 
 .tile,
 .tile-wrap {
+  /* No iOS image callout / text selection: it would cancel long-press and
+     offer an unblurred preview of discreet thumbnails. */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -2336,6 +2347,11 @@ input[type='range'] {
   border-radius: 12px;
   overflow: hidden;
   background: var(--surface-2);
+}
+
+.thumb img {
+  pointer-events: none;
+  -webkit-touch-callout: none;
 }
 
 .thumb img,
@@ -2774,7 +2790,9 @@ input[type='range'] {
 .profile-card {
   padding: 16px;
   border-radius: var(--radius-lg);
+  background: rgba(167, 139, 250, 0.2);
   background: linear-gradient(160deg, color-mix(in srgb, var(--pc) 22%, var(--surface)), var(--surface) 70%);
+  border: 1px solid rgba(167, 139, 250, 0.45);
   border: 1px solid color-mix(in srgb, var(--pc) 35%, transparent);
   display: flex;
   flex-direction: column;
@@ -2792,6 +2810,7 @@ input[type='range'] {
   height: 52px;
   border-radius: 50%;
   font-size: 1.6rem;
+  background: rgba(167, 139, 250, 0.2);
   background: color-mix(in srgb, var(--pc) 32%, transparent);
   flex-shrink: 0;
 }

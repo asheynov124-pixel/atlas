@@ -12,6 +12,7 @@ export function FeedEnd({ idx, registerEl, onBack }: { idx: number; registerEl: 
   const openSheet = useUI((s) => s.openSheet);
   const setEl = useCallback((el: HTMLDivElement | null) => registerEl(idx, el), [idx, registerEl]);
   const lastId = path.queue[path.queue.length - 1];
+  const isForYou = path.seed.kind === 'forYou';
 
   let body: React.ReactNode;
   if (status?.error) {
@@ -38,9 +39,15 @@ export function FeedEnd({ idx, registerEl, onBack }: { idx: number; registerEl: 
     body = (
       <div className="end-card" data-no-gesture>
         <div className="end-card__icon">{PATH_KINDS[path.seed.kind].icon}</div>
-        <h3>That’s everything on this path</h3>
+        <h3>{isForYou ? 'Nothing else matches your filters' : 'That’s everything on this path'}</h3>
         <p>
-          {path.queue.length} clip{path.queue.length === 1 ? '' : 's'} in <strong>{path.label}</strong>. Branch somewhere new:
+          {isForYou ? (
+            'For You never runs out on its own — loosen a filter or block and it picks up again.'
+          ) : (
+            <>
+              {path.queue.length} clip{path.queue.length === 1 ? '' : 's'} in <strong>{path.label}</strong>. Branch somewhere new:
+            </>
+          )}
         </p>
         <div className="end-card__actions">
           {lastId && (
@@ -53,9 +60,15 @@ export function FeedEnd({ idx, registerEl, onBack }: { idx: number; registerEl: 
               ◐ Something different
             </button>
           )}
-          <button className="btn" onClick={() => activatePath('for-you')}>
-            ✦ Back to For You
-          </button>
+          {isForYou ? (
+            <button className="btn" onClick={() => openSheet({ kind: 'filters', scope: 'global' })}>
+              Edit filters
+            </button>
+          ) : (
+            <button className="btn" onClick={() => activatePath('for-you')}>
+              ✦ Back to For You
+            </button>
+          )}
           <button className="btn btn--ghost" onClick={() => openSheet({ kind: 'paths' })}>
             All paths
           </button>

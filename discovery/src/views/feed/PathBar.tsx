@@ -3,7 +3,7 @@ import { useStore, activePath, activeData } from '../../state/store';
 import { useUI } from '../../state/ui';
 import { switchPath } from '../../state/feed';
 import { PATH_KINDS } from '../../engine/paths';
-import { countActive } from '../../engine/filters';
+import { countActive, mergeFilters } from '../../engine/filters';
 import { IconChevron, IconSearch, IconSliders } from '../../components/Icons';
 import { ProfileBadge } from '../../components/common';
 import { haptic } from '../../gestures/haptics';
@@ -11,7 +11,7 @@ import { haptic } from '../../gestures/haptics';
 export function PathBar() {
   const path = useStore(activePath);
   const count = useStore((s) => activeData(s).paths.length);
-  const filterCount = useStore((s) => countActive(activeData(s).filters) + countActive(activePath(s).filters));
+  const filterCount = useStore((s) => countActive(mergeFilters(activeData(s).filters, activePath(s).filters)));
   const openSheet = useUI((s) => s.openSheet);
   const setTab = useUI((s) => s.setTab);
   const hidden = useUI((s) => s.overlayHidden);

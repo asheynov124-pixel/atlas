@@ -24,13 +24,13 @@ export function App() {
     void useTaxonomy.getState().load();
   }, []);
 
-  // After hydration: apply mock config, warm caches from the snapshot store, arm the lock.
+  // After hydration: apply mock config and warm caches from the snapshot store.
+  // (The app lock is armed during hydration itself, before anything paints.)
   useEffect(() => {
     if (!hydrated) return;
     const s = useStore.getState();
     mockSource.configure(s.settings.mock);
     remember(Object.values(s.content));
-    if (s.settings.pinHash) useUI.getState().setLocked(true);
   }, [hydrated]);
 
   // Re-lock after time away.
@@ -50,6 +50,25 @@ export function App() {
     const prevent = (e: Event) => e.preventDefault();
     document.addEventListener('gesturestart', prevent);
     return () => document.removeEventListener('gesturestart', prevent);
+  }, []);
+
+  // System back (Android gesture nav, iOS Safari edge swipe) closes the top
+  // layer instead of leaving the app: keep one in-app history entry and
+  // re-arm it after each handled back.
+  useEffect(() => {
+    const arm = () => history.pushState({ phd: true }, '', location.hash || '#/feed');
+    if (!(history.state as { phd?: boolean } | null)?.phd) arm();
+    const onPop = () => {
+      const ui = useUI.getState();
+      if (ui.locked) return;
+      if (ui.capture) ui.setCapture(null);
+      else if (ui.sheets.length) ui.closeSheet();
+      else if (ui.tab !== 'feed') ui.setTab('feed');
+      else return; // nothing open: the next back leaves, as expected
+      arm();
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
   }, []);
 
   useEffect(() => {

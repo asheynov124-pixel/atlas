@@ -104,8 +104,9 @@ export function SearchView() {
     if (tab !== 'search') return;
     const t = setTimeout(() => void run(text), 280);
     return () => clearTimeout(t);
+    // Re-run when profile filters or blocks change, not only when the text does.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text, attempt, tab]);
+  }, [text, attempt, tab, d.filters, d.blocks]);
 
   useEffect(() => {
     if (tab === 'search' && !text) inputRef.current?.focus({ preventScroll: true });

@@ -5,7 +5,7 @@ import { useVideoDetail } from './useVideoDetail';
 import { useStore, activeData } from '../../state/store';
 import { useUI } from '../../state/ui';
 import { useTaxonomy } from '../../state/taxonomy';
-import { startPath, trackProgress } from '../../state/feed';
+import { noteTime, startPath, trackProgress } from '../../state/feed';
 import type { Intent } from '../../gestures/classify';
 import { IconBookmark, IconChevron, IconDots, IconExternal, IconHeart, IconTarget, IconVolume, IconX } from '../../components/Icons';
 import { Skeleton } from '../../components/common';
@@ -51,9 +51,10 @@ export const FeedCard = memo(function FeedCard({ videoId, idx, active, playing, 
   const setEl = useCallback((el: HTMLDivElement | null) => registerEl(idx, el), [idx, registerEl]);
 
   const onTime = useCallback((t: number, d: number) => {
+    noteTime(videoId, t);
     if (progressRef.current) progressRef.current.style.transform = `scaleX(${d ? t / d : 0})`;
     if (timeRef.current) timeRef.current.textContent = formatDuration(t);
-  }, []);
+  }, [videoId]);
   const onProgress = useCallback((dt: number, looped: boolean) => trackProgress(videoId, dt, looped), [videoId]);
   const onResolved = useCallback((k: PlaybackOption['kind'] | 'failed') => setVia(k), []);
 

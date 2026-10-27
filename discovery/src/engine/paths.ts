@@ -115,6 +115,11 @@ export interface PathContext {
 }
 
 const PAGE = 40;
+/**
+ * For You is meant to be endless. Once its source runs out it starts over,
+ * recycling clips that are at least this many positions back in the queue.
+ */
+export const FOR_YOU_RECYCLE = 300;
 
 /**
  * Up to three interest centroids from the profile's embedding store: k-means
@@ -273,12 +278,14 @@ export async function extendPath(path: Path, ctx: PathContext, want = 12, video?
   if (seed.kind === 'aspect' && seed.excludeTagIds.length) {
     filters = { ...filters, tags: { ...filters.tags, none: [...new Set([...filters.tags.none, ...seed.excludeTagIds])] } };
   }
-  const exclude = new Set(path.queue);
+  const endless = seed.kind === 'forYou';
+  const exclude = new Set(endless ? path.queue.slice(-FOR_YOU_RECYCLE) : path.queue);
   const opts = rankOptions(seed, ctx, filters, exclude, video);
   const ranked: Ranked[] = [];
   let cursor = path.cursor;
   let exhausted = false;
-  for (let attempt = 0; attempt < 5 && ranked.length < want; attempt++) {
+  let wrapped = false;
+  for (let attempt = 0; attempt < 6 && ranked.length < want; attempt++) {
     const page = await fetchPage(seed, cursor, ctx, filters, [...exclude], video);
     const batch = rank(page.items, opts);
     for (const r of batch) {
@@ -286,10 +293,15 @@ export async function extendPath(path: Path, ctx: PathContext, want = 12, video?
       ranked.push(r);
     }
     cursor = page.nextCursor;
-    if (!cursor) {
-      exhausted = true;
-      break;
+    if (cursor) continue;
+    if (endless && !wrapped) {
+      // Start the source over; the recycle window keeps recent clips out.
+      wrapped = true;
+      continue;
     }
+    // Finite paths end here; For You only "ends" if nothing at all matches its filters.
+    exhausted = !endless || ranked.length === 0;
+    break;
   }
   return { append: ranked.map((r) => r.video.id), ranked, cursor, exhausted };
 }

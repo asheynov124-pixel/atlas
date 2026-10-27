@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useStore, activePath, activeData } from '../../state/store';
 import { useUI } from '../../state/ui';
-import { beginView, endView, ensureBuffer, goNext, goPrev, judge, save, switchPath } from '../../state/feed';
+import { advanceFrom, beginView, endView, ensureBuffer, judge, save, switchPath } from '../../state/feed';
 import { useStageGestures, type DragState } from '../../gestures/useStageGestures';
 import type { Intent } from '../../gestures/classify';
 import type { PlayerHandle } from '../../player/ClipPlayer';
@@ -73,7 +73,9 @@ export function FeedView() {
     beginView(currentId);
     return () => {
       const st = useStore.getState();
-      const left = useUI.getState().tab !== 'feed' || activePath(st).id !== pathId;
+      const ui = useUI.getState();
+      // Locking, leaving the tab, or switching path is not a verdict on the clip.
+      const left = ui.tab !== 'feed' || ui.locked || activePath(st).id !== pathId;
       endView(left ? 'leave' : 'advance');
     };
   }, [currentId, path.id, tab]);
@@ -103,6 +105,8 @@ export function FeedView() {
   }, []);
 
   useLayoutEffect(() => {
+    // Mid-animation (e.g. a load finished and grew the queue) leave the flung card alone.
+    if (busy.current) return;
     place(0, false);
     setFeedback(null, 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -143,9 +147,16 @@ export function FeedView() {
   const after = (fn: () => void) => {
     busy.current = true;
     setTimeout(() => {
-      fn();
       busy.current = false;
+      fn();
       stageRef.current?.classList.remove('stage--dragging');
+      // Settle positions even if fn didn't change the index (e.g. the path moved meanwhile).
+      requestAnimationFrame(() => {
+        if (!busy.current) {
+          place(0, false);
+          setFeedback(null, 0);
+        }
+      });
     }, DUR);
   };
 
@@ -201,7 +212,7 @@ export function FeedView() {
             n.style.transition = `transform ${DUR}ms ${EASE}`;
             n.style.transform = 'translate3d(0,0,0)';
           }
-          after(goNext);
+          after(() => advanceFrom(p.id, p.index));
           return;
         }
         case 'save': {
@@ -214,7 +225,7 @@ export function FeedView() {
             return;
           }
           place(-H, true);
-          after(goNext);
+          after(() => advanceFrom(p.id, p.index));
           return;
         }
         case 'capture': {
@@ -231,7 +242,7 @@ export function FeedView() {
           }
           haptic('selection');
           place(-H, true);
-          after(goNext);
+          after(() => advanceFrom(p.id, p.index));
           return;
         }
         case 'prev': {
@@ -241,7 +252,7 @@ export function FeedView() {
           }
           haptic('selection');
           place(H, true);
-          after(goPrev);
+          after(() => advanceFrom(p.id, p.index, -1));
           return;
         }
         case 'pathNext':

@@ -67,8 +67,11 @@ export function useStageGestures(ref: React.RefObject<HTMLElement | null>, handl
     let samples: Sample[] = [];
     let longTimer: ReturnType<typeof setTimeout> | null = null;
     let longFired = false;
+    // Double-tap: the window runs from the first release to the *second press*,
+    // so an ordinary double-tap isn't penalised for how long the finger stays down.
     let lastTap: { t: number; x: number; y: number } | null = null;
     let tapTimer: ReturnType<typeof setTimeout> | null = null;
+    let secondPress = false;
     let raf = 0;
     let latest: DragState | null = null;
     let rect = el.getBoundingClientRect();
@@ -112,6 +115,13 @@ export function useStageGestures(ref: React.RefObject<HTMLElement | null>, handl
       }
       if (pointers.size === 1) {
         rect = el.getBoundingClientRect();
+        const now = performance.now();
+        secondPress = !!lastTap && now - lastTap.t < DOUBLE_TAP_MS && Math.hypot(e.clientX - rect.left - lastTap.x, e.clientY - rect.top - lastTap.y) < 44;
+        if (secondPress && tapTimer) {
+          // Hold the pending single tap until we know whether this press is the second tap.
+          clearTimeout(tapTimer);
+          tapTimer = null;
+        }
         active = true;
         axis = null;
         longFired = false;
@@ -166,28 +176,41 @@ export function useStageGestures(ref: React.RefObject<HTMLElement | null>, handl
       }
       const dx = c.x - origin.x;
       const dy = c.y - origin.y;
-      if (longFired) return;
-      if (!axis) {
-        const ms = performance.now() - startAt;
-        if (cancelled || !isTap({ dx, dy, ms })) return;
-        const x = c.x - rect.left;
-        const y = c.y - rect.top;
-        const now = performance.now();
-        if (lastTap && now - lastTap.t < DOUBLE_TAP_MS && Math.hypot(x - lastTap.x, y - lastTap.y) < 40) {
-          if (tapTimer) clearTimeout(tapTimer);
-          tapTimer = null;
-          lastTap = null;
-          h.current.onDoubleTap(x, y);
-        } else {
-          lastTap = { t: now, x, y };
-          tapTimer = setTimeout(() => {
-            tapTimer = null;
-            lastTap = null;
-            h.current.onTap(x, y);
-          }, DOUBLE_TAP_MS);
-        }
+      if (longFired) {
+        secondPress = false;
+        lastTap = null;
         return;
       }
+      if (!axis) {
+        const ms = performance.now() - startAt;
+        const x = c.x - rect.left;
+        const y = c.y - rect.top;
+        const pendingFirst = lastTap;
+        if (cancelled || !isTap({ dx, dy, ms })) {
+          // The second press turned into something else: honour the first tap.
+          if (secondPress && pendingFirst) {
+            lastTap = null;
+            h.current.onTap(pendingFirst.x, pendingFirst.y);
+          }
+          secondPress = false;
+          return;
+        }
+        if (secondPress && pendingFirst) {
+          secondPress = false;
+          lastTap = null;
+          h.current.onDoubleTap(x, y);
+          return;
+        }
+        lastTap = { t: performance.now(), x, y };
+        tapTimer = setTimeout(() => {
+          tapTimer = null;
+          lastTap = null;
+          h.current.onTap(x, y);
+        }, DOUBLE_TAP_MS);
+        return;
+      }
+      if (secondPress) lastTap = null;
+      secondPress = false;
       const s = state(dx, dy)!;
       const first = samples[0];
       const last = samples[samples.length - 1];
@@ -210,7 +233,13 @@ export function useStageGestures(ref: React.RefObject<HTMLElement | null>, handl
       if ((e.target as HTMLElement).closest('[data-no-gesture]')) return;
       e.preventDefault();
       const now = performance.now();
-      if (now < wheelLock) return;
+      if (now < wheelLock) {
+        // Trackpad momentum keeps firing long after the flick: extend the lock
+        // until the stream goes quiet so one flick moves one clip.
+        wheelLock = Math.max(wheelLock, now + 160);
+        wheelAcc = 0;
+        return;
+      }
       wheelAcc += e.deltaY;
       if (Math.abs(wheelAcc) > 60) {
         h.current.onWheel(wheelAcc > 0 ? 1 : -1);

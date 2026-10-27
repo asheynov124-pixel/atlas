@@ -1,6 +1,9 @@
 /** Bottom sheet with backdrop, drag-to-dismiss, and safe-area padding. */
 import { useEffect, useRef, type ReactNode } from 'react';
 
+/** Open sheets, bottom to top. Escape closes only the topmost. */
+const stack: symbol[] = [];
+
 export function Sheet({
   title,
   subtitle,
@@ -21,12 +24,24 @@ export function Sheet({
   const ref = useRef<HTMLDivElement>(null);
   const drag = useRef<{ y: number; dy: number } | null>(null);
 
+  const token = useRef(Symbol('sheet'));
+  useEffect(() => {
+    const me = token.current;
+    stack.push(me);
+    ref.current?.focus();
+    return () => {
+      const i = stack.lastIndexOf(me);
+      if (i >= 0) stack.splice(i, 1);
+    };
+  }, []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && stack[stack.length - 1] === token.current) {
+        e.stopPropagation();
+        onClose();
+      }
     };
     window.addEventListener('keydown', onKey);
-    ref.current?.focus();
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 

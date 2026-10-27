@@ -17,15 +17,18 @@ The whole experience runs on a local mock data layer: a deterministic catalogue 
 cd discovery
 npm install
 npm run dev            # http://localhost:5173 (also on your LAN via --host)
-npm test               # 48 unit tests (engine, AI, data layer, gestures, store/privacy)
+npm test               # 56 unit tests (engine, AI, data layer, gestures, store/privacy, regressions)
 npm run build          # typecheck + production build + service worker
 npx vite preview --port 4173 &
-npm run e2e            # 25 Playwright checks at iPhone 14 size, real gestures
+npm run e2e            # 29 Playwright checks at iPhone 14 size, real gestures
 ```
 
 **On an iPhone:** run `npm run dev`, open the LAN address in Safari, then Share → *Add to
 Home Screen*. As a standalone PWA there is no browser back-swipe fighting the left-edge
-gesture. In a plain Safari tab, use the right edge or two fingers for navigation.
+gesture. In a plain Safari tab (and on Android with gesture navigation), the OS owns the
+outermost edge. Use two fingers for path switching there. If the system back gesture does
+fire, the app treats it as in-app back: it closes the top sheet, capture, or tab instead of
+leaving.
 
 ## Gestures
 
@@ -80,10 +83,11 @@ produces the system tick.
 - **Deep filters:** performer include/exclude and attributes, tag logic (must have / any of
   / exclude), soft tag weights, studios, style, quality, length, year, a
   familiar↔discovery slider, and saved presets. Filters apply per path or profile-wide.
-- **Privacy:** everything stays in IndexedDB on the device. Also included: incognito
-  session, pause learning, discreet (blurred) thumbnails, PIN app lock, export/import JSON,
-  per-profile reset, and erase everything. There's an 18+ gate on first run and a query
-  safety gate (below).
+- **Privacy:** everything stays in IndexedDB on the device. **Incognito** pauses all disk
+  writes (signals, history, searches, *and* path progress), and turning it off rewinds to
+  the pre-incognito state. Also included: pause learning, discreet (blurred) thumbnails, PIN
+  app lock (armed before first paint), export/import JSON, per-profile reset, and erase
+  everything. There's an 18+ gate on first run and a query safety gate (below).
 
 ## Architecture
 

@@ -352,6 +352,68 @@ await check('iPad landscape keeps the overlay in a readable column', async () =>
   await page.setViewportSize({ width: W, height: H });
 });
 
+await check('long-press menu from the Library acts on that clip, not the hidden feed', async () => {
+  await tab('Feed').click();
+  await wait(400);
+  const before = await activeId();
+  await tab('Library').click();
+  await page.getByRole('tab', { name: 'Saved' }).click();
+  const tile = page.locator('.tile').first();
+  await tile.waitFor();
+  await tile.click({ button: 'right' }); // contextmenu = long-press on desktop
+  await page.getByText('Note & custom tags').waitFor().catch(() => undefined);
+  await page.keyboard.press('Escape');
+  await page.getByRole('tab', { name: 'Boards' }).click();
+  await page.locator('.board-card').first().click();
+  await page.locator('.sheet .tile').first().click({ button: 'right' });
+  await page.locator('.menu__quick .quick--like').click();
+  await wait(500);
+  await tab('Feed').click();
+  await wait(400);
+  assert((await activeId()) === before, 'feed moved after a like from the Library');
+});
+
+await check('system back closes the open sheet instead of leaving the app', async () => {
+  await page.locator('.pathbar__chip').click();
+  await page.getByText('Smart Paths').waitFor();
+  await page.goBack();
+  await wait(400);
+  assert((await page.getByText('Smart Paths').count()) === 0, 'sheet still open');
+  assert(page.url().startsWith(base.replace(/\/$/, '')), `left the app: ${page.url()}`);
+  assert((await page.locator('.tabbar').count()) === 1, 'app not visible');
+});
+
+await check('an unhurried double-tap (130ms presses, 150ms gap) likes without pausing', async () => {
+  // Release-to-release is ~280ms: the old 260ms window missed this; the gap that matters is 150ms.
+  const id = await activeId();
+  const x = W * 0.45;
+  const y = H * 0.4;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await wait(130);
+  await page.mouse.up();
+  await wait(150);
+  await page.mouse.down();
+  await wait(130);
+  await page.mouse.up();
+  await wait(700);
+  assert((await page.locator('.paused-badge').count()) === 0, 'double-tap paused the clip');
+  const s = await state();
+  assert(s.data[s.activeProfileId].signals.some((x) => x.kind === 'like' && x.videoId === id), 'no like recorded');
+});
+
+await check('release-year box accepts typing digit by digit', async () => {
+  await page.getByRole('button', { name: 'Filters' }).click();
+  const yearMin = page.getByLabel('Release year minimum');
+  await yearMin.scrollIntoViewIfNeeded();
+  await yearMin.click();
+  await page.keyboard.type('2019');
+  assert((await yearMin.inputValue()) === '2019', `typed value became ${await yearMin.inputValue()}`);
+  await page.keyboard.press('Tab');
+  assert((await yearMin.inputValue()) === '2019', 'value changed on blur');
+  await page.keyboard.press('Escape');
+});
+
 console.log(results.join('\n'));
 if (problems.length) console.log('\nBrowser problems:\n' + [...new Set(problems)].join('\n'));
 await browser.close();

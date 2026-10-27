@@ -5,28 +5,58 @@
  */
 import { dataSource, remember, cachedSummary } from '../data/api';
 import type { Reason, VideoSummary } from '../data/types';
-import { createPath, extendPath, pathLabel, type PathContext } from '../engine/paths';
+import { createPath, extendPath, pathLabel, FOR_YOU_RECYCLE, type PathContext } from '../engine/paths';
 import { implicitSignal } from '../engine/learning';
 import { profileScore } from '../engine/ranking';
 import type { HistoryAction, Path, PathSeed, SignalKind } from '../engine/types';
-import { activeData, activePath, useStore } from './store';
+import { activeData, activePath, onWipe, useStore } from './store';
 import { getModel, lookupVideo } from './selectors';
 import { names, performerLookup, useTaxonomy } from './taxonomy';
 import { useUI } from './ui';
 import { haptic } from '../gestures/haptics';
 
+/** Ranking reasons, keyed by profile so one profile's "why" never shows in another. */
 const reasonCache = new Map<string, Reason[]>();
 const MAX_QUEUE = 600;
 const TRIM = 200;
 /** Re-ranking leaves this many upcoming clips alone so preloaded cards don't swap under the user. */
 const STABLE_AHEAD = 2;
 const inflight = new Map<string, Promise<void>>();
+/**
+ * Bumped whenever a path's future is invalidated (filters, blocks, rebuild).
+ * A load that started under an older epoch is discarded instead of written.
+ */
+const epochs = new Map<string, number>();
+/** Last known playback time per clip, so menus can capture "where you paused". */
+const lastTime = new Map<string, number>();
+
+const key = (profileId: string, pathId: string) => `${profileId}:${pathId}`;
+const epochOf = (k: string) => epochs.get(k) ?? 0;
+
+function invalidate(profileId: string, pathId: string) {
+  const k = key(profileId, pathId);
+  epochs.set(k, epochOf(k) + 1);
+}
+
+onWipe(() => {
+  reasonCache.clear();
+  lastTime.clear();
+  useUI.getState().setSearchText('');
+});
 
 export function reasonsFor(pathId: string, videoId: string): Reason[] {
-  const hit = reasonCache.get(`${pathId}|${videoId}`);
+  const hit = reasonCache.get(`${useStore.getState().activeProfileId}|${pathId}|${videoId}`);
   if (hit) return hit;
   const v = lookupVideo(videoId);
   return v ? profileScore(v, getModel(), names()).reasons : [];
+}
+
+export function noteTime(videoId: string, t: number) {
+  lastTime.set(videoId, t);
+}
+
+export function lastTimeFor(videoId: string): number {
+  return lastTime.get(videoId) ?? 0;
 }
 
 function context(): PathContext {
@@ -44,44 +74,68 @@ function context(): PathContext {
   };
 }
 
-function findPath(id: string): Path | undefined {
-  return activeData(useStore.getState()).paths.find((p) => p.id === id);
+function findPath(id: string, profileId = useStore.getState().activeProfileId): Path | undefined {
+  return useStore.getState().data[profileId]?.paths.find((p) => p.id === id);
 }
 
-/** Keep `ahead` items buffered beyond the current index. Safe to call repeatedly. */
+/**
+ * Keep `ahead` items buffered beyond the current index. Safe to call repeatedly.
+ * Results are written to the profile and path that requested them, and only
+ * if nothing invalidated that path while the load was in flight.
+ */
 export function ensureBuffer(pathId: string, ahead = 6): Promise<void> {
-  const key = `${useStore.getState().activeProfileId}:${pathId}`;
-  const running = inflight.get(key);
+  const profileId = useStore.getState().activeProfileId;
+  const k = key(profileId, pathId);
+  const running = inflight.get(k);
   if (running) return running;
-  const path = findPath(pathId);
+  const path = findPath(pathId, profileId);
   if (!path || path.exhausted || path.queue.length - path.index > ahead) return Promise.resolve();
+  const epoch = epochOf(k);
   const ui = useUI.getState();
   ui.setPathStatus(pathId, { loading: true });
+  let retry = false;
   const job = (async () => {
     try {
       const ext = await extendPath(path, context(), 12, lookupVideo);
-      for (const r of ext.ranked) reasonCache.set(`${pathId}|${r.video.id}`, r.reasons);
-      remember(ext.ranked.map((r) => r.video));
-      const latest = findPath(pathId);
+      if (epochOf(k) !== epoch) {
+        retry = true; // filters/blocks changed mid-load: these results are stale
+        return;
+      }
+      const latest = findPath(pathId, profileId);
       if (!latest) return;
+      for (const r of ext.ranked) reasonCache.set(`${profileId}|${pathId}|${r.video.id}`, r.reasons);
+      remember(ext.ranked.map((r) => r.video));
       useStore.getState().rememberContent(ext.ranked.map((r) => r.video));
-      let queue = [...latest.queue, ...ext.append.filter((id) => !latest.queue.includes(id))];
+      const recent = new Set(latest.queue.slice(-recycleWindow(latest)));
+      let queue = [...latest.queue, ...ext.append.filter((id) => !recent.has(id))];
       let index = latest.index;
+      if (latest.startAt) {
+        const at = queue.indexOf(latest.startAt);
+        if (at >= 0) index = at;
+      }
       if (queue.length > MAX_QUEUE && index > TRIM) {
         // Keep long-running paths light: drop the oldest already-watched stretch.
         queue = queue.slice(TRIM);
         index -= TRIM;
       }
-      useStore.getState().updatePath(pathId, { queue, index, cursor: ext.cursor, exhausted: ext.exhausted });
+      useStore.getState().updatePathFor(profileId, pathId, { queue, index, cursor: ext.cursor, exhausted: ext.exhausted, startAt: undefined });
       useUI.getState().setPathStatus(pathId, { loading: false });
     } catch (e) {
-      useUI.getState().setPathStatus(pathId, { loading: false, error: (e as Error).message || 'Could not load more' });
+      if (epochOf(k) !== epoch) retry = true;
+      else useUI.getState().setPathStatus(pathId, { loading: false, error: (e as Error).message || 'Could not load more' });
     } finally {
-      inflight.delete(key);
+      inflight.delete(k);
+      if (retry && useStore.getState().activeProfileId === profileId) void ensureBuffer(pathId, ahead);
+      else if (retry) useUI.getState().setPathStatus(pathId, { loading: false });
     }
   })();
-  inflight.set(key, job);
+  inflight.set(k, job);
   return job;
+}
+
+/** For You recycles clips once they fall this far back; finite paths never repeat. */
+function recycleWindow(p: Path): number {
+  return p.seed.kind === 'forYou' ? FOR_YOU_RECYCLE : Infinity;
 }
 
 export function currentVideoId(): string | undefined {
@@ -89,12 +143,21 @@ export function currentVideoId(): string | undefined {
   return p.queue[p.index];
 }
 
-export function goTo(index: number) {
-  const p = activePath(useStore.getState());
+/** Move a path's position. Defaults to the active path; deferred callers pass the path they meant. */
+export function goTo(index: number, pathId?: string) {
+  const p = pathId ? findPath(pathId) : activePath(useStore.getState());
+  if (!p) return;
   const i = Math.max(0, Math.min(index, p.queue.length));
   if (i === p.index) return;
   useStore.getState().updatePath(p.id, { index: i });
   void ensureBuffer(p.id);
+}
+
+/** Advance `pathId` one step from `fromIndex` (no-op if it already moved). */
+export function advanceFrom(pathId: string, fromIndex: number, delta: 1 | -1 = 1) {
+  const p = findPath(pathId);
+  if (!p || p.index !== fromIndex) return;
+  goTo(fromIndex + delta, pathId);
 }
 
 export const goNext = () => goTo(activePath(useStore.getState()).index + 1);
@@ -126,7 +189,10 @@ export interface StartOptions {
 export function startPath(seed: PathSeed, opts: StartOptions = {}): Path {
   const label = opts.label ?? pathLabel(seed, names());
   const parentId = opts.parentId ?? activePath(useStore.getState()).id;
-  const path = createPath(seed, label, { startWith: opts.startWith, parentId });
+  // Ordered paths start at the right place instead of prepending the clip.
+  const ordered = seed.kind === 'series';
+  const path = createPath(seed, label, { startWith: ordered ? undefined : opts.startWith, parentId });
+  if (ordered && opts.startWith?.[0]) path.startAt = opts.startWith[0];
   if (seed.kind === 'collection') {
     const d = activeData(useStore.getState());
     path.queue = path.queue.filter((id) => !d.blocks.videos.includes(id));
@@ -144,6 +210,7 @@ export function rebuildAhead(pathId?: string) {
   const targets = pathId ? d.paths.filter((p) => p.id === pathId) : d.paths;
   for (const p of targets) {
     if (p.seed.kind === 'collection') continue;
+    invalidate(s.activeProfileId, p.id);
     s.updatePath(p.id, { queue: p.queue.slice(0, p.index + 1), cursor: undefined, exhausted: false });
   }
   const active = activePath(useStore.getState());
@@ -192,6 +259,9 @@ interface ViewSession {
   loops: number;
   explicit: boolean;
   actions: HistoryAction[];
+  /** Seconds already recorded on a resumed history entry. */
+  priorWatched: number;
+  resumed: boolean;
 }
 
 /** A view shorter than this never really happened (StrictMode remounts, instant re-renders). */
@@ -199,23 +269,43 @@ const PHANTOM_MS = 250;
 
 let view: ViewSession | null = null;
 
+/** Coming back to the same clip within this window continues its history entry. */
+const RESUME_MS = 10 * 60 * 1000;
+
 export function beginView(videoId: string) {
   endView();
   const s = useStore.getState();
   const path = activePath(s);
   const v = lookupVideo(videoId);
   if (v) s.rememberContent([v]);
-  const historyId = s.addHistory({
+  const hist = activeData(s).history;
+  const last = hist[hist.length - 1];
+  const resumes = last && last.videoId === videoId && last.pathId === path.id && Date.now() - last.at < RESUME_MS;
+  const historyId = resumes
+    ? last.id
+    : s.addHistory({
+        videoId,
+        at: Date.now(),
+        pathId: path.id,
+        pathLabel: path.label,
+        pathKind: path.seed.kind,
+        pathIndex: path.index,
+        watched: 0,
+        actions: [],
+      });
+  view = {
     videoId,
-    at: Date.now(),
     pathId: path.id,
-    pathLabel: path.label,
-    pathKind: path.seed.kind,
-    pathIndex: path.index,
+    profileId: s.activeProfileId,
+    historyId,
+    startedAt: Date.now(),
     watched: 0,
-    actions: [],
-  });
-  view = { videoId, pathId: path.id, profileId: s.activeProfileId, historyId, startedAt: Date.now(), watched: 0, loops: 0, explicit: false, actions: [] };
+    loops: 0,
+    explicit: false,
+    actions: resumes ? [...last.actions] : [],
+    priorWatched: resumes ? last.watched : 0,
+    resumed: !!resumes,
+  };
 }
 
 export function trackProgress(videoId: string, watchedDelta: number, looped: boolean) {
@@ -235,7 +325,7 @@ export function endView(reason: 'advance' | 'leave' = 'advance') {
   const s = useStore.getState();
   if (s.activeProfileId !== v.profileId) return; // never leak one profile's signals into another
   if (Date.now() - v.startedAt < PHANTOM_MS && !v.explicit) {
-    if (v.historyId) s.removeHistory(v.historyId);
+    if (v.historyId && !v.resumed) s.removeHistory(v.historyId);
     return;
   }
   const summary = lookupVideo(v.videoId);
@@ -246,7 +336,7 @@ export function endView(reason: 'advance' | 'leave' = 'advance') {
     if (imp.kind === 'skip') v.actions.push('skip');
     if (imp.kind === 'watch' || imp.kind === 'rewatch') v.actions.push('watch');
   }
-  if (v.historyId) s.updateHistory(v.historyId, { watched: Math.round(v.watched), actions: [...new Set(v.actions)] });
+  if (v.historyId) s.updateHistory(v.historyId, { watched: Math.round(v.priorWatched + v.watched), actions: [...new Set(v.actions)] });
 }
 
 function noteAction(videoId: string, a: HistoryAction) {
@@ -287,9 +377,9 @@ export function judge(videoId: string, kind: 'like' | 'dislike', opts: { advance
   haptic(kind === 'like' ? 'success' : 'warning');
   const mode = opts.advance ?? useStore.getState().settings.advanceOnJudge;
   const advance = mode !== false;
-  const fromIndex = activePath(useStore.getState()).index;
+  const { id: pathId, index: fromIndex } = activePath(useStore.getState());
   if (mode === true) goNext();
-  refreshAhead();
+  refreshAhead(pathId);
   useUI.getState().toast({
     text: `${kind === 'like' ? 'Liked' : 'Passed'}${learningNote()}`,
     tone: kind,
@@ -297,7 +387,7 @@ export function judge(videoId: string, kind: 'like' | 'dislike', opts: { advance
       label: 'Undo',
       run: () => {
         if (id) useStore.getState().removeSignal(id);
-        if (advance) goTo(fromIndex);
+        if (advance) goTo(fromIndex, pathId);
       },
     },
   });
@@ -323,7 +413,7 @@ export function save(videoId: string, opts: { advance?: Advance; position?: numb
   const mode = opts.advance ?? s.settings.advanceOnSave;
   const fromIndex = p.index;
   if (mode === true) goNext();
-  refreshAhead();
+  refreshAhead(p.id);
   if (!opts.quiet) {
     useUI.getState().toast({
       text: `Saved${learningNote()}`,
@@ -360,9 +450,11 @@ export function block(type: 'videos' | 'performers' | 'studios' | 'tags', id: st
   const v = current ? lookupVideo(current) : undefined;
   const hitsCurrent =
     v && (type === 'videos' ? v.id === id : type === 'performers' ? v.performerIds.includes(id) : type === 'studios' ? v.studioId === id : v.tags.includes(id));
-  // Purge the block target from every queued path ahead of the user.
+  // Purge the block target from every queued path ahead of the user, and
+  // discard any load already in flight (it was ranked without the block).
   const d = activeData(useStore.getState());
   for (const p of d.paths) {
+    invalidate(s.activeProfileId, p.id);
     const ahead = p.queue.slice(p.index + 1).filter((qid) => {
       const q = lookupVideo(qid);
       if (!q) return true;
@@ -374,6 +466,7 @@ export function block(type: 'videos' | 'performers' | 'studios' | 'tags', id: st
     useStore.getState().updatePath(p.id, { queue: [...p.queue.slice(0, p.index + 1), ...ahead] });
   }
   if (hitsCurrent) goNext();
+  void ensureBuffer(activePath(useStore.getState()).id);
   useUI.getState().toast({
     text: `Never showing ${label}`,
     tone: 'dislike',

@@ -1,14 +1,15 @@
 /** Deep filters: full taxonomy, tag logic, weights, presets — per path or profile-wide. */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Sheet } from '../Sheet';
 import { useUI } from '../../state/ui';
 import { useStore, activeData, activePath, BUILTIN_PRESETS } from '../../state/store';
 import { useTaxonomy } from '../../state/taxonomy';
 import { rebuildAhead } from '../../state/feed';
-import { countActive, emptyFilters, normalizeFilters } from '../../engine/filters';
+import { countActive, diffFilters, emptyFilters, mergeFilters, normalizeFilters } from '../../engine/filters';
 import type { AgeBracket, BodyType, Filters, HairColor, ProductionStyle, Quality, TagCategory } from '../../data/types';
 import { Chip, Segmented } from '../common';
 import { haptic } from '../../gestures/haptics';
+import { clone } from '../../lib/clone';
 
 type TagMode = 'all' | 'any' | 'none' | 'boost';
 
@@ -39,16 +40,19 @@ export function FiltersSheet({ scope: initialScope }: { scope: 'global' | 'path'
   const deletePreset = useStore((s) => s.deletePreset);
   const tx = useTaxonomy((s) => s.tx);
   const [scope, setScope] = useState(initialScope);
-  const [draft, setDraft] = useState<Filters>(() => normalizeFilters(initialScope === 'global' ? globalFilters : path.filters));
+  // Path scope edits the *effective* filters (profile + this path) and saves only the difference.
+  const effective = (s: 'global' | 'path') => (s === 'global' ? normalizeFilters(globalFilters) : mergeFilters(globalFilters, path.filters));
+  const [draft, setDraft] = useState<Filters>(() => effective(initialScope));
   const [tagMode, setTagMode] = useState<TagMode>('all');
   const [presetName, setPresetName] = useState('');
   const [pq, setPq] = useState('');
 
   const switchScope = (s: 'global' | 'path') => {
     setScope(s);
-    setDraft(normalizeFilters(s === 'global' ? globalFilters : path.filters));
+    setDraft(effective(s));
   };
-  const patch = (fn: (f: Filters) => Filters) => setDraft((f) => fn(structuredClone(f)));
+  const pathDiff = useMemo(() => diffFilters(globalFilters, draft), [globalFilters, draft]);
+  const patch = (fn: (f: Filters) => Filters) => setDraft((f) => fn(clone(f)));
 
   const apply = () => {
     haptic('success');
@@ -56,7 +60,7 @@ export function FiltersSheet({ scope: initialScope }: { scope: 'global' | 'path'
       setFilters(draft);
       rebuildAhead();
     } else {
-      setPathFilters(path.id, countActive(draft) ? draft : undefined);
+      setPathFilters(path.id, Object.keys(pathDiff).length ? pathDiff : undefined);
       rebuildAhead(path.id);
     }
     useUI.getState().toast({ text: `Filters applied${scope === 'path' ? ` to ${path.label}` : ' to all paths'} — upcoming clips re-ranked`, tone: 'info' });
@@ -106,7 +110,7 @@ export function FiltersSheet({ scope: initialScope }: { scope: 'global' | 'path'
       return f;
     });
 
-  const n = countActive(draft);
+  const n = scope === 'path' ? Object.keys(pathDiff).length : countActive(draft);
   return (
     <Sheet
       onClose={close}
@@ -114,11 +118,11 @@ export function FiltersSheet({ scope: initialScope }: { scope: 'global' | 'path'
       tall
       footer={
         <div className="row row--split">
-          <button className="btn btn--ghost" onClick={() => setDraft(emptyFilters())}>
-            Reset
+          <button className="btn btn--ghost" onClick={() => setDraft(scope === 'path' ? normalizeFilters(globalFilters) : emptyFilters())}>
+            {scope === 'path' ? 'Match profile' : 'Reset'}
           </button>
           <button className="btn btn--primary" onClick={apply}>
-            Apply{n ? ` (${n})` : ''}
+            Apply{n ? ` (${n}${scope === 'path' ? ` change${n === 1 ? '' : 's'}` : ''})` : ''}
           </button>
         </div>
       }
@@ -134,7 +138,7 @@ export function FiltersSheet({ scope: initialScope }: { scope: 'global' | 'path'
       />
       <p className="muted small">
         {scope === 'path'
-          ? `Overrides for “${path.label}”. Profile-wide exclusions still apply.`
+          ? `Overrides for “${path.label}”. Anything you don’t change keeps following the profile; profile-wide exclusions always apply.`
           : 'Applies to every path, search, and suggestion in this profile.'}
       </p>
 
@@ -144,7 +148,7 @@ export function FiltersSheet({ scope: initialScope }: { scope: 'global' | 'path'
           {[...BUILTIN_PRESETS, ...presets].map((p) => (
             <Chip
               key={p.id}
-              onClick={() => setDraft((f) => normalizeFilters({ ...f, ...structuredClone(p.filters) }))}
+              onClick={() => setDraft((f) => normalizeFilters({ ...f, ...clone(p.filters) }))}
               onRemove={p.builtIn ? undefined : () => deletePreset(p.id)}
             >
               {p.name}
@@ -161,7 +165,7 @@ export function FiltersSheet({ scope: initialScope }: { scope: 'global' | 'path'
           }}
         >
           <input value={presetName} onChange={(e) => setPresetName(e.target.value)} placeholder="Save current as preset…" aria-label="Preset name" />
-          <button className="btn" type="submit" disabled={!presetName.trim() || !n}>
+          <button className="btn" type="submit" disabled={!presetName.trim() || !countActive(draft)}>
             Save
           </button>
         </form>
@@ -300,14 +304,30 @@ function Attr<T extends string>({ label, values, selected, onTap }: { label: str
 }
 
 function Range({ label, min, max, lo, hi, onChange }: { label: string; min: number; max: number; lo?: number; hi?: number; onChange: (lo?: number, hi?: number) => void }) {
-  const parse = (s: string) => (s === '' ? undefined : Math.max(min, Math.min(max, Number(s))));
+  // Free typing; clamp only when the field is left, so "2025" can be typed digit by digit.
+  const [a, setA] = useState(lo == null ? '' : String(lo));
+  const [b, setB] = useState(hi == null ? '' : String(hi));
+  useEffect(() => setA(lo == null ? '' : String(lo)), [lo]);
+  useEffect(() => setB(hi == null ? '' : String(hi)), [hi]);
+  const parse = (s: string) => {
+    if (s.trim() === '' || Number.isNaN(Number(s))) return undefined;
+    return Math.max(min, Math.min(max, Math.round(Number(s))));
+  };
+  const commit = () => {
+    let x = parse(a);
+    let y = parse(b);
+    if (x != null && y != null && x > y) [x, y] = [y, x];
+    onChange(x, y);
+    setA(x == null ? '' : String(x));
+    setB(y == null ? '' : String(y));
+  };
   return (
     <div className="frow">
       <span>{label}</span>
       <div className="range-pair">
-        <input type="number" inputMode="numeric" placeholder={String(min)} value={lo ?? ''} min={min} max={max} onChange={(e) => onChange(parse(e.target.value), hi)} aria-label={`${label} minimum`} />
+        <input type="text" inputMode="numeric" pattern="[0-9]*" placeholder={String(min)} value={a} onChange={(e) => setA(e.target.value.replace(/[^0-9]/g, ''))} onBlur={commit} onKeyDown={(e) => e.key === 'Enter' && commit()} aria-label={`${label} minimum`} />
         <span>–</span>
-        <input type="number" inputMode="numeric" placeholder={String(max)} value={hi ?? ''} min={min} max={max} onChange={(e) => onChange(lo, parse(e.target.value))} aria-label={`${label} maximum`} />
+        <input type="text" inputMode="numeric" pattern="[0-9]*" placeholder={String(max)} value={b} onChange={(e) => setB(e.target.value.replace(/[^0-9]/g, ''))} onBlur={commit} onKeyDown={(e) => e.key === 'Enter' && commit()} aria-label={`${label} maximum`} />
       </div>
     </div>
   );

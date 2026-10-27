@@ -4,7 +4,7 @@ import { Sheet, MenuItem } from '../Sheet';
 import { useUI } from '../../state/ui';
 import { useStore, activeData, activePath } from '../../state/store';
 import { useTaxonomy } from '../../state/taxonomy';
-import { block, goNext, goPrev, judge, moreOrLess, reasonsFor, save, seedFrom, startPath, unsave, isSaved } from '../../state/feed';
+import { block, currentVideoId, goNext, goPrev, judge, lastTimeFor, moreOrLess, reasonsFor, save, seedFrom, startPath, unsave, isSaved } from '../../state/feed';
 import { useVideoDetail } from '../../views/feed/useVideoDetail';
 import { explain } from '../../engine/ranking';
 import { PATH_KINDS, FACET_LABEL } from '../../engine/paths';
@@ -146,25 +146,36 @@ export function MenuSheet({ videoId }: { videoId: string }) {
   const tags = useTaxonomy((s) => s.tag);
   const [blockOpen, setBlockOpen] = useState(false);
   const saved = useStore((s) => activeData(s).saves.some((x) => x.videoId === videoId));
+  const tab = useUI((s) => s.tab);
   if (!summary) return null;
+  // Opened on the clip playing in the feed, or on a tile elsewhere (Library, Search)?
+  // Off-feed, actions must not move the hidden feed.
+  const onFeed = tab === 'feed' && currentVideoId() === videoId;
+  const stay = onFeed ? {} : { advance: false as const };
   const run = (fn: () => void) => () => {
     closeAll();
     fn();
+  };
+  const capture = () => {
+    if (onFeed) return setCapture({ videoId, time: lastTimeFor(videoId) });
+    // Bring the clip into the feed first; the capture overlay lives there.
+    startPath({ kind: 'related', videoId }, { startWith: [videoId], show: true });
+    setCapture({ videoId, time: 0 });
   };
   return (
     <Sheet onClose={close} title={summary.title}>
       <div className="menu">
         <div className="menu__quick">
-          <button type="button" className="quick quick--like" onClick={run(() => judge(videoId, 'like'))}>
+          <button type="button" className="quick quick--like" onClick={run(() => judge(videoId, 'like', stay))}>
             <IconHeart /> Like
           </button>
-          <button type="button" className="quick quick--dislike" onClick={run(() => judge(videoId, 'dislike'))}>
+          <button type="button" className="quick quick--dislike" onClick={run(() => judge(videoId, 'dislike', stay))}>
             <IconX /> Pass
           </button>
-          <button type="button" className="quick quick--save" onClick={run(() => (saved ? openSheet({ kind: 'save', videoId }) : save(videoId)))}>
+          <button type="button" className="quick quick--save" onClick={() => (saved ? openSheet({ kind: 'save', videoId }) : run(() => save(videoId, stay))())}>
             <IconBookmark filled={saved} /> {saved ? 'Boards' : 'Save'}
           </button>
-          <button type="button" className="quick quick--capture" onClick={run(() => setCapture({ videoId, time: 0 }))}>
+          <button type="button" className="quick quick--capture" onClick={run(capture)}>
             <IconTarget /> Capture
           </button>
         </div>
@@ -191,7 +202,8 @@ export function MenuSheet({ videoId }: { videoId: string }) {
         )}
         <MenuItem icon={<IconExternal />} label="Open original" onClick={() => window.open(summary.originalUrl, '_blank', 'noopener')} />
         <MenuItem icon={<IconLink />} label="Copy link" onClick={() => copy(summary.originalUrl)} />
-        <MenuItem icon={<IconEyeOff />} label={overlayHidden ? 'Show overlay' : 'Hide overlay'} onClick={run(() => setOverlayHidden(!overlayHidden))} />
+        {onFeed && <MenuItem icon={<IconEyeOff />} label={overlayHidden ? 'Show overlay' : 'Hide overlay'} onClick={run(() => setOverlayHidden(!overlayHidden))} />}
+        {onFeed && (
         <div className="menu__nav">
           <button type="button" className="btn btn--ghost" onClick={run(goPrev)}>
             ↑ Previous
@@ -203,6 +215,7 @@ export function MenuSheet({ videoId }: { videoId: string }) {
             ⇆ Paths
           </button>
         </div>
+        )}
       </div>
     </Sheet>
   );

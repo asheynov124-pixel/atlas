@@ -1,31 +1,19 @@
 /**
- * IndexedDB-backed zustand storage with debounced writes. Swipes produce a
- * burst of small state changes; we coalesce them and flush when the page is
- * hidden so nothing is lost when iOS suspends the PWA.
+ * IndexedDB-backed zustand persistence.
+ *
+ * - Writes are debounced *and* serialised lazily: zustand hands us the state
+ *   object and we only JSON.stringify once per flush, not on every change
+ *   (a swipe produces several store updates).
+ * - Pending writes flush when the page is hidden, so nothing is lost when iOS
+ *   suspends the PWA.
+ * - Persistence can be paused (incognito): nothing reaches disk until resumed.
  */
 import { get, set, del } from 'idb-keyval';
-import type { StateStorage } from 'zustand/middleware';
+import type { PersistStorage, StorageValue } from 'zustand/middleware';
 
-const pending = new Map<string, string>();
+const pending = new Map<string, StorageValue<unknown>>();
 let timer: ReturnType<typeof setTimeout> | null = null;
-
-async function flush() {
-  if (timer) {
-    clearTimeout(timer);
-    timer = null;
-  }
-  const entries = [...pending];
-  pending.clear();
-  await Promise.all(entries.map(([k, v]) => set(k, v)));
-}
-
-if (typeof window !== 'undefined') {
-  const onHide = () => void flush();
-  window.addEventListener('pagehide', onHide);
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') onHide();
-  });
-}
+let paused = false;
 
 function hasIDB(): boolean {
   try {
@@ -35,35 +23,85 @@ function hasIDB(): boolean {
   }
 }
 
-export const idbStorage: StateStorage = {
-  async getItem(name) {
-    if (!hasIDB()) return localStorage.getItem(name);
-    try {
-      return ((await get(name)) as string | undefined) ?? null;
-    } catch {
-      return localStorage.getItem(name);
-    }
-  },
-  setItem(name, value) {
-    if (!hasIDB()) {
-      try {
-        localStorage.setItem(name, value);
-      } catch {
-        /* quota or private mode: state stays in memory */
-      }
-      return;
-    }
-    pending.set(name, value);
-    if (!timer) timer = setTimeout(() => void flush(), 450);
-  },
-  async removeItem(name) {
-    pending.delete(name);
-    try {
-      await del(name);
-    } catch {
-      localStorage.removeItem(name);
-    }
-  },
-};
+function localSet(name: string, raw: string) {
+  try {
+    localStorage.setItem(name, raw);
+  } catch {
+    /* quota or private mode: state stays in memory */
+  }
+}
 
-export const flushStorage = flush;
+/** Write everything pending. The pending set is captured synchronously. */
+export async function flushStorage() {
+  if (timer) {
+    clearTimeout(timer);
+    timer = null;
+  }
+  const entries = [...pending];
+  pending.clear();
+  await Promise.all(
+    entries.map(async ([name, value]) => {
+      const raw = JSON.stringify(value);
+      if (!hasIDB()) return localSet(name, raw);
+      try {
+        await set(name, raw);
+      } catch {
+        localSet(name, raw);
+      }
+    }),
+  );
+}
+
+/** Pausing first flushes what was already pending, then drops writes until resumed. */
+export function setPersistencePaused(on: boolean) {
+  if (on) void flushStorage();
+  paused = on;
+}
+
+export function isPersistencePaused() {
+  return paused;
+}
+
+if (typeof window !== 'undefined') {
+  const onHide = () => void flushStorage();
+  window.addEventListener('pagehide', onHide);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') onHide();
+  });
+}
+
+export function idbPersistStorage<S>(): PersistStorage<S> {
+  return {
+    async getItem(name) {
+      let raw: string | null | undefined;
+      if (hasIDB()) {
+        try {
+          raw = (await get(name)) as string | undefined;
+        } catch {
+          raw = localStorage.getItem(name);
+        }
+      } else {
+        try {
+          raw = localStorage.getItem(name);
+        } catch {
+          raw = null;
+        }
+      }
+      return raw ? (JSON.parse(raw) as StorageValue<S>) : null;
+    },
+    setItem(name, value) {
+      if (paused) return;
+      pending.set(name, value as StorageValue<unknown>);
+      if (!timer) timer = setTimeout(() => void flushStorage(), 450);
+    },
+    async removeItem(name) {
+      pending.delete(name);
+      try {
+        if (hasIDB()) await del(name);
+        else localStorage.removeItem(name);
+      } catch {
+        /* ignore */
+      }
+    },
+  };
+}

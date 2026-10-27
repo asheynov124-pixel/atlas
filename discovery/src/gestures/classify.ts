@@ -67,4 +67,5 @@ export interface TapInfo {
 
 export const isTap = (t: TapInfo) => Math.abs(t.dx) < 8 && Math.abs(t.dy) < 8 && t.ms < 280;
 export const LONG_PRESS_MS = 480;
-export const DOUBLE_TAP_MS = 260;
+/** Max gap between the first tap's release and the second tap's press. */
+export const DOUBLE_TAP_MS = 300;

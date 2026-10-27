@@ -4,7 +4,7 @@
  * library, history, filters, and blocks.
  */
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
 import type { Filters, VideoSummary } from '../data/types';
 import { emptyFilters, normalizeFilters } from '../engine/filters';
 import { emptyBlocks } from '../engine/ranking';
@@ -13,7 +13,9 @@ import { createPath } from '../engine/paths';
 import type { Blocks, Board, FilterPreset, HistoryEntry, Overrides, Path, Profile, SaveRecord, Signal, SignalKind } from '../engine/types';
 import { DEFAULT_MOCK_CONFIG, type MockConfig } from '../data/mock/mockSource';
 import { uid } from '../lib/id';
-import { idbStorage } from './storage';
+import { idbPersistStorage, setPersistencePaused } from './storage';
+import { clone } from '../lib/clone';
+import { useUI } from './ui';
 
 export interface Settings {
   ageConfirmedAt?: number;
@@ -60,6 +62,20 @@ export const BUILTIN_PRESETS: FilterPreset[] = [
 ];
 
 const MAX_SIGNALS = 4000;
+const REPLACES: Partial<Record<SignalKind, SignalKind[]>> = {
+  like: ['like', 'dislike'],
+  dislike: ['like', 'dislike'],
+  more: ['more', 'less'],
+  less: ['more', 'less'],
+  capture: ['capture'],
+  save: ['save'],
+};
+let rehydratingFromIncognito = false;
+const wipeHooks: (() => void)[] = [];
+/** In-memory caches elsewhere (reasons, search text) register here to be cleared on erase/import. */
+export function onWipe(fn: () => void) {
+  wipeHooks.push(fn);
+}
 const MAX_HISTORY = 3000;
 const MAX_PATHS = 14;
 const SESSION_GAP_MS = 30 * 60 * 1000;
@@ -150,6 +166,8 @@ export interface AppState {
   addPath: (path: Path, activate?: boolean) => void;
   setActivePath: (id: string) => void;
   updatePath: (id: string, patch: Partial<Path>) => void;
+  /** Update a path in a specific profile (async loaders must not write into whichever profile is active now). */
+  updatePathFor: (profileId: string, id: string, patch: Partial<Path>) => void;
   removePath: (id: string) => void;
 
   // library
@@ -200,6 +218,51 @@ function prune(content: Record<string, VideoSummary>, data: Record<string, Profi
   return Object.fromEntries(Object.entries(content).filter(([id]) => keep.has(id)));
 }
 
+/** Normalise persisted (or imported) state into a complete, safe AppState. */
+function mergePersisted(p: Partial<Persisted>, current: AppState): AppState {
+  const data: Record<string, ProfileData> = {};
+  const rawData = p.data && typeof p.data === 'object' ? p.data : current.data;
+  for (const [id, raw] of Object.entries(rawData)) {
+    const d = (raw ?? {}) as Partial<ProfileData>;
+    const fresh = freshProfileData();
+    const arr = <T,>(x: T[] | undefined, fallback: T[]) => (Array.isArray(x) ? x : fallback);
+    const merged: ProfileData = {
+      ...fresh,
+      ...d,
+      signals: arr(d.signals, []),
+      paths: arr(d.paths, fresh.paths).filter((x) => x && x.seed && Array.isArray(x.queue)),
+      saves: arr(d.saves, []),
+      boards: arr(d.boards, []),
+      history: arr(d.history, []),
+      presets: arr(d.presets, []),
+      recentSearches: arr(d.recentSearches, []),
+      dismissed: arr(d.dismissed, []),
+      filters: normalizeFilters(d.filters),
+      blocks: { ...emptyBlocks(), ...d.blocks },
+      overrides: { ...emptyOverrides(), ...d.overrides },
+    };
+    if (!merged.paths.some((x) => x.seed.kind === 'forYou')) merged.paths.unshift(fresh.paths[0]);
+    if (!merged.paths.some((x) => x.id === merged.activePathId)) merged.activePathId = merged.paths[0].id;
+    data[id] = merged;
+  }
+  let profiles = Array.isArray(p.profiles) ? p.profiles.filter((x) => x && data[x.id]) : current.profiles.filter((x) => data[x.id]);
+  if (!profiles.length) {
+    const id = Object.keys(data)[0] ?? firstProfile.id;
+    if (!data[id]) data[id] = freshProfileData();
+    profiles = [{ ...firstProfile, id }];
+  }
+  return {
+    ...current,
+    ...p,
+    settings: { ...defaultSettings(), ...p.settings, mock: { ...DEFAULT_MOCK_CONFIG, ...p.settings?.mock } },
+    profiles,
+    data,
+    activeProfileId: p.activeProfileId && data[p.activeProfileId] ? p.activeProfileId : profiles[0].id,
+    content: prune(p.content && typeof p.content === 'object' ? p.content : {}, data),
+    hints: p.hints ?? {},
+  };
+}
+
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -214,14 +277,31 @@ export const useStore = create<AppState>()(
       sessionId: uid('ses-'),
 
       setSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
-      setIncognito: (on) => set({ incognito: on }),
+      setIncognito: (on) => {
+        if (on === get().incognito) return;
+        if (on) {
+          // Flush the pre-incognito state, then write nothing until incognito ends.
+          setPersistencePaused(true);
+          set({ incognito: true });
+          return;
+        }
+        // Ending incognito discards the session: reload the last state written
+        // before it started (paths, positions, anything new), then resume writes.
+        set({ incognito: false });
+        rehydratingFromIncognito = true;
+        void Promise.resolve(useStore.persist.rehydrate()).finally(() => {
+          rehydratingFromIncognito = false;
+          useStore.setState({ incognito: false });
+          setPersistencePaused(false);
+        });
+      },
       markHint: (key) => set((s) => ({ hints: { ...s.hints, [key]: true } })),
       resetHints: () => set({ hints: {} }),
 
       createProfile: ({ name, emoji, color, copyFrom }) => {
         const id = uid('prof-');
         set((s) => {
-          const base = copyFrom && s.data[copyFrom] ? structuredClone(s.data[copyFrom]) : freshProfileData();
+          const base = copyFrom && s.data[copyFrom] ? clone(s.data[copyFrom]) : freshProfileData();
           return {
             profiles: [...s.profiles, { id, name, emoji, color, createdAt: Date.now() }],
             data: { ...s.data, [id]: base },
@@ -271,9 +351,12 @@ export const useStore = create<AppState>()(
         const s = get();
         if (s.incognito || s.settings.pauseLearning) return null;
         const sig: Signal = { id: uid('sig-'), kind, videoId, at: Date.now(), value: SIGNAL_VALUE[kind], ...extra };
+        // An explicit judgement replaces the previous one on the same clip, so
+        // repeated likes (double-tap spam) don't stack and a change of mind wins.
+        const replaces = REPLACES[kind];
         set((st) =>
           patchActive(st, (d) => {
-            let signals = [...d.signals, sig];
+            let signals = [...(replaces ? d.signals.filter((x) => !(x.videoId === videoId && replaces.includes(x.kind))) : d.signals), sig];
             if (signals.length > MAX_SIGNALS) {
               // Drop the oldest implicit signals first; explicit judgements are worth keeping.
               const implicitIdx = signals.findIndex((x) => x.kind === 'watch' || x.kind === 'skip');
@@ -300,7 +383,7 @@ export const useStore = create<AppState>()(
 
       setFilters: (f) => set((s) => patchActive(s, () => ({ filters: normalizeFilters(f) }))),
       setPathFilters: (pathId, f) => set((s) => patchActive(s, (d) => ({ paths: d.paths.map((p) => (p.id === pathId ? { ...p, filters: f } : p)) }))),
-      savePreset: (name, f) => set((s) => patchActive(s, (d) => ({ presets: [...d.presets, { id: uid('pre-'), name, filters: structuredClone(f) }] }))),
+      savePreset: (name, f) => set((s) => patchActive(s, (d) => ({ presets: [...d.presets, { id: uid('pre-'), name, filters: clone(f) }] }))),
       deletePreset: (id) => set((s) => patchActive(s, (d) => ({ presets: d.presets.filter((p) => p.id !== id) }))),
 
       addPath: (path, activate = true) =>
@@ -319,6 +402,12 @@ export const useStore = create<AppState>()(
       setActivePath: (id) => set((s) => patchActive(s, (d) => (d.paths.some((p) => p.id === id) ? { activePathId: id } : {}))),
       updatePath: (id, patch) =>
         set((s) => patchActive(s, (d) => ({ paths: d.paths.map((p) => (p.id === id ? { ...p, ...patch, updatedAt: Date.now() } : p)) }))),
+      updatePathFor: (profileId, id, patch) =>
+        set((s) => {
+          const d = s.data[profileId];
+          if (!d) return {};
+          return { data: { ...s.data, [profileId]: { ...d, paths: d.paths.map((p) => (p.id === id ? { ...p, ...patch, updatedAt: Date.now() } : p)) } } };
+        }),
       removePath: (id) =>
         set((s) =>
           patchActive(s, (d) => {
@@ -391,7 +480,8 @@ export const useStore = create<AppState>()(
       },
       clearRecentSearches: () => set((s) => patchActive(s, () => ({ recentSearches: [] }))),
 
-      wipeEverything: () =>
+      wipeEverything: () => {
+        for (const fn of wipeHooks) fn();
         set({
           settings: { ...defaultSettings(), ageConfirmedAt: get().settings.ageConfirmedAt },
           profiles: [{ ...firstProfile, createdAt: Date.now() }],
@@ -399,24 +489,23 @@ export const useStore = create<AppState>()(
           data: { [firstProfile.id]: freshProfileData() },
           content: {},
           hints: {},
-        }),
+        });
+      },
       importData: (json) => {
         const parsed = JSON.parse(json) as Partial<Persisted> & { app?: string };
-        if (parsed.app !== 'ph-discovery' || !parsed.profiles?.length || !parsed.data) throw new Error('Not a PH Discovery export');
-        set({
-          settings: { ...defaultSettings(), ...parsed.settings, pinHash: get().settings.pinHash },
-          profiles: parsed.profiles,
-          activeProfileId: parsed.activeProfileId && parsed.data[parsed.activeProfileId] ? parsed.activeProfileId : parsed.profiles[0].id,
-          data: parsed.data,
-          content: parsed.content ?? {},
-          hints: parsed.hints ?? {},
-        });
+        if (parsed.app !== 'ph-discovery' || !Array.isArray(parsed.profiles) || !parsed.profiles.length || !parsed.data || typeof parsed.data !== 'object') {
+          throw new Error('Not a PH Discovery export');
+        }
+        for (const fn of wipeHooks) fn();
+        // Same normalisation as hydration, so a partial or older export can't crash the session.
+        const merged = mergePersisted(parsed, get());
+        set({ ...merged, settings: { ...merged.settings, pinHash: get().settings.pinHash } });
       },
     }),
     {
       name: 'ph-discovery',
       version: 1,
-      storage: createJSONStorage(() => idbStorage),
+      storage: idbPersistStorage<Persisted>(),
       partialize: (s): Persisted => ({
         settings: s.settings,
         profiles: s.profiles,
@@ -425,27 +514,10 @@ export const useStore = create<AppState>()(
         content: s.content,
         hints: s.hints,
       }),
-      merge: (persisted, current) => {
-        const p = (persisted ?? {}) as Partial<Persisted>;
-        const data: Record<string, ProfileData> = {};
-        for (const [id, d] of Object.entries(p.data ?? current.data)) {
-          const fresh = freshProfileData();
-          data[id] = { ...fresh, ...d, filters: normalizeFilters(d.filters), blocks: { ...emptyBlocks(), ...d.blocks }, overrides: { ...emptyOverrides(), ...d.overrides } };
-          if (!data[id].paths.some((x) => x.seed.kind === 'forYou')) data[id].paths.unshift(fresh.paths[0]);
-          if (!data[id].paths.some((x) => x.id === data[id].activePathId)) data[id].activePathId = data[id].paths[0].id;
-        }
-        const profiles = p.profiles?.length ? p.profiles.filter((x) => data[x.id]) : current.profiles;
-        return {
-          ...current,
-          ...p,
-          settings: { ...defaultSettings(), ...p.settings, mock: { ...DEFAULT_MOCK_CONFIG, ...p.settings?.mock } },
-          profiles,
-          data,
-          activeProfileId: p.activeProfileId && data[p.activeProfileId] ? p.activeProfileId : profiles[0].id,
-          content: prune(p.content ?? {}, data),
-        };
-      },
-      onRehydrateStorage: () => () => {
+      merge: (persisted, current) => mergePersisted((persisted ?? {}) as Partial<Persisted>, current),
+      onRehydrateStorage: () => (state) => {
+        // Arm the app lock before the first paint of the app, not in an effect after it.
+        if (!rehydratingFromIncognito && state?.settings.pinHash) useUI.getState().setLocked(true);
         useStore.setState({ hydrated: true });
       },
     },

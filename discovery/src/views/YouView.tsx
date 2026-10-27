@@ -372,7 +372,7 @@ function PrivacyPanel() {
 
   return (
     <Section title="Privacy & data">
-      <Toggle checked={incognito} onChange={setIncognito} label="Incognito session" hint="Records nothing until turned off or the app reloads" />
+      <Toggle checked={incognito} onChange={setIncognito} label="Incognito session" hint="Writes nothing to the device; turning it off rewinds to where you were" />
       <Toggle checked={settings.pauseLearning} onChange={(v) => setSettings({ pauseLearning: v })} label="Pause learning" hint="Taste stops updating; history still records" />
       <Toggle checked={settings.discreet} onChange={(v) => setSettings({ discreet: v })} label="Discreet thumbnails" hint="Blur grids and lists until you press on them" />
       <div className="toggle-row">

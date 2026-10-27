@@ -163,3 +163,17 @@ export function filterBoost(v: VideoSummary, f: Filters): number {
   }
   return b;
 }
+
+/**
+ * The part of `draft` that differs from `base`, top-level field by field.
+ * Path overrides are stored this way so that anything the user didn't touch
+ * keeps following the profile-wide value (including the exploration slider).
+ */
+export function diffFilters(base: Partial<Filters> | undefined, draft: Filters): Partial<Filters> {
+  const b = normalizeFilters(base);
+  const out: Partial<Filters> = {};
+  for (const k of Object.keys(draft) as (keyof Filters)[]) {
+    if (JSON.stringify(draft[k]) !== JSON.stringify(b[k])) (out as Record<string, unknown>)[k] = draft[k];
+  }
+  return out;
+}

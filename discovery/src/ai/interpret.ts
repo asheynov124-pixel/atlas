@@ -9,6 +9,7 @@
 import { EMBEDDING_DIM, FACET_DIM, FACETS, type AgeBracket, type BodyType, type FacetWeights, type Filters, type HairColor, type PerformerAttrs, type Quality, type SearchQuery, type Taxonomy, type VisualTarget } from '../data/types';
 import { normalizeText, fuzzyEq } from '../lib/text';
 import { COMP } from '../data/mock/taxonomy';
+import { clone } from '../lib/clone';
 
 export type ChipKind = 'tag' | 'exclude' | 'performer' | 'lookalike' | 'studio' | 'series' | 'attr' | 'duration' | 'quality' | 'sort' | 'visual' | 'facet' | 'text';
 
@@ -422,7 +423,7 @@ function apply(out: Interpretation, e: Entry, negate: boolean, lookalike: boolea
 
 /** Drop one chip and everything it contributed. */
 export function withoutChip(interp: Interpretation, chipId: string): Interpretation {
-  const next: Interpretation = structuredClone(interp);
+  const next: Interpretation = clone(interp);
   next.chips = next.chips.filter((c) => c.id !== chipId);
   const [kind, value = ''] = chipId.split(/:(.*)/s);
   const ids = value.split(',');

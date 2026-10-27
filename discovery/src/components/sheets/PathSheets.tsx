@@ -7,7 +7,6 @@ import { activatePath, currentVideoId, noteCapture, startPath } from '../../stat
 import { lookupVideo } from '../../state/selectors';
 import { useTaxonomy } from '../../state/taxonomy';
 import { PATH_KINDS } from '../../engine/paths';
-import { countActive } from '../../engine/filters';
 import { ai, type AspectIntent } from '../../ai';
 import { useSuggestions } from '../../views/feed/SuggestionBanner';
 import { Thumb } from '../Thumb';
@@ -69,7 +68,7 @@ export function PathsSheet() {
                   )}
                   <small>
                     {PATH_KINDS[p.seed.kind].title} · {Math.min(p.index + 1, p.queue.length)} of {p.exhausted ? p.queue.length : `${p.queue.length}+`}
-                    {countActive(p.filters) > 0 && ` · ${countActive(p.filters)} filter${countActive(p.filters) === 1 ? '' : 's'}`} · {timeAgo(p.updatedAt)}
+                    {p.filters && Object.keys(p.filters).length > 0 && ' · custom filters'} · {timeAgo(p.updatedAt)}
                   </small>
                 </span>
               </button>
@@ -190,7 +189,7 @@ export function ProfilesSheet() {
         <MenuItem icon={<IconPlus />} label="New profile" onClick={() => setCreating(true)} />
       )}
       <div className="sheet__toggles">
-        <Toggle checked={incognito} onChange={setIncognito} label="Incognito session" hint="Nothing recorded — no signals, history, or searches — until you turn it off or reload" />
+        <Toggle checked={incognito} onChange={setIncognito} label="Incognito session" hint="Nothing from this session touches the device — no signals, history, searches, or path progress. Turning it off rewinds to where you were." />
         <Toggle checked={pause} onChange={(v) => setSettings({ pauseLearning: v })} label="Pause learning" hint="History still records; taste stops updating" />
       </div>
     </Sheet>

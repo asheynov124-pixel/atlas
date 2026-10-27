@@ -90,6 +90,8 @@ export interface Path {
   pinned?: boolean;
   /** Path this one branched from, if any. */
   parentId?: string;
+  /** Once this id is loaded into the queue, jump to it (e.g. "watch the series" from episode 3). */
+  startAt?: string;
 }
 
 export interface SaveRecord {

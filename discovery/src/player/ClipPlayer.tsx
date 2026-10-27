@@ -82,7 +82,7 @@ export const ClipPlayer = forwardRef<PlayerHandle, Props>(function ClipPlayer(
     return (
       <div className="player-fallback">
         <ProceduralStill summary={summary} dim />
-        <div className="player-fallback__card">
+        <div className="player-fallback__card" data-no-gesture>
           <strong>Can’t play this one here</strong>
           <span>Embed and direct source both failed.</span>
           <a className="btn btn--primary" href={opt.url} target="_blank" rel="noopener noreferrer">
@@ -126,12 +126,19 @@ export function ProceduralStill({ summary, dim }: { summary: VideoSummary; dim?:
   useEffect(() => {
     const c = canvasRef.current;
     if (!c) return;
-    const { w, h } = sizeCanvas(c);
     const ctx = c.getContext('2d');
     if (!ctx) return;
     const p = visualParams(summary, summary.performerIds.map(performerLookup));
     c.style.filter = p.cssFilter;
-    drawFrame(ctx, p, 0, w, h);
+    const draw = () => {
+      const { w, h } = sizeCanvas(c);
+      drawFrame(ctx, p, 0, w, h);
+    };
+    draw();
+    // Resizing a canvas clears it (iOS toolbar collapse, rotation): redraw.
+    const ro = new ResizeObserver(draw);
+    ro.observe(c);
+    return () => ro.disconnect();
   }, [summary]);
   return <canvas ref={canvasRef} className={`player-canvas${dim ? ' player-canvas--dim' : ''}`} />;
 }
@@ -178,7 +185,11 @@ const ProceduralCanvas = forwardRef<PlayerHandle, CanvasProps>(function Procedur
     const params = visualParams(summary, detail.performers);
     c.style.filter = params.cssFilter;
     let { w, h } = sizeCanvas(c);
-    const ro = new ResizeObserver(() => ({ w, h } = sizeCanvas(c)));
+    const ro = new ResizeObserver(() => {
+      ({ w, h } = sizeCanvas(c));
+      // A resize clears the canvas; repaint now so paused clips don't go black.
+      drawFrame(ctx, params, tRef.current, w, h);
+    });
     ro.observe(c);
     let raf = 0;
     let last = performance.now();
