@@ -37,3 +37,8 @@ export function dayLabel(at: number, now = Date.now()): string {
   if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
   return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 }
+
+/** "1 clip", "3 clips". */
+export function plural(n: number, word: string, many = `${word}s`): string {
+  return `${n} ${n === 1 ? word : many}`;
+}

@@ -464,7 +464,7 @@ export function FeedView() {
         )}
       </div>
       {capture && <CaptureLayer />}
-      <CoachMarks />
+      <CoachMarks quiet={!!capture || index >= queue.length} />
     </div>
   );
 }

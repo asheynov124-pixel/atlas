@@ -2266,6 +2266,11 @@ input[type='range'] {
   width: 100%;
 }
 
+.skeleton.tile__thumb {
+  aspect-ratio: 9 / 16;
+  border-radius: 12px;
+}
+
 .tile__dur,
 .tile__q,
 .tile__badge {

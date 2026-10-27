@@ -13,7 +13,7 @@ import { useSuggestions } from '../../views/feed/SuggestionBanner';
 import { Thumb } from '../Thumb';
 import { Chip, Spinner, Toggle } from '../common';
 import { IconBranch, IconPencil, IconPlus, IconSparkle, IconTarget, IconTrash } from '../Icons';
-import { timeAgo } from '../../lib/format';
+import { plural, timeAgo } from '../../lib/format';
 import { haptic } from '../../gestures/haptics';
 
 export function PathsSheet() {
@@ -155,7 +155,7 @@ export function ProfilesSheet() {
                 <span className="proflist__text">
                   <strong>{p.name}</strong>
                   <small>
-                    {d?.signals.length ?? 0} signals · {d?.saves.length ?? 0} saved · {d?.paths.length ?? 0} paths
+                    {plural(d?.signals.length ?? 0, 'signal')} · {d?.saves.length ?? 0} saved · {plural(d?.paths.length ?? 0, 'path')}
                   </small>
                 </span>
               </button>

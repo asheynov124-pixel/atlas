@@ -25,7 +25,8 @@ const TIPS: { key: string; when: (n: number) => boolean; text: string }[] = [
   { key: 'tip-menu', when: (n) => n >= 15, text: 'Tip: long-press for “More like this”, blocks, and “Why am I seeing this?”.' },
 ];
 
-export function CoachMarks() {
+/** `quiet` suppresses contextual tips (e.g. over the end-of-path card or during capture). */
+export function CoachMarks({ quiet = false }: { quiet?: boolean }) {
   const seen = useStore((s) => s.hints.gestures);
   const hints = useStore((s) => s.hints);
   const markHint = useStore((s) => s.markHint);
@@ -35,12 +36,12 @@ export function CoachMarks() {
   const [tip, setTip] = useState<(typeof TIPS)[number] | null>(null);
 
   useEffect(() => {
-    if (!seen || tab !== 'feed' || tip) return;
+    if (!seen || tab !== 'feed' || tip || quiet) return;
     const t = TIPS.find((x) => !hints[x.key] && x.when(views));
     if (!t) return;
     setTip(t);
     markHint(t.key);
-  }, [views, seen, hints, tab, tip, markHint]);
+  }, [views, seen, hints, tab, tip, markHint, quiet]);
 
   useEffect(() => {
     if (!tip) return;
@@ -71,7 +72,7 @@ export function CoachMarks() {
       </div>
     );
   }
-  if (!tip) return null;
+  if (!tip || quiet) return null;
   return (
     <div className="tip" role="status" data-no-gesture onClick={() => setTip(null)}>
       {tip.text}

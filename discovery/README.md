@@ -17,7 +17,7 @@ The whole experience runs on a local mock data layer: a deterministic catalogue 
 cd discovery
 npm install
 npm run dev            # http://localhost:5173 (also on your LAN via --host)
-npm test               # 43 unit tests (engine, AI, data layer, store/privacy)
+npm test               # 48 unit tests (engine, AI, data layer, gestures, store/privacy)
 npm run build          # typecheck + production build + service worker
 npx vite preview --port 4173 &
 npm run e2e            # 25 Playwright checks at iPhone 14 size, real gestures

@@ -4,3 +4,4 @@ dev-dist/
 e2e-shots/
 *.log
 .vite/
+*.tsbuildinfo
