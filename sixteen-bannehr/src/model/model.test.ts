@@ -244,6 +244,24 @@ describe('bundled photos', async () => {
     const opener = prologue.spreads[0].slots.image;
     expect(opener.kind === 'image' && opener.assetId).toBeNull();
   });
+
+  it('makes each pages/ photo a full-bleed page among the chapter’s pictures, once', () => {
+    const list = (slug: string) =>
+      slug === 'approach'
+        ? [{ id: 'bundled:approach/pages/01-around-the-corner', chapter: slug, name: '01-around-the-corner', width: 2250, height: 1500, variants: [800], target: 'page' as const }]
+        : [];
+    const { book, placed } = placeBundled(createSeedBook(), list);
+    expect(placed).toBe(1);
+    const approach = book.chapters.find((c) => c.slug === 'approach')!;
+    const at = approach.spreads.findIndex((s) => s.id === 'sp-bundled-approach-pages-01-around-the-corner');
+    expect(approach.spreads[at - 1].template).toBe('beforeAfter');
+    const image = approach.spreads[at].slots.image;
+    expect(image.kind === 'image' && image.assetId).toBe('bundled:approach/pages/01-around-the-corner');
+    expect(image.kind === 'image' && image.alt).toBe('Around the corner');
+    // Deleting the page does not bring it back.
+    approach.spreads.splice(at, 1);
+    expect(placeBundled(book, list).placed).toBe(0);
+  });
 });
 
 describe('migration', async () => {

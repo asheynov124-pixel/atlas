@@ -13,6 +13,7 @@
 
 import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { basename, dirname, extname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
@@ -83,8 +84,9 @@ async function main() {
     const list = [];
     // Photos directly in the chapter folder fill its pages first, then its options; photos in
     // an items/ folder go only to options and materials (gallery renders, samples, products);
-    // photos in an essay/ folder go only to the small pictures beside its essays.
-    for (const [sub, target] of [['', 'any'], ['items', 'items'], ['essay', 'essay']]) {
+    // photos in an essay/ folder go only to the small pictures beside its essays; each photo
+    // in a pages/ folder becomes a new full-bleed page of its own (a collage, say).
+    for (const [sub, target] of [['', 'any'], ['items', 'items'], ['essay', 'essay'], ['pages', 'page']]) {
       const dir = join(SRC, chapter, sub);
       if (!existsSync(dir)) continue;
       const files = (await readdir(dir)).filter((f) => PHOTO.test(f) && !f.startsWith('.')).sort(natural.compare);
@@ -122,7 +124,9 @@ async function main() {
             }
           }
           variants.forEach((w) => keep.add(join(outDir, `${name}-${w}.webp`)));
-          list.push({ id, chapter, name, width: photo.width, height: photo.height, variants, ...(target !== 'any' ? { target } : {}) });
+          // A short fingerprint of the original, so a re-cropped photo is not served from cache.
+          const rev = createHash('sha1').update(await readFile(src)).digest('hex').slice(0, 8);
+          list.push({ id, chapter, name, width: photo.width, height: photo.height, variants, rev, ...(target !== 'any' ? { target } : {}) });
           total++;
         } catch (e) {
           console.warn(`  ! Skipped ${chapter}/${sub ? `${sub}/` : ''}${file}: ${e.message}`);
@@ -133,7 +137,10 @@ async function main() {
     manifest.photos[chapter] = list;
     const items = list.filter((p) => p.target === 'items').length;
     const essays = list.filter((p) => p.target === 'essay').length;
-    const notes = [items && `${items} for options`, essays && `${essays} beside essays`].filter(Boolean).join(', ');
+    const pages = list.filter((p) => p.target === 'page').length;
+    const notes = [items && `${items} for options`, essays && `${essays} beside essays`, pages && `${pages} new page${pages === 1 ? '' : 's'}`]
+      .filter(Boolean)
+      .join(', ');
     console.log(`  ${chapter.padEnd(12)} ${String(list.length).padStart(3)} photo${list.length === 1 ? '' : 's'}${notes ? ` (${notes})` : ''}`);
   }
 

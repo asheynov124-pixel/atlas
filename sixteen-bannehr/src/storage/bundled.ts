@@ -12,8 +12,11 @@ export interface BundledPhoto {
   width: number;
   height: number;
   variants: number[];
-  /** Where its folder sends it: items/ to options and materials, essay/ beside essays. */
-  target?: 'any' | 'items' | 'essay';
+  /** Where its folder sends it: items/ to options and materials, essay/ beside essays,
+   *  pages/ to a new full-bleed page of its own. */
+  target?: 'any' | 'items' | 'essay' | 'page';
+  /** Fingerprint of the original; changes when the photo does, so caches let it go. */
+  rev?: string;
 }
 
 interface Manifest {
@@ -38,8 +41,9 @@ const index = new Map<string, BundledPhoto>();
 for (const list of Object.values(m.photos)) for (const p of list) index.set(p.id, p);
 
 function url(p: BundledPhoto, w: number): string {
-  const folder = p.target && p.target !== 'any' ? `${encodeURIComponent(p.chapter)}/${p.target}` : encodeURIComponent(p.chapter);
-  return `${import.meta.env.BASE_URL}photos/${folder}/${encodeURIComponent(p.name)}-${w}.webp`;
+  const sub = { items: 'items', essay: 'essay', page: 'pages' } as const;
+  const folder = p.target && p.target !== 'any' ? `${encodeURIComponent(p.chapter)}/${sub[p.target]}` : encodeURIComponent(p.chapter);
+  return `${import.meta.env.BASE_URL}photos/${folder}/${encodeURIComponent(p.name)}-${w}.webp${p.rev ? `?v=${p.rev}` : ''}`;
 }
 
 export function bundledMeta(id: string): AssetMeta | undefined {

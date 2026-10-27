@@ -3,6 +3,7 @@ import { Editable, Page, Picture, Span } from './kit';
 import { useSpread, useEditing } from '../reader/context';
 import { setSlotText, useLayout } from '../store/book';
 import { ImageTools } from '../edit/ImageTools';
+import { useAsset } from '../store/assets';
 import { SlotCaption } from './SlotCaption';
 import type { ImageSlot, TextSlot } from '../model/types';
 
@@ -14,6 +15,7 @@ export function FullBleed() {
   const { spread } = placed;
   const image = spread.slots.image as ImageSlot;
   const fig = figures.get(`${spread.id}:image`);
+  const asset = useAsset(image.assetId);
 
   const picture = (
     <Picture assetId={image.assetId} focal={image.focal} label={image.label} alt={image.alt} decorative={image.decorative} eager={active}>
@@ -22,9 +24,13 @@ export function FullBleed() {
   );
 
   if (layout === 'phone') {
+    // A wide photo (or a collage) is shown whole on the phone, not sliced to its middle.
+    const wide = !!asset && asset.width / asset.height > 1.15;
     return (
-      <Span className="bleed bleed--phone">
-        <div className="bleed__plate">{picture}</div>
+      <Span className={['bleed bleed--phone', wide && 'bleed--whole'].filter(Boolean).join(' ')}>
+        <div className="bleed__plate" style={wide ? ({ aspectRatio: `${asset.width} / ${asset.height}` } as CSSProperties) : undefined}>
+          {picture}
+        </div>
         <div className="bleed__foot">
           <SlotCaption spreadId={spread.id} slotKey="image" fig={fig} />
         </div>

@@ -24,6 +24,10 @@ Put photos in the folder of the chapter they belong to, then run `npm run import
   vanity renders, cabinet samples, appliances), in filename order.
 - **Photos in the chapter's `essay/` folder** go only to the small picture beside each of
   its essays, in filename order. Nothing else fills those.
+- **Each photo in the chapter's `pages/` folder becomes a new full-bleed page**, placed
+  after the chapter's pictures and essays. Its filename becomes its caption:
+  `01-around-the-corner.png` is captioned "Around the corner." Good for collages; on the
+  phone a wide picture is shown whole.
 - JPEG, PNG, WebP, TIFF and iPhone HEIC all work. Originals stay here untouched; the book
   gets web copies at 800, 1600 and 2800 px and one at the photo's own width, never larger
   than the original.

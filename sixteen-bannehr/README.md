@@ -47,7 +47,8 @@ The first `npm run e2e` needs Playwright's browser once: `npx playwright install
    options. Name them `01-…`, `02-…` to control the order.
 3. Photos in the chapter's **`items/`** folder go only to options and materials. For
    example, put the 32 vanity renders in `content/photos/archer-bath/items/`. Photos in
-   its **`essay/`** folder go only to the small picture beside each essay.
+   its **`essay/`** folder go only to the small picture beside each essay, and each photo
+   in its **`pages/`** folder becomes a new full-bleed page (a collage, say).
 4. Run:
 
    ```sh

@@ -325,6 +325,11 @@
   height: 76svh;
 }
 
+.bleed--whole .bleed__plate {
+  height: auto;
+  margin-top: max(12svh, calc(var(--bar-h) + 24px));
+}
+
 .bleed--phone .bleed__foot,
 .ba--phone .bleed__foot {
   position: relative;

@@ -1,7 +1,18 @@
 import { imageRefsOf, readImage, type ImageRef } from '../store/actions';
 import { bundledPhotos } from './bundled';
 import { findSpread } from '../store/book';
-import type { Book } from '../model/types';
+import { createSpread, emptyImage } from '../model/templates';
+import type { Book, TemplateId } from '../model/types';
+
+// Where a new page goes: after the chapter's pictures and essays, before its galleries,
+// palettes and decisions.
+const STORY: TemplateId[] = ['opener', 'essay', 'fullbleed', 'beforeAfter', 'title'];
+
+/** "02-around-the-corner" → "Around the corner" */
+function titleOf(name: string): string {
+  const words = name.replace(/^\d+[-_ ]*/, '').replace(/[-_]+/g, ' ').trim();
+  return words ? words[0].toUpperCase() + words.slice(1) : 'A photograph';
+}
 
 /**
  * Fill each chapter's empty image places with the photos `npm run import-photos` baked
@@ -15,6 +26,19 @@ export function placeBundled(book: Book, list = bundledPhotos): { book: Book; pl
   for (const chapter of next.chapters) {
     const fresh = list(chapter.slug).filter((p) => !done.has(p.id));
     if (!fresh.length) continue;
+    // A photo from a pages/ folder becomes a full-bleed page of its own (a collage, say).
+    for (const photo of fresh.filter((p) => p.target === 'page')) {
+      const title = titleOf(photo.name);
+      const page = createSpread('fullbleed', { image: emptyImage(title, { assetId: photo.id, alt: title, caption: `${title}.` }) });
+      page.id = `sp-${photo.id.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
+      let at = 0;
+      chapter.spreads.forEach((s, i) => {
+        if (STORY.includes(s.template)) at = i + 1;
+      });
+      chapter.spreads.splice(at, 0, page);
+      next.placedBundled.push(photo.id);
+      placed++;
+    }
     // Photos meant for options or essays claim those first; the rest fill pages, then options.
     const photos = [...fresh.filter((p) => p.target === 'items' || p.target === 'essay'), ...fresh.filter((p) => !p.target || p.target === 'any')];
     const refs: ImageRef[] = [];
@@ -27,14 +51,14 @@ export function placeBundled(book: Book, list = bundledPhotos): { book: Book; pl
         else (ref.kind === 'item' ? itemRefs : refs).push(ref);
       }
     const isEmpty = (r: ImageRef) => readImage(next, r)?.assetId === null;
-    const pools = {
+    const pools: Record<'any' | 'items' | 'essay', ImageRef[]> = {
       any: [...refs, ...itemRefs].filter(isEmpty),
       items: itemRefs.filter(isEmpty),
       essay: essayRefs.filter(isEmpty),
     };
     const taken = new Set<ImageRef>();
     for (const photo of photos) {
-      const pool = pools[photo.target ?? 'any'];
+      const pool = pools[photo.target === 'items' || photo.target === 'essay' ? photo.target : 'any'];
       const ref = pool.find((r) => !taken.has(r));
       if (!ref) continue;
       taken.add(ref);
