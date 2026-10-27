@@ -83,7 +83,7 @@ export const useUI = create<UIState>((set) => ({
   overlayHidden: false,
   searchText: '',
   setTab: (tab) => {
-    if (typeof history !== 'undefined') history.replaceState(null, '', `#/${tab}`);
+    if (typeof history !== 'undefined' && import.meta.env.VITE_EMBED !== '1') history.replaceState(history.state, '', `#/${tab}`);
     set({ tab, sheets: [] });
   },
   openSheet: (s) => set((st) => ({ sheets: [...st.sheets.filter((x) => x.kind !== s.kind), s] })),

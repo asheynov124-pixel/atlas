@@ -3,7 +3,7 @@ import { MockDataSource } from '../data/mock/mockSource';
 import { interpretQuery, toSearch, withoutChip, visualTarget } from '../ai/interpret';
 import { interpretAspect } from '../ai/aspect';
 import { kmeans } from '../ai/cluster';
-import { suggestPaths, suggestQueries } from '../ai/suggest';
+import { STARTERS, suggestPaths, suggestQueries } from '../ai/suggest';
 import { foldSignals } from '../engine/learning';
 import type { Signal } from '../engine/types';
 import { COMP } from '../data/mock/taxonomy';
@@ -24,6 +24,15 @@ describe('interpretQuery', () => {
     expect(i.excludeTagIds).toEqual(['outdoor']);
     expect(i.natural).toBe(true);
     expect(i.confidence).toBeGreaterThan(0.8);
+  });
+
+  it('fully understands every built-in suggested search', () => {
+    for (const q of STARTERS) expect(interpretQuery(q, tx).leftover, q).toEqual([]);
+  });
+
+  it('matches plurals to their singular tag', () => {
+    expect(interpretQuery('close-ups', tx).tagIds).toEqual(['close-up']);
+    expect(interpretQuery('showers', tx).tagIds).toEqual(['shower']);
   });
 
   it('keeps negation across stop words', () => {

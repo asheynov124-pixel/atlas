@@ -17,11 +17,15 @@ The whole experience runs on a local mock data layer: a deterministic catalogue 
 cd discovery
 npm install
 npm run dev            # http://localhost:5173 (also on your LAN via --host)
-npm test               # 56 unit tests (engine, AI, data layer, gestures, store/privacy, regressions)
+npm test               # 58 unit tests (engine, AI, data layer, gestures, store/privacy, regressions)
 npm run build          # typecheck + production build + service worker
 npx vite preview --port 4173 &
 npm run e2e            # 29 Playwright checks at iPhone 14 size, real gestures
 ```
+
+**Shareable demo build:** `npx vite build --config vite.demo.config.ts` writes `dist-demo/`, a
+version that loads React from cdnjs and skips the service worker, so it can be hosted inside
+a sandboxed page.
 
 **On an iPhone:** run `npm run dev`, open the LAN address in Safari, then Share → *Add to
 Home Screen*. As a standalone PWA there is no browser back-swipe fighting the left-edge

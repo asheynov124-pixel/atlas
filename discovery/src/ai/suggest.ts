@@ -154,7 +154,7 @@ export function suggestBoards(saves: SaveRecord[], boards: Board[], lookup: (id:
   return out;
 }
 
-const STARTERS = [
+export const STARTERS = [
   'warm romantic close-ups',
   'neon dance under 10 min',
   'playful outdoor natural light',

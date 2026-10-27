@@ -281,7 +281,8 @@ export function interpretQuery(raw: string, tx: Taxonomy): Interpretation {
     let len = 0;
     for (let n = Math.min(lex.maxLen, tokens.length - i); n >= 1; n--) {
       const phrase = tokens.slice(i, i + n).join(' ');
-      const e = lex.entries.get(phrase);
+      // Plurals ("close-ups", "showers") match their singular entry.
+      const e = lex.entries.get(phrase) ?? (phrase.length > 3 && phrase.endsWith('s') ? lex.entries.get(phrase.slice(0, -1)) : undefined);
       if (e) {
         matched = e;
         len = n;

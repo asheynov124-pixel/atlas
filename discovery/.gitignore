@@ -5,3 +5,4 @@ e2e-shots/
 *.log
 .vite/
 *.tsbuildinfo
+dist-demo/

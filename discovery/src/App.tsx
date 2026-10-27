@@ -12,6 +12,9 @@ import { Toasts } from './components/Toasts';
 import { SheetHost } from './components/sheets/SheetHost';
 import { AgeGate, LockScreen, Splash } from './components/Gates';
 
+/** Set by the hosted-demo build (vite.demo.config.ts). */
+const EMBEDDED = import.meta.env.VITE_EMBED === '1';
+
 export function App() {
   const hydrated = useStore((s) => s.hydrated);
   const ageOk = useStore((s) => !!s.settings.ageConfirmedAt);
@@ -56,6 +59,8 @@ export function App() {
   // layer instead of leaving the app: keep one in-app history entry and
   // re-arm it after each handled back.
   useEffect(() => {
+    // Inside the hosted demo frame, pushing history would trap the host page's back button.
+    if (EMBEDDED) return;
     const arm = () => history.pushState({ phd: true }, '', location.hash || '#/feed');
     if (!(history.state as { phd?: boolean } | null)?.phd) arm();
     const onPop = () => {
