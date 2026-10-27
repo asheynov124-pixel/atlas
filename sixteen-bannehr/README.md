@@ -46,7 +46,8 @@ The first `npm run e2e` needs Playwright's browser once: `npx playwright install
    order: opener first, then before/after, full-bleed, plan, mood board, then any leftover
    options. Name them `01-…`, `02-…` to control the order.
 3. Photos in the chapter's **`items/`** folder go only to options and materials. For
-   example, put the 32 vanity renders in `content/photos/archer-bath/items/`.
+   example, put the 32 vanity renders in `content/photos/archer-bath/items/`. Photos in
+   its **`essay/`** folder go only to the small picture beside each essay.
 4. Run:
 
    ```sh
@@ -54,8 +55,8 @@ The first `npm run e2e` needs Playwright's browser once: `npx playwright install
    ```
 
    HEIC from the iPhone is converted, sideways photos are turned upright, and each photo
-   gets 800 / 1600 / 2800 px WebP copies in `public/photos/`. Copies are never larger than
-   the original, which stays untouched in `content/photos/`. Run it again any time:
+   gets 800 / 1600 / 2800 px WebP copies in `public/photos/`, plus one at its own width.
+   Copies are never larger than the original, which stays untouched in `content/photos/`. Run it again any time:
    unchanged photos are skipped, removed photos are cleaned up.
 5. Deploy (below). The next time the book opens, on any device, the photos are in place.
    A photo is placed only into an *empty* picture, and only once. If Sonny removes one, it
@@ -118,6 +119,8 @@ the deployed site:
 
 - No offline mode and no Add to Home Screen; no Print and no Send (the viewer blocks both).
 - **Save as .zip** goes through the viewer's own "save this file?" prompt.
+- Photos from `npm run import-photos` are copied in beside the page; publish
+  `dist-artifact/photos/` along with `assets/`.
 - The book is kept in that browser's storage, per person and per device, exactly as on
   the site. It opens where you left off.
 

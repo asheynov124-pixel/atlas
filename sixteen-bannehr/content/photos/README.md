@@ -22,8 +22,11 @@ Put photos in the folder of the chapter they belong to, then run `npm run import
   board, then any options and materials left over. Name them `01-…`, `02-…` to set the order.
 - **Photos in the chapter's `items/` folder** go only to options and materials (the 32
   vanity renders, cabinet samples, appliances), in filename order.
+- **Photos in the chapter's `essay/` folder** go only to the small picture beside each of
+  its essays, in filename order. Nothing else fills those.
 - JPEG, PNG, WebP, TIFF and iPhone HEIC all work. Originals stay here untouched; the book
-  gets web copies at 800, 1600 and 2800 px, never larger than the original.
+  gets web copies at 800, 1600 and 2800 px and one at the photo's own width, never larger
+  than the original.
 - A photo is placed once. If Sonny removes it in the book, it does not come back.
 
 These originals are not committed to Git (they can be large). The web copies in

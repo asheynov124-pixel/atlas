@@ -82,8 +82,9 @@ async function main() {
     if (!KNOWN.includes(chapter)) console.warn(`  ! "${chapter}" is not a chapter in the seed book; it will only fill a chapter you gave that slug.`);
     const list = [];
     // Photos directly in the chapter folder fill its pages first, then its options; photos in
-    // an items/ folder go only to options and materials (gallery renders, samples, products).
-    for (const [sub, target] of [['', 'any'], ['items', 'items']]) {
+    // an items/ folder go only to options and materials (gallery renders, samples, products);
+    // photos in an essay/ folder go only to the small pictures beside its essays.
+    for (const [sub, target] of [['', 'any'], ['items', 'items'], ['essay', 'essay']]) {
       const dir = join(SRC, chapter, sub);
       if (!existsSync(dir)) continue;
       const files = (await readdir(dir)).filter((f) => PHOTO.test(f) && !f.startsWith('.')).sort(natural.compare);
@@ -109,7 +110,9 @@ async function main() {
           } else {
             photo = await upright(src);
             variants = WIDTHS.filter((w) => w < photo.width);
-            if (!variants.length) variants = [photo.width]; // a small photo: one copy, never enlarged
+            // Below the largest size, keep a copy at the photo's own width too, so a phone's
+            // 1125-pixel photo is not served at 800. Never enlarged.
+            if (photo.width <= WIDTHS.at(-1)) variants.push(photo.width);
             if (!DRY) {
               await mkdir(outDir, { recursive: true });
               for (const w of variants) {
@@ -119,7 +122,7 @@ async function main() {
             }
           }
           variants.forEach((w) => keep.add(join(outDir, `${name}-${w}.webp`)));
-          list.push({ id, chapter, name, width: photo.width, height: photo.height, variants, ...(target === 'items' ? { target } : {}) });
+          list.push({ id, chapter, name, width: photo.width, height: photo.height, variants, ...(target !== 'any' ? { target } : {}) });
           total++;
         } catch (e) {
           console.warn(`  ! Skipped ${chapter}/${sub ? `${sub}/` : ''}${file}: ${e.message}`);
@@ -129,7 +132,9 @@ async function main() {
     if (!list.length) continue;
     manifest.photos[chapter] = list;
     const items = list.filter((p) => p.target === 'items').length;
-    console.log(`  ${chapter.padEnd(12)} ${String(list.length).padStart(3)} photo${list.length === 1 ? '' : 's'}${items ? ` (${items} for options)` : ''}`);
+    const essays = list.filter((p) => p.target === 'essay').length;
+    const notes = [items && `${items} for options`, essays && `${essays} beside essays`].filter(Boolean).join(', ');
+    console.log(`  ${chapter.padEnd(12)} ${String(list.length).padStart(3)} photo${list.length === 1 ? '' : 's'}${notes ? ` (${notes})` : ''}`);
   }
 
   if (DRY) {

@@ -15,23 +15,26 @@ export function placeBundled(book: Book, list = bundledPhotos): { book: Book; pl
   for (const chapter of next.chapters) {
     const fresh = list(chapter.slug).filter((p) => !done.has(p.id));
     if (!fresh.length) continue;
-    // Photos meant for options claim them first; the rest fill pages, then any options left.
-    const photos = [...fresh.filter((p) => p.target === 'items'), ...fresh.filter((p) => p.target !== 'items')];
+    // Photos meant for options or essays claim those first; the rest fill pages, then options.
+    const photos = [...fresh.filter((p) => p.target === 'items' || p.target === 'essay'), ...fresh.filter((p) => !p.target || p.target === 'any')];
     const refs: ImageRef[] = [];
     const itemRefs: ImageRef[] = [];
+    const essayRefs: ImageRef[] = [];
     for (const spread of chapter.spreads)
       for (const ref of imageRefsOf(spread, next)) {
-        // An essay's margin picture is optional; it is filled by hand, never by import.
-        if (ref.kind === 'slot' && spread.template === 'essay') continue;
-        (ref.kind === 'item' ? itemRefs : refs).push(ref);
+        // An essay's margin picture is optional: only a photo from an essay/ folder fills it.
+        if (ref.kind === 'slot' && spread.template === 'essay') essayRefs.push(ref);
+        else (ref.kind === 'item' ? itemRefs : refs).push(ref);
       }
     const isEmpty = (r: ImageRef) => readImage(next, r)?.assetId === null;
-    const anywhere = [...refs, ...itemRefs].filter(isEmpty);
-    const itemsOnly = itemRefs.filter(isEmpty);
+    const pools = {
+      any: [...refs, ...itemRefs].filter(isEmpty),
+      items: itemRefs.filter(isEmpty),
+      essay: essayRefs.filter(isEmpty),
+    };
     const taken = new Set<ImageRef>();
     for (const photo of photos) {
-      // Photos from an items/ folder go to options and materials only.
-      const pool = photo.target === 'items' ? itemsOnly : anywhere;
+      const pool = pools[photo.target ?? 'any'];
       const ref = pool.find((r) => !taken.has(r));
       if (!ref) continue;
       taken.add(ref);

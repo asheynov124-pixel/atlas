@@ -12,8 +12,8 @@ export interface BundledPhoto {
   width: number;
   height: number;
   variants: number[];
-  /** "items" when the photo came from an items/ folder: options and materials only. */
-  target?: 'any' | 'items';
+  /** Where its folder sends it: items/ to options and materials, essay/ beside essays. */
+  target?: 'any' | 'items' | 'essay';
 }
 
 interface Manifest {
@@ -38,7 +38,7 @@ const index = new Map<string, BundledPhoto>();
 for (const list of Object.values(m.photos)) for (const p of list) index.set(p.id, p);
 
 function url(p: BundledPhoto, w: number): string {
-  const folder = p.target === 'items' ? `${encodeURIComponent(p.chapter)}/items` : encodeURIComponent(p.chapter);
+  const folder = p.target && p.target !== 'any' ? `${encodeURIComponent(p.chapter)}/${p.target}` : encodeURIComponent(p.chapter);
   return `${import.meta.env.BASE_URL}photos/${folder}/${encodeURIComponent(p.name)}-${w}.webp`;
 }
 

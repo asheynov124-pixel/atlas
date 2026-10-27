@@ -230,6 +230,20 @@ describe('bundled photos', async () => {
     expect(book.items['it-vanity-01'].assetId).toBe('bundled:archer-bath/items/v1');
     expect(book.items['it-vanity-02'].assetId).toBe('bundled:archer-bath/items/v2');
   });
+
+  it('puts essay/ photos beside the essay, and nowhere else', () => {
+    const list = (slug: string) =>
+      slug === 'prologue'
+        ? [{ id: 'bundled:prologue/essay/rise', chapter: slug, name: 'rise', width: 1125, height: 1500, variants: [800], target: 'essay' as const }]
+        : [];
+    const { book, placed } = placeBundled(createSeedBook(), list);
+    expect(placed).toBe(1);
+    const prologue = book.chapters.find((c) => c.slug === 'prologue')!;
+    const essay = prologue.spreads.find((s) => s.template === 'essay')!.slots.image;
+    expect(essay.kind === 'image' && essay.assetId).toBe('bundled:prologue/essay/rise');
+    const opener = prologue.spreads[0].slots.image;
+    expect(opener.kind === 'image' && opener.assetId).toBeNull();
+  });
 });
 
 describe('migration', async () => {
