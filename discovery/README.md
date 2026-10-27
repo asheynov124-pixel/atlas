@@ -17,10 +17,10 @@ The whole experience runs on a local mock data layer: a deterministic catalogue 
 cd discovery
 npm install
 npm run dev            # http://localhost:5173 (also on your LAN via --host)
-npm test               # 137 unit tests (engine, AI, data layer, gestures, store/privacy, regressions, import)
+npm test               # 160 unit tests (engine, AI, data layer, gestures, store/privacy, regressions, import)
 npm run build          # typecheck + production build + service worker
 npx vite preview --port 4173 &
-npm run e2e            # 43 Playwright checks at iPhone 14 size, real gestures (import runs on offline fixtures)
+npm run e2e            # 48 Playwright checks at iPhone 14 size, real gestures (import runs on offline fixtures)
 ```
 
 **Shareable demo build:** `npx vite build --config vite.demo.config.ts` writes `dist-demo/`, a
@@ -126,8 +126,23 @@ boards. They're stored only on this device.
   direct links together, and each is handled on its own. **Skip the pages** imports
   just the direct ones. The **I have direct links** tip shows what they look like and
   how to copy one (right-click → *Copy Image Address*; on iPhone, touch and hold →
-  *Open in New Tab*, then copy the address). The honest workaround for a page that
-  won't open up is still to save it and upload the `.html`.
+  *Open in New Tab*, then copy the address).
+- **Blocked pages: the "Send to PH Discovery" bookmarklet.** *Import → Page blocked? Use
+  the bookmarklet* gives you a button to drag to your bookmarks bar, or code to copy into
+  a bookmark on a phone. Tap it while you're on a gallery page and a small panel shows
+  what it spotted. **Open in PH Discovery** hands the page, *as your browser rendered
+  it*, to the app; that includes galleries that scripts build, which no page read could
+  see. **Copy for PH Discovery** puts it on the clipboard for **Paste from clipboard**
+  (use this with an iPhone Home Screen app, which keeps its own library apart from
+  Safari). The app reads the snapshot with the same extractor as an uploaded `.html` page
+  and only fills the preview: nothing imports until you press Import. The bookmarklet
+  fetches nothing and sends nothing to a server. It reads only the page you're on, only
+  when you tap it, and talks only to the app tab it opened. Saving the page and uploading
+  the `.html` still works too.
+- **One live tab.** Each tab saves the whole library, so two open tabs would overwrite
+  each other. A second tab now says *PH Discovery is open in another tab* and offers
+  **Use it here**, which makes the first tab save and step aside. A page the bookmarklet
+  sends to a second tab is passed to the one you already have open.
 - **Extraction reads** og/twitter meta (including `twitter:player:stream`), `<video>`
   and `<source>` (with posters), `<img>` `src`, `srcset` (widest), and every common lazy
   attribute (`data-src`, `data-lazy-src`, `data-original`, `data-srcset`, `data-lazy`,
@@ -202,6 +217,8 @@ src/
   state/          ← zustand stores
     store.ts        persisted (IndexedDB) app state, per-profile silos
     feed.ts         feed controller: buffering, nav, view tracking, judge/save/block
+    tabGuard.ts     one live tab: the BroadcastChannel protocol (pure, tested with two "tabs")
+    tabs.ts         the guard wired to persistence (held writes) and rehydration
   gestures/       ← classify.ts (pure) + useStageGestures.ts (pointer engine) + haptics
   player/         ← renderer.ts (procedural clips) + ClipPlayer.tsx (fallback chain, stills)
   import/         ← Personal Import
@@ -212,6 +229,8 @@ src/
     model.ts        ImportItem → VideoSummary/VideoDetail, synthetic embedding, tag matching
     localSource.ts  WithImports: layers imports over any DataSource
     draft.ts        the in-progress import (session-only)
+    bookmarklet.ts  "Send to PH Discovery": the self-contained page-side script, snapshot checks
+    handoff.ts      the app's end of the bookmarklet handoff (opener only, queued until ready)
   views/, components/
 ```
 
@@ -309,3 +328,20 @@ These are notes for counsel, not legal conclusions:
    still bind a user who accepted them (in late 2022 the district court found hiQ had
    breached LinkedIn’s user agreement, and the case then settled). A proxy that bypasses
    CORS, or any background crawling, should stay out of scope.
+7. **The bookmarklet.** It is the user reading a page they are already viewing, in
+   their own browser, at the moment they choose. It makes no request of its own, so
+   there is no cross-origin read for CORS to govern and nothing for it to "bypass." It
+   is the same posture as Pinterest's long-standing "Pin It" button. On the CFAA (and
+   N.J.S.A. 2A:38A-3 / 2C:20-25), a user who may view the page is inside the gate
+   *Van Buren* describes (593 U.S. 374). DMCA § 1201 targets circumventing a measure
+   that controls access to a work; the bookmarklet only sees what the browser already
+   displays to the user. The open questions are elsewhere. (a) **Site terms**: some
+   prohibit "automated" collection, and a one-tap, user-driven read is a weak fit for
+   that word, but it is the user's contract. (b) **Displaying the images**: imports are
+   shown by linking to the site's own files, not by copying them. *Perfect 10 v. Amazon*
+   (508 F.3d 1146) and *Hunley v. Instagram* (73 F.4th 1060, 9th Cir. 2023) treat that
+   as no direct "display" infringement (the server test). *Goldman v. Breitbart* (302
+   F. Supp. 3d 585, S.D.N.Y. 2018) rejected the server test, and the Third Circuit's
+   position should be checked. Keeping imports personal, on the device, and never
+   re-published keeps this at the low end, and it would change if imports were ever
+   shared or synced.

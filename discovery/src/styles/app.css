@@ -3215,6 +3215,10 @@ input[type='range'] {
   font-size: 3rem;
 }
 
+.gate__mark--small {
+  font-size: 2rem;
+}
+
 .lock h1 {
   font-size: 1.3rem;
 }
@@ -4210,7 +4214,8 @@ kbd {
   margin-top: 8px;
 }
 
-.direct-tip {
+.direct-tip,
+.bookmarklet-tip {
   padding: 10px 14px;
   border-radius: var(--radius);
   background: var(--surface-2);
@@ -4218,12 +4223,14 @@ kbd {
   font-size: 0.88rem;
 }
 
-.direct-tip summary {
+.direct-tip summary,
+.bookmarklet-tip summary {
   cursor: pointer;
   font-weight: 600;
 }
 
-.direct-tip p {
+.direct-tip p,
+.bookmarklet-tip p {
   margin: 8px 0;
   color: var(--muted);
 }
@@ -4239,4 +4246,35 @@ kbd {
   word-break: break-all;
   user-select: all;
   -webkit-user-select: all;
+}
+
+/* ---------- Bookmarklet tip ---------- */
+
+.bookmarklet-tip .row {
+  margin: 4px 0 2px;
+}
+
+.bookmarklet-link {
+  cursor: grab;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #0b0b10;
+  font-weight: 650;
+}
+
+.bookmarklet-code {
+  width: 100%;
+  font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px;
+  resize: vertical;
+}
+
+.bookmarklet-steps {
+  margin: 4px 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
 }

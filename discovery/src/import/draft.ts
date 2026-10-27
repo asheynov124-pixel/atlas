@@ -54,7 +54,8 @@ interface DraftState {
   doneBatchId: string | null;
   setText: (t: string) => void;
   appendText: (t: string) => void;
-  addFile: (name: string, text: string) => DraftSource;
+  /** `label` names the chip when the file name isn't what the user would recognise. */
+  addFile: (name: string, text: string, label?: string) => DraftSource;
   removeFile: (id: string) => void;
   setOverride: (keys: string[], patch: RowOverride) => void;
   setSelected: (keys: string[], anchor?: string | null) => void;
@@ -176,8 +177,8 @@ export const useImportDraft = create<DraftState>()((set, get) => ({
     const cur = get().text;
     get().setText(cur && !cur.endsWith('\n') ? `${cur}\n${t}` : cur + t);
   },
-  addFile: (name, text) => {
-    const src = parseSource(text, name, name);
+  addFile: (name, text, label) => {
+    const src = parseSource(text, label ?? name, name);
     set((s) => ({ files: [...s.files, src] }));
     for (const r of cachedPagesIn(src, get().scans)) set((st) => applyScan(st, r, true));
     return src;

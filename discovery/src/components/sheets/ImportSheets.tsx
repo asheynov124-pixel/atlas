@@ -14,7 +14,8 @@ import { startPath } from '../../state/feed';
 import { useImportDraft, useDraftView, computeDraft, type ScanState } from '../../import/draft';
 import { zeroMediaMessage } from '../../import/scan';
 import { itemFromCandidate, matchTagIds, parseTagInput, cleanTags, importSummary } from '../../import/model';
-import { textIsSafe } from '../../import/extract';
+import { looksLikeHtml, textIsSafe } from '../../import/extract';
+import { bookmarkletHref, snapshotPage, type PageHandoff } from '../../import/bookmarklet';
 import { downloadText, exportBatchJSON, exportBatchUrls, exportFilename } from '../../import/exportBatch';
 import { applyTitleOp, canRedo, canUndo, historyCommit, historyInit, historyRedo, historyUndo, type TitleOp, type TitleSubject } from '../../import/titles';
 import { EDITOR_SHORTCUTS, IMPORT_SHORTCUTS, MOD, fullySelected, isMod, isTyping, type Shortcut } from '../../import/keys';
@@ -209,6 +210,87 @@ function DirectLinksTip({ open }: { open: boolean }) {
   );
 }
 
+const EMBEDDED = import.meta.env.VITE_EMBED === '1';
+
+/** The address the bookmarklet opens. The hosted preview has none it could open. */
+const appAddress = () => (EMBEDDED ? null : `${location.origin}${location.pathname}`);
+
+/** "Page blocked? Use the bookmarklet": the button to drag or copy, and how to install it. */
+function BookmarkletTip({ open }: { open: boolean }) {
+  const href = useMemo(() => bookmarkletHref(appAddress()), []);
+  const linkRef = useRef<HTMLAnchorElement>(null);
+  const [showCode, setShowCode] = useState(false);
+  // React refuses javascript: URLs in JSX, rightly. This one is ours, and it's only dragged or copied.
+  useEffect(() => linkRef.current?.setAttribute('href', href), [href]);
+  const copy = () => {
+    if (!navigator.clipboard?.writeText) return setShowCode(true);
+    navigator.clipboard.writeText(href).then(
+      () => toast('Bookmarklet copied'),
+      () => setShowCode(true),
+    );
+  };
+  return (
+    <details className="bookmarklet-tip" open={open}>
+      <summary>Page blocked? Use the bookmarklet</summary>
+      <p>
+        Some sites won’t let other apps read their pages. The <b>Send to PH Discovery</b> bookmark works from inside the page you’re looking at. Tap it there and it
+        sends what your browser already shows, including pictures that scripts added, to Import for you to review.
+      </p>
+      <div className="row row--wrap">
+        <a
+          ref={linkRef}
+          className="btn btn--small bookmarklet-link"
+          draggable
+          onClick={(e) => {
+            e.preventDefault();
+            toast('Drag this to your bookmarks bar, then click it on a gallery page');
+          }}
+        >
+          ⇪ Send to PH Discovery
+        </a>
+        <button type="button" className="btn btn--small btn--ghost" onClick={copy}>
+          Copy bookmarklet
+        </button>
+      </div>
+      {showCode && (
+        <textarea className="bookmarklet-code" readOnly rows={3} value={href} aria-label="Bookmarklet code" onFocus={(e) => e.currentTarget.select()} />
+      )}
+      <ul className="small bookmarklet-steps">
+        <li>
+          <b>Computer:</b> drag the button to your bookmarks bar. On a gallery page, click it.
+        </li>
+        <li>
+          <b>iPhone:</b> tap <b>Copy bookmarklet</b>. Bookmark any page (Share → Add Bookmark) and name it “Send to PH Discovery”. Open Bookmarks → Edit, tap that
+          bookmark, and replace its address with the copied code. On a gallery page, open Bookmarks and tap it.
+        </li>
+        <li>
+          <b>Android:</b> bookmark any page, edit it, and paste the code as its address. On a gallery page, type “Send to PH” in the address bar and pick the bookmark.
+        </li>
+        <li>
+          <b>Home Screen app on iPhone:</b> in the bookmark’s panel, tap <b>Copy for PH Discovery</b>, then come back here and tap <b>Paste from clipboard</b>. Safari
+          and the Home Screen app keep separate libraries.
+        </li>
+      </ul>
+      <p className="small">
+        It reads only the page you’re on, only when you tap it, and passes it straight to this app on your device. It loads nothing from the site and sends nothing
+        to a server. Scroll to the end of a gallery first, so every picture has loaded.
+      </p>
+      {EMBEDDED && <p className="small">In this preview the bookmark can only copy, and pictures from other sites show once the app runs at its own address.</p>}
+    </details>
+  );
+}
+
+/** A bookmarklet snapshot (or any whole web page) pasted in: read it as a page, not as a list of links. */
+function addPastedPage(text: string): boolean {
+  const page = snapshotPage(text);
+  if (!page && !(text.length > 4000 && looksLikeHtml(text))) return false;
+  const host = page ? hostOf(page) : '';
+  const src = useImportDraft.getState().addFile(page ? `${host}.html` : 'pasted-page.html', text, page ? `Page · ${host}` : 'Pasted page');
+  const n = src.candidates.length;
+  toast(n ? `Read ${plural(n, 'link')} from ${page ? host : 'the pasted page'}` : 'No pictures found in that page', n ? 'info' : 'error');
+  return true;
+}
+
 /** Under a gallery-page row: what happened when it was read, and the way out (open it, copy links). */
 function PageRowStatus({ c, scan }: { c: Candidate; scan?: ScanState }) {
   const failed = c.flags.includes('scan-failed');
@@ -289,6 +371,7 @@ function ImportEditor() {
     try {
       const text = await navigator.clipboard.readText();
       if (!text.trim()) return toast('The clipboard is empty', 'error');
+      if (addPastedPage(text)) return;
       useImportDraft.getState().appendText(text);
     } catch {
       textRef.current?.focus();
@@ -346,7 +429,15 @@ function ImportEditor() {
   useEffect(() => {
     if (!isTop) return;
     const onPaste = (e: ClipboardEvent) => {
-      if (isTyping(e.target)) return;
+      const inBox = e.target === textRef.current;
+      if (isTyping(e.target) && !inBox) return;
+      // A whole page (the bookmarklet's Copy) goes in as a page, even pasted into the box.
+      const pasted = e.clipboardData?.getData('text/plain') ?? '';
+      if (pasted && addPastedPage(pasted)) {
+        e.preventDefault();
+        return;
+      }
+      if (inBox) return; // an ordinary paste into the box: the browser handles it
       const files = e.clipboardData?.files;
       if (files?.length) {
         e.preventDefault();
@@ -445,6 +536,7 @@ function ImportEditor() {
           if (e.dataTransfer.files.length) void readFiles(e.dataTransfer.files);
           else {
             const text = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
+            if (text && addPastedPage(text)) return;
             if (text) useImportDraft.getState().appendText(text.split('\n').filter((l) => !l.startsWith('#')).join('\n'));
           }
         }}
@@ -520,6 +612,7 @@ function ImportEditor() {
         </ul>
       )}
       <DirectLinksTip open={failed.length > 0 || (!rows.length && !hasInput)} />
+      <BookmarkletTip open={failed.length > 0} />
 
       {rows.length > 0 && (
         <section className="ipreview" aria-label="Import preview">
@@ -573,7 +666,10 @@ function ImportEditor() {
                   </li>
                 ))}
               </ul>
-              <p className="small">Tip: open the page, save it (Share → Save to Files, or {MOD} S on a computer), then upload the .html here.</p>
+              <p className="small">
+                Tip: open the page and tap the <b>Send to PH Discovery</b> bookmarklet (below). Or save the page (Share → Save to Files, or {MOD} S on a computer) and
+                upload the .html here.
+              </p>
             </details>
           )}
           {view.nav.length > 0 && !d.scanning && (
@@ -1225,6 +1321,17 @@ export function EditImportSheet({ videoId }: { videoId: string }) {
 }
 
 /** Library entry point helper: start a fresh import (keeps any unfinished draft). */
+/** A page from the bookmarklet: read it like an uploaded .html page and open Import on it. */
+export function deliverPage(page: PageHandoff) {
+  const host = hostOf(page.page);
+  const draft = useImportDraft.getState();
+  draft.showBatch(null);
+  const src = draft.addFile(`${host}.html`, page.html, `Page · ${host}`);
+  useUI.getState().openSheet({ kind: 'import' });
+  const n = src.candidates.length;
+  toast(n ? `Read ${plural(n, 'link')} from ${host}` : `No pictures found on that ${host} page`, n ? 'info' : 'error');
+}
+
 export function openImport(prefill?: string) {
   const draft = useImportDraft.getState();
   draft.showBatch(null);

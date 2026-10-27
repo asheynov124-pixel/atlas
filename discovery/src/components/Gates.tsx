@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useStore } from '../state/store';
 import { useUI } from '../state/ui';
+import { takeOver, useTabRole } from '../state/tabs';
 import { sha256 } from '../lib/crypto';
 import { haptic } from '../gestures/haptics';
 import { IconLock } from './Icons';
@@ -20,6 +21,37 @@ export function Splash({ error, onRetry }: { error?: string | null; onRetry?: ()
       ) : (
         <div className="splash__bar" />
       )}
+    </div>
+  );
+}
+
+/** This tab isn't the live one: say where the app is, and offer to bring it here. */
+export function ElsewhereScreen() {
+  const reason = useTabRole((s) => s.reason);
+  const [busy, setBusy] = useState(false);
+  const copy =
+    reason === 'forwarded'
+      ? { title: 'Sent to your other PH Discovery tab', body: 'Switch to that tab to review the import. You can close this one.', action: 'Use it here instead' }
+      : reason === 'moved'
+        ? { title: 'PH Discovery moved to another tab', body: 'Your likes, saves, and imports are safe. Only one tab saves at a time, so they never overwrite each other.', action: 'Use it here' }
+        : { title: 'PH Discovery is open in another tab', body: 'Only one tab saves at a time, so your likes, saves, and imports never overwrite each other.', action: 'Use it here' };
+  return (
+    <div className="gate" role="dialog" aria-labelledby="elsewhere-title">
+      <div className="gate__card">
+        <div className="gate__mark gate__mark--small">◆</div>
+        <h1 id="elsewhere-title">{copy.title}</h1>
+        <p>{copy.body}</p>
+        <button
+          className="btn btn--primary btn--block"
+          disabled={busy}
+          onClick={() => {
+            setBusy(true);
+            void takeOver().finally(() => setBusy(false));
+          }}
+        >
+          {busy ? 'Moving…' : copy.action}
+        </button>
+      </div>
     </div>
   );
 }

@@ -7,6 +7,8 @@
  * - Pending writes flush when the page is hidden, so nothing is lost when iOS
  *   suspends the PWA.
  * - Persistence can be paused (incognito): nothing reaches disk until resumed.
+ * - Writes can be held (another tab is the live one): changes wait in memory and
+ *   are written once this tab is live again, or discarded if it never is.
  */
 import { get, set, del } from 'idb-keyval';
 import type { PersistStorage, StorageValue } from 'zustand/middleware';
@@ -14,6 +16,7 @@ import type { PersistStorage, StorageValue } from 'zustand/middleware';
 const pending = new Map<string, StorageValue<unknown>>();
 let timer: ReturnType<typeof setTimeout> | null = null;
 let paused = false;
+let held = false;
 
 function hasIDB(): boolean {
   try {
@@ -33,6 +36,7 @@ function localSet(name: string, raw: string) {
 
 /** Write everything pending. The pending set is captured synchronously. */
 export async function flushStorage() {
+  if (held) return;
   if (timer) {
     clearTimeout(timer);
     timer = null;
@@ -60,6 +64,20 @@ export function setPersistencePaused(on: boolean) {
 
 export function isPersistencePaused() {
   return paused;
+}
+
+/**
+ * Hold writes while another tab is the live one, so a stale tab can't overwrite it.
+ * `discard` drops what this tab queued meanwhile; releasing the hold writes the rest.
+ */
+export function holdWrites(on: boolean, opts: { discard?: boolean } = {}) {
+  held = on;
+  if (opts.discard) pending.clear();
+  if (on && timer) {
+    clearTimeout(timer);
+    timer = null;
+  }
+  if (!on && pending.size && !timer) timer = setTimeout(() => void flushStorage(), 450);
 }
 
 if (typeof window !== 'undefined') {
@@ -92,7 +110,7 @@ export function idbPersistStorage<S>(): PersistStorage<S> {
     setItem(name, value) {
       if (paused) return;
       pending.set(name, value as StorageValue<unknown>);
-      if (!timer) timer = setTimeout(() => void flushStorage(), 450);
+      if (!timer && !held) timer = setTimeout(() => void flushStorage(), 450);
     },
     async removeItem(name) {
       pending.delete(name);

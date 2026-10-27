@@ -77,6 +77,31 @@ export const GALLERY_HTML = `<!doctype html><html><head>
 <aside class="ad-slot"><img src="https://ads.trafficjunky.net/b/1.jpg" width="300" height="250"></aside>
 </body></html>`;
 
+/**
+ * A gallery that scripts build in the browser, on a site that refuses cross-origin reads.
+ * The HTML the site serves holds no image links at all (the URLs are assembled at
+ * runtime), so even a page read that got through would find nothing. Only what the
+ * browser renders has them, and that is what the bookmarklet sends.
+ */
+export const LOCKED_HTML = `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>Album 42</title>
+<style>body{margin:0;background:#111;font-family:sans-serif}main{display:grid;grid-template-columns:1fr 1fr;gap:4px}img{width:100%;display:block}</style></head><body>
+<main class="gallery" id="grid"></main>
+<script>
+  var grid = document.getElementById('grid');
+  ['Dune 1', 'Dune 2', 'Dune 3', 'Dune 4'].forEach(function (title, i) {
+    var cdn = 'https://cdn.' + 'locked.test/';
+    var a = document.createElement('a');
+    a.href = cdn + 'full/' + (i + 1) + '.png';
+    a.setAttribute('data-fancybox', 'album');
+    var img = document.createElement('img');
+    img.src = cdn + 'thumb/' + (i + 1) + '.png';
+    img.alt = title;
+    a.appendChild(img);
+    grid.appendChild(a);
+  });
+</script>
+</body></html>`;
+
 /** Install routes. Only the gallery page allows cross-origin reads. Returns live request counts. */
 export async function installImportFixtures(page) {
   const hits = { gallery: 0 };
@@ -91,8 +116,13 @@ export async function installImportFixtures(page) {
   });
   // A site that refuses cross-origin reads. Intercepted responses skip the browser's CORS
   // check, so this fails the request the way a CORS refusal looks to the page: an opaque TypeError.
-  await page.route('https://locked.test/**', (route) => route.abort('failed'));
-  await page.route(/https:\/\/(cdn\.gallery\.test|img\.example\.test)\/.*/, (route) => {
+  // Opening it as a page works; reading it from another app (fetch) doesn't.
+  await page.route('https://locked.test/**', (route) =>
+    route.request().resourceType() === 'document'
+      ? route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: LOCKED_HTML })
+      : route.abort('failed'),
+  );
+  await page.route(/https:\/\/(cdn\.gallery\.test|cdn\.locked\.test|img\.example\.test)\/.*/, (route) => {
     const url = route.request().url();
     if (/\.mp4$/.test(url)) return route.fulfill({ status: 404, body: '' });
     const hue = [...url].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 11);

@@ -10,7 +10,10 @@ import { YouView } from './views/YouView';
 import { TabBar } from './components/TabBar';
 import { Toasts } from './components/Toasts';
 import { SheetHost } from './components/sheets/SheetHost';
-import { AgeGate, LockScreen, Splash } from './components/Gates';
+import { AgeGate, ElsewhereScreen, LockScreen, Splash } from './components/Gates';
+import { deliverPage, openImport } from './components/sheets/ImportSheets';
+import { useTabRole } from './state/tabs';
+import { consumeArrivals } from './import/handoff';
 
 /** Set by the hosted-demo build (vite.demo.config.ts). */
 const EMBEDDED = import.meta.env.VITE_EMBED === '1';
@@ -22,6 +25,7 @@ export function App() {
   const locked = useUI((s) => s.locked);
   const tx = useTaxonomy((s) => s.tx);
   const txError = useTaxonomy((s) => s.error);
+  const role = useTabRole((s) => s.role);
 
   useEffect(() => {
     void useTaxonomy.getState().load();
@@ -85,7 +89,23 @@ export function App() {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
-  if (!hydrated || !tx) return <Splash error={txError} onRetry={() => void useTaxonomy.getState().load()} />;
+  // Pages from the bookmarklet open Import once the app is really in front of you.
+  const ready = hydrated && !!tx && ageOk && !locked && role === 'active';
+  useEffect(() => {
+    if (!ready) return;
+    return consumeArrivals((a) => {
+      if (a.kind === 'page') return deliverPage(a.page);
+      openImport();
+      useUI.getState().toast({
+        text: 'Nothing arrived from the page. Go back to it, tap Copy for PH Discovery, then Paste from clipboard here.',
+        tone: 'error',
+        ttl: 6000,
+      });
+    });
+  }, [ready]);
+
+  if (role === 'standby') return <ElsewhereScreen />;
+  if (!hydrated || !tx || role === 'probing') return <Splash error={txError} onRetry={() => void useTaxonomy.getState().load()} />;
   if (!ageOk) return <AgeGate />;
   if (locked) return <LockScreen />;
 

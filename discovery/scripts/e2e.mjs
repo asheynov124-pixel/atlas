@@ -33,7 +33,7 @@ async function check(name, fn) {
     results.push(`✓ ${step}. ${name}`);
   } catch (e) {
     results.push(`✗ ${step}. ${name}: ${e.message.split('\n')[0]}`);
-    await page.screenshot({ path: `${shots}/fail-${step}.png` });
+    await page.screenshot({ path: `${shots}/fail-${step}.png` }).catch(() => undefined); // the page may be closed
   }
 }
 const shot = (name) => page.screenshot({ path: `${shots}/${name}.png` });
@@ -688,6 +688,104 @@ await check('import: incognito warns that an import won’t persist', async () =
   await page.keyboard.press('Escape');
   await tab('You').click();
   await page.getByText('Incognito session').click();
+});
+
+// ---------------------------------------------------------------------------
+// Bookmarklet: galleries the app isn't allowed to read
+
+let bookmarklet = '';
+let gallery = null;
+let panel = null;
+let appTab = null;
+const watch = (p) => p.on('pageerror', (e) => problems.push(`pageerror (${p.url()}): ${e.message}`));
+const runBookmarklet = (p) => p.evaluate((href) => (0, eval)(decodeURIComponent(href.slice('javascript:'.length))), bookmarklet);
+
+await check('bookmarklet: Import offers it, built to open this app', async () => {
+  await tab('Library').click();
+  await page.getByRole('button', { name: 'Import media' }).click();
+  const tip = page.locator('.bookmarklet-tip');
+  await tip.locator('summary', { hasText: 'Page blocked? Use the bookmarklet' }).click();
+  const link = tip.locator('a.bookmarklet-link');
+  await link.waitFor();
+  bookmarklet = (await link.getAttribute('href')) ?? '';
+  assert(bookmarklet.startsWith('javascript:'), 'not a javascript: link');
+  assert(decodeURIComponent(bookmarklet).includes(JSON.stringify(base)), 'bookmarklet does not open this app');
+  await link.scrollIntoViewIfNeeded();
+  await wait(300);
+  await shot('46-bookmarklet-tip');
+  await page.keyboard.press('Escape');
+});
+
+await check('bookmarklet: on a page the app can’t read, it sends the gallery as rendered to the open app tab', async () => {
+  gallery = await ctx.newPage();
+  watch(gallery);
+  await installImportFixtures(gallery);
+  await gallery.goto(LOCKED_URL);
+  await gallery.locator('main img').nth(3).waitFor();
+  await runBookmarklet(gallery);
+  panel = gallery.getByRole('dialog', { name: 'Send to PH Discovery' });
+  await panel.waitFor();
+  assert(/About 4 pictures on locked\.test\./.test(await panel.textContent()), `panel: ${await panel.textContent()}`);
+  await gallery.screenshot({ path: `${shots}/47-bookmarklet-panel.png` });
+  const opened = ctx.waitForEvent('page', { timeout: 8000 });
+  opened.catch(() => undefined); // awaited below; don't let a failed click leave it unhandled
+  await panel.getByRole('button', { name: 'Open in PH Discovery' }).click();
+  appTab = await opened;
+  watch(appTab);
+  // The app is already open in the first tab, so the new tab passes the page there and says so.
+  await appTab.getByRole('heading', { name: 'Sent to your other PH Discovery tab' }).waitFor({ timeout: 8000 });
+  await panel.getByText('Sent. Review it in PH Discovery before you import.').waitFor({ timeout: 4000 });
+  await page.locator('.import-sheet .chips', { hasText: 'Page · locked.test' }).waitFor({ timeout: 4000 });
+  for (const n of [1, 2, 3, 4]) await rowByTitle(`Dune ${n}`).waitFor();
+  assert((await page.locator('.ipreview__row').count()) === 4, `rows: ${await page.locator('.ipreview__row').count()}`);
+  const thumb = await rowByTitle('Dune 1').locator('.ipreview__thumb img').getAttribute('src');
+  assert(thumb === 'https://cdn.locked.test/thumb/1.png', `preview ${thumb}`);
+  assert(/Import 4/.test(await page.locator('.import-foot .btn--primary').textContent()), 'nothing should import until you press Import');
+  await shot('48-bookmarklet-import');
+  await appTab.screenshot({ path: `${shots}/49-sent-to-other-tab.png` });
+});
+
+await check('one live tab: “Use it here” moves the app over, and back, without losing anything', async () => {
+  const before = await state();
+  await appTab.getByRole('button', { name: 'Use it here instead' }).click();
+  await page.getByRole('heading', { name: 'PH Discovery moved to another tab' }).waitFor({ timeout: 4000 });
+  await appTab.locator('.tabbar').waitFor({ timeout: 6000 });
+  await appTab.close();
+  await page.getByRole('button', { name: 'Use it here' }).click();
+  await page.locator('.tabbar').waitFor({ timeout: 6000 });
+  const after = await state();
+  assert(after.activeProfileId === before.activeProfileId, 'profile changed');
+  const items = (s) => Object.keys(s.data[s.activeProfileId].imports.items).length;
+  assert(items(after) === items(before) && items(after) > 0, `imports ${items(before)} → ${items(after)}`);
+});
+
+await check('bookmarklet: Copy, then Paste from clipboard, reads the same page', async () => {
+  await ctx.grantPermissions(['clipboard-read', 'clipboard-write']);
+  if (await page.locator('.import-sheet').isVisible()) await page.getByRole('button', { name: 'Clear' }).click();
+  else {
+    await tab('Library').click();
+    await page.getByRole('button', { name: 'Import media' }).click();
+  }
+  await panel.getByRole('button', { name: 'Copy for PH Discovery' }).click();
+  await panel.getByText(/^Copied\./).waitFor({ timeout: 3000 });
+  await page.getByRole('button', { name: 'Paste from clipboard' }).click();
+  await page.locator('.import-sheet .chips', { hasText: 'Page · locked.test' }).waitFor({ timeout: 4000 });
+  await rowByTitle('Dune 4').waitFor();
+  assert((await page.getByLabel('Links to import').inputValue()) === '', 'the page landed in the text box instead of as a page');
+  await page.getByRole('button', { name: 'Clear' }).click();
+  await page.keyboard.press('Escape');
+});
+
+await check('bookmarklet: with no app tab open, the new tab opens Import on the page itself', async () => {
+  await page.close();
+  const opened = ctx.waitForEvent('page', { timeout: 8000 });
+  opened.catch(() => undefined);
+  await panel.getByRole('button', { name: 'Open in PH Discovery' }).click();
+  const fresh = await opened;
+  watch(fresh);
+  await fresh.locator('.import-sheet .chips', { hasText: 'Page · locked.test' }).waitFor({ timeout: 8000 });
+  await fresh.locator('.ipreview__title', { hasText: 'Dune 3' }).waitFor();
+  assert(!/phd-handoff/.test(fresh.url()), `handoff marker left in the address: ${fresh.url()}`);
 });
 
 console.log(results.join('\n'));
