@@ -220,12 +220,13 @@ describe('finalize — dedupe, variants, safety, defaults', () => {
     expect(f.summary.dropped.refused).toBe(2);
   });
 
-  it('keeps a page as an open-original clip unless its scan produced media', () => {
+  it('offers a page as an open-original clip; unticked once a scan finds nothing', () => {
     const page = 'https://blog.example.net/post/42';
     const unscanned = finalize([raw(page)], emptyDrops()).candidates[0];
     expect(unscanned).toMatchObject({ include: true, flags: ['unscanned'] });
+    // A page that gave nothing is still offered (as a bookmark) but not ticked.
     const failed = finalize([raw(page)], emptyDrops(), { scanned: new Map([[page, { ok: false, found: 0, error: { kind: 'cors', message: 'CORS' } }]]) }).candidates[0];
-    expect(failed).toMatchObject({ include: true, flags: ['scan-failed'], error: { kind: 'cors' } });
+    expect(failed).toMatchObject({ include: false, flags: ['scan-failed'], error: { kind: 'cors' } });
     const ok = finalize([raw(page)], emptyDrops(), { scanned: new Map([[page, { ok: true, found: 5 }]]) }).candidates[0];
     expect(ok.include).toBe(false);
   });

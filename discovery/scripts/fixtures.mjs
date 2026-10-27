@@ -77,16 +77,18 @@ export const GALLERY_HTML = `<!doctype html><html><head>
 <aside class="ad-slot"><img src="https://ads.trafficjunky.net/b/1.jpg" width="300" height="250"></aside>
 </body></html>`;
 
-/** Install routes. Only the gallery page allows cross-origin reads. */
+/** Install routes. Only the gallery page allows cross-origin reads. Returns live request counts. */
 export async function installImportFixtures(page) {
+  const hits = { gallery: 0 };
   const images = new Map();
   const png = (key, hue, w = 600, h = 900) => {
     if (!images.has(key)) images.set(key, makePng(w, h, hue));
     return images.get(key);
   };
-  await page.route('https://gallery.test/**', (route) =>
-    route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', headers: { 'access-control-allow-origin': '*' }, body: GALLERY_HTML }),
-  );
+  await page.route('https://gallery.test/**', (route) => {
+    hits.gallery++;
+    return route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', headers: { 'access-control-allow-origin': '*' }, body: GALLERY_HTML });
+  });
   // A site that refuses cross-origin reads. Intercepted responses skip the browser's CORS
   // check, so this fails the request the way a CORS refusal looks to the page: an opaque TypeError.
   await page.route('https://locked.test/**', (route) => route.abort('failed'));
@@ -98,4 +100,5 @@ export async function installImportFixtures(page) {
     return route.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' }, body: png(url, hue, thumb ? 120 : 600, thumb ? 180 : 900) });
   });
   await page.route(/trafficjunky/, (route) => route.abort());
+  return { hits };
 }

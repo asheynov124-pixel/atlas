@@ -21,6 +21,7 @@ import {
   hasSizeToken,
   hostOf,
   isAdHost,
+  looksLikePageUrl,
   isMediaUrl,
   looksLikeJunk,
   looksLikeThumb,
@@ -362,6 +363,43 @@ const FULL_ATTRS = ['data-orig-file', 'data-full', 'data-full-src', 'data-fullsr
 const SRCSET_ATTRS = ['srcset', 'data-srcset', 'data-lazy-srcset'];
 const BG_ATTRS = ['data-bg', 'data-background', 'data-background-image', 'data-bg-src', 'data-bgset'];
 
+/** Attributes lightbox scripts (PhotoSwipe, Fancybox, lightGallery, Magnific, GLightbox…) keep the full-size file in. */
+const LIGHTBOX_FULL_ATTRS = ['data-pswp-src', 'data-full', 'data-full-src', 'data-fullsrc', 'data-large', 'data-big', 'data-zoom', 'data-zoom-src', 'data-zoom-image', 'data-hires', 'data-original', 'data-image', 'data-img', 'data-src', 'data-href', 'data-download-url'];
+const LIGHTBOX_MARK_ATTRS = ['data-fancybox', 'data-lightbox', 'data-pswp-src', 'data-pswp-width', 'data-lg-size', 'data-glightbox', 'data-featherlight', 'data-magnify', 'data-gallery-item', 'data-size'];
+const LIGHTBOX_CLASS = /(lightbox|fancybox|swipebox|magnific|mfp-image|photoswipe|pswp|glightbox|lg-item|lightgallery|venobox|colorbox|featherlight|image-popup|popup-image|zoom-image|full-?size)/i;
+
+/** True when a link is driven by a lightbox: its target is shown as a picture, extension or not. */
+function isLightbox(a: Element): boolean {
+  if (LIGHTBOX_MARK_ATTRS.some((x) => a.hasAttribute(x))) return true;
+  if (/\b(lightbox|gallery|prettyphoto|shadowbox)\b/i.test(a.getAttribute('rel') ?? '')) return true;
+  if (/iframe|ajax|inline|video|youtube|vimeo/i.test(a.getAttribute('data-type') ?? '')) return false;
+  return LIGHTBOX_CLASS.test(classOf(a));
+}
+
+/** Full-size dimensions lightboxes publish: data-pswp-width/height, data-size="1600x1200", data-lg-size="1600-1200". */
+function lightboxDims(a: Element): { width?: number; height?: number } {
+  const w = num(a.getAttribute('data-pswp-width') ?? a.getAttribute('data-width'));
+  const h = num(a.getAttribute('data-pswp-height') ?? a.getAttribute('data-height'));
+  if (w) return { width: w, height: h };
+  const m = /^(\d{2,5})\s*[x×-]\s*(\d{2,5})/.exec(a.getAttribute('data-size') ?? a.getAttribute('data-lg-size') ?? '');
+  return m ? { width: +m[1], height: +m[2] } : {};
+}
+
+/** The full-size URL a lightbox item points at: a data-* attribute first, then (for lightbox links) the href itself. */
+function lightboxTarget(holder: Element, base: string): string | null {
+  for (const attr of LIGHTBOX_FULL_ATTRS) {
+    const v = holder.getAttribute(attr);
+    if (!v || v.trim().startsWith('{') || v.trim().startsWith('[')) continue;
+    const u = normalizeUrl(v, base);
+    if (u && classifyUrl(u) !== 'video' && !(classifyUrl(u) === 'page' && looksLikePageUrl(u))) return u;
+  }
+  if (holder.tagName === 'A' && isLightbox(holder)) {
+    const href = normalizeUrl(holder.getAttribute('href') ?? '', base);
+    if (href && classifyUrl(href) !== 'video' && !(classifyUrl(href) === 'page' && looksLikePageUrl(href))) return href;
+  }
+  return null;
+}
+
 interface Ctx {
   base: string;
   page: string;
@@ -591,8 +629,24 @@ function images(doc: Document, ctx: Ctx, groups: Map<string, RawCandidate[]>) {
     const thumb = src && src !== best.url ? src : undefined;
     const anchor = el.closest('a[href]');
     const href = anchor ? normalizeUrl(anchor.getAttribute('href') ?? '', ctx.base) : null;
+    // lightGallery and friends also put the full-size file on a wrapper, not just the link.
+    const holder = anchor ?? el.parentElement?.closest('[data-pswp-src], [data-full], [data-large], [data-big], [data-zoom-src], [data-src], [data-href]') ?? null;
+    const boxed = holder && holder !== el ? lightboxTarget(holder, ctx.base) : null;
     let cand: RawCandidate;
-    if (href && isMediaUrl(href) && classifyUrl(href) === 'image') {
+    if (boxed && boxed !== best.url) {
+      // A lightbox item: the full-size picture it opens beats the thumbnail on the page.
+      cand = {
+        url: boxed,
+        mediaType: 'image',
+        origin: 'link',
+        title: title ?? textTitle(holder?.getAttribute('title') ?? holder?.getAttribute('data-caption') ?? holder?.getAttribute('data-sub-html')),
+        originalUrl: ctx.page,
+        thumbnailUrl: thumb ?? best.url,
+        score: 4.5 + placement(el),
+        ...sizeFromUrl(boxed),
+        ...lightboxDims(holder!),
+      };
+    } else if (href && isMediaUrl(href) && classifyUrl(href) === 'image') {
       // Thumbnail linking to the full-size file: the classic gallery tile.
       cand = { url: href, mediaType: 'image', origin: 'link', title: title ?? textTitle(anchor?.getAttribute('title')), originalUrl: ctx.page, thumbnailUrl: thumb ?? best.url, score: 4 + placement(el), ...sizeFromUrl(href) };
     } else if (href && isMediaUrl(href) && classifyUrl(href) === 'video') {
@@ -641,7 +695,12 @@ function links(doc: Document, ctx: Ctx) {
     const label = `${a.getAttribute('aria-label') ?? ''} ${a.getAttribute('title') ?? ''}`.trim();
     const cls = classOf(a);
     if (isMediaUrl(href)) {
-      add(ctx, { url: href, mediaType: classifyUrl(href), origin: 'link', title: textTitle(text) ?? textTitle(label), originalUrl: ctx.page, score: 4 + placement(a), ...sizeFromUrl(href) });
+      add(ctx, { url: href, mediaType: classifyUrl(href), origin: 'link', title: textTitle(text) ?? textTitle(label), originalUrl: ctx.page, score: 4 + placement(a), ...sizeFromUrl(href), ...lightboxDims(a) });
+      continue;
+    }
+    const boxed = lightboxTarget(a, ctx.base);
+    if (boxed) {
+      add(ctx, { url: boxed, mediaType: 'image', origin: 'link', title: textTitle(a.getAttribute('data-caption')) ?? textTitle(label) ?? textTitle(text), originalUrl: ctx.page, score: 4 + placement(a), ...sizeFromUrl(boxed), ...lightboxDims(a) });
       continue;
     }
     if (!sameSite(href, ctx.page)) continue;
@@ -732,6 +791,136 @@ function scanText(text: string, ctx: Ctx, origin: CandidateOrigin, score: number
   }
 }
 
+/** schema.org microdata: <a itemprop="contentUrl" href>, <meta itemprop="image" content>, <img itemprop="image">. */
+function microdata(doc: Document, ctx: Ctx) {
+  for (const el of doc.querySelectorAll('[itemprop~="contentUrl"], [itemprop~="contentURL"], [itemprop~="image"], [itemprop~="thumbnailUrl"]')) {
+    const raw = el.getAttribute('href') ?? el.getAttribute('content') ?? el.getAttribute('src') ?? el.getAttribute('data-src');
+    const url = raw ? normalizeUrl(raw, ctx.base) : null;
+    if (!url || (classifyUrl(url) === 'page' && looksLikePageUrl(url))) continue;
+    const scope = el.closest('[itemscope]');
+    const thumb = /thumbnail/i.test(el.getAttribute('itemprop') ?? '');
+    add(ctx, {
+      url,
+      mediaType: classifyUrl(url) === 'video' || /VideoObject/.test(scope?.getAttribute('itemtype') ?? '') ? 'video' : 'image',
+      origin: 'jsonld',
+      title: textTitle(scope?.querySelector('[itemprop~="name"], [itemprop~="caption"]')?.textContent ?? scope?.querySelector('[itemprop~="name"]')?.getAttribute('content')),
+      originalUrl: ctx.page,
+      score: thumb ? 1 : 3.5,
+      ...sizeFromUrl(url),
+    });
+  }
+}
+
+const GALLERY_KEY = /^(images?|photos?|pictures?|pics|gallery|galleries|media|slides?|items|assets|files|entries|nodes|edges|thumbs?|album)$/i;
+/** Keys that hold a picture's URL, best (full size) first. */
+const BEST_URL_KEYS = ['original', 'orig', 'originalurl', 'original_url', 'full', 'fullsize', 'full_size', 'fullurl', 'full_url', 'fullres', 'large', 'largeurl', 'large_url', 'hires', 'hi_res', 'highres', 'high_res', 'zoom', 'big', 'max', 'xxl', 'xl', 'download', 'downloadurl', 'download_url', 'src', 'url', 'image', 'img', 'photo', 'file', 'href', 'contenturl', 'link', 'path', 'source'];
+const THUMB_KEY = /thumb|small|preview|^sq$|square|tiny|mini|icon|avatar|poster|blur|placeholder|lqip/i;
+const URLISH = /^(?:https?:)?\/\/[^\s"']+$|^\/[^\s"']+\.[a-z0-9]{2,5}(?:\?[^\s"']*)?$/i;
+
+/** Keys that just say "here's the URL"; the meaning is in the key around them ({ large: { src } }). */
+const GENERIC_URL_KEYS = new Set(['src', 'url', 'href', 'path', 'source', 'file', 'link']);
+const keyFor = (outer: string, inner: string) => (THUMB_KEY.test(outer) ? `thumb_${inner}` : GENERIC_URL_KEYS.has(inner.toLowerCase()) ? outer : inner);
+
+interface Variant {
+  url: string;
+  rank: number;
+  width?: number;
+  height?: number;
+  thumb: boolean;
+}
+
+/** Every URL an item object carries (itself and one level of nested size maps), ranked by key and size. */
+function itemVariants(o: Record<string, unknown>, base: string): Variant[] {
+  const out: Variant[] = [];
+  const consider = (key: string, v: unknown, w?: number, h?: number) => {
+    if (typeof v !== 'string' || !URLISH.test(v.trim())) return;
+    const url = normalizeUrl(v, base);
+    if (!url) return;
+    const k = key.toLowerCase().replace(/[^a-z_]/g, '');
+    const idx = BEST_URL_KEYS.indexOf(k);
+    const thumb = THUMB_KEY.test(key);
+    const sz = sizeFromUrl(url);
+    out.push({ url, rank: (idx < 0 ? 0 : BEST_URL_KEYS.length - idx) - (thumb ? 50 : 0), width: w ?? sz.width, height: h ?? sz.height, thumb });
+  };
+  const dim = (x: Record<string, unknown>, ...keys: string[]) => keys.map((k) => x[k]).find((v): v is number => typeof v === 'number' && v > 0);
+  const ow = dim(o, 'width', 'w', 'naturalWidth');
+  const oh = dim(o, 'height', 'h', 'naturalHeight');
+  for (const [k, v] of Object.entries(o)) {
+    if (typeof v === 'string') consider(k, v, ow, oh);
+    else if (v && typeof v === 'object' && !Array.isArray(v)) {
+      // { sizes: { thumb: {url,width}, large: {url,width} } } or { large: { src, w } }
+      const inner = v as Record<string, unknown>;
+      const iw = dim(inner, 'width', 'w');
+      const ih = dim(inner, 'height', 'h');
+      for (const [k2, v2] of Object.entries(inner)) {
+        if (typeof v2 === 'string') consider(keyFor(k, k2), v2, iw, ih);
+        else if (v2 && typeof v2 === 'object' && !Array.isArray(v2)) {
+          const deep = v2 as Record<string, unknown>;
+          const url = ['url', 'src', 'source', 'href'].map((x) => deep[x]).find((x) => typeof x === 'string');
+          if (url) consider(THUMB_KEY.test(k) ? `thumb_${k2}` : k2, url, dim(deep, 'width', 'w'), dim(deep, 'height', 'h'));
+        }
+      }
+    }
+  }
+  return out;
+}
+
+const variantArea = (v: Variant) => (v.width ?? 0) * (v.height ?? v.width ?? 0);
+
+/**
+ * Walk parsed page data for gallery arrays (`images: [...]`, `photos: [...]`,
+ * or any run of 3+ objects carrying picture URLs), one candidate per item,
+ * keeping its largest version and its thumbnail. URLs without an extension are
+ * accepted here: the key and the gallery context say they're pictures.
+ */
+function walkGalleryJson(node: unknown, ctx: Ctx, depth = 0, key = '') {
+  if (depth > 14 || !node || typeof node !== 'object' || ctx.out.size >= MAX_ITEMS) return;
+  if (Array.isArray(node)) {
+    const objs = node.filter((x): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x));
+    const withUrls = objs.map((o) => ({ o, vs: itemVariants(o, ctx.base) })).filter((x) => x.vs.length);
+    if (withUrls.length && (GALLERY_KEY.test(key) || withUrls.length >= 3)) {
+      for (const { o, vs } of withUrls) {
+        const full = vs.filter((v) => !v.thumb);
+        const pool = full.length ? full : vs;
+        const best = pool.reduce((a, b) => (variantArea(b) !== variantArea(a) ? (variantArea(b) > variantArea(a) ? b : a) : b.rank > a.rank ? b : a));
+        const thumb = vs.filter((v) => v.url !== best.url).sort((a, b) => Number(b.thumb) - Number(a.thumb) || variantArea(a) - variantArea(b))[0];
+        const title = ['title', 'caption', 'alt', 'name', 'description'].map((k) => o[k]).find((x): x is string => typeof x === 'string');
+        const type = classifyUrl(best.url);
+        if (type === 'page' && looksLikePageUrl(best.url)) continue;
+        add(ctx, { url: best.url, mediaType: type === 'video' ? 'video' : 'image', origin: 'json', title: textTitle(title), originalUrl: ctx.page, thumbnailUrl: thumb?.url, width: best.width, height: best.height, score: 3 });
+      }
+    }
+    node.forEach((x) => walkGalleryJson(x, ctx, depth + 1, key));
+    return;
+  }
+  for (const [k, v] of Object.entries(node as Record<string, unknown>)) if (v && typeof v === 'object') walkGalleryJson(v, ctx, depth + 1, k);
+}
+
+/** Parse the JSON a script carries: a JSON script, or `window.X = {...};` / `var x = [...]` assignments. */
+function scriptJson(text: string, type: string): unknown[] {
+  const t = text.trim();
+  const tries: string[] = [];
+  if (type.includes('json') || /^[[{]/.test(t)) tries.push(t);
+  for (const m of t.matchAll(/(?:=|:)\s*(?=[[{])/g)) {
+    const start = (m.index ?? 0) + m[0].length;
+    const open = t[start];
+    const close = open === '{' ? '}' : ']';
+    const end = t.lastIndexOf(close);
+    if (end > start) tries.push(t.slice(start, end + 1));
+    if (tries.length > 4) break;
+  }
+  const out: unknown[] = [];
+  for (const candidate of tries) {
+    try {
+      out.push(JSON.parse(candidate));
+      break;
+    } catch {
+      /* not JSON on its own; try the next slice */
+    }
+  }
+  return out;
+}
+
 function inlineJson(doc: Document, ctx: Ctx) {
   for (const s of doc.querySelectorAll('script:not([src])')) {
     const type = (s.getAttribute('type') ?? '').toLowerCase();
@@ -740,13 +929,21 @@ function inlineJson(doc: Document, ctx: Ctx) {
     if (text.length > 3_000_000) continue;
     // __NEXT_DATA__ / window.__INITIAL_STATE__ / gallery configs: mostly exactly the gallery.
     const galleryish = /gallery|photos|images|slides|media|album|__NEXT_DATA__|__NUXT__|INITIAL_STATE/i.test(text.slice(0, 4000)) || type === 'application/json';
+    // Structured first (largest version per item, extension-less URLs allowed), then a regex sweep for the rest.
+    if (galleryish && text.length < 1_500_000) for (const data of scriptJson(text, type)) walkGalleryJson(data, ctx);
     scanText(text, ctx, 'json', galleryish ? 1.5 : 0.5);
   }
   // Gallery widgets often carry their data on an attribute: data-gallery='[{"src": …}]'
-  for (const el of doc.querySelectorAll('[data-gallery], [data-images], [data-photos], [data-items], [data-slides], [data-media], [data-lightbox-gallery]')) {
-    for (const a of ['data-gallery', 'data-images', 'data-photos', 'data-items', 'data-slides', 'data-media', 'data-lightbox-gallery']) {
+  for (const el of doc.querySelectorAll('[data-gallery], [data-images], [data-photos], [data-items], [data-slides], [data-media], [data-lightbox-gallery], [data-dynamic-el]')) {
+    for (const a of ['data-gallery', 'data-images', 'data-photos', 'data-items', 'data-slides', 'data-media', 'data-lightbox-gallery', 'data-dynamic-el']) {
       const v = el.getAttribute(a);
-      if (v) scanText(v, ctx, 'json', 2 + placement(el));
+      if (!v) continue;
+      try {
+        walkGalleryJson(JSON.parse(v), ctx, 0, 'gallery');
+      } catch {
+        /* not JSON: the sweep below still reads its URLs */
+      }
+      scanText(v, ctx, 'json', 2 + placement(el));
     }
   }
 }
@@ -792,6 +989,7 @@ export function extractFromDocument(doc: Document, pageUrl: string | undefined):
   images(doc, ctx, groups);
   links(doc, ctx);
   jsonLd(doc, ctx);
+  microdata(doc, ctx);
   inlineJson(doc, ctx);
   backgrounds(doc, ctx);
   // Gallery sets: three or more siblings sharing a directory template.
@@ -805,8 +1003,13 @@ export function extractFromDocument(doc: Document, pageUrl: string | undefined):
     }
   }
   const SENTINEL = 'https://invalid.invalid/';
+  // A URL that is some other candidate's thumbnail is that picture again, smaller: not its own item.
+  // (Video posters don't count: a poster can be a picture in its own right.)
+  const thumbOf = new Map<string, string>();
+  for (const c of ctx.out.values()) if (c.thumbnailUrl && c.mediaType === 'image' && c.thumbnailUrl !== c.url) thumbOf.set(c.thumbnailUrl, c.url);
   const candidates: RawCandidate[] = [];
   for (const c of ctx.out.values()) {
+    if (thumbOf.has(c.url) && c.origin !== 'link' && c.origin !== 'video') continue;
     if (c.url.startsWith(SENTINEL)) {
       ctx.dropped.invalid++; // relative URL on a page we have no address for
       continue;
@@ -979,8 +1182,11 @@ export function finalize(raws: RawCandidate[], dropped: DropCounts, opts: Finali
     } else if (c.mediaType === 'page') {
       if (!scan) flags.push('unscanned');
       else if (!scan.ok) {
+        // Nothing readable: offered as an open-original bookmark, but not ticked, so a
+        // failed gallery doesn't quietly become a blank card in the feed.
         flags.push('scan-failed');
         error = scan.error;
+        include = false;
       } else if (scan.found > 0) include = false; // its media made it in; the page itself is just the source
     }
     const known = Math.max(c.width ?? 0, c.height ?? 0);

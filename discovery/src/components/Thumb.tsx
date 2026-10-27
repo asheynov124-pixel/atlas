@@ -146,7 +146,7 @@ export function VideoTile({
       <div className="tile__media">
         <Thumb video={video} className="tile__thumb" />
         {video.source === 'import' ? (
-          <span className="tile__dur">{video.mediaType === 'image' ? 'Image' : video.mediaType === 'video' ? 'Video' : 'Page'}</span>
+          <span className="tile__dur">{video.mediaType === 'image' ? 'Image' : video.mediaType === 'video' ? 'Video' : 'Gallery page'}</span>
         ) : (
           <span className="tile__dur">{formatDuration(video.duration)}</span>
         )}

@@ -5,7 +5,7 @@
  * throw a half-reviewed batch away.
  */
 import { create } from 'zustand';
-import { useStore, activeData } from '../state/store';
+import { useStore, activeData, onWipe } from '../state/store';
 import { useTaxonomy } from '../state/taxonomy';
 import { uid } from '../lib/id';
 import { addDrops, emptyDrops, finalize, parseInput, textIsSafe, type InputKind, type RawCandidate } from './extract';
@@ -25,6 +25,8 @@ export interface ScanState {
   status: 'running' | 'ok' | 'failed';
   found: number;
   error?: ScanError;
+  /** Served from this session's cache of earlier successful reads (no new request). */
+  cached?: boolean;
 }
 
 export interface RowOverride {
@@ -58,7 +60,12 @@ interface DraftState {
   setSelected: (keys: string[], anchor?: string | null) => void;
   setBatchTags: (t: string) => void;
   setBoard: (patch: Partial<DraftState['board']>) => void;
-  scan: (urls: string[]) => Promise<void>;
+  /** `fresh` skips the session cache (a deliberate re-scan). */
+  scan: (urls: string[], opts?: { fresh?: boolean }) => Promise<void>;
+  /** A row's preview proved what a link really is (an extension-less link that loads as a picture). */
+  markMedia: (url: string, type: MediaType) => void;
+  /** Untick page links nobody has read yet, so the direct links can import on their own. */
+  skipUnscannedPages: () => void;
   cancelScan: () => void;
   clear: () => void;
   commit: () => CommitResult;
@@ -78,6 +85,57 @@ let generation = 0;
 function stopAll() {
   for (const c of controllers) c.abort();
   controllers.clear();
+}
+
+type Readable = Extract<ScanResult, { ok: true }>;
+/**
+ * Successful page reads for this session (memory only, never persisted), so
+ * re-opening or re-pasting a gallery is instant and makes no new request.
+ * Cleared on profile switch, when incognito ends, and on erase.
+ */
+const scanCache = new Map<string, Readable>();
+const CACHE_MAX = 40;
+
+function cacheScan(r: Readable) {
+  scanCache.delete(r.url);
+  scanCache.set(r.url, r);
+  if (scanCache.size > CACHE_MAX) scanCache.delete(scanCache.keys().next().value!);
+}
+
+export function clearScanCache() {
+  scanCache.clear();
+}
+
+/** Fold one scan result into draft state (shared by live scans and cache hits). */
+function applyScan(s: DraftState, r: ScanResult, cached = false): Pick<DraftState, 'scans' | 'scanSources' | 'retype'> {
+  const scans = { ...s.scans };
+  const scanSources = { ...s.scanSources };
+  const retype = { ...s.retype };
+  if (!r.ok) scans[r.url] = { status: 'failed', found: 0, error: r.error };
+  else if ('media' in r) {
+    retype[r.url] = r.media;
+    scans[r.url] = { status: 'ok', found: 0, cached };
+  } else {
+    const media = r.extraction.candidates.filter((c) => !c.role);
+    scans[r.url] = media.length
+      ? { status: 'ok', found: media.length, cached }
+      : { status: 'failed', found: 0, error: { kind: 'empty', message: 'No images or videos were readable on that page.' } };
+    scanSources[r.url] = {
+      id: uid('scan-'),
+      label: r.url,
+      kind: 'html',
+      candidates: r.extraction.candidates,
+      dropped: r.extraction.dropped,
+      pageTitle: r.extraction.pageTitle,
+    };
+  }
+  return { scans, scanSources, retype };
+}
+
+/** Page links in `src` that this session already read successfully. */
+function cachedPagesIn(src: DraftSource | null, scans: Record<string, ScanState>): Readable[] {
+  if (!src) return [];
+  return src.candidates.filter((c) => c.mediaType === 'page' && !c.role && !scans[c.url] && scanCache.has(c.url)).map((c) => scanCache.get(c.url)!);
 }
 
 const initial = () => ({
@@ -108,7 +166,10 @@ export const useImportDraft = create<DraftState>()((set, get) => ({
     if (parseTimer) clearTimeout(parseTimer);
     parseTimer = setTimeout(() => {
       const t = get().text;
-      set({ textSource: t.trim() ? parseSource(t, 'Pasted') : null });
+      const textSource = t.trim() ? parseSource(t, 'Pasted') : null;
+      set({ textSource });
+      // Pages read earlier this session come back instantly, without a new request.
+      for (const r of cachedPagesIn(textSource, get().scans)) set((st) => applyScan(st, r, true));
     }, 180);
   },
   appendText: (t) => {
@@ -118,7 +179,13 @@ export const useImportDraft = create<DraftState>()((set, get) => ({
   addFile: (name, text) => {
     const src = parseSource(text, name, name);
     set((s) => ({ files: [...s.files, src] }));
+    for (const r of cachedPagesIn(src, get().scans)) set((st) => applyScan(st, r, true));
     return src;
+  },
+  markMedia: (url, type) => set((s) => (s.retype[url] === type ? {} : { retype: { ...s.retype, [url]: type } })),
+  skipUnscannedPages: () => {
+    const pending = computeDraft(get()).unscannedPages;
+    if (pending.length) get().setOverride(pending, { include: false });
   },
   removeFile: (id) => set((s) => ({ files: s.files.filter((f) => f.id !== id) })),
   setOverride: (keys, patch) =>
@@ -130,8 +197,12 @@ export const useImportDraft = create<DraftState>()((set, get) => ({
   setSelected: (selected, anchor) => set((s) => ({ selected, anchor: anchor === undefined ? s.anchor : anchor })),
   setBatchTags: (batchTags) => set({ batchTags }),
   setBoard: (patch) => set((s) => ({ board: { ...s.board, ...patch } })),
-  scan: async (urls) => {
-    const todo = [...new Set(urls)].filter((u) => get().scans[u]?.status !== 'running');
+  scan: async (urls, opts = {}) => {
+    const wanted = [...new Set(urls)].filter((u) => get().scans[u]?.status !== 'running');
+    // Cache hits apply at once; only pages not read this session go to the network.
+    const hits = opts.fresh ? [] : wanted.filter((u) => scanCache.has(u));
+    for (const u of hits) set((st) => applyScan(st, scanCache.get(u)!, true));
+    const todo = wanted.filter((u) => !hits.includes(u));
     if (!todo.length) return;
     const ctrl = new AbortController();
     const gen = generation;
@@ -142,31 +213,11 @@ export const useImportDraft = create<DraftState>()((set, get) => ({
     }));
     const onResult = (r: ScanResult) => {
       if (ctrl.signal.aborted || gen !== generation) return;
+      if (r.ok) cacheScan(r);
       set((s) => {
-        const scans = { ...s.scans };
-        const scanSources = { ...s.scanSources };
-        const retype = { ...s.retype };
-        if (!r.ok) scans[r.url] = { status: 'failed', found: 0, error: r.error };
-        else if ('media' in r) {
-          retype[r.url] = r.media;
-          scans[r.url] = { status: 'ok', found: 0 };
-        } else {
-          const media = r.extraction.candidates.filter((c) => !c.role);
-          scans[r.url] = media.length
-            ? { status: 'ok', found: media.length }
-            : { status: 'failed', found: 0, error: { kind: 'empty', message: 'No images or videos were readable on that page.' } };
-          scanSources[r.url] = {
-            id: uid('scan-'),
-            label: r.url,
-            kind: 'html',
-            candidates: r.extraction.candidates,
-            dropped: r.extraction.dropped,
-            pageTitle: r.extraction.pageTitle,
-          };
-        }
         const done = (s.scanning?.done ?? 0) + 1;
         const total = s.scanning?.total ?? 0;
-        return { scans, scanSources, retype, scanning: done >= total ? null : { done, total } };
+        return { ...applyScan(s, r), scanning: done >= total ? null : { done, total } };
       });
     };
     await scanPages(todo, onResult, { signal: ctrl.signal });
@@ -307,5 +358,9 @@ export function useDraftView(): DraftView {
 // Switching profile, or ending incognito, throws it away rather than letting it
 // commit into the wrong silo or outlive the session it was made in.
 useStore.subscribe((s, prev) => {
-  if (s.activeProfileId !== prev.activeProfileId || (prev.incognito && !s.incognito)) useImportDraft.getState().clear();
+  if (s.activeProfileId !== prev.activeProfileId || (prev.incognito && !s.incognito)) {
+    clearScanCache();
+    useImportDraft.getState().clear();
+  }
 });
+onWipe(clearScanCache);

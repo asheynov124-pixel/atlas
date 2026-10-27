@@ -17,10 +17,10 @@ The whole experience runs on a local mock data layer: a deterministic catalogue 
 cd discovery
 npm install
 npm run dev            # http://localhost:5173 (also on your LAN via --host)
-npm test               # 127 unit tests (engine, AI, data layer, gestures, store/privacy, regressions, import)
+npm test               # 137 unit tests (engine, AI, data layer, gestures, store/privacy, regressions, import)
 npm run build          # typecheck + production build + service worker
 npx vite preview --port 4173 &
-npm run e2e            # 42 Playwright checks at iPhone 14 size, real gestures (import runs on offline fixtures)
+npm run e2e            # 43 Playwright checks at iPhone 14 size, real gestures (import runs on offline fixtures)
 ```
 
 **Shareable demo build:** `npx vite build --config vite.demo.config.ts` writes `dist-demo/`, a
@@ -106,21 +106,47 @@ boards. They're stored only on this device.
   CDN `?format=` hints) import instantly. **Page links** are read only when you press
   *Find media*: once per page, from the device, with no cookies or referrer, and only if
   the site allows cross-origin reads (CORS). There's no proxy and no background
-  crawling. A page that can't be read still imports as an **"open original"** clip. The
-  honest workaround is to save the page and upload the `.html`. Previews and playback load
-  the files you pasted the way any web page loads an image (no referrer). Data saver holds
-  previews until you ask.
+  crawling. Previews and playback load the files you pasted the way any web page loads
+  an image (no referrer). Data saver holds previews until you ask.
+- **Gallery pages** (no media extension, or a path like `/galleries/`, `/album/`,
+  `/photoset/`, `/post/`, `.php`/`.html`) are labelled **Gallery page**. A page that
+  gives up no media says why, on its own row: *"Could not read images from this page
+  (site blocked access). Open the page, copy direct image links, and paste those
+  instead."* (or the real reason: an HTTP status, a timeout, a script-built page). The
+  row has **Open page** and **Read again**, and starts **unticked**. Tick it to keep the
+  page as an open-original bookmark; in the feed that's a *Gallery page* card with
+  **Open page** and **Paste links**. A page read once is **cached for the session**, so
+  re-pasting it, or pressing *Find media* again, is instant and sends no request.
+  *Read again* really re-reads it. The cache lives in memory only and is cleared on a
+  profile switch, at the end of incognito, and on wipe.
+- **Direct links win.** A link that is plainly an image always previews and plays as an
+  `<img>`. A link with no extension and no page-like path (`cdn.site/i/abc123`) is
+  *tried* as a picture first, in the preview and in the feed. If it loads, it becomes an
+  Image. Only a real load error falls back to the open-original card. Paste pages and
+  direct links together, and each is handled on its own. **Skip the pages** imports
+  just the direct ones. The **I have direct links** tip shows what they look like and
+  how to copy one (right-click → *Copy Image Address*; on iPhone, touch and hold →
+  *Open in New Tab*, then copy the address). The honest workaround for a page that
+  won't open up is still to save it and upload the `.html`.
 - **Extraction reads** og/twitter meta (including `twitter:player:stream`), `<video>`
   and `<source>` (with posters), `<img>` `src`, `srcset` (widest), and every common lazy
   attribute (`data-src`, `data-lazy-src`, `data-original`, `data-srcset`, `data-lazy`,
-  WordPress `data-orig-file`, zoom/full variants). It also reads `<a href>` to media,
-  thumbnail tiles linked to full-size files, JSON-LD `ImageObject`/`VideoObject`
-  (including `@graph`), inline gallery JSON (escaped `\/` and `\u002F` URLs), `data-gallery`
-  style attributes, and background images inside content areas. Three or more sibling
+  WordPress `data-orig-file`, zoom/full variants). It also reads `<a href>` to media and
+  thumbnail tiles linked to full-size files. **Lightboxes** are covered too: Fancybox,
+  PhotoSwipe (`data-pswp-src` and its published width and height), lightGallery,
+  GLightbox, Magnific and `rel="lightbox"` links, even when the full-size link has no
+  extension, and full-size URLs parked on a wrapper instead of a link. Beyond that, it
+  reads microdata (`itemprop="contentUrl"`), JSON-LD `ImageObject`/`VideoObject`
+  (including `@graph`), and inline gallery JSON. Gallery JSON is walked item by item,
+  taking each photo's largest variant (`original`/`full`/`large`… and nested size maps,
+  by published dimensions) and keeping the small one as its preview; escaped `\/` and
+  `\u002F` URLs are handled. It also reads `data-gallery`-style attributes and background
+  images inside content areas. Three or more sibling
   tiles become a **gallery set**, and next-page and gallery sub-page links can be
   scanned on request.
-- **Heuristics:** size variants (`-150x150`, `/thumbs/`, `?w=`) collapse into the largest
-  version, with the small one kept as the preview. Logos, icons, spacers, 1×1 pixels,
+- **Heuristics:** size variants (`-150x150`, `/thumbs/`, `?w=`, pixel-size folders like
+  `/460/…` vs `/1280/…`) collapse into the largest version, with the small one kept as the
+  preview and never listed as its own item. Logos, icons, spacers, 1×1 pixels,
   tiny SVGs, and known ad/tracker hosts (including the adult ad exchanges) are dropped
   and counted. Header, footer, and ad-slot images rank below gallery content. URLs are
   normalised (tracking params stripped) and deduped against the batch and the library.
@@ -142,7 +168,7 @@ boards. They're stored only on this device.
   thumbnailUrl, notes, added`) or a plain URL list, and either one re-imports. Deleting
   a batch removes its clips from saves, boards, signals, history, and queues.
 - **As clips:** stills play full-screen (tap to switch fit and fill), and dwell counts as
-  watch time. Videos use the normal player fallback. Pages show an open-original card.
+  watch time. Videos use the normal player fallback. Pages show a *Gallery page* card.
   Imports join search, For You, "more from this set/site", the persistent **Imported**
   Smart Path, the **Imports** smart collection, and a **Source** filter (catalogue / my
   imports). A site can be hard-blocked like a studio. Data saver holds remote

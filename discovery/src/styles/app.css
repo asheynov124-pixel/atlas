@@ -4176,3 +4176,67 @@ kbd {
     max-width: 110px;
   }
 }
+
+/* Gallery pages and direct-link help */
+
+.ipage {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.ipage__msg {
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: normal;
+}
+
+.ipage--failed .ipage__msg {
+  color: #fcd34d;
+}
+
+.ipage__actions {
+  gap: 6px;
+}
+
+.ipage__actions .btn--small {
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+}
+
+.notice__actions {
+  margin-top: 8px;
+}
+
+.direct-tip {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: 0.88rem;
+}
+
+.direct-tip summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.direct-tip p {
+  margin: 8px 0;
+  color: var(--muted);
+}
+
+.direct-tip__example {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font: 0.76rem/1.5 ui-monospace, 'SF Mono', Menlo, monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: all;
+  -webkit-user-select: all;
+}

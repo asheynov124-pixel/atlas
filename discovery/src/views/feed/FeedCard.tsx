@@ -25,7 +25,7 @@ interface Props {
 }
 
 const VIA: Record<string, string> = { embed: 'Embed', source: 'Direct source', original: 'Original', failed: 'Unavailable', image: 'Image' };
-const KIND_LABEL = { image: 'Image', video: 'Video', page: 'Page' } as const;
+const KIND_LABEL = { image: 'Image', video: 'Video', page: 'Gallery page' } as const;
 
 export const FeedCard = memo(function FeedCard({ videoId, idx, active, playing, registerEl, registerPlayer, onIntent, hasPrev, hasNext }: Props) {
   const { summary, detail, error, retry } = useVideoDetail(videoId);
@@ -137,7 +137,7 @@ export const FeedCard = memo(function FeedCard({ videoId, idx, active, playing, 
             <span className="card__meta">
               {imported ? (
                 <>
-                  <span className="pill pill--import">Imported</span> {KIND_LABEL[summary.mediaType ?? 'page']} · {summary.studioId.replace(/^site:/, '')}
+                  <span className="pill pill--import">Imported</span> {via === 'image' ? 'Image' : KIND_LABEL[summary.mediaType ?? 'page']} · {summary.studioId.replace(/^site:/, '')}
                 </>
               ) : (
                 <>

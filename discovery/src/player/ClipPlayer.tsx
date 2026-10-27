@@ -13,6 +13,7 @@ import { drawFrame, visualParams } from './renderer';
 import { performerLookup } from '../state/taxonomy';
 import { useStore } from '../state/store';
 import { IconExternal } from '../components/Icons';
+import { openImport } from '../components/sheets/ImportSheets';
 
 export interface PlayerHandle {
   seek: (fraction: number) => void;
@@ -82,22 +83,27 @@ export const ClipPlayer = forwardRef<PlayerHandle, Props>(function ClipPlayer(
   }
   if (opt.kind === 'original') {
     const imported = summary.source === 'import';
-    const pageOnly = imported && options.length === 1;
+    const pageOnly = imported && summary.mediaType === 'page';
     return (
       <div className="player-fallback">
         {imported ? <RemoteBackdrop url={summary.thumbnailUrl} /> : <ProceduralStill summary={summary} dim />}
         <div className="player-fallback__card" data-no-gesture>
-          <strong>{pageOnly ? 'A page, not a file' : 'Can’t play this one here'}</strong>
+          <strong>{pageOnly ? 'Gallery page' : 'Can’t play this one here'}</strong>
           <span>
             {pageOnly
-              ? `No media could be read from ${hostLabel(opt.url)} here. Like, save, and swipe work as usual.`
+              ? `Could not read images from ${hostLabel(opt.url)}. Open the page, copy direct image links, and paste those into Import.`
               : imported
                 ? 'The file didn’t load here (moved, private, or hotlink-protected).'
                 : 'Embed and direct source both failed.'}
           </span>
           <a className="btn btn--primary" href={opt.url} target="_blank" rel="noopener noreferrer">
-            Open original <IconExternal />
+            {pageOnly ? 'Open page' : 'Open original'} <IconExternal />
           </a>
+          {pageOnly && (
+            <button type="button" className="btn btn--ghost" onClick={() => openImport()}>
+              Paste links
+            </button>
+          )}
         </div>
       </div>
     );

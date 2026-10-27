@@ -104,3 +104,24 @@ export async function scanPages(
   await Promise.all(Array.from({ length: Math.min(opts.concurrency ?? 3, urls.length) }, worker));
   return results;
 }
+
+/**
+ * What to tell someone when a gallery page gave up no media. The advice is
+ * always the same (open it, copy direct image links, paste those); the reason
+ * in brackets is the real one.
+ */
+export function zeroMediaMessage(error?: ScanError): string {
+  const why =
+    !error || error.kind === 'cors'
+      ? 'site blocked access'
+      : error.kind === 'empty'
+        ? 'its pictures are added by scripts this app doesn’t run'
+        : error.kind === 'http'
+          ? error.message.replace(/^The site answered (\d+).*$/, 'the site answered $1').replace(/\.$/, '')
+          : error.kind === 'timeout'
+            ? 'the site didn’t answer in time'
+            : error.kind === 'too-large'
+              ? 'the page is too large to read here'
+              : 'it isn’t a web page';
+  return `Could not read images from this page (${why}). Open the page, copy direct image links, and paste those instead.`;
+}

@@ -103,6 +103,26 @@ export function prettyFilename(url: string): string {
 }
 
 /**
+ * Pixel-size folders gallery CDNs use for one picture at several sizes
+ * (`/460/…/photo.jpg` thumb, `/1280/…/photo.jpg` full). Years are left out.
+ */
+const SIZE_DIRS = new Set([100, 120, 128, 150, 160, 180, 192, 200, 220, 240, 250, 256, 300, 320, 350, 360, 400, 460, 480, 500, 512, 540, 560, 600, 640, 700, 720, 750, 768, 800, 900, 960, 1024, 1080, 1200, 1280, 1440, 1500, 1536, 1600, 1920, 2048, 2400, 2560, 3000, 3840, 4096]);
+
+/** The size folder in a URL's path, if it has one (never the file name itself). */
+export function sizeDirOf(url: string): number | undefined {
+  try {
+    const segs = new URL(url).pathname.split('/').filter(Boolean);
+    for (const seg of segs.slice(0, -1)) {
+      const m = /^[wh]?(\d{3,4})$/i.exec(seg);
+      if (m && SIZE_DIRS.has(+m[1])) return +m[1];
+    }
+  } catch {
+    /* not a URL */
+  }
+  return undefined;
+}
+
+/**
  * Dimensions encoded in the URL itself: WordPress `-1024x768`, `?w=1600`,
  * Blogger `/s1600/`, `=s1600`. Width only when that's all there is.
  */
@@ -119,7 +139,8 @@ export function sizeFromUrl(url: string): { width?: number; height?: number } {
   } catch {
     /* fall through */
   }
-  return {};
+  const dir = sizeDirOf(url);
+  return dir ? { width: dir } : {};
 }
 
 /**
@@ -133,7 +154,8 @@ export function variantKey(url: string): string {
     let path = u.pathname
       .replace(/\/(?:thumbs?|thumbnails?|small|medium|preview|previews|resized|t|th|tn|w\d{2,4}|s\d{2,4}(?:-c)?)\//gi, '/')
       .replace(SIZE_TOKEN, '')
-      .replace(/\/(?:tn|thumb|th|sm)[_-]([^/]+)$/i, '/$1');
+      .replace(/\/(?:tn|thumb|th|sm)[_-]([^/]+)$/i, '/$1')
+      .replace(/\/[wh]?(\d{3,4})(?=\/)/gi, (m, n: string) => (SIZE_DIRS.has(+n) ? '/#' : m));
     path = path.replace(/\.(jpe?g)$/i, '.jpg');
     return `${u.hostname.replace(/^www\./, '')}${path}?${u.searchParams.toString()}`.toLowerCase();
   } catch {
@@ -143,14 +165,43 @@ export function variantKey(url: string): string {
 
 /** True when the file name itself carries a size (`-300x200`, `_thumb`, `-480w`, …). */
 export function hasSizeToken(url: string): boolean {
-  return SIZE_TOKEN.test(filenameOf(url)) || /\/(?:thumbs?|thumbnails?|small|medium|preview|previews|resized|t|th|tn|w\d{2,4}|s\d{2,4}(?:-c)?)\//i.test(url) || /[?&](?:w|width|h|height|resize|size)=\d/.test(url);
+  return (
+    SIZE_TOKEN.test(filenameOf(url)) ||
+    /\/(?:thumbs?|thumbnails?|small|medium|preview|previews|resized|t|th|tn|w\d{2,4}|s\d{2,4}(?:-c)?)\//i.test(url) ||
+    /[?&](?:w|width|h|height|resize|size)=\d/.test(url) ||
+    sizeDirOf(url) !== undefined
+  );
 }
 
 const THUMB_NAME = /(?:[_-](?:thumb|thumbnail|thumbs|small|sm|th|tn|preview|square))+\.[a-z0-9]+$|^(?:tn|thumb|th|sm)[_-]/i;
 
 /** True when the URL itself says it's a thumbnail (as opposed to merely sized). */
 export function looksLikeThumb(url: string): boolean {
-  return THUMB_NAME.test(filenameOf(url)) || /\/(thumbs?|thumbnails?|tn|th|small|preview|previews|resized)\//i.test(url);
+  return THUMB_NAME.test(filenameOf(url)) || /\/(thumbs?|thumbnails?|tn|th|small|preview|previews|resized)\//i.test(url) || (sizeDirOf(url) ?? Infinity) <= 500;
+}
+
+/** Path words that mean "this is a web page", not a file: galleries, albums, posts, profiles. */
+const PAGE_SEGMENT = /^(galleries|gallery|album|albums|photoset|photosets|photo-sets?|post|posts|watch|view|viewer|tag|tags|category|categories|model|models|pornstars?|channel|channels|user|users|profile|search|collections?|playlist|playlists|article|articles|blog|page|pages)$/i;
+
+/**
+ * A link with no media extension that still looks like a page (trailing slash,
+ * .html/.php, or a gallery/album/post path). Anything else extension-less might
+ * be an image served without one, so it's worth trying as a picture.
+ */
+export function looksLikePageUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    if (u.pathname === '/' || u.pathname.endsWith('/')) return true;
+    if (/\.(html?|php|aspx?|jsp|cfm|shtml)$/i.test(u.pathname)) return true;
+    return u.pathname.split('/').filter(Boolean).some((seg) => PAGE_SEGMENT.test(seg));
+  } catch {
+    return true;
+  }
+}
+
+/** Worth trying as a picture before treating it as a page: no extension, and nothing page-like about it. */
+export function mightBeImage(url: string): boolean {
+  return classifyUrl(url) === 'page' && !looksLikePageUrl(url);
 }
 
 /** Ad networks, trackers, and the adult-ad exchanges that wallpaper gallery sites. */

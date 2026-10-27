@@ -424,10 +424,13 @@ await check('release-year box accepts typing digit by digit', async () => {
 // ---------------------------------------------------------------------------
 // Personal Import
 
-await installImportFixtures(page);
+const fixtures = await installImportFixtures(page);
 expected.push(/locked\.test/, /img\.example\.test\/clip\.mp4/);
 const importSheet = () => page.locator('.import-sheet');
 const rowByTitle = (t) => page.locator('.ipreview__row', { has: page.locator('.ipreview__title', { hasText: t }) });
+// No file extension, no page-like path: worth trying as a picture before calling it a page.
+const BEACH_03 = 'https://img.example.test/i/beach-03';
+const rowByThumb = (src) => page.locator('.ipreview__row', { has: page.locator(`.ipreview__thumb img[src="${src}"]`) });
 const IMPORT_TEXT = [
   GALLERY_URL,
   LOCKED_URL,
@@ -435,6 +438,7 @@ const IMPORT_TEXT = [
   'https://img.example.test/beach-02.png?utm_source=newsletter',
   'https://img.example.test/beach-02.png',
   'https://img.example.test/clip.mp4',
+  BEACH_03,
 ].join('\n');
 let exported = null;
 
@@ -445,11 +449,22 @@ await check('import: paste gallery + direct links → live preview with type bad
   await importSheet().waitFor();
   await page.getByLabel('Links to import').fill(IMPORT_TEXT);
   await rowByTitle('Beach day').waitFor({ timeout: 3000 });
+  // A direct image previews as the picture itself.
+  const beach = rowByTitle('Beach day').locator('.ipreview__thumb img');
+  await beach.waitFor();
+  assert((await beach.getAttribute('src')) === 'https://img.example.test/beach-01.png', 'direct image not previewed with <img>');
+  // The extension-less link loads as a picture, so it's relabelled Image — no page read involved.
+  await rowByThumb(BEACH_03).locator('.ibadge--image', { hasText: 'Image' }).waitFor({ timeout: 4000 });
   const summary = await page.locator('.ipreview__summary').textContent();
   assert(/1 duplicate merged/.test(summary), `summary: ${summary}`);
-  assert((await page.locator('.ipreview__row .ibadge--page').count()) === 2, 'expected 2 page rows');
+  const pages = page.locator('.ipreview__row .ibadge--page');
+  assert((await pages.count()) === 2, `expected 2 page rows, got ${await pages.count()}`);
+  assert((await pages.allTextContents()).every((t) => t === 'Gallery page'), 'pages not labelled “Gallery page”');
   assert((await page.locator('.ipreview__row .ibadge--video').count()) === 1, 'expected 1 video row');
   assert(/Find media in 2 pages/.test(await page.locator('.import-foot .btn--primary').textContent()), 'primary should offer to scan');
+  // Mixed paste: the direct links can go without reading the pages at all.
+  await page.getByRole('button', { name: /Skip the pages · import the 4 direct links only/ }).waitFor();
+  assert((await page.locator('.direct-tip summary').textContent()) === 'I have direct links', 'direct-links tip missing');
   await shot('40-import-preview');
 });
 
@@ -460,8 +475,21 @@ await check('import: “Find media” scans the CORS-enabled gallery; the refusi
   await rowByTitle('Lamp posts').waitFor();
   const locked = rowByTitle('locked.test');
   assert(/Couldn’t read/.test(await locked.textContent()), 'locked page not flagged');
-  assert(await locked.locator('input[type=checkbox]').isChecked(), 'failed page should still import as open-original');
+  assert((await locked.locator('.ibadge--page').textContent()) === 'Gallery page', 'locked row not labelled');
+  const msg = await locked.locator('.ipage--failed .ipage__msg').textContent();
+  assert(
+    msg === 'Could not read images from this page (site blocked access). Open the page, copy direct image links, and paste those instead.',
+    `failure message: ${msg}`,
+  );
+  const open = locked.getByRole('link', { name: 'Open page locked.test' });
+  assert((await open.getAttribute('href')) === LOCKED_URL && (await open.getAttribute('target')) === '_blank', 'Open page link wrong');
+  assert(!(await locked.locator('input[type=checkbox]').isChecked()), 'a page that gave nothing should start unticked');
   assert(await page.locator('.scanfail').isVisible(), 'no CORS explanation');
+  assert((await page.locator('.direct-tip').getAttribute('open')) !== null, 'tip should open when a page fails');
+  // The gallery row says what it found.
+  assert(/\d+ items found — listed below/.test(await page.locator('.ipage__msg').first().textContent()), 'gallery row has no result line');
+  // Keep it anyway, as an open-original bookmark.
+  await locked.locator('input[type=checkbox]').check();
   const summary = await page.locator('.ipreview__summary').textContent();
   assert(/icons\/ads skipped/.test(summary), `junk not skipped: ${summary}`);
   assert((await page.locator('.ipreview__title', { hasText: /logo|pixel/i }).count()) === 0, 'logo or pixel leaked in');
@@ -509,19 +537,26 @@ await check('import: tags + name → Import creates the batch, its board, and th
   const batch = d.imports.batches[0];
   assert(batch && batch.name === 'Pier at sunset', 'batch missing');
   const items = batch.itemIds.map((id) => d.imports.items[id]);
-  assert(items.length === 7, `expected 7 items, got ${items.length}`);
+  assert(items.length === 8, `expected 8 items, got ${items.length}`);
   assert(items.every((i) => i.tags.includes('pier') && i.tags.includes('golden hour')), 'batch tags not applied');
   assert(items.some((i) => i.title === 'Pier · Golden hour'), 'edited title lost');
-  assert(items.some((i) => i.mediaType === 'page' && i.url === LOCKED_URL), 'failed page not imported as open-original');
+  assert(items.some((i) => i.mediaType === 'page' && i.url === LOCKED_URL), 'ticked failed page not imported as open-original');
+  assert(items.some((i) => i.mediaType === 'image' && i.url === BEACH_03), 'probed link not imported as an image');
   const board = d.boards.find((b) => b.id === batch.boardId);
-  assert(board && board.name === 'Pier at sunset' && board.videoIds.length === 7, 'board missing');
+  assert(board && board.name === 'Pier at sunset' && board.videoIds.length === 8, 'board missing');
   assert(d.paths.some((p) => p.id === 'imported' && p.pinned), 'Imported path missing');
 });
 
 await check('import: bulk edit titles after import (Title Case on a selection) updates the library', async () => {
   await page.getByRole('button', { name: /Edit titles/ }).click();
-  await page.getByLabel('Title 3', { exact: true }).waitFor();
-  await page.getByLabel('Title 3', { exact: true }).focus();
+  await page.getByLabel('Title 1', { exact: true }).waitFor();
+  // Select “Golden hour” and the row after it, wherever they landed.
+  const fields = await page
+    .locator('input[aria-label^="Title "]')
+    .evaluateAll((els) => els.map((e) => [e.getAttribute('aria-label'), e.value]).filter(([l]) => /^Title \d+$/.test(l)));
+  const at = fields.findIndex(([, v]) => v === 'Pier · Golden hour');
+  assert(at >= 0 && at + 1 < fields.length, `Golden hour row not found: ${fields.map(([, v]) => v).join(' | ')}`);
+  await page.getByLabel(fields[at][0], { exact: true }).focus();
   await page.keyboard.press('Shift+ArrowDown');
   await page.getByText('Title Case', { exact: true }).click();
   await page.getByRole('button', { name: 'Save titles' }).click();
@@ -529,9 +564,9 @@ await check('import: bulk edit titles after import (Title Case on a selection) u
   const s = await state();
   const d = s.data[s.activeProfileId];
   const titles = d.imports.batches[0].itemIds.map((id) => d.imports.items[id].title);
-  // Rows 3–4 were selected: only they change.
-  assert(titles.includes('Pier · Golden Hour'), `selection not title-cased: ${titles.join(' | ')}`);
-  assert(titles.includes('Pier · locked.test – #1'), `rows outside the selection changed: ${titles.join(' | ')}`);
+  // Two rows were selected: only they change.
+  assert(titles.includes('Pier · Golden Hour') && titles.includes('Pier · Pier at Sunset – #1'), `selection not title-cased: ${titles.join(' | ')}`);
+  assert(titles.includes('Pier · Beach day') && titles.includes('Pier · Pier at sunset – #2'), `rows outside the selection changed: ${titles.join(' | ')}`);
 });
 
 await check('import: ⌘⇧E exports the batch as re-importable JSON, plus a URL list', async () => {
@@ -544,23 +579,29 @@ await check('import: ⌘⇧E exports the batch as re-importable JSON, plus a URL
   exported = path;
   const json = JSON.parse(await readFile(path, 'utf8'));
   assert(json.app === 'ph-discovery-import' && json.version === 1, 'wrong export header');
-  assert(json.items.length === 7 && json.items.every((i) => i.url && i.title && i.mediaType && i.originalUrl && i.added && Array.isArray(i.tags)), 'export items incomplete');
+  assert(json.items.length === 8 && json.items.every((i) => i.url && i.title && i.mediaType && i.originalUrl && i.added && Array.isArray(i.tags)), 'export items incomplete');
   const dl2 = page.waitForEvent('download');
   await page.getByRole('button', { name: 'URL list' }).click();
   const list = await readFile(await (await dl2).path(), 'utf8');
-  assert(list.trim().split('\n').length === 7, 'URL list wrong length');
+  assert(list.trim().split('\n').length === 8, 'URL list wrong length');
 });
 
 await check('import: Swipe imported now → stills full-screen; like and save work on them', async () => {
   await page.getByRole('button', { name: /Swipe imported now/ }).click();
   await page.locator('.card--active').waitFor();
   assert(/Pier at sunset/.test(await pathLabel()), `path label ${await pathLabel()}`);
-  // First item: the page that couldn't be read — an open-original card, still swipeable.
-  await page.locator('.card--active .player-fallback__card', { hasText: 'Open original' }).waitFor({ timeout: 3000 });
+  // First item: the page that couldn't be read — a "Gallery page" card with the way out, still swipeable.
+  const card = page.locator('.card--active .player-fallback__card', { hasText: 'Gallery page' });
+  await card.waitFor({ timeout: 3000 });
+  assert(/Could not read images from locked\.test/.test(await card.textContent()), 'page card has no explanation');
+  assert((await card.getByRole('link', { name: /Open page/ }).getAttribute('href')) === LOCKED_URL, 'page card has no Open page link');
+  await card.getByRole('button', { name: 'Paste links' }).waitFor();
+  await shot('44-gallery-page-card');
+  await wait(400); // let input acks catch up after the screenshot (see below)
   await drag(W * 0.3, H * 0.25, W * 0.5, 8); // start above the card: it's a no-gesture zone
   await page.locator('.card--active .player-image img').waitFor({ timeout: 3000 });
   await wait(900);
-  await shot('44-import-still');
+  await shot('44b-import-still');
   // Playwright sends each mouse move only after the page acks the last; a screenshot stalls
   // those acks, so a swipe sent straight after one can outlast the long-press timer.
   await wait(400);
@@ -584,6 +625,20 @@ await check('import: tap on a still toggles fit/fill without pausing', async () 
   assert((await page.locator('.paused-badge').count()) === 0, 'tap paused a still');
 });
 
+await check('import: a gallery read earlier this session comes back instantly, with no new request', async () => {
+  const before = fixtures.hits.gallery;
+  assert(before === 1, `gallery fetched ${before} times`);
+  await tab('Library').click();
+  await page.getByRole('button', { name: 'Import media' }).click();
+  await page.getByLabel('Links to import').fill(GALLERY_URL);
+  await page.locator('.ipage__msg', { hasText: /items found · read earlier this session/ }).waitFor({ timeout: 2000 });
+  await rowByTitle('Golden hour').waitFor();
+  assert((await page.locator('.ipreview__row .ibadge--in-library').count()) > 0, 'cached rows not matched to the library');
+  assert(fixtures.hits.gallery === before, 'cache hit still fetched the page');
+  await page.getByRole('button', { name: 'Clear' }).click();
+  await page.keyboard.press('Escape');
+});
+
 await check('import: board, history, and imports persist across reload', async () => {
   await page.reload({ waitUntil: 'networkidle' });
   await tab('Library').click();
@@ -603,7 +658,7 @@ await check('import: re-importing the exported file is recognised as already in 
   await page.locator('.ipreview__row').first().waitFor({ timeout: 3000 });
   const n = await page.locator('.ipreview__row').count();
   const dupes = await page.locator('.ipreview__row .ibadge--in-library').count();
-  assert(n === 7 && dupes === 7, `rows ${n}, already-imported ${dupes}`);
+  assert(n === 8 && dupes === 8, `rows ${n}, already-imported ${dupes}`);
   assert(await page.locator('.import-foot .btn--primary').isDisabled(), 'import should be disabled');
   await page.getByRole('button', { name: 'Clear' }).click();
   await page.keyboard.press('Escape');

@@ -15,7 +15,7 @@ import { hashString, mulberry32 } from '../lib/prng';
 import { normalize } from '../lib/vec';
 import { normalizeText } from '../lib/text';
 import type { Candidate, ImportBatch, ImportItem } from './types';
-import { filenameOf, hostOf } from './urls';
+import { filenameOf, hostOf, mightBeImage } from './urls';
 import { safetyText } from './extract';
 import { checkQuery } from '../data/safety';
 
@@ -112,6 +112,9 @@ export function importPlayback(item: ImportItem): PlaybackOption[] {
   const original: PlaybackOption = { kind: 'original', url: item.originalUrl };
   if (item.mediaType === 'image') return [{ kind: 'image', url: item.url }, original];
   if (item.mediaType === 'video') return [{ kind: 'source', url: item.url }, original];
+  // An extension-less link that isn't obviously a page may well be a picture: show it
+  // as one, and fall back to the open-original card only if it really fails to load.
+  if (mightBeImage(item.url)) return [{ kind: 'image', url: item.url }, original];
   return [original];
 }
 

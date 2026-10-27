@@ -11,20 +11,21 @@ import { useUI } from '../../state/ui';
 import { useStore, activeData } from '../../state/store';
 import { useTaxonomy } from '../../state/taxonomy';
 import { startPath } from '../../state/feed';
-import { useImportDraft, useDraftView, computeDraft } from '../../import/draft';
+import { useImportDraft, useDraftView, computeDraft, type ScanState } from '../../import/draft';
+import { zeroMediaMessage } from '../../import/scan';
 import { itemFromCandidate, matchTagIds, parseTagInput, cleanTags, importSummary } from '../../import/model';
 import { textIsSafe } from '../../import/extract';
 import { downloadText, exportBatchJSON, exportBatchUrls, exportFilename } from '../../import/exportBatch';
 import { applyTitleOp, canRedo, canUndo, historyCommit, historyInit, historyRedo, historyUndo, type TitleOp, type TitleSubject } from '../../import/titles';
 import { EDITOR_SHORTCUTS, IMPORT_SHORTCUTS, MOD, fullySelected, isMod, isTyping, type Shortcut } from '../../import/keys';
-import { hostOf } from '../../import/urls';
+import { hostOf, mightBeImage } from '../../import/urls';
 import type { Candidate, ImportBatch, ImportItem } from '../../import/types';
 import { dayLabel, plural, timeAgo } from '../../lib/format';
 import { IconCheck, IconDownload, IconExternal, IconLink, IconPencil, IconPlay, IconTrash, IconUndo, IconUpload } from '../Icons';
 
 const FILE_ACCEPT = '.txt,.csv,.tsv,.json,.html,.htm,text/plain,text/csv,application/json,text/html';
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
-const TYPE_LABEL = { image: 'Image', video: 'Video', page: 'Page' } as const;
+const TYPE_LABEL = { image: 'Image', video: 'Video', page: 'Gallery page' } as const;
 const FLAG_LABEL: Record<string, string> = {
   duplicate: 'Duplicate',
   'in-library': 'Already imported',
@@ -157,9 +158,12 @@ export function ImportSheet({ batchId }: { batchId?: string }) {
 }
 
 function PreviewThumb({ c, show }: { c: Candidate; show: boolean }) {
-  const [broken, setBroken] = useState(false);
-  const src = c.mediaType === 'image' ? c.thumbnailUrl ?? c.url : c.thumbnailUrl;
-  if (!show || !src || broken) {
+  // Try the thumbnail, then the file itself; only a real load error falls back to the icon.
+  const probe = c.mediaType === 'page' && c.origin === 'direct' && mightBeImage(c.url);
+  const sources = [...new Set([c.thumbnailUrl, c.mediaType === 'image' || probe ? c.url : undefined].filter((u): u is string => !!u))];
+  const [failed, setFailed] = useState(0);
+  const src = sources[failed];
+  if (!show || !src) {
     return (
       <span className={`ipreview__thumb ipreview__thumb--ph ipreview__thumb--${c.mediaType}`} aria-hidden="true">
         {c.mediaType === 'image' ? '▧' : c.mediaType === 'video' ? '▶' : '↗'}
@@ -168,8 +172,70 @@ function PreviewThumb({ c, show }: { c: Candidate; show: boolean }) {
   }
   return (
     <span className="ipreview__thumb">
-      <img src={src} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" draggable={false} onError={() => setBroken(true)} />
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        referrerPolicy="no-referrer"
+        draggable={false}
+        onLoad={(e) => {
+          // An extension-less link that loads as a picture is a picture: say so.
+          if (probe && src === c.url && e.currentTarget.naturalWidth > 0) useImportDraft.getState().markMedia(c.url, 'image');
+        }}
+        onError={() => setFailed((n) => n + 1)}
+      />
       {c.mediaType === 'video' && <span className="ipreview__play">▶</span>}
+    </span>
+  );
+}
+
+/** "I have direct links": how to get them, and what they look like. */
+function DirectLinksTip({ open }: { open: boolean }) {
+  return (
+    <details className="direct-tip" open={open}>
+      <summary>I have direct links</summary>
+      <p>
+        Links straight to the picture or video file import instantly, one per line, mixed freely with gallery pages. Each link is handled on its own:
+      </p>
+      <pre className="direct-tip__example" aria-label="Example of direct links">
+        {'https://cdn.example.com/photos/beach-01.jpg\nhttps://cdn.example.com/photos/beach-02.webp\nhttps://media.example.net/clips/waves.mp4\nhttps://www.example.org/galleries/summer-set/'}
+      </pre>
+      <p className="small">
+        To get one: on a computer, right-click a picture → <b>Copy Image Address</b>. On iPhone, touch and hold a picture → <b>Open in New Tab</b>, then copy the
+        address from the address bar.
+      </p>
+    </details>
+  );
+}
+
+/** Under a gallery-page row: what happened when it was read, and the way out (open it, copy links). */
+function PageRowStatus({ c, scan }: { c: Candidate; scan?: ScanState }) {
+  const failed = c.flags.includes('scan-failed');
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation();
+  return (
+    <span className={`ipage${failed ? ' ipage--failed' : ''}`} onClick={stop} onDoubleClick={stop}>
+      {failed ? (
+        <span className="ipage__msg" role="status">
+          {zeroMediaMessage(c.error)}
+        </span>
+      ) : scan?.status === 'ok' && scan.found > 0 ? (
+        <span className="ipage__msg">
+          {plural(scan.found, 'item')} found{scan.cached ? ' · read earlier this session' : ''} — listed below.
+        </span>
+      ) : scan?.status === 'running' ? (
+        <span className="ipage__msg">Reading…</span>
+      ) : null}
+      <span className="row row--wrap ipage__actions">
+        <a className="btn btn--small" href={c.url} target="_blank" rel="noopener noreferrer" aria-label={`Open page ${hostOf(c.url)}`}>
+          Open page <IconExternal size={14} />
+        </a>
+        {scan && scan.status !== 'running' && (
+          <button type="button" className="btn btn--small btn--ghost" onClick={() => void useImportDraft.getState().scan([c.url], { fresh: true })}>
+            Read again
+          </button>
+        )}
+      </span>
     </span>
   );
 }
@@ -197,6 +263,7 @@ function ImportEditor() {
   const included = rows.filter((c) => c.include);
   const pending = view.unscannedPages;
   const failed = rows.filter((c) => c.flags.includes('scan-failed'));
+  const directCount = rows.filter((c) => c.include && c.mediaType !== 'page').length;
   const hasInput = !!d.text.trim() || d.files.length > 0;
 
   const readFiles = useCallback(async (files: FileList | File[]) => {
@@ -452,6 +519,7 @@ function ImportEditor() {
           </li>
         </ul>
       )}
+      <DirectLinksTip open={failed.length > 0 || (!rows.length && !hasInput)} />
 
       {rows.length > 0 && (
         <section className="ipreview" aria-label="Import preview">
@@ -483,14 +551,20 @@ function ImportEditor() {
           )}
           {!d.scanning && pending.length > 0 && (
             <div className="notice">
-              {plural(pending.length, 'page link')}. “Find media” reads each page once from this device, and only if the site allows other apps to (CORS). Pages that
-              can’t be read still import as “open original” clips.
+              {plural(pending.length, 'gallery page')}. “Find media” reads each page once from this device, and only if the site allows other apps to (CORS).
+              {directCount > 0 && (
+                <div className="row row--wrap notice__actions">
+                  <button type="button" className="btn btn--small btn--ghost" onClick={() => d.skipUnscannedPages()}>
+                    Skip the pages · import the {plural(directCount, 'direct link')} only
+                  </button>
+                </div>
+              )}
             </div>
           )}
           {failed.length > 0 && !d.scanning && (
             <details className="notice notice--warn scanfail">
               <summary>
-                {plural(failed.length, 'page')} couldn’t be read — {failed.length === 1 ? 'it' : 'they'}’ll import as “open original” clips
+                {plural(failed.length, 'gallery page')} gave no images. {failed.length === 1 ? 'It’s' : 'They’re'} left unticked; tick to keep as an open-original bookmark.
               </summary>
               <ul>
                 {failed.map((c) => (
@@ -618,6 +692,7 @@ function ImportEditor() {
                         </span>
                       ))}
                     </span>
+                    {c.mediaType === 'page' && <PageRowStatus c={c} scan={d.scans[c.url]} />}
                   </span>
                 </li>
               );
