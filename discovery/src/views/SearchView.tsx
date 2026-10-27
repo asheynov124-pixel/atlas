@@ -19,6 +19,7 @@ import { mergeFilters } from '../engine/filters';
 import { isBlocked } from '../engine/ranking';
 import { Chip, EmptyState, ErrorState, GridSkeleton, Segmented } from '../components/common';
 import { Thumb, VideoTile } from '../components/Thumb';
+import { openImport } from '../components/sheets/ImportSheets';
 import { IconClock, IconExternal, IconLink, IconPlay, IconSearch, IconSparkle, IconTarget, IconX } from '../components/Icons';
 
 type ResultTab = 'clips' | 'performers' | 'studios' | 'tags';
@@ -326,7 +327,13 @@ export function SearchView() {
 
 function LinkResult({ link, url }: { link: ResolvedLink | null; url: string }) {
   if (!link) {
-    return <EmptyState icon={<IconLink />} title="Couldn’t read that link" body="Paste a full video URL. Links with a viewkey or /video/<id> resolve best." />;
+    return (
+      <EmptyState icon={<IconLink />} title="Couldn’t read that link" body="Paste a full video URL. Links with a viewkey or /video/<id> resolve best.">
+        <button className="btn" onClick={() => openImport(url)}>
+          ⇪ Import it as your own clip
+        </button>
+      </EmptyState>
+    );
   }
   const v = link.video;
   return (
@@ -346,6 +353,11 @@ function LinkResult({ link, url }: { link: ResolvedLink | null; url: string }) {
           <a className="btn" href={v.originalUrl || url} target="_blank" rel="noopener noreferrer">
             Original <IconExternal />
           </a>
+          {link.standIn && (
+            <button className="btn btn--ghost" onClick={() => openImport(url)}>
+              ⇪ Import instead
+            </button>
+          )}
         </div>
       </div>
     </div>

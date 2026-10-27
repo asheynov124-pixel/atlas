@@ -216,27 +216,38 @@ export interface DraftView {
 }
 
 let memo: { key: unknown[]; view: DraftView } | null = null;
+let finalMemo: { key: unknown[]; f: ReturnType<typeof finalize> } | null = null;
+
+const same = (a: unknown[], b: unknown[]) => a.length === b.length && a.every((k, i) => k === b[i]);
 
 /** Finalise everything gathered so far, then apply the user's row overrides. */
 export function computeDraft(s: Pick<DraftState, 'textSource' | 'files' | 'scanSources' | 'scans' | 'retype' | 'overrides' | 'batchTags'>): DraftView {
   const items = activeData(useStore.getState()).imports.items;
   const key = [s.textSource, s.files, s.scanSources, s.scans, s.retype, s.overrides, s.batchTags, items];
-  if (memo && memo.key.every((k, i) => k === key[i])) return memo.view;
-  const sources = [...(s.textSource ? [s.textSource] : []), ...s.files, ...Object.values(s.scanSources)];
-  let dropped = emptyDrops();
-  const raws: RawCandidate[] = [];
-  for (const src of sources) {
-    dropped = addDrops(dropped, src.dropped);
-    for (const c of src.candidates) raws.push(s.retype[c.url] ? { ...c, mediaType: s.retype[c.url] } : c);
+  if (memo && same(memo.key, key)) return memo.view;
+  // The expensive pass (dedupe, variants, safety, titles) doesn't depend on row overrides,
+  // so ticking a checkbox on a 2,000-row import doesn't redo it.
+  const fkey = [s.textSource, s.files, s.scanSources, s.scans, s.retype, items];
+  let f: ReturnType<typeof finalize>;
+  if (finalMemo && same(finalMemo.key, fkey)) f = finalMemo.f;
+  else {
+    const sources = [...(s.textSource ? [s.textSource] : []), ...s.files, ...Object.values(s.scanSources)];
+    let dropped = emptyDrops();
+    const raws: RawCandidate[] = [];
+    for (const src of sources) {
+      dropped = addDrops(dropped, src.dropped);
+      for (const c of src.candidates) raws.push(s.retype[c.url] ? { ...c, mediaType: s.retype[c.url] } : c);
+    }
+    const existing = new Set(Object.values(items).map((i) => i.url));
+    const scanned = new Map(
+      Object.entries(s.scans)
+        .filter(([, v]) => v.status !== 'running')
+        .map(([u, v]) => [u, { ok: v.status === 'ok', found: s.retype[u] ? 0 : v.found, error: v.error }] as const),
+    );
+    const pageTitles = new Map(Object.entries(s.scanSources).filter(([, v]) => v.pageTitle).map(([u, v]) => [u, v.pageTitle!]));
+    f = finalize(raws, dropped, { existing, scanned, pageTitles });
+    finalMemo = { key: fkey, f };
   }
-  const existing = new Set(Object.values(items).map((i) => i.url));
-  const scanned = new Map(
-    Object.entries(s.scans)
-      .filter(([, v]) => v.status !== 'running')
-      .map(([u, v]) => [u, { ok: v.status === 'ok', found: s.retype[u] ? 0 : v.found, error: v.error }] as const),
-  );
-  const pageTitles = new Map(Object.entries(s.scanSources).filter(([, v]) => v.pageTitle).map(([u, v]) => [u, v.pageTitle!]));
-  const f = finalize(raws, dropped, { existing, scanned, pageTitles });
   const candidates = f.candidates.map((c) => {
     const o = s.overrides[c.key];
     if (!o) return c;

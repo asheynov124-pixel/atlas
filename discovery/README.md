@@ -17,10 +17,10 @@ The whole experience runs on a local mock data layer: a deterministic catalogue 
 cd discovery
 npm install
 npm run dev            # http://localhost:5173 (also on your LAN via --host)
-npm test               # 58 unit tests (engine, AI, data layer, gestures, store/privacy, regressions)
+npm test               # 107 unit tests (engine, AI, data layer, gestures, store/privacy, regressions, import)
 npm run build          # typecheck + production build + service worker
 npx vite preview --port 4173 &
-npm run e2e            # 29 Playwright checks at iPhone 14 size, real gestures
+npm run e2e            # 42 Playwright checks at iPhone 14 size, real gestures (import runs on offline fixtures)
 ```
 
 **Shareable demo build:** `npx vite build --config vite.demo.config.ts` writes `dist-demo/`, a
@@ -93,6 +93,60 @@ produces the system tick.
   app lock (armed before first paint), export/import JSON, per-profile reset, and erase
   everything. There's an 18+ gate on first run and a query safety gate (below).
 
+## Personal Import
+
+*Library → Import* (or the **+ Import** button) turns links into native clips. Images,
+videos, and gallery pages become things you can swipe, like, save, filter, and put on
+boards. They're stored only on this device.
+
+- **In:** paste (or **Paste from clipboard**), drop files or links, or upload `.txt`,
+  `.csv` (header columns like `url,title,tags,type` are recognised), `.json` (any shape,
+  including a previous export), or a **saved `.html` page**.
+- **Direct files** (`jpg jpeg png webp gif avif bmp svg`, `mp4 webm mov m4v ogv mkv`, or
+  CDN `?format=` hints) import instantly. **Page links** are read only when you press
+  *Find media*: once per page, from the device, with no cookies or referrer, and only if
+  the site allows cross-origin reads (CORS). There's no proxy and no background
+  crawling. A page that can't be read still imports as an **"open original"** clip. The
+  honest workaround is to save the page and upload the `.html`.
+- **Extraction reads** og/twitter meta (including `twitter:player:stream`), `<video>`
+  and `<source>` (with posters), `<img>` `src`, `srcset` (widest), and every common lazy
+  attribute (`data-src`, `data-lazy-src`, `data-original`, `data-srcset`, `data-lazy`,
+  WordPress `data-orig-file`, zoom/full variants). It also reads `<a href>` to media,
+  thumbnail tiles linked to full-size files, JSON-LD `ImageObject`/`VideoObject`
+  (including `@graph`), inline gallery JSON (escaped `\/` and `\u002F` URLs), `data-gallery`
+  style attributes, and background images inside content areas. Three or more sibling
+  tiles become a **gallery set**, and next-page and gallery sub-page links can be
+  scanned on request.
+- **Heuristics:** size variants (`-150x150`, `/thumbs/`, `?w=`) collapse into the largest
+  version, with the small one kept as the preview. Logos, icons, spacers, 1×1 pixels,
+  tiny SVGs, and known ad/tracker hosts (including the adult ad exchanges) are dropped
+  and counted. Header, footer, and ad-slot images rank below gallery content. URLs are
+  normalised (tracking params stripped) and deduped against the batch and the library.
+  The same **safety gate** as search applies to titles, tags, and URL words.
+- **Review:** type, origin, and flag badges; include/exclude; multi-select; per-item
+  and batch tags with suggestions drawn from hostnames and path words; an auto-created
+  board (named after the dominant host or `Import YYYY-MM-DD`); scan progress; and a
+  partial-success summary.
+- **Bulk titles:** prefix, suffix, find/replace (plain or regex, case toggle),
+  capitalize, Title Case, use file name, `Hostname – #`, on a selection or everything,
+  with undo/redo. Available before and after import.
+- **Keyboard:** ⌘/Ctrl V paste · ⌘↵ start (scan, then import) · ⌘A select all · ⌫/Del
+  exclude · ⌘E title editor · ⌘S save titles · ⌘⇧E export. In the editor: ↑↓ rows,
+  ⇧↑↓ extend selection, Tab between fields, ⌘Z / ⌘⇧Z. Press **?** for the cheat sheet.
+- **Batches:** *Library → Imports* lists every batch (date, count, re-open, swipe,
+  export, delete). **Export** downloads JSON (`url, title, tags, mediaType, originalUrl,
+  thumbnailUrl, notes, added`) or a plain URL list, and either one re-imports. Deleting
+  a batch removes its clips from saves, boards, signals, history, and queues.
+- **As clips:** stills play full-screen (tap to switch fit and fill), and dwell counts as
+  watch time. Videos use the normal player fallback. Pages show an open-original card.
+  Imports join search, For You, "more from this set/site", the persistent **Imported**
+  Smart Path, the **Imports** smart collection, and a **Source** filter (catalogue / my
+  imports). A site can be hard-blocked like a studio. Data saver holds remote
+  thumbnails. Incognito imports work, but vanish when incognito ends.
+- **Never by face or body:** imported media gets a synthetic embedding built from its
+  page, site, and tags, not from pixels. Visual-similar and capture don't read faces or
+  bodies on imports (see the biometrics note below).
+
 ## Architecture
 
 ```
@@ -118,7 +172,15 @@ src/
     store.ts        persisted (IndexedDB) app state, per-profile silos
     feed.ts         feed controller: buffering, nav, view tracking, judge/save/block
   gestures/       ← classify.ts (pure) + useStageGestures.ts (pointer engine) + haptics
-  player/         ← renderer.ts (procedural clips) + ClipPlayer.tsx (fallback chain)
+  player/         ← renderer.ts (procedural clips) + ClipPlayer.tsx (fallback chain, stills)
+  import/         ← Personal Import
+    extract.ts      text/CSV/JSON/HTML → candidates; gallery extraction; finalize (dedupe, safety, titles)
+    scan.ts         the only network step: explicit, CORS-respecting page fetch
+    titles.ts       bulk title patterns + coalescing undo/redo
+    exportBatch.ts  JSON / URL-list export (re-importable)
+    model.ts        ImportItem → VideoSummary/VideoDetail, synthetic embedding, tag matching
+    localSource.ts  WithImports: layers imports over any DataSource
+    draft.ts        the in-progress import (session-only)
   views/, components/
 ```
 
@@ -196,9 +258,23 @@ These are notes for counsel, not legal conclusions:
    identifiers" under Illinois BIPA (private right of action, statutory damages), Texas
    CUBI, and Washington's law. Keeping visual search catalogue-seeded limits the
    "find this person" misuse path, but computing face embeddings at all is the exposure.
+   Personal Import is built so that it never computes one. An imported photo is
+   described by its page, site, and tags, and its "more like this" follows the set, not
+   the person. Wiring `AIProvider.embedFrame` to imports would reopen the question.
 4. **NCII.** N.J.S.A. 2C:14-9 and the federal TAKE IT DOWN Act (2025; 48-hour removal for
    covered platforms) matter if the app ever hosts or lets users upload anything. The
-   built-in query gate already refuses non-consent and covert-capture searches.
+   built-in query gate already refuses non-consent and covert-capture searches, and
+   Personal Import runs the same gate over every imported title, tag, and URL. Imports
+   stay on the device and are never uploaded or shared. That line matters: once
+   imports sync or share, the app starts to look like a "covered platform."
 5. **Source terms & marks.** Use the source's official embed or partner API rather than
    scraping. "PH" plus any orange-on-black trade dress could draw a Lanham Act letter.
    The prototype deliberately uses neutral violet branding.
+6. **Fetching third-party pages.** Page scans are user-initiated, one request per page,
+   with no cookies, and they honour CORS. That's the defensible posture. On the CFAA, see
+   *Van Buren v. United States* (2021) and *hiQ Labs v. LinkedIn* (9th Cir. 2022) on
+   publicly available pages. On trespass to chattels, *Intel v. Hamidi* (Cal. 2003)
+   requires actual harm to the system. Contract is the live risk: a site's terms can
+   still bind a user who accepted them (in late 2022 the district court found hiQ had
+   breached LinkedIn’s user agreement, and the case then settled). A proxy that bypasses
+   CORS, or any background crawling, should stay out of scope.
