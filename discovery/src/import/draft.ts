@@ -8,9 +8,9 @@ import { create } from 'zustand';
 import { useStore, activeData } from '../state/store';
 import { useTaxonomy } from '../state/taxonomy';
 import { uid } from '../lib/id';
-import { addDrops, emptyDrops, finalize, parseInput, type InputKind, type RawCandidate } from './extract';
+import { addDrops, emptyDrops, finalize, parseInput, textIsSafe, type InputKind, type RawCandidate } from './extract';
 import { scanPages, type ScanResult } from './scan';
-import { defaultBatchName, itemFromCandidate, parseTagInput, suggestImportTags } from './model';
+import { defaultBatchName, itemFromCandidate, itemIsSafe, parseTagInput, suggestImportTags } from './model';
 import type { Candidate, DropCounts, ImportBatch, ImportSummary, MediaType, ScanError } from './types';
 
 export interface DraftSource {
@@ -61,12 +61,24 @@ interface DraftState {
   scan: (urls: string[]) => Promise<void>;
   cancelScan: () => void;
   clear: () => void;
-  commit: () => { batchId: string; boardId?: string; count: number } | null;
+  commit: () => CommitResult;
   showBatch: (id: string | null) => void;
 }
 
+export type CommitResult =
+  | { ok: true; batchId: string; boardId?: string; count: number; refused: number }
+  | { ok: false; reason: 'empty' | 'unsafe-name' | 'unsafe-items' };
+
 let parseTimer: ReturnType<typeof setTimeout> | null = null;
-let abort: AbortController | null = null;
+/** Every scan in flight; each has its own controller so a second scan never cancels the first. */
+const controllers = new Set<AbortController>();
+/** Bumped by clear/commit: results from an older draft are dropped, never written into a new one. */
+let generation = 0;
+
+function stopAll() {
+  for (const c of controllers) c.abort();
+  controllers.clear();
+}
 
 const initial = () => ({
   text: '',
@@ -121,14 +133,15 @@ export const useImportDraft = create<DraftState>()((set, get) => ({
   scan: async (urls) => {
     const todo = [...new Set(urls)].filter((u) => get().scans[u]?.status !== 'running');
     if (!todo.length) return;
-    abort?.abort();
-    abort = new AbortController();
-    const signal = abort.signal;
+    const ctrl = new AbortController();
+    const gen = generation;
+    controllers.add(ctrl);
     set((s) => ({
-      scanning: { done: 0, total: todo.length },
+      scanning: { done: s.scanning?.done ?? 0, total: (s.scanning?.total ?? 0) + todo.length },
       scans: { ...s.scans, ...Object.fromEntries(todo.map((u) => [u, { status: 'running' as const, found: 0 }])) },
     }));
-    const onResult = (r: ScanResult, done: number, total: number) => {
+    const onResult = (r: ScanResult) => {
+      if (ctrl.signal.aborted || gen !== generation) return;
       set((s) => {
         const scans = { ...s.scans };
         const scanSources = { ...s.scanSources };
@@ -151,33 +164,41 @@ export const useImportDraft = create<DraftState>()((set, get) => ({
             pageTitle: r.extraction.pageTitle,
           };
         }
+        const done = (s.scanning?.done ?? 0) + 1;
+        const total = s.scanning?.total ?? 0;
         return { scans, scanSources, retype, scanning: done >= total ? null : { done, total } };
       });
     };
-    await scanPages(todo, onResult, { signal });
-    if (signal.aborted) {
+    await scanPages(todo, onResult, { signal: ctrl.signal });
+    controllers.delete(ctrl);
+    if (ctrl.signal.aborted && gen === generation) {
+      // Cancelled pages go back to "not scanned", not "couldn't read".
+      const mine = new Set(todo);
       set((s) => ({
-        scanning: null,
-        scans: Object.fromEntries(Object.entries(s.scans).filter(([, v]) => v.status !== 'running')),
+        scans: Object.fromEntries(Object.entries(s.scans).filter(([u, v]) => !(mine.has(u) && v.status === 'running'))),
+        scanning: controllers.size ? s.scanning : null,
       }));
     }
   },
   cancelScan: () => {
-    abort?.abort();
+    stopAll();
     set((s) => ({ scanning: null, scans: Object.fromEntries(Object.entries(s.scans).filter(([, v]) => v.status !== 'running')) }));
   },
   clear: () => {
-    abort?.abort();
+    generation++;
+    stopAll();
     if (parseTimer) clearTimeout(parseTimer);
     set({ ...initial(), doneBatchId: null });
   },
   commit: () => {
     const view = computeDraft(get());
     const chosen = view.candidates.filter((c) => c.include && !c.role && !c.flags.includes('in-library'));
-    if (!chosen.length) return null;
+    if (!chosen.length) return { ok: false, reason: 'empty' };
     const s = get();
     const tags = parseTagInput(s.batchTags);
     const name = s.board.name.trim() || defaultBatchName(chosen);
+    // Typed text passes the same gate as search: the name, the batch tags, and every item below.
+    if (!textIsSafe(name, tags)) return { ok: false, reason: 'unsafe-name' };
     const batch: ImportBatch = {
       id: uid('batch-'),
       name,
@@ -185,21 +206,26 @@ export const useImportDraft = create<DraftState>()((set, get) => ({
       tags,
       itemIds: [],
       source: s.files.length && (s.textSource?.candidates.length ?? 0) ? 'mixed' : s.files.length ? 'file' : 'paste',
-      stats: {
-        found: view.summary.total,
-        imported: chosen.length,
-        duplicates: view.summary.duplicates + view.summary.inLibrary,
-        failed: chosen.filter((c) => c.flags.includes('scan-failed')).length,
-        dropped: view.summary.dropped.junk + view.summary.dropped.ads + view.summary.dropped.refused,
-      },
+      stats: { found: 0, imported: 0, duplicates: 0, failed: 0, dropped: 0 },
     };
     const taxonomy = useTaxonomy.getState().tx?.tags ?? [];
     const now = Date.now();
-    const items = chosen.map((c, i) => itemFromCandidate(c, batch, { title: s.overrides[c.key]?.title, extraTags: s.overrides[c.key]?.tags, taxonomy, now: now + i }));
+    const built = chosen.map((c, i) => itemFromCandidate(c, batch, { title: s.overrides[c.key]?.title, extraTags: s.overrides[c.key]?.tags, taxonomy, now: now + i }));
+    const items = built.filter(itemIsSafe);
+    const refused = built.length - items.length;
+    if (!items.length) return { ok: false, reason: 'unsafe-items' };
+    batch.stats = {
+      found: view.summary.total,
+      imported: items.length,
+      duplicates: view.summary.duplicates + view.summary.inLibrary,
+      failed: items.filter((i) => chosen.find((c) => c.key === i.url)?.flags.includes('scan-failed')).length,
+      dropped: view.summary.dropped.junk + view.summary.dropped.ads + view.summary.dropped.refused + view.summary.dropped.overflow + refused,
+    };
     const boardId = useStore.getState().commitImport(batch, items, s.board.on ? { name, emoji: '⇪' } : undefined);
-    abort?.abort();
+    generation++;
+    stopAll();
     set({ ...initial(), doneBatchId: batch.id });
-    return { batchId: batch.id, boardId, count: items.length };
+    return { ok: true, batchId: batch.id, boardId, count: items.length, refused };
   },
   showBatch: (id) => set({ doneBatchId: id }),
 }));
@@ -276,3 +302,10 @@ export function useDraftView(): DraftView {
   useStore((s) => activeData(s).imports.items); // re-render when the library changes (in-library flags)
   return useImportDraft((s) => computeDraft(s));
 }
+
+// A draft belongs to the profile (and the incognito session) it was started in.
+// Switching profile, or ending incognito, throws it away rather than letting it
+// commit into the wrong silo or outlive the session it was made in.
+useStore.subscribe((s, prev) => {
+  if (s.activeProfileId !== prev.activeProfileId || (prev.incognito && !s.incognito)) useImportDraft.getState().clear();
+});

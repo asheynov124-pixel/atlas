@@ -10,7 +10,7 @@ import type { ImportItem } from './types';
 export interface ImportProvider {
   /** Items in the active profile, newest batch first, batch order within. */
   active: () => ImportItem[];
-  /** Lookup by id: active profile first, then any other profile. */
+  /** Lookup by id, in the active profile only. */
   byId: (id: string) => ImportItem | undefined;
 }
 

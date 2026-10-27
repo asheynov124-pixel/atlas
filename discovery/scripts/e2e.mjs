@@ -561,6 +561,9 @@ await check('import: Swipe imported now → stills full-screen; like and save wo
   await page.locator('.card--active .player-image img').waitFor({ timeout: 3000 });
   await wait(900);
   await shot('44-import-still');
+  // Playwright sends each mouse move only after the page acks the last; a screenshot stalls
+  // those acks, so a swipe sent straight after one can outlast the long-press timer.
+  await wait(400);
   const stillId = await activeId();
   assert(stillId.startsWith('imp-'), 'not an imported clip');
   await drag(W * 0.5, H * 0.55, 0, -H * 0.3);

@@ -5,7 +5,7 @@
  */
 import { dataSource, remember, cachedSummary } from '../data/api';
 import type { Reason, VideoSummary } from '../data/types';
-import { createPath, extendPath, pathLabel, FOR_YOU_RECYCLE, type PathContext } from '../engine/paths';
+import { createPath, extendPath, pathLabel, FOR_YOU_RECYCLE, IMPORTED_PATH_ID, type PathContext } from '../engine/paths';
 import { implicitSignal } from '../engine/learning';
 import { profileScore } from '../engine/ranking';
 import type { HistoryAction, Path, PathSeed, SignalKind } from '../engine/types';
@@ -89,11 +89,13 @@ export function ensureBuffer(pathId: string, ahead = 6): Promise<void> {
   const running = inflight.get(k);
   if (running) return running;
   const path = findPath(pathId, profileId);
-  if (!path || path.exhausted || path.queue.length - path.index > ahead) return Promise.resolve();
+  // A pending startAt (an item further into an ordered path) keeps loading until it's reached.
+  if (!path || path.exhausted || (path.queue.length - path.index > ahead && !path.startAt)) return Promise.resolve();
   const epoch = epochOf(k);
   const ui = useUI.getState();
   ui.setPathStatus(pathId, { loading: true });
   let retry = false;
+  let pending = false;
   const job = (async () => {
     try {
       const ext = await extendPath(path, context(), 12, lookupVideo);
@@ -109,23 +111,28 @@ export function ensureBuffer(pathId: string, ahead = 6): Promise<void> {
       const recent = new Set(latest.queue.slice(-recycleWindow(latest)));
       let queue = [...latest.queue, ...ext.append.filter((id) => !recent.has(id))];
       let index = latest.index;
-      if (latest.startAt) {
-        const at = queue.indexOf(latest.startAt);
-        if (at >= 0) index = at;
+      let startAt = latest.startAt;
+      if (startAt) {
+        const at = queue.indexOf(startAt);
+        if (at >= 0) {
+          index = at;
+          startAt = undefined;
+        } else if (ext.exhausted || !ext.append.length) startAt = undefined; // it isn't coming: stay at the top
+        else pending = true;
       }
       if (queue.length > MAX_QUEUE && index > TRIM) {
         // Keep long-running paths light: drop the oldest already-watched stretch.
         queue = queue.slice(TRIM);
         index -= TRIM;
       }
-      useStore.getState().updatePathFor(profileId, pathId, { queue, index, cursor: ext.cursor, exhausted: ext.exhausted, startAt: undefined });
+      useStore.getState().updatePathFor(profileId, pathId, { queue, index, cursor: ext.cursor, exhausted: ext.exhausted, startAt });
       useUI.getState().setPathStatus(pathId, { loading: false });
     } catch (e) {
       if (epochOf(k) !== epoch) retry = true;
       else useUI.getState().setPathStatus(pathId, { loading: false, error: (e as Error).message || 'Could not load more' });
     } finally {
       inflight.delete(k);
-      if (retry && useStore.getState().activeProfileId === profileId) void ensureBuffer(pathId, ahead);
+      if ((retry || pending) && useStore.getState().activeProfileId === profileId) void ensureBuffer(pathId, ahead);
       else if (retry) useUI.getState().setPathStatus(pathId, { loading: false });
     }
   })();
@@ -187,11 +194,20 @@ export interface StartOptions {
 }
 
 export function startPath(seed: PathSeed, opts: StartOptions = {}): Path {
+  // The persistent Imported path is reopened, not rebuilt (it keeps its pin and place).
+  if (seed.kind === 'imported' && !seed.batchId) {
+    const existing = findPath(IMPORTED_PATH_ID);
+    if (existing) {
+      if (opts.activate ?? true) activatePath(existing.id);
+      if (opts.show) useUI.getState().setTab('feed');
+      return existing;
+    }
+  }
   const label = opts.label ?? pathLabel(seed, names());
   const parentId = opts.parentId ?? activePath(useStore.getState()).id;
   // Ordered paths start at the right place instead of prepending the clip.
   const ordered = seed.kind === 'series' || (seed.kind === 'imported' && !!seed.batchId);
-  const path = createPath(seed, label, { startWith: ordered ? undefined : opts.startWith, parentId });
+  const path = createPath(seed, label, { startWith: ordered ? undefined : opts.startWith, parentId, pinned: seed.kind === 'imported' && !seed.batchId ? true : undefined });
   if (ordered && opts.startWith?.[0]) path.startAt = opts.startWith[0];
   if (seed.kind === 'collection') {
     const d = activeData(useStore.getState());

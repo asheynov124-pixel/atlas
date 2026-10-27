@@ -16,6 +16,13 @@ import { normalize } from '../lib/vec';
 import { normalizeText } from '../lib/text';
 import type { Candidate, ImportBatch, ImportItem } from './types';
 import { filenameOf, hostOf } from './urls';
+import { safetyText } from './extract';
+import { checkQuery } from '../data/safety';
+
+/** The import safety gate over everything an item carries: title, tags, notes, and its URLs. */
+export function itemIsSafe(item: Pick<ImportItem, 'url' | 'title' | 'tags' | 'originalUrl' | 'notes'> & { thumbnailUrl?: string }): boolean {
+  return checkQuery(safetyText(item)).ok;
+}
 
 export const IMPORT_PREFIX = 'imp-';
 export const SITE_PREFIX = 'site:';
@@ -253,7 +260,7 @@ export function itemFromCandidate(
     height: c.height,
     host,
     groupKey: c.groupId ? `${c.originalUrl}#${c.groupId}` : c.originalUrl !== c.url ? c.originalUrl : batch.id,
-    notes: '',
+    notes: c.notes ?? '',
     addedAt: opts.now ?? Date.now(),
   };
 }

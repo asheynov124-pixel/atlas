@@ -36,8 +36,8 @@ export async function scanPage(url: string, opts: { signal?: AbortSignal; fetchI
       if (guess !== 'page') return { ok: true, url, media: guess, finalUrl };
       return { ok: false, url, error: { kind: 'not-html', message: `Not a web page (${type.split(';')[0]}).` } };
     }
-    const html = await res.text();
-    if (html.length > MAX_BYTES) return { ok: false, url, error: { kind: 'too-large', message: 'That page is too large to scan here.' } };
+    const html = await readCapped(res, MAX_BYTES);
+    if (html === null) return { ok: false, url, error: { kind: 'too-large', message: 'That page is too large to scan here.' } };
     if (!html.trim()) return { ok: false, url, error: { kind: 'empty', message: 'The page came back empty.' } };
     return { ok: true, url, extraction: extractFromHtml(html, finalUrl), finalUrl };
   } catch (e) {
@@ -59,6 +59,29 @@ export async function scanPage(url: string, opts: { signal?: AbortSignal; fetchI
     clearTimeout(timer);
     opts.signal?.removeEventListener('abort', onAbort);
   }
+}
+
+/** Read a body up to `max` bytes, stopping the download (not just the parse) past the limit. */
+async function readCapped(res: Response, max: number): Promise<string | null> {
+  const reader = res.body?.getReader?.();
+  if (!reader) {
+    const t = await res.text();
+    return t.length > max ? null : t;
+  }
+  const decoder = new TextDecoder();
+  let size = 0;
+  let out = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > max) {
+      await reader.cancel().catch(() => undefined);
+      return null;
+    }
+    out += decoder.decode(value, { stream: true });
+  }
+  return out + decoder.decode();
 }
 
 /** Scan several pages with bounded concurrency, reporting each result as it lands. */

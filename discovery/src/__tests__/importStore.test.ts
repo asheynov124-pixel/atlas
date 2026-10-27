@@ -80,7 +80,7 @@ describe('committing an import', () => {
     draft.setOverride([URLS[3]], { include: false });
     draft.setBoard({ name: 'From the draft' });
     const r = useImportDraft.getState().commit();
-    expect(r?.count).toBe(2);
+    expect(r).toMatchObject({ ok: true, count: 2 });
     const d = activeData(useStore.getState());
     expect(d.imports.batches[0].name).toBe('From the draft');
     expect(d.boards.some((b) => b.name === 'From the draft')).toBe(true);

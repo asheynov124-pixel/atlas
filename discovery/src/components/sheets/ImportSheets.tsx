@@ -13,6 +13,7 @@ import { useTaxonomy } from '../../state/taxonomy';
 import { startPath } from '../../state/feed';
 import { useImportDraft, useDraftView, computeDraft } from '../../import/draft';
 import { itemFromCandidate, matchTagIds, parseTagInput, cleanTags, importSummary } from '../../import/model';
+import { textIsSafe } from '../../import/extract';
 import { downloadText, exportBatchJSON, exportBatchUrls, exportFilename } from '../../import/exportBatch';
 import { applyTitleOp, canRedo, canUndo, historyCommit, historyInit, historyRedo, historyUndo, type TitleOp, type TitleSubject } from '../../import/titles';
 import { EDITOR_SHORTCUTS, IMPORT_SHORTCUTS, MOD, fullySelected, isMod, isTyping, type Shortcut } from '../../import/keys';
@@ -184,6 +185,8 @@ function ImportEditor() {
   const [help, setHelp] = useState(false);
   const [over, setOver] = useState(false);
   const [tagging, setTagging] = useState(false);
+  // Long imports render progressively; every row is still included and selectable via ⌘A.
+  const [shown, setShown] = useState(300);
   const [tagText, setTagText] = useState('');
   const textRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -228,8 +231,17 @@ function ImportEditor() {
 
   const doCommit = () => {
     const r = useImportDraft.getState().commit();
-    if (!r) return toast('Nothing selected to import', 'error');
-    useUI.getState().toast({ text: `Imported ${plural(r.count, 'clip')}`, tone: 'save' });
+    if (!r.ok) {
+      return toast(
+        r.reason === 'empty'
+          ? 'Nothing selected to import'
+          : r.reason === 'unsafe-name'
+            ? 'That name or those tags aren’t allowed. Only content with consenting adults can be imported.'
+            : 'Those items were refused by the safety rules.',
+        'error',
+      );
+    }
+    useUI.getState().toast({ text: `Imported ${plural(r.count, 'clip')}${r.refused ? ` · ${r.refused} refused by the safety rules` : ''}`, tone: 'save' });
   };
   const primary = () => {
     if (d.scanning) return;
@@ -291,6 +303,7 @@ function ImportEditor() {
     const onKey = (e: KeyboardEvent) => {
       const typing = isTyping(e.target);
       const k = e.key.toLowerCase();
+      if (e.repeat && isMod(e)) return; // a held ⌘↵ must not import and then swipe
       if (isMod(e) && k === 'enter') {
         e.preventDefault();
         primary();
@@ -451,6 +464,8 @@ function ImportEditor() {
             {s.inLibrary > 0 && <span>{s.inLibrary} already imported</span>}
             {dropped > 0 && <span>{dropped} icons/ads skipped</span>}
             {s.dropped.refused > 0 && <span className="neg">{s.dropped.refused} refused (safety)</span>}
+            {s.dropped.overflow > 0 && <span className="neg">{s.dropped.overflow} over the 2,000-item limit</span>}
+            {s.dropped.invalid > 0 && <span>{s.dropped.invalid} unusable</span>}
           </div>
 
           {d.scanning && (
@@ -546,6 +561,7 @@ function ImportEditor() {
                 e.preventDefault();
                 const tags = parseTagInput(tagText);
                 if (!tags.length) return;
+                if (!textIsSafe(tags)) return toast('Those tags aren’t allowed', 'error');
                 for (const k of d.selected) {
                   const cur = d.overrides[k]?.tags ?? [];
                   useImportDraft.getState().setOverride([k], { tags: cleanTags([...cur, ...tags]) });
@@ -563,7 +579,7 @@ function ImportEditor() {
           )}
 
           <ul className="ipreview__list" ref={listRef} role="listbox" aria-multiselectable="true" aria-label="Items found">
-            {rows.map((c) => {
+            {rows.slice(0, shown).map((c) => {
               const locked = c.flags.includes('in-library');
               const tags = d.overrides[c.key]?.tags ?? [];
               return (
@@ -607,6 +623,11 @@ function ImportEditor() {
               );
             })}
           </ul>
+          {rows.length > shown && (
+            <button type="button" className="btn btn--ghost btn--block" onClick={() => setShown((n) => n + 500)}>
+              Show {Math.min(500, rows.length - shown)} more of {rows.length - shown} (all included as marked)
+            </button>
+          )}
 
           <div className="ibatch">
             <label className="field">
@@ -646,8 +667,23 @@ function BatchScreen({ batchId, reopened }: { batchId: string; reopened: boolean
   const renameImportBatch = useStore((s) => s.renameImportBatch);
   const deleteImportBatch = useStore((s) => s.deleteImportBatch);
   const [confirm, setConfirm] = useState(false);
+  const [name, setName] = useState(batch?.name ?? '');
   const isTop = useIsTop('import');
   const items = useMemo(() => (batch ? batchItems(batch, allItems) : []), [batch, allItems]);
+  const nameRef = useRef(name);
+  nameRef.current = name;
+  const saveName = () => {
+    const v = nameRef.current.trim();
+    if (!batch || !v || v === batch.name) return;
+    if (!renameImportBatch(batch.id, v)) {
+      toast('That name isn’t allowed', 'error');
+      setName(batch.name);
+    }
+  };
+  // A name typed just before closing (Escape, ⌘↵) still saves.
+  const saveRef = useRef(saveName);
+  saveRef.current = saveName;
+  useEffect(() => () => saveRef.current(), []);
 
   const swipe = () => {
     if (!batch) return;
@@ -663,6 +699,7 @@ function BatchScreen({ batchId, reopened }: { batchId: string; reopened: boolean
     if (!isTop || !batch) return;
     const onKey = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
+      if (e.repeat && isMod(e)) return;
       if (isMod(e) && e.shiftKey && k === 'e') {
         e.preventDefault();
         exportJSON(batch, items);
@@ -711,7 +748,13 @@ function BatchScreen({ batchId, reopened }: { batchId: string; reopened: boolean
       {reopened && notes.length > 0 && <p className="muted small">{notes.join(' · ')}</p>}
       <label className="field">
         <span>Name</span>
-        <input defaultValue={batch.name} aria-label="Batch name" onBlur={(e) => e.target.value.trim() && renameImportBatch(batch.id, e.target.value.trim())} />
+        <input
+          value={name}
+          aria-label="Batch name"
+          onChange={(e) => setName(e.target.value)}
+          onBlur={saveName}
+          onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()}
+        />
       </label>
       <div className="row row--wrap">
         <button type="button" className="btn" onClick={() => openSheet({ kind: 'bulk-titles', target: { batchId: batch.id } })} title={`${MOD} E`}>
@@ -790,7 +833,9 @@ export function BulkTitleSheet({ target, focus }: { target: 'draft' | { batchId:
   const initial = useMemo(() => Object.fromEntries(subjects.map((s) => [s.id, s.title])), [subjects]);
   const [h, setH] = useState(() => historyInit(initial));
   const [sel, setSel] = useState<Set<string>>(() => new Set(batchId ? [] : useImportDraft.getState().selected.filter((k) => initial[k] !== undefined)));
-  const [anchor, setAnchor] = useState<number>(0);
+  // The anchor lives in a ref: focus moves during ⇧↑/↓ must not drag it along.
+  const anchorRef = useRef(0);
+  const extending = useRef(false);
   const [tool, setTool] = useState<Tool>('prefix');
   const [a, setA] = useState('');
   const [b, setB] = useState('');
@@ -819,10 +864,17 @@ export function BulkTitleSheet({ target, focus }: { target: 'draft' | { batchId:
     }
   };
   const save = () => {
-    const patches = subjects.filter((s) => h.present[s.id] !== initial[s.id]);
-    if (batchId) updateImports(Object.fromEntries(patches.map((s) => [s.id, { title: h.present[s.id] }])));
-    else for (const s of patches) useImportDraft.getState().setOverride([s.id], { title: h.present[s.id] });
-    if (patches.length) toast(`Saved ${plural(patches.length, 'title')}`, 'save');
+    // Blank titles fall back to what they were; whitespace is tidied.
+    const clean = (id: string) => (h.present[id] ?? '').replace(/\s+/g, ' ').trim() || initial[id];
+    const patches = subjects.filter((s) => clean(s.id) !== initial[s.id]);
+    const unsafe = patches.filter((s) => !textIsSafe(clean(s.id)));
+    const ok = patches.filter((s) => !unsafe.includes(s));
+    let refused = unsafe.length;
+    if (batchId) refused += updateImports(Object.fromEntries(ok.map((s) => [s.id, { title: clean(s.id) }])));
+    else for (const s of ok) useImportDraft.getState().setOverride([s.id], { title: clean(s.id) });
+    const saved = ok.length - (refused - unsafe.length);
+    if (saved) toast(`Saved ${plural(saved, 'title')}${refused ? ` · ${refused} refused by the safety rules` : ''}`, 'save');
+    else if (refused) toast(`${plural(refused, 'title')} refused by the safety rules`, 'error');
     close();
   };
   const tryClose = () => {
@@ -841,10 +893,12 @@ export function BulkTitleSheet({ target, focus }: { target: 'draft' | { batchId:
     if (!isTop) return;
     const onKey = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
-      if (isMod(e) && k === 'z') {
+      // Undo/redo is the title history in a title field (or nowhere editable); the tool inputs keep native undo.
+      const titleHistory = rowIndexOf(e.target) >= 0 || !isTyping(e.target);
+      if (isMod(e) && k === 'z' && titleHistory) {
         e.preventDefault();
         setH((prev) => (e.shiftKey ? historyRedo(prev) : historyUndo(prev)));
-      } else if (isMod(e) && k === 'y') {
+      } else if (isMod(e) && k === 'y' && titleHistory) {
         e.preventDefault();
         setH(historyRedo);
       } else if (isMod(e) && k === 's') {
@@ -859,11 +913,14 @@ export function BulkTitleSheet({ target, focus }: { target: 'draft' | { batchId:
         const i = rowIndexOf(e.target);
         if (i < 0) return;
         e.preventDefault();
+        extending.current = e.shiftKey;
         const j = focusRow(i + (e.key === 'ArrowDown' ? 1 : -1));
+        extending.current = false;
         if (e.shiftKey) {
-          const [lo, hi] = anchor < j ? [anchor, j] : [j, anchor];
+          const a = anchorRef.current;
+          const [lo, hi] = a < j ? [a, j] : [j, a];
           setSel(new Set(subjects.slice(lo, hi + 1).map((s) => s.id)));
-        } else setAnchor(j);
+        } else anchorRef.current = j;
       } else if (e.key === '?' && !isTyping(e.target)) {
         e.preventDefault();
         setHelp((v) => !v);
@@ -971,7 +1028,7 @@ export function BulkTitleSheet({ target, focus }: { target: 'draft' | { batchId:
                 if (e.target.checked) next.add(s.id);
                 else next.delete(s.id);
                 setSel(next);
-                setAnchor(i);
+                anchorRef.current = i;
               }}
             />
             <span className="bulk-row__n">{i + 1}</span>
@@ -983,7 +1040,9 @@ export function BulkTitleSheet({ target, focus }: { target: 'draft' | { batchId:
               className="bulk-row__title"
               value={h.present[s.id] ?? ''}
               aria-label={`Title ${i + 1}`}
-              onFocus={() => setAnchor(i)}
+              onFocus={() => {
+                if (!extending.current) anchorRef.current = i;
+              }}
               onChange={(e) => {
                 const value = e.target.value;
                 setH((prev) => historyCommit(prev, { ...prev.present, [s.id]: value }, { key: s.id }));
@@ -1016,7 +1075,8 @@ export function EditImportSheet({ videoId }: { videoId: string }) {
   if (!item) return null;
   const matched = matchTagIds(tags, tx?.tags ?? []);
   const save = () => {
-    updateImports({ [item.id]: { title: title.trim() || item.title, notes: notes.trim(), tags, tagIds: matched } });
+    const refused = updateImports({ [item.id]: { title: title.trim() || item.title, notes: notes.trim(), tags, tagIds: matched } });
+    if (refused) return toast('That text isn’t allowed. Only content with consenting adults can be imported.', 'error');
     toast('Saved', 'save');
     close();
   };

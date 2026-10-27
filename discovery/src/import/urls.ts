@@ -141,6 +141,11 @@ export function variantKey(url: string): string {
   }
 }
 
+/** True when the file name itself carries a size (`-300x200`, `_thumb`, `-480w`, …). */
+export function hasSizeToken(url: string): boolean {
+  return SIZE_TOKEN.test(filenameOf(url)) || /\/(?:thumbs?|thumbnails?|small|medium|preview|previews|resized|t|th|tn|w\d{2,4}|s\d{2,4}(?:-c)?)\//i.test(url) || /[?&](?:w|width|h|height|resize|size)=\d/.test(url);
+}
+
 const THUMB_NAME = /(?:[_-](?:thumb|thumbnail|thumbs|small|sm|th|tn|preview|square))+\.[a-z0-9]+$|^(?:tn|thumb|th|sm)[_-]/i;
 
 /** True when the URL itself says it's a thumbnail (as opposed to merely sized). */
@@ -166,12 +171,26 @@ export function isAdHost(url: string): boolean {
   return AD_HOSTS.some((h) => host === h || host.endsWith(`.${h}`) || (h.includes('/') && url.includes(h)));
 }
 
-const JUNK_NAME = /(?:^|[^a-z])(logo|icon|favicon|sprite|spacer|blank|pixel|beacon|tracking|tracker|badge|avatar|emoji|emoticon|button|btn|arrow|loader|loading|spinner|placeholder|transparent|1x1|clear|rss|social|share|banner[-_]?ad|ads?)(?:[^a-z]|$)/i;
+/** Names that mean "not a photo" wherever they appear in a file name. */
+const JUNK_STRONG = new Set(['logo', 'logos', 'favicon', 'sprite', 'sprites', 'spacer', 'pixel', 'beacon', 'tracking', 'tracker', 'avatar', 'emoji', 'emoticon', 'loader', 'spinner', 'placeholder', '1x1', 'transparent', 'adsense', 'gravatar']);
+/** UI words: junk when they're all the name says ("icon-32.png", "share_btn.svg", "arrow-left-white.png"). */
+const JUNK_WEAK = new Set(['icon', 'icons', 'btn', 'button', 'arrow', 'badge', 'blank', 'clear', 'loading', 'rss', 'share', 'social', 'ad', 'ads', 'banner', 'close', 'menu', 'search', 'play', 'cart', 'facebook', 'twitter', 'instagram', 'pinterest', 'whatsapp', 'reddit', 'email', 'mail', 'print', 'user']);
+/** Words that can accompany a UI word but never mark a file as junk on their own. */
+const JUNK_FILLER = new Set(['white', 'black', 'dark', 'light', 'left', 'right', 'up', 'down', 'next', 'prev', 'small', 'sm', 'retina', 'x2', '2x', '3x', 'bg', 'hover', 'active', 'on', 'off', 'mini']);
 
-/** File names that are almost never content: logos, icons, spacers, pixels, spinners. */
+/**
+ * File names that are almost never content: logos, icons, spacers, pixels,
+ * spinners. Ordinary words in real photo names ("crystal-clear-water",
+ * "share-the-love") don't count.
+ */
 export function looksLikeJunk(url: string): boolean {
   const name = filenameOf(url).toLowerCase();
   if (/\.ico$/.test(name)) return true;
   if (/\/(icons?|emoji|smilies|sprites?|logos?|badges?|avatars?)\//i.test(url)) return true;
-  return JUNK_NAME.test(name);
+  const stem = name.replace(/\.[a-z0-9]{2,5}$/, '');
+  const tokens = stem.split(/[^a-z0-9]+/).filter(Boolean);
+  if (!tokens.length) return false;
+  if (tokens.some((t) => JUNK_STRONG.has(t))) return true;
+  const filler = (t: string) => JUNK_WEAK.has(t) || JUNK_FILLER.has(t) || /^\d+$/.test(t) || /^\d+x\d+$/.test(t) || /^\d+px$/.test(t);
+  return tokens.some((t) => JUNK_WEAK.has(t)) && tokens.every(filler);
 }

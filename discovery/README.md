@@ -17,7 +17,7 @@ The whole experience runs on a local mock data layer: a deterministic catalogue 
 cd discovery
 npm install
 npm run dev            # http://localhost:5173 (also on your LAN via --host)
-npm test               # 107 unit tests (engine, AI, data layer, gestures, store/privacy, regressions, import)
+npm test               # 127 unit tests (engine, AI, data layer, gestures, store/privacy, regressions, import)
 npm run build          # typecheck + production build + service worker
 npx vite preview --port 4173 &
 npm run e2e            # 42 Playwright checks at iPhone 14 size, real gestures (import runs on offline fixtures)
@@ -107,7 +107,9 @@ boards. They're stored only on this device.
   *Find media*: once per page, from the device, with no cookies or referrer, and only if
   the site allows cross-origin reads (CORS). There's no proxy and no background
   crawling. A page that can't be read still imports as an **"open original"** clip. The
-  honest workaround is to save the page and upload the `.html`.
+  honest workaround is to save the page and upload the `.html`. Previews and playback load
+  the files you pasted the way any web page loads an image (no referrer). Data saver holds
+  previews until you ask.
 - **Extraction reads** og/twitter meta (including `twitter:player:stream`), `<video>`
   and `<source>` (with posters), `<img>` `src`, `srcset` (widest), and every common lazy
   attribute (`data-src`, `data-lazy-src`, `data-original`, `data-srcset`, `data-lazy`,
@@ -122,7 +124,9 @@ boards. They're stored only on this device.
   tiny SVGs, and known ad/tracker hosts (including the adult ad exchanges) are dropped
   and counted. Header, footer, and ad-slot images rank below gallery content. URLs are
   normalised (tracking params stripped) and deduped against the batch and the library.
-  The same **safety gate** as search applies to titles, tags, and URL words.
+  The same **safety gate** as search applies to every URL's words and to everything you
+  type: titles, tags, notes, and batch names, before and after import, and on restored
+  backups. Imports are capped at 2,000 items per batch.
 - **Review:** type, origin, and flag badges; include/exclude; multi-select; per-item
   and batch tags with suggestions drawn from hostnames and path words; an auto-created
   board (named after the dominant host or `Import YYYY-MM-DD`); scan progress; and a
@@ -144,8 +148,9 @@ boards. They're stored only on this device.
   imports). A site can be hard-blocked like a studio. Data saver holds remote
   thumbnails. Incognito imports work, but vanish when incognito ends.
 - **Never by face or body:** imported media gets a synthetic embedding built from its
-  page, site, and tags, not from pixels. Visual-similar and capture don't read faces or
-  bodies on imports (see the biometrics note below).
+  page, site, and tags, not from pixels. Imports are compared on pose and composition
+  only, so face- or body-similar paths and lookalike searches never surface them, and
+  capture doesn't read faces or bodies on imports (see the biometrics note below).
 
 ## Architecture
 

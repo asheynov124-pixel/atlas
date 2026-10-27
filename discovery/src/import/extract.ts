@@ -18,6 +18,7 @@ import {
   MEDIA_URL_RE,
   classifyUrl,
   extOf,
+  hasSizeToken,
   hostOf,
   isAdHost,
   isMediaUrl,
@@ -42,6 +43,7 @@ export interface RawCandidate {
   width?: number;
   height?: number;
   tags?: string[];
+  notes?: string;
   score: number;
   groupId?: string;
   role?: 'next' | 'prev' | 'subpage';
@@ -56,10 +58,16 @@ export interface Extraction {
 export const MIN_SIZE = 200;
 const MAX_ITEMS = 2000;
 
-export const emptyDrops = (): DropCounts => ({ junk: 0, ads: 0, refused: 0, invalid: 0 });
+export const emptyDrops = (): DropCounts => ({ junk: 0, ads: 0, refused: 0, invalid: 0, overflow: 0 });
 
 export function addDrops(a: DropCounts, b: DropCounts): DropCounts {
-  return { junk: a.junk + b.junk, ads: a.ads + b.ads, refused: a.refused + b.refused, invalid: a.invalid + b.invalid };
+  return { junk: a.junk + b.junk, ads: a.ads + b.ads, refused: a.refused + b.refused, invalid: a.invalid + b.invalid, overflow: (a.overflow ?? 0) + (b.overflow ?? 0) };
+}
+
+/** Keep the first MAX_ITEMS; count the rest so the summary can say so. */
+function capped(e: Extraction): Extraction {
+  if (e.candidates.length <= MAX_ITEMS) return e;
+  return { ...e, candidates: e.candidates.slice(0, MAX_ITEMS), dropped: { ...e.dropped, overflow: e.dropped.overflow + e.candidates.length - MAX_ITEMS } };
 }
 
 // ---------------------------------------------------------------------------
@@ -100,19 +108,18 @@ export function parseText(text: string): Extraction {
   const dropped = emptyDrops();
   for (const line of text.split(/\r?\n/)) {
     const md = [...line.matchAll(MD_LINK)];
-    if (md.length) {
-      for (const m of md) {
-        const url = normalizeUrl(trimUrlPunct(m[2]));
-        if (url) out.push(directCandidate(url, { title: m[1].trim() }));
-        else dropped.invalid++;
-      }
-      continue;
+    for (const m of md) {
+      const url = normalizeUrl(trimUrlPunct(m[2]));
+      if (url) out.push(directCandidate(url, { title: m[1].trim() }));
+      else dropped.invalid++;
     }
-    const urls = [...line.matchAll(URL_IN_TEXT)].map((m) => trimUrlPunct(m[0]));
+    // Bare URLs that share a line with Markdown links still count.
+    const rest = md.length ? line.replace(MD_LINK, ' ') : line;
+    const urls = [...rest.matchAll(URL_IN_TEXT)].map((m) => trimUrlPunct(m[0]));
     if (!urls.length) continue;
     // "Sunset at the pier | https://…" → a title for a single-URL line.
     let title: string | undefined;
-    if (urls.length === 1) {
+    if (urls.length === 1 && !md.length) {
       const rest = line.replace(urls[0], ' ').replace(/^[\s\-–—|:•*>#\d.)]+|[\s\-–—|:•]+$/g, '').trim();
       if (rest.length >= 2 && rest.length <= 100 && /[a-z]/i.test(rest)) title = rest;
     }
@@ -253,10 +260,11 @@ export function parseJson(text: string): Extraction & { kind: InputKind } {
           mediaType: asMediaType(o.mediaType) ?? classifyUrl(url),
           originalUrl: normalizeUrl(String(o.originalUrl ?? '')) ?? url,
           thumbnailUrl: normalizeUrl(String(o.thumbnailUrl ?? '')) ?? undefined,
+          notes: typeof o.notes === 'string' ? o.notes.slice(0, 2000) : undefined,
         }),
       );
     }
-    return { candidates: out, dropped, kind: 'export' };
+    return { ...capped({ candidates: out, dropped }), kind: 'export' };
   }
   const seen = new Set<string>();
   const push = (raw: string, extra: Partial<RawCandidate> = {}) => {
@@ -322,21 +330,22 @@ export function parseInput(text: string, opts: { filename?: string } = {}): Pars
   if (!trimmed) return { candidates: [], dropped: emptyDrops(), kind: 'text' };
   if (name.endsWith('.json') || /^[[{]/.test(trimmed)) {
     try {
-      return parseJson(trimmed);
+      const j = parseJson(trimmed);
+      return { ...capped(j), kind: j.kind };
     } catch {
-      if (name.endsWith('.json')) return { ...parseText(trimmed), kind: 'text' };
+      if (name.endsWith('.json')) return { ...capped(parseText(trimmed)), kind: 'text' };
     }
   }
   if (name.endsWith('.html') || name.endsWith('.htm') || looksLikeHtml(trimmed)) {
     const doc = new DOMParser().parseFromString(trimmed, 'text/html');
     const base = savedPageBase(doc, trimmed);
-    return { ...extractFromDocument(doc, base), kind: 'html' };
+    return { ...capped(extractFromDocument(doc, base)), kind: 'html' };
   }
-  if (name.endsWith('.csv') || name.endsWith('.tsv')) return { ...parseCsv(trimmed), kind: 'csv' };
+  if (name.endsWith('.csv') || name.endsWith('.tsv')) return { ...capped(parseCsv(trimmed)), kind: 'csv' };
   // Pasted spreadsheet rows with a header still count as CSV.
   const first = trimmed.split(/\r?\n/)[0];
-  if (/[,;\t]/.test(first) && first.split(/[,;\t]/).some((h) => COL.url.test(h.trim()))) return { ...parseCsv(trimmed), kind: 'csv' };
-  return { ...parseText(trimmed), kind: 'text' };
+  if (/[,;\t]/.test(first) && first.split(/[,;\t]/).some((h) => COL.url.test(h.trim()))) return { ...capped(parseCsv(trimmed)), kind: 'csv' };
+  return { ...capped(parseText(trimmed)), kind: 'text' };
 }
 
 // ---------------------------------------------------------------------------
@@ -384,24 +393,50 @@ function num(v: string | null | undefined): number | undefined {
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
+/**
+ * Parse a srcset the way the HTML spec does: a URL is a run of non-whitespace
+ * (so commas inside it, as in Cloudinary's `w_400,h_300`, are kept), a trailing
+ * comma ends a bare candidate, and descriptors run to the next comma.
+ */
+export function parseSrcset(srcset: string): { url: string; w?: number; x?: number }[] {
+  const out: { url: string; w?: number; x?: number }[] = [];
+  let i = 0;
+  const n = srcset.length;
+  while (i < n) {
+    while (i < n && (/\s/.test(srcset[i]) || srcset[i] === ',')) i++;
+    if (i >= n) break;
+    let j = i;
+    while (j < n && !/\s/.test(srcset[j])) j++;
+    let url = srcset.slice(i, j);
+    i = j;
+    let desc = '';
+    if (/,+$/.test(url)) url = url.replace(/,+$/, '');
+    else {
+      let k = i;
+      while (k < n && srcset[k] !== ',') k++;
+      desc = srcset.slice(i, k).trim();
+      i = k;
+    }
+    if (!url) continue;
+    const entry: { url: string; w?: number; x?: number } = { url };
+    for (const d of desc.split(/\s+/).filter(Boolean)) {
+      const m = /^(\d+(?:\.\d+)?)([wx])$/i.exec(d);
+      if (m) entry[m[2].toLowerCase() as 'w' | 'x'] = parseFloat(m[1]);
+    }
+    out.push(entry);
+  }
+  return out;
+}
+
 /** Best entry of a srcset: largest `w`, else largest `x`, else the last. */
 export function bestFromSrcset(srcset: string, base: string): { url: string; width?: number } | null {
-  const parts = srcset
-    .split(/,(?=\s*(?:[^\s,]+)(?:\s+\d+(?:\.\d+)?[wx])?\s*(?:,|$))/)
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .map((p) => {
-      const [u, d] = p.split(/\s+/);
-      const w = d && /w$/.test(d) ? parseFloat(d) : undefined;
-      const x = d && /x$/.test(d) ? parseFloat(d) : undefined;
-      return { u, w, x };
-    });
+  const parts = parseSrcset(srcset);
   if (!parts.length) return null;
   const best = parts.reduce((a, b) => {
     if ((b.w ?? 0) !== (a.w ?? 0)) return (b.w ?? 0) > (a.w ?? 0) ? b : a;
     return (b.x ?? 1) >= (a.x ?? 1) ? b : a;
   });
-  const url = normalizeUrl(best.u, base);
+  const url = normalizeUrl(best.url, base);
   return url ? { url, width: best.w } : null;
 }
 
@@ -417,11 +452,12 @@ function add(ctx: Ctx, c: RawCandidate, opts: { direct?: boolean } = {}) {
     const tracking = (w && w <= 3) || (h && h <= 3);
     const svg = extOf(c.url) === 'svg';
     const tinySvg = svg && Math.max(w, h) < 64;
-    if (tracking || tinySvg || looksLikeJunk(c.url)) {
+    const known = Math.max(w, h);
+    // A junk-looking name only sinks images that aren't known to be big.
+    if (tracking || tinySvg || (looksLikeJunk(c.url) && !(known >= 400))) {
       ctx.dropped.junk++;
       return;
     }
-    const known = Math.max(w, h);
     if (known && known < MIN_SIZE) c.score -= 3;
     else if (known >= 800) c.score += 1;
     if (looksLikeThumb(c.url) && c.origin !== 'link') c.score -= 0.5;
@@ -768,7 +804,19 @@ export function extractFromDocument(doc: Document, pageUrl: string | undefined):
       if (c && !c.groupId) ctx.out.set(u, { ...c, groupId: id, score: c.score + 2 });
     }
   }
-  const candidates = [...ctx.out.values()].filter((c) => !c.url.startsWith('https://invalid.invalid/'));
+  const SENTINEL = 'https://invalid.invalid/';
+  const candidates: RawCandidate[] = [];
+  for (const c of ctx.out.values()) {
+    if (c.url.startsWith(SENTINEL)) {
+      ctx.dropped.invalid++; // relative URL on a page we have no address for
+      continue;
+    }
+    candidates.push({
+      ...c,
+      thumbnailUrl: c.thumbnailUrl?.startsWith(SENTINEL) ? undefined : c.thumbnailUrl,
+      originalUrl: c.originalUrl.startsWith(SENTINEL) ? '' : c.originalUrl,
+    });
+  }
   return { candidates, dropped: ctx.dropped, pageTitle };
 }
 
@@ -799,16 +847,46 @@ function area(c: RawCandidate): number {
 }
 
 /** Safety gate over everything a clip carries as text: title, tags, and the URL's words. */
-export function safetyText(c: { url: string; title?: string; tags?: string[]; originalUrl?: string }): string {
-  const words = (u: string) => {
-    try {
-      const x = new URL(u);
-      return decodeURIComponent(`${x.hostname} ${x.pathname} ${x.search}`).replace(/[/_.?=&+%-]+/g, ' ');
-    } catch {
-      return u;
-    }
-  };
-  return [c.title ?? '', ...(c.tags ?? []), words(c.url), c.originalUrl && c.originalUrl !== c.url ? words(c.originalUrl) : ''].join(' ');
+/**
+ * Decode percent-escapes one at a time, so a single malformed `%` can't make
+ * the whole string fall back to its encoded (and unmatchable) form.
+ */
+export function lenientDecode(s: string): string {
+  const plus = s.replace(/\+/g, ' ');
+  try {
+    return decodeURIComponent(plus);
+  } catch {
+    return plus.replace(/(?:%[0-9a-f]{2})+/gi, (run) => {
+      try {
+        return decodeURIComponent(run);
+      } catch {
+        return ' ';
+      }
+    }).replace(/%/g, ' ');
+  }
+}
+
+/** The words a URL carries: host, path, and query, decoded and split. */
+export function urlWords(u: string): string {
+  let raw = u;
+  try {
+    const x = new URL(u);
+    raw = `${x.hostname} ${x.pathname} ${x.search}`;
+  } catch {
+    /* not a URL: use as-is */
+  }
+  return lenientDecode(raw).replace(/[/_.?=&%#:;,~-]+/g, ' ');
+}
+
+/** Safety gate over everything a clip carries as text: title, tags, notes, and every URL's words. */
+export function safetyText(c: { url: string; title?: string; tags?: string[]; originalUrl?: string; thumbnailUrl?: string; notes?: string }): string {
+  const urls = [...new Set([c.url, c.originalUrl, c.thumbnailUrl].filter((u): u is string => !!u))];
+  return [c.title ?? '', ...(c.tags ?? []), c.notes ?? '', ...urls.map(urlWords)].join(' ');
+}
+
+/** True when free text (a title, tag, name, or note) passes the same gate as search. */
+export function textIsSafe(...parts: (string | string[] | undefined)[]): boolean {
+  return checkQuery(parts.flat().filter(Boolean).join(' ')).ok;
 }
 
 export function finalize(raws: RawCandidate[], dropped: DropCounts, opts: FinalizeOptions = {}): Finalized {
@@ -835,6 +913,7 @@ export function finalize(raws: RawCandidate[], dropped: DropCounts, opts: Finali
       ...keep,
       title: keep.title ?? other.title,
       tags: [...new Set([...(keep.tags ?? []), ...(other.tags ?? [])])],
+      notes: keep.notes ?? other.notes,
       thumbnailUrl: keep.thumbnailUrl ?? other.thumbnailUrl,
       width: keep.width ?? other.width,
       height: keep.height ?? other.height,
@@ -857,11 +936,14 @@ export function finalize(raws: RawCandidate[], dropped: DropCounts, opts: Finali
       continue;
     }
     duplicates += group.length - 1;
+    // A file name without a size token is the original upload; sized copies are derived from it.
+    const rankArea = (c: RawCandidate) => (hasSizeToken(c.url) ? area(c) : Number.MAX_SAFE_INTEGER);
     const ranked = [...group].sort(
       (a, b) =>
         Number(b.origin === 'direct') - Number(a.origin === 'direct') ||
-        area(b) - area(a) ||
         Number(looksLikeThumb(a.url)) - Number(looksLikeThumb(b.url)) ||
+        rankArea(b) - rankArea(a) ||
+        area(b) - area(a) ||
         b.score - a.score,
     );
     const best = ranked[0];
@@ -924,6 +1006,7 @@ export function finalize(raws: RawCandidate[], dropped: DropCounts, opts: Finali
       width: c.width,
       height: c.height,
       tags: c.tags ?? [],
+      notes: c.notes,
       origin: c.origin,
       score: Math.round(c.score * 10) / 10,
       include,

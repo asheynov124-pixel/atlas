@@ -17,7 +17,9 @@ import { idbPersistStorage, setPersistencePaused } from './storage';
 import { clone } from '../lib/clone';
 import { useUI } from './ui';
 import { emptyImports, type ImportBatch, type ImportItem, type ImportsData } from '../import/types';
-import { isImportId } from '../import/model';
+import { isImportId, itemIsSafe } from '../import/model';
+import { hostOf, normalizeUrl } from '../import/urls';
+import { checkQuery } from '../data/safety';
 import { setImportProvider } from '../import/registry';
 
 export interface Settings {
@@ -195,8 +197,10 @@ export interface AppState {
   // imports
   /** Commit a reviewed batch. Returns the board id when one was created. */
   commitImport: (batch: ImportBatch, items: ImportItem[], board?: { name: string; emoji: string }) => string | undefined;
-  updateImports: (patches: Record<string, ImportPatch>) => void;
-  renameImportBatch: (batchId: string, name: string) => void;
+  /** Returns how many patches were refused (unsafe text, or an empty title). */
+  updateImports: (patches: Record<string, ImportPatch>) => number;
+  /** False when the name was refused by the safety gate. */
+  renameImportBatch: (batchId: string, name: string) => boolean;
   /** Delete imported items everywhere they're referenced (saves, boards, signals, history, queues). */
   deleteImports: (ids: string[]) => void;
   deleteImportBatch: (batchId: string) => void;
@@ -239,28 +243,66 @@ function prune(content: Record<string, VideoSummary>, data: Record<string, Profi
   return Object.fromEntries(Object.entries(content).filter(([id]) => keep.has(id)));
 }
 
+const strings = (x: unknown): string[] => (Array.isArray(x) ? x.filter((t): t is string => typeof t === 'string') : []);
+const num = (x: unknown, fallback: number) => (typeof x === 'number' && Number.isFinite(x) ? x : fallback);
+
+/**
+ * Restored data (a backup someone may have edited) is untrusted: URLs must be
+ * http(s), text must be text, every item must belong to exactly one batch, and
+ * everything must pass the safety gate.
+ */
 function normalizeImports(raw: Partial<ImportsData> | undefined): ImportsData {
   if (!raw || typeof raw !== 'object') return emptyImports();
-  const items: Record<string, ImportItem> = {};
+  const candidates: Record<string, ImportItem> = {};
   for (const [id, it] of Object.entries(raw.items && typeof raw.items === 'object' ? raw.items : {})) {
-    if (!it || typeof it !== 'object' || !isImportId(id) || typeof it.url !== 'string') continue;
-    items[id] = {
-      ...it,
+    if (!it || typeof it !== 'object' || !isImportId(id)) continue;
+    const url = typeof it.url === 'string' ? normalizeUrl(it.url) : null;
+    if (!url) continue;
+    const originalUrl = (typeof it.originalUrl === 'string' && normalizeUrl(it.originalUrl)) || url;
+    const thumbnailUrl = (typeof it.thumbnailUrl === 'string' && normalizeUrl(it.thumbnailUrl)) || undefined;
+    const item: ImportItem = {
       id,
-      title: typeof it.title === 'string' ? it.title : it.url,
-      tags: Array.isArray(it.tags) ? it.tags : [],
-      tagIds: Array.isArray(it.tagIds) ? it.tagIds : [],
-      notes: typeof it.notes === 'string' ? it.notes : '',
-      originalUrl: typeof it.originalUrl === 'string' ? it.originalUrl : it.url,
-      host: typeof it.host === 'string' ? it.host : '',
-      groupKey: typeof it.groupKey === 'string' ? it.groupKey : it.batchId,
+      batchId: typeof it.batchId === 'string' ? it.batchId : '',
+      url,
       mediaType: it.mediaType === 'image' || it.mediaType === 'video' ? it.mediaType : 'page',
-      addedAt: typeof it.addedAt === 'number' ? it.addedAt : Date.now(),
+      title: typeof it.title === 'string' && it.title.trim() ? it.title.slice(0, 140) : hostOf(url) || url,
+      tags: strings(it.tags).slice(0, 40),
+      tagIds: strings(it.tagIds),
+      originalUrl,
+      thumbnailUrl,
+      width: typeof it.width === 'number' ? it.width : undefined,
+      height: typeof it.height === 'number' ? it.height : undefined,
+      host: typeof it.host === 'string' && it.host ? it.host : hostOf(originalUrl) || hostOf(url),
+      groupKey: typeof it.groupKey === 'string' ? it.groupKey : '',
+      notes: typeof it.notes === 'string' ? it.notes.slice(0, 2000) : '',
+      addedAt: num(it.addedAt, Date.now()),
     };
+    if (itemIsSafe(item)) candidates[id] = item;
   }
-  const batches = (Array.isArray(raw.batches) ? raw.batches : [])
-    .filter((b) => b && typeof b.id === 'string')
-    .map((b) => ({ ...b, tags: Array.isArray(b.tags) ? b.tags : [], itemIds: (Array.isArray(b.itemIds) ? b.itemIds : []).filter((id) => items[id]) }));
+  const claimed = new Set<string>();
+  const items: Record<string, ImportItem> = {};
+  const batches: ImportBatch[] = [];
+  for (const b of Array.isArray(raw.batches) ? raw.batches : []) {
+    if (!b || typeof b !== 'object' || typeof b.id !== 'string') continue;
+    // Each item belongs to the first batch that lists it; duplicates are dropped.
+    const itemIds = strings(b.itemIds).filter((id) => candidates[id] && !claimed.has(id) && (claimed.add(id), true));
+    if (!itemIds.length) continue;
+    const createdAt = num(b.createdAt, Date.now());
+    const name = typeof b.name === 'string' && b.name.trim() && checkQuery(b.name).ok ? b.name.slice(0, 80) : `Import ${new Date(createdAt).toISOString().slice(0, 10)}`;
+    const st = (b.stats ?? {}) as Partial<ImportBatch['stats']>;
+    batches.push({
+      id: b.id,
+      name,
+      createdAt,
+      tags: strings(b.tags),
+      boardId: typeof b.boardId === 'string' ? b.boardId : undefined,
+      itemIds,
+      source: b.source === 'file' || b.source === 'mixed' ? b.source : 'paste',
+      stats: { found: num(st.found, itemIds.length), imported: num(st.imported, itemIds.length), duplicates: num(st.duplicates, 0), failed: num(st.failed, 0), dropped: num(st.dropped, 0) },
+    });
+    for (const id of itemIds) items[id] = { ...candidates[id], batchId: b.id, groupKey: candidates[id].groupKey || b.id };
+  }
+  // Items no batch lists are dropped: they'd be invisible yet still block re-importing.
   return { batches, items };
 }
 
@@ -501,10 +543,14 @@ export const useStore = create<AppState>()(
       dismiss: (id) => set((s) => patchActive(s, (d) => ({ dismissed: d.dismissed.includes(id) ? d.dismissed : [...d.dismissed, id] }))),
 
       commitImport: (batch, items, board) => {
-        const boardId = board && items.length ? uid('board-') : undefined;
+        // Defence in depth: the draft gates too, but nothing unsafe gets into the store by any route.
+        const safe = items.filter(itemIsSafe);
+        const boardId = board && safe.length ? uid('board-') : undefined;
+        if (!checkQuery(`${batch.name} ${batch.tags.join(' ')}`).ok) batch = { ...batch, name: `Import ${new Date(batch.createdAt).toISOString().slice(0, 10)}`, tags: [] };
+        if (board && !checkQuery(board.name).ok) board = { ...board, name: batch.name };
         set((s) =>
           patchActive(s, (d) => {
-            const fresh = items.filter((it) => !d.imports.items[it.id]);
+            const fresh = safe.filter((it) => !d.imports.items[it.id]);
             const all = { ...d.imports.items };
             for (const it of fresh) all[it.id] = { ...it, batchId: batch.id };
             const saved: ImportBatch = { ...batch, itemIds: fresh.map((i) => i.id), boardId };
@@ -517,21 +563,39 @@ export const useStore = create<AppState>()(
         );
         return boardId;
       },
-      updateImports: (patches) =>
+      updateImports: (patches) => {
+        let refused = 0;
         set((s) =>
           patchActive(s, (d) => {
             const items = { ...d.imports.items };
             let changed = false;
-            for (const [id, patch] of Object.entries(patches)) {
+            for (const [id, raw] of Object.entries(patches)) {
               if (!items[id]) continue;
-              items[id] = { ...items[id], ...patch };
+              const patch = { ...raw };
+              if (patch.title !== undefined) {
+                patch.title = patch.title.replace(/\s+/g, ' ').trim().slice(0, 140);
+                if (!patch.title) delete patch.title; // an empty title keeps the old one
+              }
+              const next = { ...items[id], ...patch };
+              if (!itemIsSafe(next)) {
+                refused++;
+                continue;
+              }
+              items[id] = next;
               changed = true;
             }
             return changed ? { imports: { ...d.imports, items } } : {};
           }),
-        ),
-      renameImportBatch: (batchId, name) =>
-        set((s) => patchActive(s, (d) => ({ imports: { ...d.imports, batches: d.imports.batches.map((b) => (b.id === batchId ? { ...b, name } : b)) } }))),
+        );
+        return refused;
+      },
+      renameImportBatch: (batchId, raw) => {
+        const name = raw.replace(/\s+/g, ' ').trim().slice(0, 80);
+        if (!name) return true;
+        if (!checkQuery(name).ok) return false;
+        set((s) => patchActive(s, (d) => ({ imports: { ...d.imports, batches: d.imports.batches.map((b) => (b.id === batchId ? { ...b, name } : b)) } })));
+        return true;
+      },
       deleteImports: (ids) =>
         set((s) =>
           patchActive(s, (d) => {
@@ -539,19 +603,28 @@ export const useStore = create<AppState>()(
             if (!gone.size) return {};
             const items = Object.fromEntries(Object.entries(d.imports.items).filter(([id]) => !gone.has(id)));
             const batches = d.imports.batches.map((b) => ({ ...b, itemIds: b.itemIds.filter((id) => !gone.has(id)) })).filter((b) => b.itemIds.length > 0);
+            const seededOnGone = (p: Path) => (p.seed.kind === 'related' || p.seed.kind === 'visual') && gone.has(p.seed.videoId);
             const paths = d.paths
               .filter((p) => !(p.seed.kind === 'imported' && p.seed.batchId && !batches.some((b) => b.id === (p.seed as { batchId?: string }).batchId)))
+              .filter((p) => !seededOnGone(p))
               .map((p) => {
-                if (!p.queue.some((id) => gone.has(id))) return p;
+                // Imported paths page by offset into the import list, which just shrank: restart
+                // their cursor (ranking already skips what's queued) so nothing unseen is skipped.
+                const restart = p.seed.kind === 'imported' ? { cursor: undefined, exhausted: false } : {};
+                if (!p.queue.some((id) => gone.has(id))) return { ...p, ...restart };
                 const before = p.queue.slice(0, p.index).filter((id) => gone.has(id)).length;
                 const queue = p.queue.filter((id) => !gone.has(id));
-                return { ...p, queue, index: Math.max(0, Math.min(queue.length, p.index - before)) };
+                return { ...p, ...restart, queue, index: Math.max(0, Math.min(queue.length, p.index - before)) };
               });
+            // A board an import created goes once it's empty; boards the user made stay.
+            const autoBoards = new Set(d.imports.batches.map((b) => b.boardId).filter(Boolean));
             const activePathId = paths.some((p) => p.id === d.activePathId) ? d.activePathId : paths[0].id;
             return {
               imports: { batches, items },
               saves: d.saves.filter((x) => !gone.has(x.videoId)),
-              boards: d.boards.map((b) => (b.videoIds.some((id) => gone.has(id)) ? { ...b, videoIds: b.videoIds.filter((id) => !gone.has(id)) } : b)),
+              boards: d.boards
+                .map((b) => (b.videoIds.some((id) => gone.has(id)) ? { ...b, videoIds: b.videoIds.filter((id) => !gone.has(id)) } : b))
+                .filter((b) => !(autoBoards.has(b.id) && !b.videoIds.length)),
               signals: d.signals.filter((x) => !gone.has(x.videoId)),
               history: d.history.filter((h) => !gone.has(h.videoId)),
               blocks: { ...d.blocks, videos: d.blocks.videos.filter((id) => !gone.has(id)) },
@@ -564,12 +637,7 @@ export const useStore = create<AppState>()(
         const d = activeData(get());
         const batch = d.imports.batches.find((b) => b.id === batchId);
         if (!batch) return;
-        get().deleteImports(batch.itemIds);
-        // Its auto-created board goes too, once nothing else lives on it.
-        if (batch.boardId) {
-          const b = activeData(get()).boards.find((x) => x.id === batch.boardId);
-          if (b && !b.videoIds.length) get().deleteBoard(b.id);
-        }
+        get().deleteImports(batch.itemIds); // also removes its auto-created board once empty
         set((s) => patchActive(s, (dd) => ({ imports: { ...dd.imports, batches: dd.imports.batches.filter((x) => x.id !== batchId) } })));
       },
 
@@ -657,10 +725,8 @@ setImportProvider({
     }
     return importCache.list;
   },
-  byId: (id) => {
-    const s = useStore.getState();
-    return activeData(s).imports.items[id] ?? Object.values(s.data).find((d) => d.imports.items[id])?.imports.items[id];
-  },
+  // Active profile only: another profile's copy must never stand in (profile isolation).
+  byId: (id) => activeData(useStore.getState()).imports.items[id],
 });
 
 /** Full export, for the privacy screen's "Download my data". */

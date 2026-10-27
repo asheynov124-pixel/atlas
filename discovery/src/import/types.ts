@@ -2,8 +2,10 @@
  * Personal Import: types shared by the parser, the store, and the UI.
  *
  * An import turns URLs the user pastes or uploads into native clips. Nothing
- * here runs in the background: every network request is a page scan the user
- * started, and it obeys the site's CORS policy.
+ * here runs in the background. Reading a page happens only when the user asks
+ * (a scan), once per page, under the site's CORS policy. Showing a pasted
+ * image's preview, or playing it, loads that file like any image on a web
+ * page (no referrer; data saver holds previews until asked).
  */
 
 export type MediaType = 'image' | 'video' | 'page';
@@ -44,6 +46,8 @@ export interface Candidate {
   height?: number;
   /** User tags carried in from an uploaded file (e.g. a re-imported export). */
   tags: string[];
+  /** Notes carried in from a re-imported export. */
+  notes?: string;
   origin: CandidateOrigin;
   score: number;
   include: boolean;
@@ -68,8 +72,10 @@ export interface DropCounts {
   ads: number;
   /** Refused by the safety gate (minor-implying or non-consent terms). */
   refused: number;
-  /** Strings that weren't usable http(s) URLs. */
+  /** Strings that weren't usable http(s) URLs (including relative ones with no page to resolve against). */
   invalid: number;
+  /** Past the per-import item limit. */
+  overflow: number;
 }
 
 export interface ImportSummary {

@@ -103,7 +103,7 @@ export const ClipPlayer = forwardRef<PlayerHandle, Props>(function ClipPlayer(
     );
   }
   if (opt.kind === 'image') {
-    return <ImageStill ref={ref} src={opt.url} clip={summary.clipDuration} playing={playing} onError={advance} onReady={() => onResolved?.('image')} onProgress={onProgress} onTime={onTime} />;
+    return <ImageStill key={opt.url} ref={ref} src={opt.url} clip={summary.clipDuration} playing={playing} onError={advance} onReady={() => onResolved?.('image')} onProgress={onProgress} onTime={onTime} />;
   }
   if (isMock(opt.url)) {
     return (
@@ -169,11 +169,18 @@ const ImageStill = forwardRef<PlayerHandle, StillProps>(function ImageStill({ sr
   const tRef = useRef(0);
   const cbRef = useRef({ onProgress, onTime });
   cbRef.current = { onProgress, onTime };
+  const imgRef = useRef<HTMLImageElement>(null);
   useImperativeHandle(ref, () => ({ seek: () => undefined, time: () => tRef.current, duration: () => clip }), [clip]);
+  // Keyed by src (a new src is a new element), so there's no reset effect to race the load event.
+  // A cached image can finish before React wires onLoad: catch that here.
   useEffect(() => {
-    tRef.current = 0;
-    setLoaded(false);
-  }, [src]);
+    const img = imgRef.current;
+    if (img?.complete && img.naturalWidth > 0 && !loaded) {
+      setLoaded(true);
+      onReady();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     if (!playing || !loaded) return;
     let raf = 0;
@@ -196,12 +203,14 @@ const ImageStill = forwardRef<PlayerHandle, StillProps>(function ImageStill({ sr
     <div className={`player-image player-image--${fit}`}>
       {fit === 'contain' && loaded && <div className="player-image__backdrop" style={{ backgroundImage: bg }} />}
       <img
+        ref={imgRef}
         src={src}
         alt=""
         draggable={false}
         decoding="async"
         referrerPolicy="no-referrer"
         onLoad={() => {
+          if (loaded) return;
           setLoaded(true);
           onReady();
         }}
