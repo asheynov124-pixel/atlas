@@ -262,6 +262,15 @@ The feed screen:
 
 ## Applying it to a new app
 
+**Fastest path:** copy `night-glass-starter/` from the repo root. It already implements
+everything below:
+- the tokens, components, swipe feed, sheets, toasts and four tabs, on seeded mock data
+- screenshot baselines and a design lint that fail on drift
+- an `AGENTS.md` with the rules and a review gate
+
+Change `src/app/config.ts`, `src/app/verbs.ts` and `src/data/`, then keep `npm run check`
+green. Build from scratch only when the starter's stack doesn't fit:
+
 1. Paste `references/tokens.css`, then the parts of `references/components.css` you
    need. Keep the class names, or rename blocks consistently.
 2. Decide the verb mapping first and write it down: which actions are like, pass, save
@@ -286,4 +295,6 @@ The feed screen:
   them.
 - `assets/*.jpg`: the reference screens.
 - `CODEX_PROMPT.md`: the same design as a self-contained prompt for Codex or any other
-  agent that can't read skills.
+  agent that can't read skills, for building from scratch. When starting from
+  `night-glass-starter/`, use the short prompt in its README instead.
+- `../../../night-glass-starter/`: the working starter app with its visual checks.

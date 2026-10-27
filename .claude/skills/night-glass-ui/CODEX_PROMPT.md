@@ -1,5 +1,10 @@
 # Build a new mobile-first app in the "Night Glass" interface
 
+> **Starting from the Night Glass starter?** Use the short prompt in
+> `night-glass-starter/README.md` instead. The starter already contains everything
+> below, plus screenshot baselines and a design lint. This long prompt is for building
+> from an empty repo.
+
 You are building a new mobile-first web app (installable PWA). It must use the
 interface described below exactly: a dark, glassy, gesture-first design. Follow the
 tokens and specs literally; where something isn't specified, extend it in the same

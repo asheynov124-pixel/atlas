@@ -1,0 +1,204 @@
+/*
+ * Night Glass tokens. Every color the interface uses is defined here, including the
+ * fixed inks that components use at different alphas. The design lint
+ * (tests/visual/design-lint.spec.ts) reads this file and fails on any other color.
+ */
+
+:root {
+  /* Surfaces */
+  --bg: #07070a;
+  --stage: #000000;
+  --card-bg: #050507;
+  --surface: #111117;
+  --surface-2: #1a1a22;
+  --surface-3: #262631;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-2: rgba(255, 255, 255, 0.14);
+
+  /* Text */
+  --text: #f4f3f8;
+  --muted: #9b99aa;
+  --faint: #6c6a7a;
+  --white: #ffffff;
+
+  /* The one gradient, and the ink that sits on it */
+  --accent: #a78bfa;
+  --accent-2: #f472b6;
+  --on-accent: #120a1f;
+  --accent-ink: #ddd2ff;
+
+  /* The verb vocabulary (src/app/verbs.ts maps your app's actions onto these) */
+  --like: #34d399;
+  --dislike: #fb7185;
+  --save: #fbbf24;
+  --capture: #a78bfa;
+  --capture-deep: #8b5cf6;
+  --like-ink: #b8f5dd;
+  --pass-ink: #ffc9d2;
+  --save-ink: #fde7a6;
+  --capture-ink: #e0d6ff;
+
+  /* Glass: base colors used at the alphas the components choose */
+  --chrome: #0a0a0e; /* rail circles .38, tab bar .92 */
+  --glass-base: #121218; /* --glass at .55 */
+  --toast-base: #181820; /* toasts at .92 */
+  --gate-glow: #1a1226; /* the gate's radial glow */
+  --glass: rgba(18, 18, 24, 0.55);
+
+  /* Shape and motion */
+  --radius: 14px;
+  --radius-lg: 22px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --tabbar-h: calc(56px + var(--safe-bottom));
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  color-scheme: dark;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, Inter, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--bg);
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  touch-action: manipulation;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+p {
+  margin: 0;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 0.86rem;
+}
+
+/* ---------- Motion ---------- */
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes sheetUp {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes pop {
+  0% {
+    opacity: 0;
+    scale: 0.5;
+  }
+  25% {
+    opacity: 1;
+    scale: 1.12;
+  }
+  70% {
+    opacity: 1;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.05;
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

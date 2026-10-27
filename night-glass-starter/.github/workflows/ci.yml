@@ -1,0 +1,33 @@
+# Runs once this folder is its own repository (GitHub only reads workflows at the repo root).
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    # The same Playwright version as package.json, so screenshots render with the same browser.
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    env:
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npx playwright test
+      - name: Contact sheet
+        if: always()
+        run: node scripts/contact-sheet.mjs
+      - name: Upload the visual report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
