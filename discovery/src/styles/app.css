@@ -3252,6 +3252,104 @@ input[type='range'] {
   color: var(--muted);
 }
 
+/* ---------- Small phones (iPhone SE / mini) ---------- */
+
+@media (max-height: 720px) {
+  .rail {
+    gap: 4px;
+    bottom: calc(var(--tabbar-h) + 22px);
+  }
+
+  .rail-btn__icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .rail-btn__icon svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .rail-btn__label {
+    font-size: 9.5px;
+  }
+
+  .rail__mini > * {
+    width: 27px;
+    height: 27px;
+  }
+
+  .card__info {
+    bottom: calc(var(--tabbar-h) + 26px);
+    gap: 5px;
+  }
+
+  .card__title {
+    font-size: 0.96rem;
+  }
+
+  .coach__card {
+    padding: 16px;
+    gap: 6px;
+  }
+
+  .coach__list {
+    gap: 3px;
+  }
+
+  .coach__icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .coach__item {
+    grid-template-columns: 28px 1fr auto;
+    font-size: 0.84rem;
+  }
+}
+
+@media (max-width: 389px) {
+  .profile-badge__name {
+    display: none;
+  }
+
+  .profile-badge {
+    padding-right: 4px;
+  }
+
+  .pathbar {
+    gap: 4px;
+    padding-left: 8px;
+    padding-right: 6px;
+  }
+
+  .pathbar__arrow {
+    width: 22px;
+  }
+
+  .pathbar__chip {
+    padding: 0 10px;
+  }
+
+  .icon-btn {
+    width: 36px;
+  }
+
+  .card__info {
+    right: 70px;
+  }
+}
+
+/* The gesture guide must never be taller than the screen. */
+.coach {
+  overflow-y: auto;
+}
+
+.coach__card {
+  max-height: calc(100% - 8px);
+  overflow-y: auto;
+}
+
 /* ---------- Larger screens (iPad, desktop) ---------- */
 
 @media (min-width: 700px) {
