@@ -1,0 +1,11 @@
+# Set the site's Base directory to `find` in Netlify (this repo also holds other projects).
+# Phase 0 ships no UI: `public/` is a placeholder so the spike function can be deployed and
+# measured from Netlify's own servers. Phase 1 switches publish to Vite's `dist`.
+
+[build]
+  command = "echo 'Phase 0: functions only'"
+  publish = "public"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
