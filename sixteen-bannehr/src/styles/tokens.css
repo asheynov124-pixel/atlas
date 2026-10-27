@@ -1,0 +1,70 @@
+/* ─── Sixteen Bannehr · design tokens ─────────────────────────────────────────
+   Every colour is a custom property. The book's own theme (Book.theme) overwrites the
+   colour tokens at runtime; these values are the defaults and the no-JS fallback.   */
+
+:root {
+  /* Colour, taken from the house */
+  --paper: #f5f1ea;
+  --ink: #1f1d1a;
+  --muted: #6f6a63;
+  --sage: #8a9a7b; /* the siding */
+  --olive: #5e6b4a; /* the shutters */
+  --oak: #b08b5e;
+  --clay: #b0452a; /* accent */
+  --hairline: #d9d2c7;
+
+  /* Derived: the table the book lies on, and the cloth it is bound in */
+  --desk: color-mix(in oklab, color-mix(in oklab, var(--paper) 91%, var(--oak)) 89%, var(--ink));
+  --desk-deep: color-mix(in oklab, var(--desk) 88%, var(--ink));
+  --cloth: var(--olive);
+  /* Stamped in paper-white whatever the theme: the cover is cloth, not a page. */
+  --cloth-ink: #f3eee5;
+  --endpaper: var(--sage);
+  --shade: 30 25 20; /* rgb triplet for shadows */
+
+  /* Authors of marginalia */
+  --author-adi: var(--olive);
+  --author-sonny: var(--clay);
+
+  /* Type */
+  --font-display: 'Instrument Serif', 'Iowan Old Style', 'Times New Roman', serif;
+  --font-text: 'Newsreader Variable', 'Iowan Old Style', Georgia, serif;
+  --font-label: 'Inter Variable', -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --font-hand: 'Caveat Variable', 'Bradley Hand', 'Segoe Print', cursive;
+  --track-label: 0.06em;
+  --track-label-wide: 0.12em;
+
+  /* Motion */
+  --ease-calm: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
+  --t-quick: 160ms;
+  --t-calm: 420ms;
+
+  /* Chrome */
+  --bar-h: 52px;
+  --focus: var(--clay);
+
+  color-scheme: light;
+}
+
+:root[data-book-theme='night'] {
+  --desk: color-mix(in oklab, var(--paper) 70%, black);
+  --desk-deep: color-mix(in oklab, var(--paper) 50%, black);
+  --cloth: color-mix(in oklab, var(--olive) 55%, black);
+  --shade: 0 0 0;
+  --author-adi: var(--olive);
+  --author-sonny: var(--clay);
+  color-scheme: dark;
+}
+
+/* Paper grain: fractal noise, multiplied in at under 3 %. */
+:root {
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.4 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --grain-opacity: 0.028;
+  /* The same noise, pre-darkened and pre-faded, for use as a plain background layer:
+     no blend mode, so pages composite cheaply while they turn. */
+  --grain-flat: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.12  0 0 0 0 0.1  0 0 0 0 0.08  0 0 0 0.075 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* Linen: the weave of the cover cloth. */
+  --linen: repeating-linear-gradient(0deg, rgb(255 255 255 / 0.035) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 0.05) 0 1px, transparent 1px 3px);
+}

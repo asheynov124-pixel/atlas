@@ -1,0 +1,14 @@
+node_modules
+dist
+dev-dist
+test-results
+playwright-report
+.vite
+*.log
+.DS_Store
+# Your photos stay on your Mac; only the generated web variants are committed.
+content/photos/**/*
+!content/photos/**/
+!content/photos/README.md
+!content/photos/**/.gitkeep
+dist-artifact
