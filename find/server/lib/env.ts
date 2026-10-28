@@ -1,17 +1,7 @@
-// Reads config the same way inside Netlify Functions (Netlify.env) and in local scripts (process.env).
+// Reads config from the environment: Vercel project env vars in production, a sourced .env locally.
 // Keys never leave the server: nothing in this folder is imported by client code.
 
-declare const Netlify: { env: { get(name: string): string | undefined } } | undefined;
-
 export function env(name: string): string | undefined {
-  try {
-    if (typeof Netlify !== "undefined" && Netlify?.env) {
-      const v = Netlify.env.get(name);
-      if (v !== undefined && v !== "") return v;
-    }
-  } catch {
-    // Not running on Netlify.
-  }
   const v = process.env[name];
   return v === "" ? undefined : v;
 }

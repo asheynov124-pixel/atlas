@@ -1,6 +1,6 @@
 import { usd } from "../server/lib/cost.js";
 import { env } from "../server/lib/env.js";
-import type { Outcome } from "./steps.js";
+import type { Outcome } from "./core.js";
 
 const KEYS = ["ANTHROPIC_API_KEY", "GEMINI_API_KEY", "UNSPLASH_ACCESS_KEY", "PEXELS_API_KEY", "EBAY_CLIENT_ID", "ETSY_API_KEY"];
 

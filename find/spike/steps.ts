@@ -4,16 +4,18 @@
 
 import { decodeLookImage, tagAgreement, tagProduct, type ClaudeUsage } from "../server/lib/claude.js";
 import { claudeCost, geminiCost } from "../server/lib/cost.js";
-import { decodeLinkPage } from "../server/lib/decode-link.js";
 import { MissingKeyError } from "../server/lib/env.js";
 import { searchEbay } from "../server/lib/feeds/ebay.js";
 import { searchEtsy } from "../server/lib/feeds/etsy.js";
 import type { FeedSearch, PoolCard } from "../server/lib/feeds/types.js";
 import { groundedProductSearch, type GroundedSearch } from "../server/lib/gemini.js";
-import { fetchPage } from "../server/lib/http.js";
 import { searchPexels, searchUnsplash, type RoomPhoto } from "../server/lib/photos.js";
 import { mapLimit, percentile } from "../server/lib/pool-utils.js";
-import { canonicalize, verifyProductUrl, type VerifyResult } from "../server/lib/verify.js";
+import { verifyProductUrl, type VerifyResult } from "../server/lib/verify.js";
+import { tally, type SpikeContext, type StepResult } from "./core.js";
+
+export * from "./core.js";
+export * from "./page-steps.js";
 
 export const SPEC_QUERY = "lookalike travertine table lamps under $150";
 export const EXTRA_QUERIES = [
@@ -23,7 +25,6 @@ export const EXTRA_QUERIES = [
   "boucle accent chair",
   "ceramic bud vase set",
 ];
-export const LTK_URL = "https://www.shopltk.com/explore/tonedelements/posts/c90a61f0-cfb8-11f1-9497-4ae6550aa8e4";
 export const PHOTO_QUERY = "warm minimalist living room";
 export const FEED_QUERIES = [
   "travertine table lamp",
@@ -35,30 +36,6 @@ export const FEED_QUERIES = [
   "brass candlesticks",
   "linen throw pillow",
 ];
-
-export type StepResult = { status: "ran" } & Record<string, unknown>;
-export type Skipped = { status: "skipped"; reason: string };
-export type Outcome = StepResult | Skipped;
-
-// Verified product pages found by earlier steps, reused by the tagging step.
-export interface SpikeContext {
-  verified: VerifyResult[];
-  photos: RoomPhoto[];
-}
-
-export function newContext(): SpikeContext {
-  return { verified: [], photos: [] };
-}
-
-export async function step(fn: () => Promise<StepResult>): Promise<Outcome> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (err instanceof MissingKeyError) return { status: "skipped", reason: `${err.key} not set` };
-    const msg = err instanceof Error ? `${err.message}${err.cause instanceof Error ? ` (${err.cause.message})` : ""}` : String(err);
-    return { status: "skipped", reason: `failed: ${msg}` };
-  }
-}
 
 // ---------- 1. Gemini grounded search → verified retailer pages (live search, not the pool) ----------
 
@@ -169,39 +146,6 @@ export async function runFeeds(queries = FEED_QUERIES): Promise<StepResult> {
   return out;
 }
 
-// ---------- 3. Decode an LTK post (one public page, as if she pasted it) ----------
-
-export async function runLtk(ctx: SpikeContext, url = LTK_URL, verifyLinks = 12): Promise<StepResult> {
-  const page = await fetchPage(url, { timeoutMs: 12_000 });
-  if (!page.ok) throw new Error(`LTK page HTTP ${page.status} ${page.error ?? ""}`.trim());
-  const decoded = decodeLinkPage(page.html, page.finalUrl);
-  const verified = await mapLimit(decoded.links.slice(0, verifyLinks), 3, (l) => verifyProductUrl(l.url, { timeoutMs: 8_000 }));
-  for (const v of verified) if (v.status === "ok") ctx.verified.push(v);
-  return {
-    status: "ran",
-    url,
-    httpStatus: page.status,
-    htmlBytes: page.html.length,
-    fetchMs: page.ms,
-    title: decoded.title,
-    caption: decoded.caption,
-    coverImage: decoded.coverImage,
-    linksFound: decoded.links.length,
-    linksBySource: tally(decoded.links.map((l) => l.via)),
-    verifiedOutcomes: tally(verified.map((v) => v.status)),
-    products: verified.map((v, i) => ({
-      label: decoded.links[i]?.label,
-      link: decoded.links[i]?.url,
-      status: v.status,
-      retailer: v.retailer,
-      title: v.product?.title,
-      price: v.product?.price,
-      landedOn: v.canonicalUrl,
-      reason: v.status === "ok" ? undefined : v.reason,
-    })),
-  };
-}
-
 // ---------- 4. Interior photos ----------
 
 export async function runPhotos(ctx: SpikeContext, q = PHOTO_QUERY): Promise<StepResult> {
@@ -262,34 +206,6 @@ export async function runTagging(ctx: SpikeContext, sample = 5): Promise<StepRes
   };
 }
 
-// ---------- 7. Retailer survey: can a server verify these pages? ----------
-
-export async function runSurvey(urls: string[]): Promise<StepResult> {
-  const results = await mapLimit(urls, 4, (u) => verifyProductUrl(u, { timeoutMs: 8_000 }));
-  return {
-    status: "ran",
-    urls: urls.length,
-    outcomes: tally(results.map((r) => r.status)),
-    okRate: results.filter((r) => r.status === "ok").length / Math.max(1, results.length),
-    withPrice: results.filter((r) => r.product?.price != null).length,
-    byRetailer: Object.fromEntries(
-      [...new Set(results.map((r) => r.retailer))].map((ret) => [ret, tally(results.filter((r) => r.retailer === ret).map((r) => r.status))]),
-    ),
-    rows: results.map((r) => ({
-      retailer: r.retailer,
-      status: r.status,
-      http: r.httpStatus,
-      ms: r.ms,
-      reason: r.reason,
-      title: r.product?.title ?? null,
-      price: r.product?.price ?? null,
-      priceSource: r.product?.priceSource ?? null,
-      image: !!r.product?.image,
-      url: canonicalize(r.finalUrl),
-    })),
-  };
-}
-
 // ---------- helpers ----------
 
 function cardSummary(r: VerifyResult) {
@@ -303,12 +219,6 @@ function cardSummary(r: VerifyResult) {
     url: r.canonicalUrl,
     image: r.product?.image,
   };
-}
-
-export function tally(values: string[]): Record<string, number> {
-  const out: Record<string, number> = {};
-  for (const v of values) out[v] = (out[v] ?? 0) + 1;
-  return out;
 }
 
 function share(cards: PoolCard[], pred: (c: PoolCard) => boolean): number {
