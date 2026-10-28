@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeAvailability, parseProductPage, toNumber } from "../server/lib/product-page.ts";
+import { normalizeAvailability, parseProductPage, toNumber } from "../server/lib/product-page.js";
 
 const page = (head: string, body = "") => `<!doctype html><html><head>${head}</head><body>${body}</body></html>`;
 const ld = (obj: unknown) => `<script type="application/ld+json">${JSON.stringify(obj)}</script>`;

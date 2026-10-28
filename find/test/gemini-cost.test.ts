@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { claudeCost, geminiCost, usd } from "../server/lib/cost.ts";
-import { buildProductPrompt, isGroundingRedirect, parseCandidates } from "../server/lib/gemini.ts";
-import { priceBand } from "../server/lib/vocab.ts";
+import { claudeCost, geminiCost, usd } from "../server/lib/cost.js";
+import { buildProductPrompt, isGroundingRedirect, parseCandidates } from "../server/lib/gemini.js";
+import { priceBand } from "../server/lib/vocab.js";
 
 describe("parseCandidates", () => {
   it("parses a fenced JSON array and drops URLs that aren't http(s)", () => {

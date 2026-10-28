@@ -1,8 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
-import { models, requireEnv } from "./env.ts";
-import { CATEGORIES, COLORS, MATERIALS, MOODS, PALETTE_FAMILIES, ROOMS, STYLE_CUES } from "./vocab.ts";
+import { models, requireEnv } from "./env.js";
+import { CATEGORIES, COLORS, MATERIALS, MOODS, PALETTE_FAMILIES, ROOMS, STYLE_CUES } from "./vocab.js";
 
 // Claude reads images and tags products. It never produces a product, price, or link:
 // its job is to describe what it sees so Gemini + verification can find real matches.
@@ -14,10 +14,14 @@ function anthropic(): Anthropic {
 }
 
 // On a safety decline, the API re-runs the request on Anthropic's recommended fallback model.
-const FALLBACK: { betas: Anthropic.Beta.AnthropicBeta[]; fallbacks: "default" } = {
-  betas: ["server-side-fallback-2026-07-01"],
-  fallbacks: "default",
-};
+// Haiku 5.5 has no server-side fallback (the parameter would be rejected or do nothing), so it
+// gets none; a declined tag request just leaves the card untagged.
+type Fallback = { betas: Anthropic.Beta.AnthropicBeta[]; fallbacks: "default" } | Record<string, never>;
+export function fallbackFor(model: string): Fallback {
+  return /^claude-(opus-5|sonnet-5-5|fable-5-1)/.test(model)
+    ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" }
+    : {};
+}
 
 export interface ClaudeUsage {
   model: string;
@@ -79,9 +83,10 @@ export async function decodeLookImage(
   note?: string,
 ): Promise<{ look: DecodedLook | null; usage: ClaudeUsage; stopReason: string | null }> {
   const started = Date.now();
+  const model = models.claudeVision();
   const res = await anthropic().beta.messages.parse({
-    ...FALLBACK,
-    model: models.claudeVision(),
+    ...fallbackFor(model),
+    model,
     max_tokens: 16000,
     output_config: { effort: "medium", format: betaZodOutputFormat(DecodedLook) },
     system: DECODE_SYSTEM,
@@ -126,11 +131,13 @@ export async function tagProduct(input: {
   retailer: string;
   imageUrl: string;
   description?: string | null;
+  model?: string;
 }): Promise<{ tags: ProductTags | null; usage: ClaudeUsage }> {
   const started = Date.now();
+  const model = input.model ?? models.claudeTagging();
   const res = await anthropic().beta.messages.parse({
-    ...FALLBACK,
-    model: models.claudeTagging(),
+    ...fallbackFor(model),
+    model,
     max_tokens: 4000,
     output_config: { effort: "low", format: betaZodOutputFormat(ProductTags) },
     system: [{ type: "text", text: TAG_SYSTEM, cache_control: { type: "ephemeral" } }],
@@ -151,4 +158,27 @@ export async function tagProduct(input: {
     tags: res.stop_reason === "refusal" ? null : (res.parsed_output ?? null),
     usage: usageOf(res, Date.now() - started),
   };
+}
+
+// How closely two taggers agree on the same card: exact match on category and palette, Jaccard
+// overlap on the lists. Used by the spike to check the cheap tagger against the strong one.
+export function tagAgreement(a: ProductTags, b: ProductTags): number {
+  const jaccard = (x: readonly string[], y: readonly string[]) => {
+    const X = new Set(x);
+    const Y = new Set(y);
+    if (X.size === 0 && Y.size === 0) return 1;
+    let both = 0;
+    for (const v of X) if (Y.has(v)) both++;
+    return both / (X.size + Y.size - both);
+  };
+  const parts = [
+    a.category === b.category ? 1 : 0,
+    a.palette_family === b.palette_family ? 1 : 0,
+    jaccard(a.room, b.room),
+    jaccard(a.materials, b.materials),
+    jaccard(a.colors, b.colors),
+    jaccard(a.style_cues, b.style_cues),
+    jaccard(a.mood, b.mood),
+  ];
+  return parts.reduce((s, x) => s + x, 0) / parts.length;
 }

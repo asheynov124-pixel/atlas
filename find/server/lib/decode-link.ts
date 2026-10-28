@@ -1,5 +1,5 @@
 import { parse } from "node-html-parser";
-import { findJsonLdProduct } from "./product-page.ts";
+import { findJsonLdProduct } from "./product-page.js";
 
 // "Decode a Look" for a pasted link (LTK post, blog, Pinterest pin, a product page).
 // We don't depend on any one site's page schema. We read the public page once, take its

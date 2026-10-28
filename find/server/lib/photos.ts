@@ -1,4 +1,4 @@
-import { requireEnv } from "./env.ts";
+import { requireEnv } from "./env.js";
 
 // Real interior photography for the inspiration layer. Each photo keeps the credit the
 // source requires, plus the hooks the source asks us to call when a photo is used.

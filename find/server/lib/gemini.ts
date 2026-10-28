@@ -1,5 +1,5 @@
 import { GoogleGenAI, type GenerateContentResponse, type GroundingChunk } from "@google/genai";
-import { models, requireEnv } from "./env.ts";
+import { models, requireEnv } from "./env.js";
 
 // Gemini + Google Search grounding finds *candidates*. A candidate is only a lead:
 // its URL is verified by fetching the page (verify.ts), and its image and price come from

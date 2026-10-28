@@ -1,5 +1,5 @@
-import { fetchPage, type FetchedPage } from "./http.ts";
-import { parseProductPage, type ProductPage } from "./product-page.ts";
+import { fetchPage, type FetchedPage } from "./http.js";
+import { parseProductPage, type ProductPage } from "./product-page.js";
 
 // The gate every product card passes before Sonny ever sees it.
 //   ok          live product page with a real image (price may still be unknown)

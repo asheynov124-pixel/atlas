@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { FetchedPage } from "../server/lib/http.ts";
-import { canonicalize, classify, retailerOf } from "../server/lib/verify.ts";
+import type { FetchedPage } from "../server/lib/http.js";
+import { canonicalize, classify, retailerOf } from "../server/lib/verify.js";
 
 const fetched = (over: Partial<FetchedPage>): FetchedPage => ({
   requestedUrl: "https://shop.example/products/lamp",

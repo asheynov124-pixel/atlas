@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodeLinkPage, maybeUnflatten } from "../server/lib/decode-link.ts";
+import { decodeLinkPage, maybeUnflatten } from "../server/lib/decode-link.js";
 
 describe("decodeLinkPage", () => {
   it("reads caption/cover from Open Graph and product links from embedded Next.js JSON", () => {
