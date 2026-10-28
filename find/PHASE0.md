@@ -51,6 +51,30 @@ Affiliate networks approve publishers that have real public audiences, which a p
 
 ---
 
+## Measured from Vercel's servers (iad1, 2026-10-28)
+
+The deployed self-test passes 12 of 12 checks, so the numbers below come from the code in this repo, not from a bad upload.
+
+**Retailer product pages (33 URLs: 20 real products, 13 traps).**
+- **Real products:** 17 of 26 page loads verified across both runs (about 65%).
+  - Verify cleanly: Anthropologie, Lulu & Georgia, Target, Walmart, Wayfair, McGee & Co., Article, Schoolhouse, Burke Decor, Jenni Kayne, Parachute, Serena & Lily.
+  - Block servers: Pottery Barn, CB2, Crate & Barrel, RH, Home Depot, Lowe's and Etsy's website. The walls are PerimeterX, DataDome or Akamai. We report these as "blocked" and never try to get past them.
+  - Unreadable: Zara Home is a JavaScript app with no product data in the page. Amazon serves cloud servers a stripped page.
+- **Traps:** all 13 search, category and collection pages are now rejected. Earlier, IKEA and Lowe's category pages slipped through as products.
+- **Prices:** the page states a price on about 60% of verified products. Target, Pottery Barn and West Elm draw the price in the browser, so those cards say "price unavailable" rather than showing a guess.
+
+**LTK post (one real post, 25 tagged items).**
+- **Link discovery:** every item link was found. LTK's own flag splits them into 10 exact matches and 9 similar ones, so a card can say which kind it is.
+- **Click-through:** only 3 of 12 checked items verified (Walmart ×2, Target), and one was dead (404).
+  - Most LTK links go through rstyle.me, which still lands on a redirect page rather than the retailer. The page carries the product name, so that hop is fixable.
+  - Amazon item pages arrive stripped.
+- **Caption:** the post caption isn't in the server-rendered page. We get LTK's generic line instead.
+
+**What this means for the gate.**
+- **Pool:** retailer pages can't carry the browsing pool on their own; about 65% is below the 70% gate. That confirms the decision to fill the pool from the official eBay and Etsy feeds, which need no page fetching.
+- **Pasted links:** these should still verify the retailer page. When a retailer blocks us, the app says "can't confirm from here" with the link, and never shows a made-up card.
+- **Still unmeasured:** feed hit rate and Gemini live-search hit rate both need API keys (see below).
+
 ## What the deployed checks will measure
 
 | Check | Needs keys? | Gate |
