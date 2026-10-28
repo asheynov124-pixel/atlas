@@ -1,0 +1,37 @@
+# Retailer survey for Phase 0: real product pages found by web search on 2026-10-28.
+# Question: can a cloud server verify these (title, image, structured price), or do bot walls stop it?
+# Batch A: product pages across 14 retailers.
+https://www.cb2.com/polo-travertine-table-lamp-with-glass-shade/s442027
+https://www.westelm.com/products/averie-table-lamp-h14107/
+https://www.crateandbarrel.com/navagio-travertine-table-lamp-18.5/s469754
+https://www.potterybarn.com/products/damen-petite-travertine-table-lamp/
+https://www.walmart.com/ip/Empire-Art-Direct-Frameless-Beveled-Oblong-Scalloped-Wall-Mirror-24-in-x-32-in/917896075
+https://www.article.com/product/21475/gabriola-34-lounge-chair-ivory-boucle
+https://www.anthropologie.com/anthrohome/shop/rowan-boucle-accent-chair
+https://www.luluandgeorgia.com/products/calista-vase
+https://rh.com/us/en/catalog/product/product.jsp/prod29560807
+https://www.target.com/p/ceramic-table-lamp-threshold-8482-designed-with-studio-mcgee/-/A-92959475
+https://www.target.com/p/medium-high-gloss-ceramic-table-lamp-green-threshold-8482-designed-with-studio-mcgee/-/A-87291889
+https://www.zarahome.com/us/plain-linen-throw-pillow-cover-l44123008
+https://www.amazon.com/Candlestick-Centerpiece-Decorative-Candlelight-Reception/dp/B07W7KWNY6
+https://www.amazon.com/Biedermann-Sons-Brass-Candlestick-Holders/dp/B015ZBJE9G
+https://www.amazon.com/Brass-Candle-Holder-XS-Dimensions/dp/B0CKQRWFS6
+https://www.westelm.com/products/colin-king-travertine-table-lamp-h12062/
+https://www.cb2.com/enora-white-travertine-table-lamp/s436823
+https://www.crateandbarrel.com/jorgen-silver-travertine-table-lamp-28/s518663
+https://www.walmart.com/ip/TEWLOSS-Black-Wall-Mirror-36-x20-Scalloped-Bathroom-Mirrors-Metal-Frame/15298018763
+https://www.article.com/product/21471/turoy-32-5-swivel-lounge-chair-ivory-boucle
+# Batch B: edge cases (discontinued, sold out, affiliate params) and negative controls (category/search pages → must be not_product).
+https://www.potterybarn.com/products/damen-travertine-table-lamp/
+https://www.anthropologie.com/anthrohome/shop/thomas-bina-boucle-accent-chair2
+https://www.luluandgeorgia.com/products/avayah-vase?variant=42621088497763&click=5180462334&clickId=5180462334&ar_clx=yes&ar_channel=pepperjam&ar_campaign=PepperJam&ar_adgroup=PepperJam&ar_ad=PepperJam&publisher=21181
+https://rh.com/us/en/catalog/product/product.jsp/prod29891529
+https://www.target.com/p/ceramic-table-lamp-with-rattan-shade-white-threshold-8482-designed-with-studio-mcgee/-/A-83206532?showOnlyQuestions=true
+https://www.zarahome.com/us/washed-linen-throw-pillow-cover-and-topper-l45313000701ZHNI
+https://www.wayfair.com/keyword.php?keyword=scalloped+mirror
+https://www.amazon.com/scalloped-mirror/s?k=scalloped+mirror
+https://www.homedepot.com/b/Flooring-Rugs-Area-Rugs/Wool/N-5yc1vZarjgZ1z188w1
+https://www.ikea.com/us/en/cat/pendant-lights-18751/
+https://www.etsy.com/market/rattan_pendant_light
+https://www.mcgeeandco.com/collections/vases-jars
+https://www.lowes.com/pl/area-rugs-mats/rugs/wool/4294410357-4294685128

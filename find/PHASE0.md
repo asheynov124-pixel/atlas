@@ -1,130 +1,87 @@
 # Phase 0 report: prove the data before building the UI
 
-**Status: gate not yet passed. Nothing has been measured live.** The harness is built and tested, but no hit rate exists yet. Two things stopped the live run, and neither one is a code problem:
+**Status: gate not yet passed; nothing has been measured live.** The harness is built, tested, and ready to deploy to Vercel. Two things still stand between it and live numbers:
 
-1. **No API keys** were present in the session.
-2. **The cloud sandbox's network policy blocks retailers, LTK, Unsplash and Pexels.** Only Google's API host and npm were reachable. That is the right outcome anyway: the hit rate that matters is measured from where the app will actually run (see "How to run" below).
+1. **One click from you on Vercel** to let this session deploy to your account. I send the link last, because it expires 10 minutes after it's created.
+2. **API keys.** They go into Vercel's dashboard, where the deployed checks read them. Nobody has to paste them into a chat. The survey of retailer pages and the LTK test need no keys at all, so those run as soon as the deploy is live.
 
-Following the spec's own rule, I have **not built any screens**. I also found something that, in my reading, may require a sourcing redesign *regardless* of the hit rate. That is Decision 1 below. Read it first.
+No screens have been built; that still waits on this gate.
 
 ---
 
-## What was built (`find/`)
+## Your decisions, and what they changed
 
-The spike code is the production server code. Nothing in it is throwaway.
-
-| Module | Job |
+| You decided | What I did |
 |---|---|
-| `server/lib/verify.ts` | The gate every card passes. It fetches the page and classifies it as `ok` / `not_product` / `blocked` / `dead` / `error`. It detects bot walls (PerimeterX, DataDome, Cloudflare, Akamai, Kasada, Imperva), soft 404s, and redirects to the homepage. It also canonicalizes URLs so duplicate cards are caught. |
-| `server/lib/product-page.ts` | Reads title, image, price, currency, availability and brand from the page's own **JSON-LD `Product` / `ProductGroup` / `AggregateOffer`**, then Open Graph, then microdata. **A price that isn't in structured data is `null`, so the card shows "price unavailable".** The code has no path that reads a price out of prose. |
-| `server/lib/gemini.ts` | Grounded search. It returns *candidates only*. The model's URLs and prices are never shown. Each URL is fetched and verified, and the card's image and price come from the retailer's page. It also records Google's Search Suggestions HTML, which the terms require (see Decision 1). |
-| `server/lib/decode-link.ts` | Decode a pasted link. It doesn't depend on any one site's page format. It reads the caption and cover image from Open Graph, then harvests shopping links from embedded app state (Next.js, Nuxt/devalue), anchor tags and escaped affiliate URLs (liketk.it, rstyle.me, ShopMy, Amazon and others). Every harvested link then goes through the verifier. |
-| `server/lib/claude.ts` | Two jobs. **Screenshot decode:** items, controlled-vocabulary tags, shopping search queries, and any literally visible brand or price text. **Product tagging.** Both use schema-enforced structured output and the server-side refusal fallback (`fallbacks: "default"`). |
-| `server/lib/photos.ts` | Unsplash and Pexels search, with the required credit and UTM links and Unsplash's download-tracking hook. |
-| `server/lib/vocab.ts` | The controlled tag vocabulary (§4): 48 categories, 50 materials, 35 colors, 46 style cues, 15 moods and so on. |
-| `server/lib/cost.ts` | Spend accounting. A model missing from the price table shows as **"unknown"**, never $0. |
-| `spike/run.ts` | The Phase 0 runner. It covers all four spec tests, plus product tagging (for cost per card) and an optional retailer survey. It writes `spike/results/latest.md` with the hit rate, a pass/fail verdict on the 70% gate, latency, and cost per 100 cards. |
-| `netlify/functions/spike-verify.mts` | A passcode-protected endpoint that verifies URLs **from Netlify's servers**. Retailers often block cloud server addresses that they let through from a home connection, so this is where the real hit rate is measured. |
-
-**Tests:** 36 unit tests over fixture HTML cover Shopify pages, JSON-LD `@graph`, variant groups, microdata, malformed JSON-LD, five kinds of bot wall, soft 404s, URL canonicalizing, Nuxt devalue state, escaped affiliate links, and Gemini output that isn't clean JSON. All pass, and type-checking is clean. The tests caught one real bug: trailing-slash URLs slipped past de-duplication.
-
-**Sandbox run, so you can see failures are honest rather than faked:**
-```
-## gemini: skipped — GEMINI_API_KEY not set
-## ltk: skipped — failed: LTK page HTTP 0 fetch failed: getaddrinfo ENOTFOUND www.shopltk.com
-## photos: skipped — failed: no photo source returned results (… UNSPLASH_ACCESS_KEY not set … PEXELS_API_KEY not set)
-## vision: skipped — failed: no --screenshot given and no photo from the photos step to use
-## tagging: skipped — failed: no verified cards to tag (run with gemini or ltk first)
-```
+| **Pool = official feeds only** | Added eBay Browse API and Etsy Open API clients (`server/lib/feeds/`). Gemini is now used only for searches she starts herself (Search, Decode, Splurge vs. Save), shown with Google's Search Suggestions chip. |
+| **Tagging on the most efficient, effective model** | Two parts, because of a terms finding (below). Pool cards are tagged **without any AI**, from the seller's own listing data, at $0 per card. Retailer pages she saves are tagged by **Haiku 5.5**. The spike tags the same cards with Haiku and Opus and reports how often they agree. If agreement is ≥75%, Haiku stays; if not, the numbers will show it. |
+| **Free hosting** | **Vercel's free (Hobby) plan.** Deploys are free and unlimited, versus 15 credits each on Netlify. Your Vercel account is already connected here, so I can deploy and run the checks myself. Netlify code removed. |
+| **Own repo if possible** | GitHub refused: this session's GitHub access can't create repositories. Until that's fixed, the code lives in `atlas/find`. Steps at the end. |
 
 ---
 
-## The needles
+## New needles
 
-Each source is marked by how I read it:
+### 1. eBay and Etsy restrict running their listings through AI
+- **eBay's 2025 API License update** reportedly bars developers from feeding eBay data into generative AI tools ([EcommerceBytes](https://www.ecommercebytes.com/2025/07/18/ebay-restricts-developers-from-using-its-data-to-train-ai/), a trade report). The reported wording may cover only eBay's "Restricted APIs", but I couldn't read the license itself.
+- **Etsy's API terms** bar using the API to collect Etsy content "for analytics, machine learning, licensing, or content removal unless expressly authorized" ([Etsy API terms, archived](https://www.etsy.com/legal/api-archived/)). The current page may differ.
 
-- **[read]** — I read the primary source myself.
-- **[summary]** — it came through a search summary, because the sandbox blocked the page. Re-read these before relying on them.
+Sending listing photos to Claude for tagging would arguably cross both lines. **What I did instead:** `tag-map.ts` matches our vocabulary against the seller's own words. That means eBay's item details (Material, Color, Style), Etsy's tags, materials and style fields, the title, and the search that found the card. It costs nothing and is instant. It is also more honest, because the tags are the seller's own descriptions. Tests confirm it handles the traps: "mid century modern" isn't also tagged "modern", "white oak" isn't tagged as a white piece, and a "floral print throw pillow" is a pillow, not a print.
 
-### 1. Google's grounding terms vs. the Product Pool *(architecture-level)*
+### 2. Etsy's API access is tiered
+Third-party guides describe Etsy app tiers: a personal app, plus a manual commercial review for wider access. Public listing search *should* work with a personal app key, but I couldn't confirm it from the official docs. Apply early. Etsy also now expects the key and shared secret together in its auth header; the client sends both when `ETSY_SHARED_SECRET` is set.
 
-The spec's engine is this: a **nightly scheduled job** runs Gemini grounded searches, **stores** the results for **14 days**, and **mixes** them into a masonry feed of products and photos. As summarized from the Gemini API Additional Terms, "Grounding with Google Search" section [summary], [ai.google.dev/gemini-api/terms](https://ai.google.dev/gemini-api/terms):
+### 3. Feed prices go stale, so cards refresh before they're shown
+Each card carries a `refreshAfter` time, a conservative 6 hours until I can read eBay's and Etsy's storage terms. The feed will re-fetch a card from the source before showing it past that point. That way the price on screen is never days old. It also keeps us inside whatever storage window the licenses set, without a cron job running every few hours.
 
-- Grounded Results are displayed "with the associated Search Suggestion(s) **to the end user who submitted the prompt**." A cron job has no end user submitting a prompt.
-- "**caching**, framing, syndicating, reselling, analysing" Grounded Results are prohibited. A 14-day pool is a cache with a different name.
-- You "will not modify, or **intersperse any other content with**," Grounded Results or Search Suggestions. A mixed feed intersperses them.
-- An older (Dec 2024) version allowed storing result text "**(excluding Links)**" for up to 30 days. That suggests Google treats the *links* as the protected part, and the links are exactly what we keep.
+### 4. What Vercel's free plan gives us
+- **Scheduled jobs (cron) run only once a day**, and can start any time within the scheduled hour ([Vercel cron docs](https://docs.vercel.com/docs/cron-jobs/usage-and-pricing)). That suits the nightly refill exactly.
+- **2 cron jobs** per account and **4 CPU-hours a month** of active compute ([limits](https://vercel.com/docs/limits)). Waiting on network calls isn't billed as active CPU on Fluid compute, which is mostly what this app does.
+- **Personal, non-commercial use only.** That's fine as long as the app doesn't earn affiliate income, which matters for the next point.
 
-**The other side of the argument:** our cards aren't Gemini's output. They are the *retailer's own page data*, fetched and parsed by us. Gemini only pointed at the URL. Whether a URL learned from a grounded result is itself a "Grounded Result" is a question about how the defined term should be read. You are better placed than I am to answer that, and it turns on the current exact text, which I couldn't read directly from the sandbox.
+### 5. Affiliate feeds are probably out regardless
+Affiliate networks approve publishers that have real public audiences, which a private passcode app doesn't have. Most programs also forbid earning commission on your own purchases. And affiliate income would make the app "commercial" for Vercel's free plan. So the pool is eBay and Etsy for now, plus mainstream retailers through her own live searches.
 
-**My recommendation:** don't build the business model on the generous reading.
-- Use Gemini where the terms clearly fit: **live searches she starts herself** (Search, Decode a Look, Splurge vs. Save), shown to her with the Search Suggestions chip.
-- Source the **pool** from data that is licensed for display. See Decision 1.
-
-### 2. Grounding links are Google redirects, not store URLs [read]
-They look like `vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQ…`, and their lifetime isn't documented. The real domain appears only in the chunk's `title` ([cookbook issue #1389](https://github.com/google-gemini/cookbook/issues/1389) [summary]). The harness already handles this: it follows each redirect to the landing page and verifies the destination. It also reports the hit rate for **model-stated URLs** and **grounding sources** separately, so we'll see whether the model's own URLs can be trusted at all.
-
-### 3. The model named in the spec era is closed to new users [summary]
-`gemini-2.5-flash` is now restricted to existing users. The default is `gemini-3.8-flash`, the model Google's own grounding cookbook uses [read]. You can change it with `GEMINI_MODEL`. On Gemini 3 and newer, grounding is **billed per search query the model runs**, not per prompt: 5,000 free per month, then $14 per 1,000. One prompt usually runs several queries. Google also reportedly gives Gemini 3 grounding **no free tier without billing**, so the key needs billing enabled.
-
-### 4. Netlify scheduled functions die at 30 seconds [summary]
-One grounded Gemini call, plus verifying its pages, can take longer than that. **Fix:** the nightly scheduled function only *kicks off* a **background function** (15-minute limit), which does the refill in batches. Synchronous functions get 60 s per the docs [summary], but the 6.0.3 package constant says 30 s [read], so I size everything to 30 s.
-
-### 5. Netlify's free plan is 300 credits a month with a hard stop [summary]
-Each production deploy costs 15 credits, and when credits run out "projects pause until the next billing cycle". Function compute and bandwidth also draw from the 300. That works out to roughly 15–18 deploys a month after a modest nightly refill. Busy build weeks could pause her app. Decision 4 covers this.
-
-### 6. The background-removal library has three problems [read, from the npm tarball]
-`@imgly/background-removal`:
-- **is AGPL-3.0.** That's fine for a private one-user app, but worth knowing.
-- **downloads 40–80 MB of model files.** There are open reports of iPhone tabs crashing.
-- **needs CORS on every image.** Its speed mode also wants COOP/COEP headers that would *block* hotlinked Unsplash and retailer images.
-
-**The cheaper trick:** most retailer product shots are on white or near-white studio backgrounds. On a neutral flat-lay canvas, CSS `mix-blend-mode: multiply` makes that white effectively disappear: no ML, no download, instant. Run real background removal only when she taps "cut out" on a lifestyle photo, using the small quantized model, downscaled, through our own image proxy. That same proxy is needed anyway for "export board as image", because canvas export breaks on images without CORS.
-
-### 7. LTK's terms prohibit scraping [summary]
-They bar robots, "screen scraping" and systematic retrieval ([LTK Terms](https://company.shopltk.com/ltk-terms-of-service)). The spec already limits us to one fetch of a public page when she pastes a link. That is the most defensible version, but it is still an automated fetch of their page. Two alternatives keep us off LTK's pages entirely:
-- **She pastes the individual product links** (the liketk.it / rstyle.me shop links). We only resolve the redirect and land on the *retailer's* page.
-- **She screenshots the post.** Claude reads it, and Gemini finds the items.
-
-There is also a courtesy point. When an item comes from a creator's post, the **Buy button should use the creator's original link**, so the person who inspired the purchase gets the commission. I designed it that way and logged it in DECISIONS.md.
-
-### 8. iOS: confirmed constraints [read]
-- **No Web Share Target on iOS 27.** WebKit's manifest parser has no `share_target`. So the spec's iOS Shortcut plan is right.
-- **Web Push works for home-screen apps** (iOS 16.4+). Permission must be requested from a tap. Every push must show a visible notification, or Safari revokes the permission. ([Apple](https://developer.apple.com/documentation/usernotifications/sending-web-push-notifications-in-web-apps-and-browsers))
-- Home-screen apps are exempt from Safari's 7-day storage wipe [summary].
-
-### 9. Smaller items
-- **Unsplash** production apps get 1,000 requests/hour (demo apps 50). Moving to production needs an application with screenshots, so apply early. Call `download_location` when she *uses* a photo (save or decode), not on display. **Pexels** allows 200/hour and 20,000/month. Both are ample for one person.
-- **Combining Gemini's structured output with grounding** is a Gemini 3 preview feature, with forum reports of grounding metadata coming back empty when a schema is enforced. So the harness asks for JSON in plain text and parses it defensively.
-- **Google keeps Gemini prompts and outputs for 30 days**, with no zero-data-retention option ([ZDR doc](https://ai.google.dev/gemini-api/docs/zdr) [summary]). That's harmless here (decor searches), but don't send it anything personal.
+### Earlier needles (unchanged, details in DECISIONS.md)
+- Gemini grounding links are Google redirects, so they're followed before checking the page.
+- `gemini-2.5-flash` is closed to new users, so the default is `gemini-3.8-flash`. Its grounding is billed per search query, after 5,000 free a month.
+- `@imgly/background-removal` is AGPL, 40–80 MB, and has crashed iPhone tabs. Use CSS multiply first, and run the real cutout only on tap.
+- LTK's terms forbid scraping, so: one fetch only when she pastes a link, and a screenshot as the alternative.
+- No Web Share Target on iOS, so the iOS Shortcut plan stands. Web Push works for home-screen apps.
 
 ---
 
-## Cost: modeled, not measured
+## What the deployed checks will measure
 
-These are **assumption-based estimates** until the harness runs. Assumptions per grounded prompt: about 3 search queries, about 8k tool-context tokens, about 2k output and thinking tokens, and 5 candidates yielding 3.5 verified cards (the 70% gate).
+| Check | Needs keys? | Gate |
+|---|---|---|
+| **Retailer survey:** 20 real product pages across 14 retailers (Target, West Elm, CB2, Crate & Barrel, Pottery Barn, Walmart, Amazon, Article, Anthropologie, Lulu & Georgia, RH, Zara Home…) plus 13 edge cases and category pages that must be rejected. List in `spike/survey-urls.txt`. | No | Which retailers a server can verify, versus which put up a bot wall |
+| **LTK decode** of your example post | No | Caption and links found; links resolve to real retailer pages |
+| **Feeds:** eBay + Etsy across 8 decor searches | eBay / Etsy | ≥70% of requested cards complete (link + image + price); tag coverage |
+| **Gemini live search:** the travertine-lamp test + 5 more | Gemini | ≥70% of requested cards verified |
+| **Screenshot decode** (Claude) | Anthropic + Unsplash/Pexels | Items + search queries come back |
+| **Photos:** 30 per source | Unsplash / Pexels | 30 real photos with credits |
+| **Tagging:** Haiku vs. Opus on the same cards | Anthropic | Agreement ≥75% keeps Haiku |
 
-| Per 100 verified cards | Gemini 3.8 Flash grounding + tokens | Claude tagging | Total |
-|---|---|---|---|
-| Tagging on Opus 5.5 (current default) | ≈ $1.65 | ≈ $2.00 | **≈ $3.65** |
-| Tagging on Haiku 5.5 (your call; see Decision 3) | ≈ $1.65 | ≈ $0.05 | **≈ $1.70** |
+## Cost, modeled (to be replaced by measured numbers)
 
-A nightly refill of about 150 cards runs about 130 search queries, or about 3,900 a month. That is **inside the 5,000/month free grounding allowance**, so in steady state Gemini grounding could cost close to $0. That only matters if Decision 1 lets Gemini feed the pool at all.
+| Per 100 cards | Cost |
+|---|---|
+| Pool card from eBay/Etsy (API calls free, tags rule-based) | **$0** |
+| Live-search card: Gemini 3.8 Flash grounding + tokens | ≈ $1.65 (≈ $0 while inside 5,000 free searches/month) |
+| Tagging a saved retailer page with Haiku 5.5 | ≈ $0.05 |
+| Hosting on Vercel's free plan | $0 |
 
 ---
 
-## Decisions I need from you
+## What I need from you
 
-1. **Pool sourcing, given Google's grounding terms.** Options, best first:
-   - **(a) Official feeds for the pool; Gemini for live searches only. (Recommended.)** Pool candidates:
-     - the **Etsy Open API** (free key; a huge handmade and vintage decor catalog);
-     - the **eBay Browse API** (already on your list; it moves the v2 "Vintage Hunt" data source into v1);
-     - **affiliate-network product feeds** (CJ / Rakuten / Impact / Awin, all free to join). These are product catalogs that West Elm-, Target- and Wayfair-tier retailers *license for display*, with real images and prices. A side effect: purchases through them can earn commission.
-
-     Each of these is a new service, so I'm asking rather than adding it.
-   - (b) Public `/products.json` catalogs of a curated list of ~50 Shopify-based decor brands. Real data, and a 100% hit rate by construction. But it is automated access to each store, so it's a gray zone under each store's terms.
-   - (c) Keep Gemini in the pool on the reading that our cards are retailer data, not Grounded Results. This is your legal read to make, not mine.
-2. **Where Phase 0 runs.** Fastest: run `npm run spike` on your laptop, which has unrestricted network. Most accurate: also deploy the spike function to Netlify and verify the same URLs from there. To run it in *this* cloud environment instead, give the environment broader network access and add the keys as environment variables (details in README.md).
-3. **Tagging model.** I defaulted every Claude call to Opus 5.5. For bulk pool tagging, Haiku 5.5 is about 40× cheaper per card and the task is simple, so I'd recommend it there. It's a one-line env change (`CLAUDE_TAG_MODEL=claude-haiku-5-5`), but model choice is your call.
-4. **Netlify plan.** The free 300 credits pauses the site when exhausted. Either we deploy sparingly (I can batch changes into fewer deploys) or you move to a paid plan. It's a paid service, so it's your call.
-5. **Repo.** I built this in `find/` inside `atlas`, the one repo this session can reach, and touched nothing else. If you'd like it in its own repo, it lifts out cleanly; set Netlify's base directory to `find` either way.
+1. **Approve Vercel access.** Tap the link in my message and approve. That lets this session create the project and deploy.
+2. **Get the keys** and add them in Vercel → the `find` project → Settings → Environment Variables (I'll create the project first):
+   - `ETSY_API_KEY` and `ETSY_SHARED_SECRET`: developers.etsy.com → Create a new app.
+   - `EBAY_CLIENT_ID` and `EBAY_CLIENT_SECRET`: developer.ebay.com → Application Keys, **Production** keyset. eBay asks production apps about marketplace account-deletion notices; we store no eBay user data, so choose the exemption.
+   - `GEMINI_API_KEY`: aistudio.google.com, with billing enabled. Grounding on Gemini 3 has no free tier without it.
+   - `ANTHROPIC_API_KEY`: console.anthropic.com.
+   - `UNSPLASH_ACCESS_KEY`: unsplash.com/developers; apply for production early. `PEXELS_API_KEY`: pexels.com/api.
+   - `APP_PASSCODE`: Sonny's passcode for the app, whatever you like.
+3. **Own repo (optional):** create an empty private repo named `find` on GitHub, then make sure the Claude GitHub app has access to it at https://claude.ai/connect-github. I'll move the code over with its history.

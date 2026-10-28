@@ -2,69 +2,82 @@
 
 Sonny's style app: scroll, fall for something, hunt it, collect it, and discover a style along the way. **Real items only.**
 
-**Current phase: 0 (data spike).** There is no UI yet, by design. Read [PHASE0.md](PHASE0.md) for findings and the decisions waiting on you, and [DECISIONS.md](DECISIONS.md) for why things are the way they are.
+**Current phase: 0 (data spike).** There is no UI yet, by design. Read [PHASE0.md](PHASE0.md) for findings and what's waiting on you, and [DECISIONS.md](DECISIONS.md) for why things are the way they are.
 
 ## Setup
 
 ```bash
 cd find
 npm install
-npm test          # 36 offline tests (fixture HTML, no keys or network needed)
+npm test          # offline tests (fixture HTML, mocked APIs; no keys or network needed)
 npm run typecheck
 ```
 
+## Where the data comes from
+
+| Layer | Source | Notes |
+|---|---|---|
+| Product pool (the feed) | **eBay Browse API**, **Etsy Open API v3** | Official, licensed listings. Tagged from the seller's own data, never by AI (both APIs' terms) |
+| Live search, Decode a Look, Splurge vs. Save | **Gemini + Google Search grounding**, then a page check | Only for searches she starts herself; shown with Google's Search Suggestions chip |
+| Room photos | **Unsplash**, **Pexels** | Hotlinked, with photographer credit |
+| Screenshot reading | **Claude Opus 5.5** | |
+| Tagging saved retailer pages | **Claude Haiku 5.5** | |
+
 ## Environment variables
 
-| Variable | Needed for | Notes |
-|---|---|---|
-| `ANTHROPIC_API_KEY` | Screenshot decode, tagging | |
-| `GEMINI_API_KEY` | Grounded product search | Billing must be enabled: Gemini 3 grounding has no free tier without it |
-| `UNSPLASH_ACCESS_KEY` | Room photos | Apply for production (1,000 req/h) early; demo apps get 50 req/h |
-| `PEXELS_API_KEY` | Room photos | 200 req/h, 20k/month |
-| `APP_PASSCODE` | The passcode gate (and the spike endpoint) | |
-| `CLAUDE_VISION_MODEL`, `CLAUDE_TAG_MODEL` | Optional | Default `claude-opus-5-5` |
-| `GEMINI_MODEL` | Optional | Default `gemini-3.8-flash` |
-| `XAI_API_KEY`, `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `DAILY_SPEND_CAP_USD` | Later phases | |
+Set these in **Vercel → project `find` → Settings → Environment Variables** (or a local `.env`; see `.env.example`). Keys are read only by server code in `server/`, `spike/` and `api/`.
 
-See `.env.example`. On Netlify, set these under **Site configuration → Environment variables** with the Functions scope included. Keys are read only by server code in `server/` and `netlify/functions/`.
+| Variable | For | Where to get it |
+|---|---|---|
+| `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET` | Pool | developer.ebay.com → Application Keys (Production). Choose the account-deletion exemption; we store no eBay user data |
+| `ETSY_API_KEY`, `ETSY_SHARED_SECRET` | Pool | developers.etsy.com → Create a new app |
+| `GEMINI_API_KEY` | Live search | aistudio.google.com, billing enabled |
+| `ANTHROPIC_API_KEY` | Screenshots, tagging | console.anthropic.com |
+| `UNSPLASH_ACCESS_KEY` / `PEXELS_API_KEY` | Room photos | unsplash.com/developers (apply for production early) / pexels.com/api |
+| `APP_PASSCODE` | The app's passcode gate | Your choice |
+| `SPIKE_TOKEN` | Phase 0 endpoint only | Random; set at deploy, delete after Phase 0 |
+| `CLAUDE_VISION_MODEL`, `CLAUDE_TAG_MODEL`, `GEMINI_MODEL` | Optional overrides | Defaults: `claude-opus-5-5`, `claude-haiku-5-5`, `gemini-3.8-flash` |
 
 ## Running Phase 0
 
-**1. On your laptop (fastest; unrestricted network):**
+**From Vercel's servers (the numbers that count, because the app runs there):**
+```
+https://<project>.vercel.app/api/spike?token=$SPIKE_TOKEN&step=survey&urls=<url1>,<url2>   # up to 20 product pages
+https://<project>.vercel.app/api/spike?token=$SPIKE_TOKEN&step=ltk
+https://<project>.vercel.app/api/spike?token=$SPIKE_TOKEN&step=feeds      # or gemini | photos | vision | tagging | all
+```
+Add `&format=json` for raw output. The survey URLs live in `spike/survey-urls.txt`.
+
+**From a laptop:**
 ```bash
-cp .env.example .env   # fill in keys
 set -a; source .env; set +a
-npm run spike                              # all steps
-npm run spike -- --only gemini             # one step
+npm run spike                              # every step that has keys
+npm run spike -- --only feeds,gemini
 npm run spike -- --screenshot ~/room.jpg   # decode your own screenshot
-npm run spike -- --urls urls.txt           # verify a list of product URLs
+npm run spike -- --urls spike/survey-urls.txt
 ```
-Results are written to `spike/results/latest.md` (gitignored). It includes the hit rate and the pass/fail verdict on the 70% gate.
+In a Claude Code cloud session, prefix the command with `NODE_USE_ENV_PROXY=1`, because Node's `fetch` ignores the sandbox proxy otherwise.
 
-**2. From Netlify's servers (the hit rate that counts):** Retailers treat cloud server addresses more harshly than a home connection, and the nightly refill will run on Netlify. Deploy with base directory `find`, then:
-```bash
-curl -X POST https://<site>.netlify.app/api/spike/verify \
-  -H "x-passcode: $APP_PASSCODE" -H "content-type: application/json" \
-  -d '{"urls":["https://…","https://…"]}'
-```
-Feed it the URLs from a laptop run and compare the outcomes.
+## Deploying (free)
 
-**3. In a Claude Code cloud session:** add the keys as environment variables in the cloud environment's settings and give it broad network access. The verifier has to reach arbitrary retailer domains, so a short allowlist won't do. Then run with `NODE_USE_ENV_PROXY=1 npm run spike`, because Node's `fetch` ignores the sandbox proxy otherwise. Settings: https://code.claude.com/docs/en/cloud-environments#network-access
+Vercel's Hobby plan:
+- Deploys are free and don't count against a credit budget.
+- Cron jobs run once a day, which suits the nightly refill.
+- It's for personal, non-commercial use, which this app is.
 
-## Costs
-
-Modeled estimates are in PHASE0.md: about $1.70–$3.65 per 100 verified cards, depending on the tagging model. A Phase 0 run replaces them with measured numbers. Netlify's free plan is 300 credits a month and **pauses the site when they run out**; each production deploy costs 15.
+`vercel.json` serves `public/` and the functions in `api/`. Phase 1 switches `public/` to the Vite build.
 
 ## Layout
 
 ```
-server/lib/   verify, product-page, gemini, claude, decode-link, photos, vocab, cost  (server-only)
-spike/        Phase 0 runner
-netlify/      functions (spike-verify for now)
-test/         vitest, fixture-based
-public/       placeholder until the Phase 1 Vite build
+api/              Vercel functions (spike.ts for now)
+server/lib/       verify, product-page, gemini, claude, decode-link, photos, vocab, cost (server-only)
+server/lib/feeds/ ebay, etsy, tag-map (rule-based tags), types (PoolCard)
+spike/            Phase 0 steps (shared by CLI and endpoint), runner, report, survey URLs
+test/             vitest, fixture-based
+public/           placeholder until the Phase 1 Vite build
 ```
 
 ## Installing on iPhone
 
-Comes with the PWA phase: Safari → Share → Add to Home Screen. The Share-sheet Shortcut for "Decode a Look" comes with Phase 5. iOS still has no Web Share Target for web apps, so a Shortcut is the only route.
+This comes with the PWA phase: open the Vercel URL in Safari, then Share → Add to Home Screen. The Share-sheet Shortcut for "Decode a Look" comes with Phase 5. iOS still has no Web Share Target for web apps, so a Shortcut is the only route.
