@@ -55,12 +55,12 @@ Affiliate networks approve publishers that have real public audiences, which a p
 
 The deployed self-test passes 12 of 12 checks, so the numbers below come from the code in this repo, not from a bad upload.
 
-**Retailer product pages (33 URLs: 20 real products, 13 traps).**
+**Retailer product pages (33 URLs: 26 real product pages, 7 search or category traps).**
 - **Real products:** 14 of 26 verified (about 54%). Today's recheck after the fixes matched: 3 of the 6 real products in batch B verified.
   - Verify cleanly: Anthropologie, Lulu & Georgia, Target, Walmart, Article. West Elm verifies some of the time.
   - Block servers: Pottery Barn, CB2, Crate & Barrel, RH, Home Depot, Lowe's and Etsy's website. The walls are PerimeterX, DataDome or Akamai. We report these as "blocked" and never try to get past them.
   - Unreadable: Zara Home is a JavaScript app with no product data in the page. Amazon serves cloud servers a stripped page.
-- **Traps:** all 13 search, category and collection pages are now rejected. Earlier, IKEA and Lowe's category pages slipped through as products.
+- **Traps:** all 7 search, category and collection pages are now rejected. Earlier, IKEA and Lowe's category pages slipped through as products.
 - **Prices:** the page states a price on about 57% of verified products. Target, Pottery Barn and West Elm draw the price in the browser, so those cards say "price unavailable" rather than showing a guess.
 
 **LTK post (one real post, 25 tagged items).**
