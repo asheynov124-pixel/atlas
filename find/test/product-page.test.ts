@@ -103,6 +103,33 @@ describe("parseProductPage", () => {
   });
 });
 
+describe("listing pages", () => {
+  const prod = (name: string) => ({ "@type": "Product", name, image: `https://i/${name}.jpg`, offers: { price: "10" } });
+  it("rejects a category page whose JSON-LD is an ItemList of products", () => {
+    const html = page(`<meta property="og:type" content="product.group">${ld({ "@type": "ItemList", itemListElement: [{ "@type": "ListItem", item: prod("A") }, { "@type": "ListItem", item: prod("B") }] })}`);
+    const p = parseProductPage(html, "https://shop.example/lighting/pendants");
+    expect(p.isProduct).toBe(false);
+    expect(p.signals.join()).toMatch(/listing:item list/);
+  });
+  it("rejects listing URLs even when they carry Product markup", () => {
+    const html = page(ld(prod("Avellino Rug")));
+    expect(parseProductPage(html, "https://www.lowes.com/pl/area-rugs/123").isProduct).toBe(false);
+    expect(parseProductPage(html, "https://www.ikea.com/us/en/cat/pendant-lights-18751/").isProduct).toBe(false);
+    expect(parseProductPage(html, "https://www.amazon.com/scalloped-mirror/s?k=x").isProduct).toBe(false);
+  });
+  it("keeps real product URLs that live under listing-looking paths", () => {
+    const html = page(ld(prod("Oak Sideboard")));
+    expect(parseProductPage(html, "https://store.example/collections/storage/products/oak-sideboard").isProduct).toBe(true);
+    expect(parseProductPage(html, "https://www.cb2.com/polo-travertine-table-lamp/s442027").isProduct).toBe(true);
+  });
+  it("a single product with variants and recommendations is still one product", () => {
+    const html = page(
+      `<meta property="og:type" content="product">${ld({ "@type": "ProductGroup", name: "Throw", hasVariant: [prod("Throw Ivory"), prod("Throw Rust"), prod("Throw Sage")] })}${ld([prod("Rec 1"), prod("Rec 2"), prod("Rec 3")])}`,
+    );
+    expect(parseProductPage(html, "https://shop.example/products/throw").isProduct).toBe(true);
+  });
+});
+
 describe("helpers", () => {
   it("toNumber parses prices and rejects zero/garbage", () => {
     expect(toNumber("$1,299.99")).toBe(1299.99);

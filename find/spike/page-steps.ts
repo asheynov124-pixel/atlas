@@ -32,6 +32,7 @@ export async function runLtk(ctx: SpikeContext, url = LTK_URL, verifyLinks = 12)
     products: verified.map((v, i) => ({
       label: decoded.links[i]?.label,
       link: decoded.links[i]?.url,
+      match: decoded.links[i]?.match,
       status: v.status,
       retailer: v.retailer,
       title: v.product?.title,

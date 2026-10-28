@@ -66,8 +66,14 @@ export function parseProductPage(html: string, pageUrl: string): ProductPage {
 
   const availability = ld?.availability ?? normalizeAvailability(meta.get("product:availability") ?? meta.get("og:availability"));
 
+  // Category and search pages often carry product markup for the items they list. A page that
+  // lists several products, or sits at a listing URL, is not one product.
+  const declaredSingle = ld !== null && (ogType === "product" || ogType === "og:product" || ogType === "product.item");
+  const listing = listingReason(root, pageUrl, declaredSingle);
+  if (listing) signals.push(`listing:${listing}`);
+
   return {
-    isProduct: signals.length > 0,
+    isProduct: !listing && signals.length > 0,
     title,
     image,
     price,
@@ -167,7 +173,7 @@ function findNode(
   }
   if (!isObject(data)) return null;
   if (match(data)) return data;
-  for (const key of ["@graph", "mainEntity", "itemListElement", "item"]) {
+  for (const key of ["@graph", "mainEntity"]) {
     if (key in data) {
       const hit = findNode(data[key], match, depth + 1);
       if (hit) return hit;
@@ -190,6 +196,58 @@ function firstImage(image: unknown): string | null {
     }
   }
   return null;
+}
+
+// ---------- listing pages ----------
+
+const LISTING_SEGMENTS = new Set(["pl", "cat", "b", "c", "category", "categories", "collections", "browse", "search", "market", "s", "sb0", "sb1", "sb2", "shop-all", "department"]);
+const PRODUCT_SEGMENTS = new Set(["products", "product", "p", "dp", "ip", "itm", "listing", "pd", "pdp"]);
+
+export function listingReason(root: HTMLElement, pageUrl: string, declaredSingle = false): string | null {
+  try {
+    const { pathname } = new URL(pageUrl);
+    if (/keyword\.php|search\.php/i.test(pathname)) return "search url";
+    const segs = pathname.toLowerCase().split("/").filter(Boolean);
+    for (let i = 0; i < segs.length; i++) {
+      if (LISTING_SEGMENTS.has(segs[i]!) && !segs.slice(i + 1).some((x) => PRODUCT_SEGMENTS.has(x))) return `/${segs[i]}/ url`;
+    }
+  } catch {
+    // unparseable URL: fall through to the markup check
+  }
+  const names = new Set<string>();
+  let listType = false;
+  for (const script of root.querySelectorAll('script[type="application/ld+json"]')) {
+    const data = safeJson(script.textContent);
+    if (data === undefined) continue;
+    walkLd(data, (n) => {
+      if (hasType(n, "ItemList") || hasType(n, "CollectionPage") || hasType(n, "SearchResultsPage")) {
+        if (asArray(n.itemListElement).length >= 2) listType = true;
+      }
+      if (hasType(n, "Product")) names.add(str(n.name) ?? JSON.stringify(n).slice(0, 80));
+    });
+  }
+  // A page that declares itself one product (JSON-LD Product + og:type product) may still embed a
+  // few recommendations; only an explicit item list overrides that.
+  if (listType) return "item list";
+  if (!declaredSingle && names.size >= 3) return `${names.size} products`;
+  return null;
+}
+
+// Visit every JSON-LD node except a product's own variants and its "related" items (one product
+// with five colors and three recommendations is still one product).
+const SKIP_KEYS = new Set(["hasVariant", "isVariantOf", "offers", "isRelatedTo", "isSimilarTo", "isAccessoryOrSparePartFor", "isConsumableFor"]);
+function walkLd(data: unknown, visit: (n: Record<string, unknown>) => void, depth = 0): void {
+  if (depth > 8 || data == null) return;
+  if (Array.isArray(data)) {
+    for (const item of data) walkLd(item, visit, depth + 1);
+    return;
+  }
+  if (!isObject(data)) return;
+  visit(data);
+  for (const [key, value] of Object.entries(data)) {
+    if (SKIP_KEYS.has(key)) continue;
+    if (typeof value === "object") walkLd(value, visit, depth + 1);
+  }
 }
 
 // ---------- microdata ----------

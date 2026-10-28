@@ -30,3 +30,11 @@ describe("tagAgreement", () => {
     expect(score).toBeLessThan(0.8);
   });
 });
+
+describe("deployed selftest", () => {
+  it("passes on this code", async () => {
+    const { runSelftest } = await import("../spike/selftest.js");
+    const r = await runSelftest();
+    expect(r.passed).toBe(12);
+  });
+});

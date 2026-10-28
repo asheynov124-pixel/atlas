@@ -1,5 +1,6 @@
 import { newContext, step, type Outcome } from "../spike/core.js";
 import { runLtk, runSurvey } from "../spike/page-steps.js";
+import { runSelftest } from "../spike/selftest.js";
 import { denied, respond, surveyUrls } from "./_spike.js";
 
 // Phase 0 checks that need no API keys, run from the host's own servers (retailers treat cloud IPs
@@ -7,6 +8,7 @@ import { denied, respond, surveyUrls } from "./_spike.js";
 //
 //   GET /api/pages?token=…&step=survey&urls=<url1>,<url2>   verify up to 20 product pages
 //   GET /api/pages?token=…&step=ltk[&url=…]                 decode one LTK post
+//   GET /api/pages?token=…&step=selftest                    known-answer checks on the deployed code
 
 export async function GET(req: Request): Promise<Response> {
   const url = new URL(req.url);
@@ -19,10 +21,12 @@ export async function GET(req: Request): Promise<Response> {
     const urls = surveyUrls(url);
     if (urls.length === 0) return Response.json({ error: "pass urls=<comma-separated product URLs> (max 20)" }, { status: 400 });
     report.survey = await step(() => runSurvey(urls));
+  } else if (which === "selftest") {
+    report.selftest = await step(runSelftest);
   } else if (which === "ltk") {
     report.ltk = await step(() => runLtk(newContext(), url.searchParams.get("url") ?? undefined));
   } else {
-    return Response.json({ error: 'step must be "survey" or "ltk"' }, { status: 400 });
+    return Response.json({ error: 'step must be "survey", "ltk" or "selftest"' }, { status: 400 });
   }
   return respond(url, report);
 }

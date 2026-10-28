@@ -74,6 +74,14 @@ describe("canonicalize", () => {
       "https://www.shop.example/products/lamp?variant=2",
     );
   });
+  it("drops affiliate hops' params (LTK/Target/Pepperjam)", () => {
+    expect(
+      canonicalize("https://www.target.com/p/x/-/A-1?TCID=AFL-1&afid=LTK&afsrc=1&clkid=2&cpng=PTID3&lnm=8&ref=tgt_adv"),
+    ).toBe("https://www.target.com/p/x/-/A-1");
+    expect(canonicalize("https://www.luluandgeorgia.com/products/v?variant=4&click=5&ar_ad=P&publisher=2")).toBe(
+      "https://www.luluandgeorgia.com/products/v?variant=4",
+    );
+  });
   it("keeps product identifiers", () => {
     expect(canonicalize("https://shop.example/item?pid=12345&utm_medium=x")).toBe("https://shop.example/item?pid=12345");
   });

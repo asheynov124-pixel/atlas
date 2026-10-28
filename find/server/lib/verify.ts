@@ -100,14 +100,15 @@ function looksLikeSoft404(page: FetchedPage, product: ProductPage): boolean {
 }
 
 // Strip tracking so the same product found twice dedupes to one card.
-const TRACKING = /^(utm_|gclid|fbclid|msclkid|irclickid|irgwc|ranmid|ranEAID|ranSiteID|cjevent|affid|ref_|_pos|_sid|_ss|_psq|srsltid|clickid|mc_|igshid|epik)/i;
+const TRACKING = /^(utm_|ar_|gclid|fbclid|msclkid|irclickid|irgwc|ranmid|ranEAID|ranSiteID|cjevent|affid|ref_|_pos|_sid|_ss|_psq|srsltid|clickid|mc_|igshid|epik)/i;
+const TRACKING_KEYS = new Set(["click", "publisher", "afid", "afsrc", "clkid", "cpng", "lnm", "tcid", "ref", "li", "lpm", "pt"]);
 
 export function canonicalize(u: string): string {
   try {
     const url = new URL(u);
     url.hash = "";
     url.hostname = url.hostname.toLowerCase().replace(/^m\./, "www.");
-    for (const key of [...url.searchParams.keys()]) if (TRACKING.test(key)) url.searchParams.delete(key);
+    for (const key of [...url.searchParams.keys()]) if (TRACKING.test(key) || TRACKING_KEYS.has(key.toLowerCase())) url.searchParams.delete(key);
     url.searchParams.sort();
     if (url.pathname.length > 1) url.pathname = url.pathname.replace(/\/+$/, "");
     let s = url.toString();

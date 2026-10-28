@@ -11,6 +11,8 @@ export interface LinkCandidate {
   url: string;
   label: string | null;
   via: "embedded-json" | "anchor" | "raw-url";
+  // LTK marks each tagged item as the exact product or a similar one (rstyle.me "lpm" param).
+  match: "exact" | "similar" | null;
 }
 
 export interface DecodedLink {
@@ -59,7 +61,8 @@ export function decodeLinkPage(html: string, pageUrl: string, maxLinks = 25): De
     const url = normalizeUrl(raw, pageUrl);
     if (!url || !isShoppingLink(url)) return;
     const prev = found.get(url);
-    if (!prev || (!prev.label && label)) found.set(url, { url, label: label ?? prev?.label ?? null, via: prev?.via ?? via });
+    if (!prev || (!prev.label && label))
+      found.set(url, { url, label: label ?? prev?.label ?? null, via: prev?.via ?? via, match: matchKind(url) });
   };
 
   // 1) Embedded JSON state (Next/Nuxt/etc.): walk for objects that pair a link with a name.
@@ -88,7 +91,8 @@ export function decodeLinkPage(html: string, pageUrl: string, maxLinks = 25): De
   return {
     pageUrl,
     title: clean(meta.get("og:title") ?? root.querySelector("title")?.text ?? null),
-    caption: clean(meta.get("og:description") ?? meta.get("description") ?? null),
+    // Creator platforms often put a generic line in og:description and the real caption in page state.
+    caption: embeddedCaption(unescaped) ?? clean(meta.get("og:description") ?? meta.get("description") ?? null),
     coverImage: meta.get("og:image") ?? meta.get("twitter:image") ?? null,
     author: clean(meta.get("author") ?? meta.get("article:author") ?? meta.get("twitter:creator") ?? null),
     isItselfAProduct: findJsonLdProduct(root) !== null || (meta.get("og:type") ?? "").includes("product"),
@@ -145,6 +149,25 @@ export function maybeUnflatten(data: unknown): unknown {
     return v;
   };
   return hydrate(0, 0);
+}
+
+function matchKind(u: string): LinkCandidate["match"] {
+  try {
+    const lpm = new URL(u).searchParams.get("lpm")?.toUpperCase();
+    return lpm === "EXACT" ? "exact" : lpm === "SIMILAR" ? "similar" : null;
+  } catch {
+    return null;
+  }
+}
+
+export function embeddedCaption(html: string): string | null {
+  const m = html.match(/"caption"\s*:\s*"((?:[^"\\]|\\.){10,2000})"/);
+  if (!m) return null;
+  try {
+    return clean(JSON.parse(`"${m[1]}"`) as string);
+  } catch {
+    return null;
+  }
 }
 
 function isShoppingLink(u: string): boolean {

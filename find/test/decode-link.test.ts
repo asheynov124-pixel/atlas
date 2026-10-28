@@ -24,7 +24,8 @@ describe("decodeLinkPage", () => {
       <script id="__NEXT_DATA__" type="application/json">${JSON.stringify(next)}</script>
     </head><body></body></html>`;
     const d = decodeLinkPage(html, "https://www.shopltk.com/explore/tonedelements/posts/1");
-    expect(d.caption).toBe("Fall living room refresh 🍂");
+    // The caption in page state wins over og:description (which creator platforms often make generic).
+    expect(d.caption).toBe("Fall living room refresh");
     expect(d.coverImage).toBe("https://cdn.example/cover.jpg");
     expect(d.links.map((l) => l.url)).toEqual(["https://rstyle.me/+abc123", "https://liketk.it/4xyz"]);
     expect(d.links[0]?.label).toBe("Target");
@@ -37,7 +38,7 @@ describe("decodeLinkPage", () => {
     expect(maybeUnflatten(flat)).toEqual({ data: [{ name: "Oak sideboard", link: "https://www.example-store.com/products/oak-sideboard" }] });
     const html = `<html><head><script type="application/json" id="__NUXT_DATA__">${JSON.stringify(flat)}</script></head></html>`;
     const d = decodeLinkPage(html, "https://blog.example/post");
-    expect(d.links).toEqual([{ url: "https://www.example-store.com/products/oak-sideboard", label: "Oak sideboard", via: "embedded-json" }]);
+    expect(d.links).toEqual([{ url: "https://www.example-store.com/products/oak-sideboard", label: "Oak sideboard", via: "embedded-json", match: null }]);
   });
 
   it("finds affiliate URLs inside escaped inline script and product anchors in the body", () => {
@@ -58,5 +59,16 @@ describe("decodeLinkPage", () => {
   it("recognizes when the pasted link is itself a product page", () => {
     const html = `<html><head><meta property="og:type" content="product"></head></html>`;
     expect(decodeLinkPage(html, "https://shop.example/products/x").isItselfAProduct).toBe(true);
+  });
+});
+
+describe("LTK specifics", () => {
+  it("reads exact vs similar from rstyle.me links and the caption from page state", () => {
+    const html = `<html><head><meta property="og:description" content="Shop the latest from x on LTK"></head><body><script>
+      window.__S={"post":{"caption":"Cozy fall living room \\u2014 linen + brass","items":["https:\\u002F\\u002Frstyle.me\\u002F+abc?li=1&lpm=EXACT&pt=timeline","https:\\u002F\\u002Frstyle.me\\u002F+def?li=1&lpm=SIMILAR"]}}
+    </script></body></html>`;
+    const d = decodeLinkPage(html, "https://www.shopltk.com/explore/x/posts/1");
+    expect(d.caption).toBe("Cozy fall living room — linen + brass");
+    expect(d.links.map((l) => l.match)).toEqual(["exact", "similar"]);
   });
 });

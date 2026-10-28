@@ -49,6 +49,13 @@ export async function fetchPage(
         continue;
       }
       const html = await readCapped(res);
+      // Affiliate interstitials (rstyle.me and similar) answer 200 and redirect in the browser.
+      const onward = res.ok && html.length < 60_000 ? extractClientRedirect(html, current) : null;
+      if (onward && onward !== current) {
+        redirects.push(current);
+        current = onward;
+        continue;
+      }
       return {
         requestedUrl: url,
         finalUrl: current,
@@ -85,6 +92,25 @@ export async function resolveRedirects(url: string, timeoutMs = 8_000): Promise<
     return current;
   }
   return current;
+}
+
+// A meta refresh or a one-line location assignment, as used by redirect interstitials.
+// Only consulted for small pages, so ordinary pages with navigation scripts aren't misread.
+export function extractClientRedirect(html: string, base: string): string | null {
+  const refresh =
+    html.match(/<meta[^>]+http-equiv=["']?refresh["']?[^>]*content=["']?\s*\d+\s*;\s*url=['"]?([^"'>\s]+)/i) ??
+    html.match(/<meta[^>]+content=["']?\s*\d+\s*;\s*url=['"]?([^"'>\s]+)[^>]*http-equiv=["']?refresh/i);
+  const script =
+    html.match(/location\.replace\(\s*["']([^"']+)["']\s*\)/) ??
+    html.match(/(?:window\.|document\.)?location(?:\.href)?\s*=\s*["']([^"']+)["']/);
+  const raw = refresh?.[1] ?? script?.[1];
+  if (!raw) return null;
+  try {
+    const u = new URL(raw.replace(/&amp;/g, "&"), base);
+    return u.protocol === "https:" || u.protocol === "http:" ? u.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 async function readCapped(res: Response): Promise<string> {
