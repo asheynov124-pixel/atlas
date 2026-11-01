@@ -1,0 +1,83 @@
+.stage {
+  position: fixed;
+  inset: 0;
+  background: var(--desk);
+  overflow: hidden;
+}
+
+/* desktop: centre the spread, leave room for chrome */
+@media (min-width: 820px) and (min-aspect-ratio: 1/1) {
+  .stage {
+    display: grid;
+    place-items: center;
+    padding: var(--chrome-top, 56px) 56px var(--chrome-bottom, 64px);
+  }
+  .spreadBox {
+    position: relative;
+    width: min(100%, calc((100dvh - var(--chrome-top, 56px) - var(--chrome-bottom, 64px)) * 1.5));
+    aspect-ratio: 3 / 2;
+  }
+  .spreadBox > * {
+    position: absolute;
+    inset: 0;
+  }
+}
+
+/* phone: a vertical, snapping scroll of pages */
+@media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .stage {
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+  .spreadBox {
+    display: contents;
+  }
+}
+
+.edgeButton {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 56px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.edgeButton:hover,
+.edgeButton:focus-visible,
+.stage:hover .edgeButton {
+  opacity: 1;
+}
+
+.edgeButton[disabled] {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+.edgeButton[data-dir='prev'] {
+  left: 0;
+}
+
+.edgeButton[data-dir='next'] {
+  right: 0;
+}
+
+.edgeButton svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.25;
+}
+
+@media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .edgeButton {
+    display: none;
+  }
+}

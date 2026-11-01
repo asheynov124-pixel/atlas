@@ -1,0 +1,13 @@
+node_modules
+dist
+dev-dist
+.DS_Store
+*.log
+playwright-report
+test-results
+.netlify
+# photos: originals and generated variants are produced by import-photos
+content/photos/*
+!content/photos/README.md
+public/photos/*
+!public/photos/.gitkeep

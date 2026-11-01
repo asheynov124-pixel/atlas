@@ -1,0 +1,64 @@
+/* Design tokens. Colour values are overwritten at runtime from book.theme. */
+:root {
+  --paper: #f5f1ea;
+  --ink: #1f1d1a;
+  --muted: #6f6a63;
+  --sage: #8a9a7b;
+  --olive: #5e6b4a;
+  --oak: #b08b5e;
+  --clay: #b0452a;
+  --hairline: #d9d2c7;
+
+  /* derived */
+  --paper-2: color-mix(in oklab, var(--paper) 94%, var(--ink));
+  --paper-3: color-mix(in oklab, var(--paper) 88%, var(--ink));
+  --desk: color-mix(in oklab, var(--paper) 86%, var(--ink));
+  --ink-soft: color-mix(in oklab, var(--ink) 80%, var(--paper));
+  --scrim: rgba(20, 18, 14, 0.55);
+  --shadow-ink: 31, 29, 26;
+
+  --font-display: 'Instrument Serif', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-text: 'Newsreader Variable', 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  --font-ui: 'Inter Variable', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-hand: 'Caveat Variable', 'Caveat', 'Bradley Hand', cursive;
+
+  /* type scale, phone defaults; the spread container overrides for desktop */
+  --text: 16.5px;
+  --text-lead: 1.5;
+  --small: 14px;
+  --label: 11px;
+  --label-track: 0.08em;
+  --title: 40px;
+  --display: 56px;
+  --numeral: 112px;
+  --quote: 26px;
+  --hand: 20px;
+
+  --ease-page: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur-page: 520ms;
+
+  --radius-ui: 2px;
+
+  color-scheme: light;
+}
+
+:root[data-theme='night'] {
+  --paper: #14130f;
+  --ink: #ede8df;
+  --muted: #a49c90;
+  --hairline: #2c2923;
+  --paper-2: color-mix(in oklab, var(--paper) 90%, var(--ink));
+  --paper-3: color-mix(in oklab, var(--paper) 82%, var(--ink));
+  --desk: #0b0a08;
+  --scrim: rgba(0, 0, 0, 0.6);
+  --shadow-ink: 0, 0, 0;
+  color-scheme: dark;
+}
+
+/* Accent colours per chapter, set by the Spread. */
+.accent-sage { --accent: var(--sage); }
+.accent-olive { --accent: var(--olive); }
+.accent-oak { --accent: var(--oak); }
+.accent-clay { --accent: var(--clay); }
+.accent-ink { --accent: var(--ink-soft); }
+.accent-muted { --accent: var(--muted); }

@@ -1,0 +1,326 @@
+/* ------------------------------------------------------------------ */
+/* The spread: two facing pages on a desk, or a stack of pages on a phone */
+/* ------------------------------------------------------------------ */
+
+.spread {
+  position: relative;
+  container-type: inline-size;
+  container-name: spread;
+  width: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  isolation: isolate;
+}
+
+.spread[data-bleed='true'] {
+  overflow: hidden;
+}
+
+/* --- desktop: a landscape spread at 3:2 ----------------------------- */
+@media (min-width: 820px) and (min-aspect-ratio: 1/1) {
+  .spread {
+    aspect-ratio: 3 / 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    /* a bound book: a page block on each fore-edge, then the shadow it casts */
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--ink) 12%, transparent),
+      -2px 1px 0 0 var(--paper-2),
+      -3px 1px 0 0 color-mix(in oklab, var(--ink) 14%, transparent),
+      -5px 2px 0 0 var(--paper-2),
+      -6px 2px 0 0 color-mix(in oklab, var(--ink) 12%, transparent),
+      2px 1px 0 0 var(--paper-2),
+      3px 1px 0 0 color-mix(in oklab, var(--ink) 14%, transparent),
+      5px 2px 0 0 var(--paper-2),
+      6px 2px 0 0 color-mix(in oklab, var(--ink) 12%, transparent),
+      0 1px 2px rgba(var(--shadow-ink), 0.1),
+      0 18px 50px -18px rgba(var(--shadow-ink), 0.42),
+      0 60px 120px -40px rgba(var(--shadow-ink), 0.3);
+    --m-outer: 5cqw;
+    --m-inner: 3.4cqw;
+    --m-top: 4.8cqw;
+    --m-bottom: 4.8cqw;
+    --text: clamp(16px, 1.5cqw, 19px);
+    --small: clamp(12.5px, 1.18cqw, 15px);
+    --label: clamp(10px, 0.92cqw, 12px);
+    --title: clamp(32px, 4.2cqw, 60px);
+    --display: clamp(44px, 6.4cqw, 92px);
+    --numeral: clamp(96px, 15cqw, 220px);
+    --quote: clamp(22px, 2.5cqw, 36px);
+    --hand: clamp(16px, 1.6cqw, 22px);
+  }
+
+  .spread[data-bleed='true'] {
+    display: block;
+  }
+
+
+  /* gutter */
+  .spread[data-bleed='false']::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 9%;
+    transform: translateX(-50%);
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(var(--shadow-ink), 0.035) 40%,
+      rgba(var(--shadow-ink), 0.12) 50%,
+      rgba(var(--shadow-ink), 0.035) 60%,
+      transparent 100%
+    );
+    pointer-events: none;
+    z-index: 5;
+  }
+}
+
+/* --- phone: pages become snapping panels --------------------------- */
+@media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .spread[data-bleed='false'] {
+    display: contents;
+  }
+  .spread[data-bleed='true'] {
+    min-height: 100dvh;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+  .spread {
+    --m-outer: 7vw;
+    --m-inner: 7vw;
+    --m-top: calc(env(safe-area-inset-top, 0px) + 56px);
+    --m-bottom: calc(env(safe-area-inset-bottom, 0px) + 56px);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* A page                                                              */
+/* ------------------------------------------------------------------ */
+
+.page {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-rows: min-content;
+  column-gap: 1.4cqw;
+  align-content: start;
+  padding: var(--m-top) var(--m-inner) var(--m-bottom) var(--m-outer);
+  background: var(--paper);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.page[data-side='right'] {
+  padding-left: var(--m-inner);
+  padding-right: var(--m-outer);
+}
+
+.page[data-fill='true'] {
+  align-content: stretch;
+}
+
+@media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .page {
+    min-height: 100dvh;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    padding-left: var(--m-outer);
+    padding-right: var(--m-outer);
+    column-gap: 3vw;
+    overflow: visible;
+  }
+}
+
+/* running head + folio */
+.runningHead {
+  position: absolute;
+  top: calc(var(--m-top) * 0.4);
+  left: var(--m-outer);
+  right: var(--m-inner);
+  display: flex;
+  justify-content: flex-start;
+  align-items: baseline;
+  gap: 1em;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.page[data-side='right'] .runningHead {
+  left: var(--m-inner);
+  right: var(--m-outer);
+  justify-content: flex-end;
+}
+
+.folio {
+  position: absolute;
+  bottom: calc(var(--m-bottom) * 0.42);
+  left: var(--m-outer);
+  font-family: var(--font-text);
+  font-size: var(--small);
+  font-feature-settings: 'lnum', 'tnum';
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.page[data-side='right'] .folio {
+  left: auto;
+  right: var(--m-outer);
+}
+
+@media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .runningHead {
+    top: calc(env(safe-area-inset-top, 0px) + 22px);
+    left: var(--m-outer);
+    right: var(--m-outer);
+    justify-content: space-between;
+  }
+  .page[data-side='right'] .runningHead {
+    left: var(--m-outer);
+    right: var(--m-outer);
+  }
+  .folio {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
+    left: auto;
+    right: var(--m-outer);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Placeholder plates                                                  */
+/* ------------------------------------------------------------------ */
+
+.placeholder {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  color: var(--paper);
+  background:
+    linear-gradient(160deg, color-mix(in oklab, var(--accent, var(--sage)) 78%, var(--ink) 6%) 0%, color-mix(in oklab, var(--accent, var(--sage)) 58%, var(--paper)) 100%);
+}
+
+.placeholder::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--noise);
+  background-size: 220px 220px;
+  opacity: 0.16;
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+
+.placeholder::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0 1px, transparent 1px 34px),
+    radial-gradient(120% 100% at 100% 100%, rgba(0, 0, 0, 0.18), transparent 55%);
+  pointer-events: none;
+}
+
+.placeholderFrame {
+  position: absolute;
+  inset: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  pointer-events: none;
+}
+
+.placeholderLabel {
+  position: absolute;
+  left: 22px;
+  bottom: 20px;
+  right: 22px;
+  color: rgba(255, 255, 255, 0.92);
+  font-family: var(--font-ui);
+  font-size: var(--label);
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  line-height: 1.4;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
+  display: flex;
+  gap: 1em;
+  align-items: baseline;
+  z-index: 1;
+}
+
+.placeholderLabel .fig {
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+.placeholder[data-plain='true'] .placeholderFrame {
+  display: none;
+}
+
+.placeholder[data-size='small'] .placeholderFrame {
+  inset: 8px;
+}
+
+.placeholder[data-size='small'] .placeholderLabel {
+  left: 14px;
+  right: 14px;
+  bottom: 12px;
+  font-size: calc(var(--label) * 0.9);
+}
+
+.placeholder[data-size='tiny'] .placeholderFrame {
+  inset: 5px;
+}
+
+.placeholder[data-size='tiny'] .placeholderLabel {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Plates (real images)                                                */
+/* ------------------------------------------------------------------ */
+
+.plate {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--paper-2);
+}
+
+.plate img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.plate[data-fit='contain'] {
+  background: var(--paper-2);
+}
+
+.plate[data-fit='contain'] img {
+  object-fit: contain;
+}
+
+.plate[data-framed='true'] {
+  padding: 4%;
+}
+
+.plate[data-framed='true'] img {
+  object-fit: contain;
+  box-shadow: 0 0 0 1px var(--hairline);
+}
+
+.plateNote {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  padding: 4px 8px;
+  background: color-mix(in oklab, var(--paper) 92%, transparent);
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: var(--label);
+  letter-spacing: 0.04em;
+  border: 1px solid var(--hairline);
+}

@@ -1,0 +1,45 @@
+/* Paper: the thing that makes it a book and not a web page. */
+
+:root {
+  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.paper {
+  position: relative;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.paper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--noise);
+  background-size: 220px 220px;
+  opacity: 0.028;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: 0;
+}
+
+:root[data-theme='night'] .paper::before {
+  mix-blend-mode: screen;
+  opacity: 0.045;
+}
+
+.paper > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Sage endpapers */
+.endpaper {
+  background:
+    radial-gradient(120% 80% at 50% 110%, color-mix(in oklab, var(--sage) 85%, var(--ink)) 0%, transparent 60%),
+    var(--sage);
+  color: var(--paper);
+}
+
+.endpaper::before {
+  opacity: 0.08;
+}

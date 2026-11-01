@@ -1,0 +1,219 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+body {
+  margin: 0;
+  background: var(--desk);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: var(--text);
+  line-height: var(--text-lead);
+  font-feature-settings: 'kern', 'liga', 'onum';
+  hanging-punctuation: first last;
+}
+
+img,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+  text-decoration-color: color-mix(in oklab, var(--ink) 40%, transparent);
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+figure,
+blockquote {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--sage) 45%, var(--paper));
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- Editorial type utilities --------------------------------------- */
+
+.t-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.012em;
+  line-height: 0.98;
+  font-feature-settings: 'kern', 'liga', 'lnum';
+}
+
+.t-label {
+  font-family: var(--font-ui);
+  font-size: var(--label);
+  font-weight: 500;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  line-height: 1.3;
+  color: var(--muted);
+  font-feature-settings: 'kern', 'cpsp', 'tnum';
+}
+
+.t-small {
+  font-size: var(--small);
+  line-height: 1.45;
+}
+
+.t-caption {
+  font-family: var(--font-text);
+  font-size: var(--small);
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.t-caption .fig {
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  font-size: calc(var(--label) + 0.5px);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 0.6em;
+  font-feature-settings: 'tnum';
+}
+
+.t-hand {
+  font-family: var(--font-hand);
+  font-size: var(--hand);
+  line-height: 1.25;
+  font-weight: 500;
+}
+
+.t-body p + p {
+  margin-top: 0;
+  text-indent: 1.4em;
+}
+
+.t-body p {
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  hanging-punctuation: first;
+}
+
+.t-body a {
+  text-decoration-color: color-mix(in oklab, var(--clay) 70%, transparent);
+}
+
+.t-body blockquote {
+  font-family: var(--font-display);
+  font-size: calc(var(--text) * 1.35);
+  line-height: 1.2;
+  margin: 0.7em 0;
+  padding-left: 0;
+  text-indent: 0;
+  hanging-punctuation: first;
+}
+
+.t-dropcap > p:first-child::first-letter {
+  font-family: var(--font-display);
+  float: left;
+  font-size: calc(var(--text) * 4.35);
+  line-height: 0.78;
+  padding-top: 0.09em;
+  padding-right: 0.08em;
+  margin-left: -0.02em;
+  color: var(--accent, var(--ink));
+}
+
+.hairline {
+  border: 0;
+  border-top: 1px solid var(--hairline);
+  margin: 0;
+}
+
+/* Reduced motion: the whole app honours this via the useReducedMotion hook,
+   and these rules catch any CSS transitions. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Ken Burns for chapter openers: transform only, slow, reversible. */
+@keyframes ken-burns {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.06) translate3d(-1%, -0.6%, 0);
+  }
+}
+
+.ken-burns img {
+  animation: ken-burns 22s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/* Empty text slots in edit mode show a quiet prompt. */
+.is-empty[data-placeholder]::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+  font-style: italic;
+  opacity: 0.7;
+}

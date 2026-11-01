@@ -1,0 +1,114 @@
+.root {
+  position: relative;
+  width: 100%;
+  color: var(--paper);
+  overflow: hidden;
+}
+
+@media (min-width: 820px) and (min-aspect-ratio: 1/1) {
+  .root {
+    height: 100%;
+  }
+}
+
+@media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .root {
+    min-height: 100dvh;
+  }
+}
+
+.hero {
+  position: absolute;
+  inset: 0;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.14) 40%, transparent 70%);
+  pointer-events: none;
+}
+
+.numeral {
+  position: absolute;
+  left: 5cqw;
+  top: 2.6cqw;
+  font-size: var(--numeral);
+  line-height: 0.82;
+  color: rgba(255, 255, 255, 0.9);
+  font-feature-settings: 'lnum';
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.numeral[data-word='true'] {
+  font-size: calc(var(--display) * 0.9);
+  font-style: italic;
+  top: 4.4cqw;
+}
+
+.block {
+  position: absolute;
+  left: 5cqw;
+  right: 5cqw;
+  bottom: 5.4cqw;
+  display: grid;
+  gap: 1.2cqw;
+  max-width: 62cqw;
+}
+
+.kicker {
+  color: rgba(255, 255, 255, 0.82);
+  letter-spacing: 0.12em;
+}
+
+.title {
+  font-size: var(--display);
+  color: var(--paper);
+  text-wrap: balance;
+  max-width: 14ch;
+}
+
+.epigraph {
+  font-family: var(--font-text);
+  font-style: italic;
+  font-size: var(--quote);
+  line-height: 1.25;
+  max-width: 30ch;
+  hanging-punctuation: first;
+  opacity: 0.95;
+}
+
+.rule {
+  width: 6cqw;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.6);
+  margin: 0.4cqw 0;
+}
+
+@media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .numeral {
+    left: 24px;
+    top: calc(env(safe-area-inset-top, 0px) + 36px);
+    font-size: 132px;
+  }
+  .numeral[data-word='true'] {
+    font-size: 44px;
+    top: calc(env(safe-area-inset-top, 0px) + 56px);
+  }
+  .block {
+    left: 24px;
+    right: 24px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 56px);
+    gap: 12px;
+    max-width: none;
+  }
+  .title {
+    font-size: 52px;
+  }
+  .epigraph {
+    font-size: 21px;
+  }
+  .rule {
+    width: 44px;
+  }
+}

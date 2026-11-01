@@ -1,0 +1,52 @@
+.root {
+  min-height: 100%;
+  padding: 64px clamp(20px, 6vw, 120px) 120px;
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  gap: 48px;
+}
+
+.section {
+  display: grid;
+  gap: 18px;
+  padding-top: 24px;
+  border-top: 1px solid var(--hairline);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 24px;
+  align-items: baseline;
+}
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+}
+
+.swatch {
+  display: grid;
+  gap: 8px;
+}
+
+.swatch > div {
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--hairline);
+}
+
+.sampleBody {
+  max-width: 62ch;
+}
+
+.plates {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+
+.plates > div {
+  aspect-ratio: 3 / 2;
+}

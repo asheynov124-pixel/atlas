@@ -1,0 +1,118 @@
+.head {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 1.1cqw;
+  margin-bottom: 2.6cqw;
+}
+
+.kicker {
+  color: var(--accent, var(--muted));
+}
+
+.title {
+  font-size: var(--title);
+  max-width: 18ch;
+  text-wrap: balance;
+  color: var(--ink);
+}
+
+.rule {
+  margin-top: 0.4cqw;
+}
+
+.body {
+  grid-column: 1 / -1;
+  column-count: 2;
+  column-gap: 2.4cqw;
+  column-fill: balance;
+  font-size: var(--text);
+  line-height: var(--text-lead);
+  orphans: 2;
+  widows: 2;
+}
+
+.body:global(.is-empty) {
+  min-height: 6em;
+}
+
+.body > :global(p) {
+  break-inside: avoid-column;
+}
+
+.quote {
+  grid-column: 2 / span 10;
+  align-self: start;
+  margin-top: 4cqw;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: calc(var(--quote) * 1.25);
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  hanging-punctuation: first last;
+  text-wrap: balance;
+}
+
+.quote::before {
+  content: '';
+  display: block;
+  width: 5cqw;
+  height: 1px;
+  background: var(--accent, var(--hairline));
+  margin-bottom: 1.6cqw;
+}
+
+.quote:global(.is-empty) {
+  display: none;
+}
+
+.aside {
+  grid-column: 6 / -1;
+  align-self: end;
+  margin-top: auto;
+  display: grid;
+  gap: 0.9cqw;
+}
+
+.asidePlate {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+}
+
+.caption {
+  display: flex;
+  gap: 0.7em;
+  align-items: baseline;
+}
+
+/* right page: push the aside to the bottom */
+.right {
+  grid-template-rows: auto 1fr auto;
+}
+
+@media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .head {
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+  .body {
+    column-count: 1;
+  }
+  .quote {
+    grid-column: 1 / -1;
+    margin-top: 12px;
+    font-size: 30px;
+  }
+  .quote::before {
+    width: 40px;
+    margin-bottom: 16px;
+  }
+  .aside {
+    grid-column: 3 / -1;
+    margin-top: 32px;
+    gap: 8px;
+  }
+  .right {
+    grid-template-rows: auto auto 1fr auto;
+  }
+}
