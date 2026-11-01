@@ -24,3 +24,8 @@ export function useFigure(slotKey: string): string | undefined {
   const { ref, figures } = useSpread();
   return figures.get(`${ref.spread.id}:${slotKey}`);
 }
+
+/** Figure number for a slot, usable before the provider mounts (templates own their Spread). */
+export function figureOf(ctx: SpreadCtx, slotKey: string): string | undefined {
+  return ctx.figures.get(`${ctx.ref.spread.id}:${slotKey}`);
+}

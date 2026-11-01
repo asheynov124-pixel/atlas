@@ -26,6 +26,10 @@ interface UiState {
   author: Author | null;
   /** Current spread index, mirrored from the route. */
   spreadIndex: number;
+  /** Phone only: chrome shows after a tap on the page. */
+  chromeVisible: boolean;
+  toggleChrome: () => void;
+  setChromeVisible: (v: boolean) => void;
   setMode: (m: Mode) => void;
   setTheme: (t: ThemeName) => void;
   setAuthor: (a: Author | null) => void;
@@ -37,6 +41,9 @@ export const useUiStore = create<UiState>()((set) => ({
   theme: read<ThemeName>('sb.theme', 'day'),
   author: read<Author | null>('sb.author', null),
   spreadIndex: 0,
+  chromeVisible: false,
+  toggleChrome: () => set((s) => ({ chromeVisible: !s.chromeVisible })),
+  setChromeVisible: (chromeVisible) => set({ chromeVisible }),
   setMode: (mode) => set({ mode }),
   setTheme: (theme) => {
     write('sb.theme', theme);

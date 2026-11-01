@@ -95,6 +95,60 @@
   }
 }
 
+/* spanning content (both pages, inside the margins) */
+.span {
+  position: absolute;
+  top: var(--m-top);
+  bottom: var(--m-bottom);
+  left: var(--m-outer);
+  right: var(--m-outer);
+  z-index: 4;
+  min-width: 0;
+}
+
+.phoneHead,
+.phoneFolio {
+  display: none;
+}
+
+@media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .spread[data-phone-single='true'] {
+    display: block;
+    position: relative;
+    min-height: 100dvh;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    padding: var(--m-top) var(--m-outer) var(--m-bottom);
+    background: var(--paper);
+  }
+  .spread[data-phone-single='true'] .page {
+    display: none;
+  }
+  .span {
+    position: relative;
+    inset: auto;
+    z-index: auto;
+  }
+  .phoneHead {
+    position: absolute;
+    top: calc(-1 * var(--m-top) + env(safe-area-inset-top, 0px) + 22px);
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+  }
+  .phoneFolio {
+    display: block;
+    position: absolute;
+    right: 0;
+    bottom: calc(-1 * var(--m-bottom) + env(safe-area-inset-bottom, 0px) + 22px);
+    font-size: var(--small);
+    color: var(--muted);
+    font-feature-settings: 'lnum', 'tnum';
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* A page                                                              */
 /* ------------------------------------------------------------------ */

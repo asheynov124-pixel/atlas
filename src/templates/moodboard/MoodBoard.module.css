@@ -1,0 +1,105 @@
+.board {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(color-mix(in oklab, var(--hairline) 45%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, var(--hairline) 45%, transparent) 1px, transparent 1px);
+  background-size: 5% 5%;
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+
+.title {
+  position: absolute;
+  left: 0;
+  top: calc(-1 * var(--m-top) + var(--m-top) * 0.4 + 1.4em);
+  display: flex;
+  gap: 1.2em;
+  align-items: baseline;
+}
+
+.el {
+  position: absolute;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.image {
+  padding: 2.5%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 8px 20px -8px rgba(0, 0, 0, 0.3);
+}
+
+.image > * {
+  width: 100%;
+  height: 100%;
+}
+
+.swatch {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15), inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+  display: grid;
+  align-content: end;
+  padding: 6%;
+}
+
+.swatchHex {
+  font-size: calc(var(--label) * 0.85);
+  letter-spacing: 0.06em;
+  mix-blend-mode: multiply;
+  opacity: 0.7;
+}
+
+.text {
+  font-family: var(--font-display);
+  font-size: calc(var(--quote) * 0.95);
+  line-height: 1.12;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.note {
+  padding: 5% 7%;
+  font-family: var(--font-hand);
+  font-size: var(--hand);
+  line-height: 1.2;
+  color: var(--ink);
+  background: #f3e7b3;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 6px 14px -6px rgba(0, 0, 0, 0.3);
+}
+
+.note[data-author='sonny'] {
+  background: #f3d9cc;
+}
+
+.note[data-author='adi'] {
+  background: #dfe4cf;
+}
+
+.noteAuthor {
+  display: block;
+  margin-top: 0.3em;
+  font-family: var(--font-ui);
+  font-size: calc(var(--label) * 0.85);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+@media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .board {
+    aspect-ratio: 3 / 4;
+    height: auto;
+  }
+  .title {
+    position: static;
+    margin-bottom: 12px;
+  }
+  .text {
+    font-size: 18px;
+  }
+  .note {
+    font-size: 16px;
+  }
+}

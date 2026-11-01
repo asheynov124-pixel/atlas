@@ -1,0 +1,121 @@
+.table {
+  grid-column: 1 / -1;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: calc(var(--text) * 0.95);
+  font-feature-settings: 'lnum', 'tnum';
+}
+
+.table th {
+  text-align: left;
+  padding: 0 0 0.6cqw;
+  border-bottom: 1px solid var(--ink);
+  font-weight: 500;
+}
+
+.table td {
+  padding: 0.85cqw 0;
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: baseline;
+}
+
+.table th:last-child,
+.table td:last-child,
+.num {
+  text-align: right;
+}
+
+.note {
+  display: block;
+  color: var(--muted);
+  font-size: var(--small);
+  font-style: italic;
+  margin-top: 0.15em;
+}
+
+.statusCell {
+  white-space: nowrap;
+}
+
+.status {
+  color: var(--muted);
+}
+
+.status[data-status='ordered'],
+.status[data-status='received'],
+.status[data-status='installed'] {
+  color: var(--accent, var(--olive));
+}
+
+.retailer {
+  color: var(--muted);
+}
+
+.total {
+  grid-column: 1 / -1;
+  align-self: end;
+  display: grid;
+  gap: 0.6cqw;
+  padding-top: 1.2cqw;
+  border-top: 1px solid var(--ink);
+}
+
+.totalNum {
+  font-size: var(--display);
+  line-height: 1;
+  font-feature-settings: 'lnum', 'tnum';
+}
+
+.totalMeta {
+  color: var(--muted);
+  display: flex;
+  gap: 1.4em;
+  flex-wrap: wrap;
+}
+
+.counts {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1cqw;
+  margin-top: 1cqw;
+}
+
+.count {
+  display: grid;
+  gap: 0.3cqw;
+  padding-top: 0.8cqw;
+  border-top: 1px solid var(--hairline);
+}
+
+.count b {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--title);
+  line-height: 1;
+  font-feature-settings: 'lnum';
+}
+
+.empty {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-style: italic;
+}
+
+@media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .table th,
+  .table td {
+    padding: 10px 0;
+  }
+  .retailerCol {
+    display: none;
+  }
+  .total {
+    gap: 8px;
+    padding-top: 14px;
+  }
+  .counts {
+    gap: 12px;
+    margin-top: 14px;
+  }
+}

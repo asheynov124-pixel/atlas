@@ -21,6 +21,22 @@
     position: absolute;
     inset: 0;
   }
+  .turn {
+    position: absolute;
+    inset: 0;
+    will-change: transform, opacity;
+    transform-origin: 50% 50%;
+  }
+  .turn > * {
+    position: absolute;
+    inset: 0;
+  }
+  .shade {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 30;
+  }
 }
 
 /* phone: a vertical, snapping scroll of pages */

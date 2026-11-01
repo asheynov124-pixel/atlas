@@ -1,0 +1,55 @@
+.page.page {
+  color: var(--paper);
+  background:
+    radial-gradient(120% 80% at 50% 110%, color-mix(in oklab, var(--sage) 85%, var(--ink)) 0%, transparent 60%),
+    var(--sage);
+}
+
+.page.page::before {
+  opacity: 0.08;
+}
+
+.dedication {
+  grid-column: 2 / span 10;
+  align-self: center;
+  margin-top: 30%;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: calc(var(--quote) * 1.15);
+  line-height: 1.25;
+  text-wrap: balance;
+  color: var(--paper);
+  max-width: 24ch;
+}
+
+.dedication::before {
+  content: '';
+  display: block;
+  width: 4cqw;
+  height: 1px;
+  background: color-mix(in oklab, var(--paper) 55%, transparent);
+  margin-bottom: 1.6cqw;
+}
+
+.ornament {
+  grid-column: 1 / -1;
+  align-self: end;
+  justify-self: start;
+  color: color-mix(in oklab, var(--paper) 60%, transparent);
+  letter-spacing: 0.2em;
+}
+
+@media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .dedication {
+    grid-column: 1 / -1;
+    margin-top: 36vh;
+    font-size: 30px;
+  }
+  .dedication::before {
+    width: 40px;
+    margin-bottom: 16px;
+  }
+  .blank {
+    display: none;
+  }
+}

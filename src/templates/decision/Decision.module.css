@@ -1,0 +1,131 @@
+.status {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 1.4em;
+  flex-wrap: wrap;
+  align-items: baseline;
+  margin-bottom: 1.4cqw;
+}
+
+.status b {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.status[data-status='decided'] b,
+.status[data-status='ordered'] b,
+.status[data-status='installed'] b {
+  color: var(--accent, var(--olive));
+}
+
+.chosen {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 0.8cqw;
+}
+
+.chosenImage {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  position: relative;
+}
+
+.chosenName {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1em;
+  font-family: var(--font-text);
+  font-size: calc(var(--text) * 1.15);
+}
+
+.undecided {
+  grid-column: 1 / -1;
+  aspect-ratio: 4 / 3;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  border: 1px solid var(--hairline);
+  padding: 2cqw;
+  color: var(--muted);
+}
+
+.undecided p {
+  max-width: 24ch;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--quote);
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.why {
+  grid-column: 1 / -1;
+  margin-top: 1.6cqw;
+  font-size: var(--text);
+  max-width: 52ch;
+}
+
+.why:global(.is-empty) {
+  min-height: 2em;
+}
+
+.options {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+  gap: 1.3cqw 1.1cqw;
+  align-content: start;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.option {
+  display: grid;
+  gap: 0.5cqw;
+  min-width: 0;
+}
+
+.optionImage {
+  aspect-ratio: 1 / 1;
+  position: relative;
+  width: 100%;
+}
+
+.option[data-chosen='true'] .optionImage {
+  outline: 2px solid var(--accent, var(--clay));
+  outline-offset: 3px;
+}
+
+.optionName {
+  font-size: var(--small);
+  line-height: 1.3;
+  display: flex;
+  gap: 0.5em;
+  align-items: baseline;
+}
+
+.mark {
+  color: var(--accent, var(--clay));
+  letter-spacing: 0.1em;
+}
+
+@media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .status {
+    margin-bottom: 14px;
+  }
+  .chosen {
+    gap: 8px;
+  }
+  .why {
+    margin-top: 16px;
+  }
+  .options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 12px;
+  }
+  .undecided {
+    padding: 24px;
+  }
+}

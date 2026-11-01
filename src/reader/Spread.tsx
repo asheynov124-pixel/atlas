@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { TEMPLATE_META } from '@/templates/meta';
 import { SpreadContext, type SpreadCtx } from './SpreadContext';
 import styles from './Spread.module.css';
 
@@ -22,6 +23,7 @@ export function Spread({ ctx, children, className, style, label }: SpreadProps) 
       <section
         className={[styles.spread, `accent-${ref.chapter.accent}`, className].filter(Boolean).join(' ')}
         data-bleed={ref.bleed ? 'true' : 'false'}
+        data-phone-single={TEMPLATE_META[ref.spread.template]?.phoneSingle ? 'true' : 'false'}
         data-template={ref.spread.template}
         data-spread-id={ref.spread.id}
         data-spread-index={ref.index}
@@ -66,7 +68,7 @@ function RunningHead({ side }: { side: 'left' | 'right' }) {
       {(ctx) => {
         if (!ctx) return null;
         const { ref, book } = ctx;
-        const text = side === 'left' ? book.title : ref.chapter.title;
+        const text = side === 'left' ? book.title : ref.chapter.hidden ? TEMPLATE_META[ref.spread.template].name : ref.chapter.title;
         return (
           <div className={[styles.runningHead, 't-label'].join(' ')} aria-hidden="true">
             <span>{text}</span>
@@ -95,3 +97,31 @@ function Folio({ side }: { side: 'left' | 'right' }) {
 }
 
 export const spreadStyles = styles;
+
+/**
+ * An area that spans both pages inside the margins (comparison sliders, mood
+ * boards). On the phone the spread collapses to one page and this becomes
+ * the page's content, with its own running head and folio.
+ */
+export function Span({ children, className, style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
+  return (
+    <SpreadContext.Consumer>
+      {(ctx) => (
+        <div className={[styles.span, className].filter(Boolean).join(' ')} style={style}>
+          {ctx && (
+            <div className={[styles.phoneHead, 't-label'].join(' ')} aria-hidden="true">
+              <span>{ctx.book.title}</span>
+              <span>{ctx.ref.chapter.title}</span>
+            </div>
+          )}
+          {children}
+          {ctx && ctx.ref.folio.right != null && (
+            <div className={styles.phoneFolio} aria-hidden="true">
+              {ctx.ref.folio.left != null ? `${ctx.ref.folio.left}–${ctx.ref.folio.right}` : ctx.ref.folio.right}
+            </div>
+          )}
+        </div>
+      )}
+    </SpreadContext.Consumer>
+  );
+}

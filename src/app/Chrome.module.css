@@ -24,19 +24,20 @@
 .bottom {
   bottom: 0;
   height: 56px;
+  justify-content: center;
 }
 
 .group {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 32px;
+  height: 34px;
   padding: 0 10px;
   border-radius: var(--radius-ui);
   color: var(--muted);
@@ -45,6 +46,8 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
   transition: color 160ms ease, background 160ms ease;
 }
 
@@ -65,6 +68,7 @@
   stroke-width: 1.4;
   stroke-linecap: round;
   stroke-linejoin: round;
+  flex: none;
 }
 
 .where {
@@ -79,6 +83,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .where b {
@@ -86,19 +91,74 @@
   color: var(--ink);
 }
 
+.menu {
+  position: relative;
+}
+
+.menuList {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 180px;
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  box-shadow: 0 12px 30px -12px rgba(var(--shadow-ink), 0.35);
+  padding: 6px;
+  display: grid;
+  gap: 2px;
+  z-index: 30;
+}
+
+.menuList .button {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+/* phone: bars slide in after a tap */
 @media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .bar {
+    background: color-mix(in oklab, var(--paper) 90%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: transform 240ms var(--ease-page), opacity 200ms ease;
+  }
   .top {
     padding-top: env(safe-area-inset-top, 0px);
     height: calc(44px + env(safe-area-inset-top, 0px));
+    border-bottom: 1px solid var(--hairline);
   }
   .bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
     height: calc(52px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--hairline);
+  }
+  .bar[data-visible='false'] {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .bar[data-visible='false'] > * {
+    pointer-events: none;
+  }
+  .top[data-visible='false'] {
+    transform: translateY(-100%);
+  }
+  .bottom[data-visible='false'] {
+    transform: translateY(100%);
   }
   .where {
+    font-size: 10.5px;
+  }
+  .menuList {
+    top: auto;
+    bottom: calc(100% + 6px);
+  }
+  .desktopOnly {
     display: none;
   }
-  .bar {
-    justify-content: flex-end;
+}
+
+@media (min-width: 820px) and (min-aspect-ratio: 1/1) {
+  .bottom {
+    display: none;
   }
 }

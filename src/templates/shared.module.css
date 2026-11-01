@@ -1,0 +1,54 @@
+/* Shared header row so facing pages line up. */
+.head {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1cqw;
+  height: 7.2cqw;
+  padding-bottom: 1.2cqw;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 1.6cqw;
+}
+
+.headTitle {
+  font-size: var(--title);
+  line-height: 0.95;
+  max-width: 20ch;
+  text-wrap: balance;
+}
+
+.headTitle:global(.is-empty) {
+  min-width: 8ch;
+}
+
+.headKicker {
+  color: var(--accent, var(--muted));
+  margin-bottom: 0.5cqw;
+}
+
+.headMeta {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.subhead {
+  grid-column: 1 / -1;
+  margin-bottom: 1cqw;
+  color: var(--muted);
+}
+
+@media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .head {
+    height: auto;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+    gap: 12px;
+  }
+  .headKicker {
+    margin-bottom: 6px;
+  }
+  .subhead {
+    margin-bottom: 10px;
+  }
+}
