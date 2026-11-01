@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import type { ImageSlot } from '@/book/types';
+import type { Focal, ImageSlot } from '@/book/types';
 import { useResolvedAsset } from '@/storage/assetUrls';
+import { EditableImage } from '@/editor/EditableImage';
 import { useSpread } from './SpreadContext';
 import { Placeholder } from './Placeholder';
 import styles from './Spread.module.css';
 
-interface PlateProps {
+export interface PlateProps {
   slot: ImageSlot;
   /** Figure number, e.g. "3.4" */
   fig?: string;
@@ -22,15 +23,23 @@ interface PlateProps {
   accent?: string;
   /** Placeholder without its inner frame. */
   plain?: boolean;
+  /** Live focal override while dragging the crosshair. */
+  focal?: Focal;
 }
 
 /**
  * Renders an image slot. Real images get srcset and a focal-point object
  * position. An image too small for the box is never upscaled to fill: it is
  * shown framed on paper, with a quiet note in Edit mode. Empty slots render a
- * designed placeholder.
+ * designed placeholder. With a slotKey in Edit mode it becomes editable.
  */
-export function Plate({ slot, fig, sizes = '100vw', priority, fit = 'cover', size = 'full', className, style, drift, accent, plain }: PlateProps) {
+export function Plate({ slotKey, ...props }: PlateProps & { slotKey?: string }) {
+  const { editable } = useSpread();
+  if (editable && slotKey) return <EditableImage slotKey={slotKey} {...props} />;
+  return <PlateInner {...props} />;
+}
+
+export function PlateInner({ slot, fig, sizes = '100vw', priority, fit = 'cover', size = 'full', className, style, drift, accent, plain, focal }: PlateProps) {
   const { book, editable, print } = useSpread();
   const asset = slot.assetId ? book.assets[slot.assetId] : null;
   const resolved = useResolvedAsset(asset);
@@ -61,13 +70,14 @@ export function Plate({ slot, fig, sizes = '100vw', priority, fit = 'cover', siz
   }
 
   const framed = tooSmall;
-  const objectPosition = `${Math.round(slot.focal.x * 100)}% ${Math.round(slot.focal.y * 100)}%`;
+  const f = focal ?? slot.focal;
+  const objectPosition = `${Math.round(f.x * 100)}% ${Math.round(f.y * 100)}%`;
   const alt = slot.decorative ? '' : slot.alt || slot.caption || slot.placeholder;
 
   return (
     <div
       ref={boxRef}
-      className={[styles.plate, drift ? 'ken-burns' : '', className].filter(Boolean).join(' ')}
+      className={[styles.plate, drift && !print ? 'ken-burns' : '', className].filter(Boolean).join(' ')}
       data-fit={fit}
       data-framed={framed ? 'true' : 'false'}
       style={style}

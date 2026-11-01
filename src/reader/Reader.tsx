@@ -111,9 +111,11 @@ export function Reader({ route }: { route: Extract<Route, { kind: 'spread' }> })
 
   // phone: bring the routed spread into view, and track the spread in view
   const lastSeen = useRef<number>(-1);
+  const settleUntil = useRef(0);
   useEffect(() => {
     if (isDesktop) return;
     if (lastSeen.current === current) return;
+    settleUntil.current = performance.now() + 400;
     const el = document.querySelector<HTMLElement>(`[data-spread-index="${current}"]`);
     if (!el) return;
     const visible = (n: Element) => n.getClientRects().length > 0;
@@ -132,8 +134,24 @@ export function Reader({ route }: { route: Extract<Route, { kind: 'spread' }> })
     const targets = root.querySelectorAll<HTMLElement>('[data-bleed="true"], [data-phone-single="true"], [data-side]');
     const io = new IntersectionObserver(
       (entries) => {
+        // entries can be stale right after a programmatic scroll: re-measure before trusting one
+        if (performance.now() < settleUntil.current) return;
+        const rr = root.getBoundingClientRect();
+        const fresh = (el: Element) => {
+          const r = el.getBoundingClientRect();
+          const overlap = Math.min(r.bottom, rr.bottom) - Math.max(r.top, rr.top);
+          return overlap / Math.max(1, Math.min(r.height, rr.height));
+        };
         let best: IntersectionObserverEntry | null = null;
-        for (const en of entries) if (en.isIntersecting && (!best || en.intersectionRatio > best.intersectionRatio)) best = en;
+        let bestRatio = 0;
+        for (const en of entries) {
+          if (!en.isIntersecting) continue;
+          const ratio = fresh(en.target);
+          if (ratio >= 0.5 && ratio > bestRatio) {
+            best = en;
+            bestRatio = ratio;
+          }
+        }
         if (!best) return;
         const holder = (best.target as HTMLElement).closest<HTMLElement>('[data-spread-index]');
         if (!holder) return;

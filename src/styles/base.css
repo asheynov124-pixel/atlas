@@ -165,7 +165,8 @@ blockquote {
   hanging-punctuation: first;
 }
 
-.t-dropcap > p:first-child::first-letter {
+.t-dropcap > p:first-child::first-letter,
+.t-dropcap > .ProseMirror > p:first-child::first-letter {
   font-family: var(--font-display);
   float: left;
   font-size: calc(var(--text) * 4.35);

@@ -1,0 +1,266 @@
+.wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+}
+
+.wrap > :first-child {
+  width: 100%;
+  height: 100%;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.hit {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  display: grid;
+  place-items: center;
+  color: var(--paper);
+}
+
+.wrap[data-empty='true'] .hit {
+  outline: 1px dashed rgba(255, 255, 255, 0.55);
+  outline-offset: -8px;
+}
+
+.wrap[data-over='true'] .hit {
+  outline: 2px solid var(--paper);
+  outline-offset: -8px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.hint {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 10px;
+  max-width: 80%;
+  background: rgba(20, 18, 14, 0.42);
+  color: #fff;
+  letter-spacing: 0.08em;
+  backdrop-filter: blur(6px);
+  text-align: center;
+  line-height: 1.4;
+  font-size: calc(var(--label) * 0.9);
+}
+
+.hint svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.wrap[data-size='tiny'] .hint span,
+.wrap[data-size='tiny'] .hint {
+  padding: 6px;
+}
+
+.wrap[data-size='tiny'] .hint span {
+  display: none;
+}
+
+.tools {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 0 1px var(--hairline);
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.wrap:hover .tools,
+.wrap:focus-within .tools,
+.wrap[data-touch='true'] .tools {
+  opacity: 1;
+}
+
+.tool {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 2px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.tool:hover,
+.tool[aria-pressed='true'] {
+  color: var(--ink);
+  background: color-mix(in oklab, var(--ink) 7%, transparent);
+}
+
+.tool svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.grip {
+  cursor: grab;
+}
+
+.grip:active {
+  cursor: grabbing;
+}
+
+/* focal point */
+.focal {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  cursor: crosshair;
+  touch-action: none;
+  outline: none;
+}
+
+.focalV,
+.focalH {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+}
+
+.focalV {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.focalH {
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.focalDot {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.focalBar {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 6px 6px 12px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  pointer-events: auto;
+  white-space: nowrap;
+}
+
+.done {
+  height: 28px;
+  padding: 0 10px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* details popover */
+.details {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  max-width: 420px;
+  padding: 12px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--hairline);
+  display: grid;
+  gap: 8px;
+  pointer-events: auto;
+  z-index: 7;
+}
+
+.field {
+  display: grid;
+  gap: 3px;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 15px;
+  border-radius: 2px;
+}
+
+.field input:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--clay);
+}
+
+.check {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.detailsRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.small {
+  color: var(--muted);
+}
+
+.busy {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(245, 241, 234, 0.6);
+  pointer-events: auto;
+  color: var(--ink);
+}

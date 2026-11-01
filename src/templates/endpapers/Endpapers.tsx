@@ -13,7 +13,7 @@ export function EndpapersTemplate({ ctx }: { ctx: SpreadCtx }) {
         <div style={{ gridColumn: '1 / -1' }} />
       </Page>
       <Page side="right" quiet className={[styles.page, 'endpaper'].join(' ')}>
-        <RichText as="p" html={dedication} className={styles.dedication} editable={ctx.editable} placeholder="For…" />
+        <RichText as="p" html={dedication} slotKey="dedication" className={styles.dedication} placeholder="For…" multiline />
         <p className={[styles.ornament, 't-label'].join(' ')}>{ctx.book.address}</p>
       </Page>
     </Spread>

@@ -23,7 +23,7 @@ export function MoodBoardTemplate({ ctx }: { ctx: SpreadCtx }) {
       <Span>
         <p className={[styles.title, 't-label'].join(' ')}>
           <span>Mood board</span>
-          <RichText as="span" html={title} />
+          <RichText as="span" html={title} slotKey="title" placeholder="Title" />
         </p>
         <div className={styles.board} data-testid="moodboard">
           {els.map((el) => (

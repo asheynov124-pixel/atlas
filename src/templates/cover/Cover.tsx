@@ -3,6 +3,7 @@ import { Plate } from '@/reader/Plate';
 import { RichText } from '@/reader/RichText';
 import { Spread } from '@/reader/Spread';
 import type { SpreadCtx } from '@/reader/SpreadContext';
+import { NotesLayer } from '@/editor/Notes';
 import styles from './Cover.module.css';
 
 export function CoverTemplate({ ctx }: { ctx: SpreadCtx }) {
@@ -15,15 +16,16 @@ export function CoverTemplate({ ctx }: { ctx: SpreadCtx }) {
   return (
     <Spread ctx={ctx} label={`Cover: ${stripHtml(title)}`}>
       <div className={styles.root}>
-        {hero && <Plate slot={hero} className={styles.hero} priority plain sizes="100vw" />}
+        {hero && <Plate slot={hero} slotKey="hero" className={styles.hero} priority plain sizes="100vw" />}
         <div className={styles.scrim} />
         <div className={styles.frame} />
         <p className={[styles.mark, 't-label'].join(' ')}>A book in progress</p>
         <div className={styles.block}>
-          <RichText as="h1" html={title} className={[styles.title, 't-display'].join(' ')} />
-          <RichText as="p" html={subtitle} className={styles.subtitle} />
+          <RichText as="h1" html={title} slotKey="title" placeholder="Title" className={[styles.title, 't-display'].join(' ')} />
+          <RichText as="p" html={subtitle} slotKey="subtitle" placeholder="Subtitle" className={styles.subtitle} />
         </div>
-        <RichText as="p" html={address} className={[styles.address, 't-label'].join(' ')} />
+        <RichText as="p" html={address} slotKey="address" placeholder="Address" className={[styles.address, 't-label'].join(' ')} />
+        <NotesLayer side="bleed" />
       </div>
     </Spread>
   );

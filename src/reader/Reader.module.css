@@ -12,6 +12,9 @@
     place-items: center;
     padding: var(--chrome-top, 56px) 56px var(--chrome-bottom, 64px);
   }
+  .stage[data-mode='edit'] {
+    --chrome-bottom: 136px;
+  }
   .spreadBox {
     position: relative;
     width: min(100%, calc((100dvh - var(--chrome-top, 56px) - var(--chrome-bottom, 64px)) * 1.5));
@@ -41,6 +44,9 @@
 
 /* phone: a vertical, snapping scroll of pages */
 @media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .stage[data-mode='edit'] {
+    --m-bottom-extra: 84px;
+  }
   .stage {
     overflow-y: auto;
     overflow-x: hidden;

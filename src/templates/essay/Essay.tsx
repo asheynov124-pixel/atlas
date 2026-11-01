@@ -20,13 +20,13 @@ export function EssayTemplate({ ctx }: { ctx: SpreadCtx }) {
       <Page side="left">
         <header className={styles.head}>
           <p className={[styles.kicker, 't-label'].join(' ')}>{label}</p>
-          <RichText as="h2" html={title} className={[styles.title, 't-display'].join(' ')} editable={ctx.editable} placeholder="Title" />
+          <RichText as="h2" html={title} slotKey="title" className={[styles.title, 't-display'].join(' ')} placeholder="Title" />
           <hr className={['hairline', styles.rule].join(' ')} />
         </header>
-        <RichText html={body} className={[styles.body, 't-body', 't-dropcap'].join(' ')} editable={ctx.editable} placeholder="Write the essay…" />
+        <RichText html={body} slotKey="body" kind="rich" className={[styles.body, 't-body', 't-dropcap'].join(' ')} placeholder="Write the essay…" />
       </Page>
       <Page side="right" className={styles.right}>
-        <RichText as="blockquote" html={quote} className={styles.quote} editable={ctx.editable} placeholder="A pull quote" />
+        <RichText as="blockquote" html={quote} slotKey="quote" className={styles.quote} placeholder="A pull quote" multiline />
         {aside && <Aside slot={aside} />}
       </Page>
     </Spread>
@@ -38,7 +38,7 @@ function Aside({ slot }: { slot: NonNullable<ReturnType<typeof pickImage>> }) {
   return (
     <figure className={styles.aside}>
       <div className={styles.asidePlate}>
-        <Plate slot={slot} fig={fig} size="small" sizes="(min-width: 820px) 28vw, 70vw" />
+        <Plate slot={slot} slotKey="aside" fig={fig} size="small" sizes="(min-width: 820px) 28vw, 70vw" />
       </div>
       {(slot.caption || fig) && (
         <figcaption className={['t-caption', styles.caption].join(' ')}>

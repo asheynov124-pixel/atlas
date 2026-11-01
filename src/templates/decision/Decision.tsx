@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import { isSlotKind, stripHtml } from '@/book/slots';
 import type { Item } from '@/book/types';
 import { fmtDate, money, STATUS_LABEL } from '@/book/words';
+import { setDecisionWhy } from '@/state/actions';
 import { ItemImage } from '@/reader/ItemImage';
 import { RichText } from '@/reader/RichText';
 import { Page, Spread } from '@/reader/Spread';
@@ -23,7 +24,7 @@ export function DecisionTemplate({ ctx }: { ctx: SpreadCtx }) {
         <header className={shared.head}>
           <div>
             <p className={[shared.headKicker, 't-label'].join(' ')}>Decision</p>
-            <RichText as="h2" html={title} className={[shared.headTitle, 't-display'].join(' ')} editable={ctx.editable} placeholder="What is being decided" />
+            <RichText as="h2" html={title} className={[shared.headTitle, 't-display'].join(' ')} slotKey="title" placeholder="What is being decided" />
           </div>
         </header>
         {d && (
@@ -48,7 +49,15 @@ export function DecisionTemplate({ ctx }: { ctx: SpreadCtx }) {
             <p>{options.length ? `${options.length} options on the table. Nothing chosen yet.` : 'Nothing on the table yet.'}</p>
           </div>
         )}
-        <RichText html={d?.why ? `<p>${d.why}</p>` : ''} className={[styles.why, 't-body'].join(' ')} editable={ctx.editable} placeholder="Why this one" />
+        <RichText
+          as="p"
+          html={d?.why ?? ''}
+          slotKey="decision.why"
+          className={[styles.why, 't-body'].join(' ')}
+          placeholder="Why this one"
+          multiline
+          onCommit={(html) => setDecisionWhy(ctx.ref.spread.id, stripHtml(html))}
+        />
       </Page>
       <Page side="right">
         <header className={shared.head}>

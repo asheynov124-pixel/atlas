@@ -21,13 +21,13 @@ export function PinsTemplate({ ctx }: { ctx: SpreadCtx }) {
         <header className={shared.head}>
           <div>
             <p className={[shared.headKicker, 't-label'].join(' ')}>Plan</p>
-            <RichText as="h2" html={title} className={[shared.headTitle, 't-display'].join(' ')} editable={ctx.editable} placeholder="Title" />
+            <RichText as="h2" html={title} className={[shared.headTitle, 't-display'].join(' ')} slotKey="title" placeholder="Title" />
           </div>
           <p className={[shared.headMeta, 't-label'].join(' ')}>{list.length} {list.length === 1 ? 'pin' : 'pins'}</p>
         </header>
         {pins && (
           <figure className={styles.figure} data-testid="pins-figure">
-            <Plate slot={pins.image} fig={fig} sizes="(min-width: 820px) 45vw, 90vw" />
+            <Plate slot={pins.image} slotKey="pins.image" fig={fig} sizes="(min-width: 820px) 45vw, 90vw" />
             {list.map((p, i) => (
               <button
                 key={p.id}

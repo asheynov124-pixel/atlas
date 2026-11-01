@@ -3,6 +3,8 @@ import type { Author } from '@/book/types';
 
 export type Mode = 'read' | 'edit';
 export type ThemeName = 'day' | 'night';
+export type SaveState = 'saved' | 'dirty' | 'saving' | 'error';
+export type Panel = null | 'chapters' | 'theme' | 'editions' | 'author' | 'compare';
 
 const read = <T,>(key: string, fallback: T): T => {
   try {
@@ -30,6 +32,16 @@ interface UiState {
   chromeVisible: boolean;
   toggleChrome: () => void;
   setChromeVisible: (v: boolean) => void;
+  saveState: SaveState;
+  setSaveState: (s: SaveState) => void;
+  panel: Panel;
+  setPanel: (p: Panel) => void;
+  showResolved: boolean;
+  setShowResolved: (v: boolean) => void;
+  /** Phone: the spread whose edit tools are live. */
+  compareIds: string[];
+  toggleCompare: (id: string) => void;
+  clearCompare: () => void;
   setMode: (m: Mode) => void;
   setTheme: (t: ThemeName) => void;
   setAuthor: (a: Author | null) => void;
@@ -44,6 +56,16 @@ export const useUiStore = create<UiState>()((set) => ({
   chromeVisible: false,
   toggleChrome: () => set((s) => ({ chromeVisible: !s.chromeVisible })),
   setChromeVisible: (chromeVisible) => set({ chromeVisible }),
+  saveState: 'saved',
+  setSaveState: (saveState) => set({ saveState }),
+  panel: null,
+  setPanel: (panel) => set({ panel }),
+  showResolved: false,
+  setShowResolved: (showResolved) => set({ showResolved }),
+  compareIds: [],
+  toggleCompare: (id) =>
+    set((s) => ({ compareIds: s.compareIds.includes(id) ? s.compareIds.filter((x) => x !== id) : s.compareIds.length >= 3 ? s.compareIds : [...s.compareIds, id] })),
+  clearCompare: () => set({ compareIds: [] }),
   setMode: (mode) => set({ mode }),
   setTheme: (theme) => {
     write('sb.theme', theme);

@@ -27,7 +27,7 @@ export function ShoppingTemplate({ ctx }: { ctx: SpreadCtx }) {
         <header className={shared.head}>
           <div>
             <p className={[shared.headKicker, 't-label'].join(' ')}>Shopping list</p>
-            <RichText as="h2" html={title} className={[shared.headTitle, 't-display'].join(' ')} editable={ctx.editable} placeholder="Title" />
+            <RichText as="h2" html={title} className={[shared.headTitle, 't-display'].join(' ')} slotKey="title" placeholder="Title" />
           </div>
           <p className={[shared.headMeta, 't-label'].join(' ')}>{rows.length} {rows.length === 1 ? 'item' : 'items'}</p>
         </header>

@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { TEMPLATE_META } from '@/templates/meta';
+import { NotesLayer } from '@/editor/Notes';
 import { SpreadContext, type SpreadCtx } from './SpreadContext';
 import styles from './Spread.module.css';
 
@@ -58,6 +59,7 @@ export function Page({ side, children, className, quiet, fill, style }: PageProp
       {!quiet && <RunningHead side={side} />}
       {children}
       {!quiet && <Folio side={side} />}
+      <NotesLayer side={side} />
     </div>
   );
 }

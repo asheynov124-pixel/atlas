@@ -46,10 +46,10 @@ export function BeforeAfterTemplate({ ctx }: { ctx: SpreadCtx }) {
             onPointerMove={isDesktop ? (e) => { if (e.buttons & 1) onPointer(e); } : undefined}
           >
             <div className={styles.layer}>
-              <Plate slot={pair.after} fig={figAfter} sizes="(min-width: 820px) 90vw, 100vw" plain />
+              <Plate slot={pair.after} slotKey="pair.after" fig={figAfter} sizes="(min-width: 820px) 90vw, 100vw" plain />
             </div>
             <div className={[styles.layer, styles.before].join(' ')} style={{ clipPath: `inset(0 ${100 - clip}% 0 0)` }}>
-              <Plate slot={pair.before} fig={figBefore} sizes="(min-width: 820px) 90vw, 100vw" plain />
+              <Plate slot={pair.before} slotKey="pair.before" fig={figBefore} sizes="(min-width: 820px) 90vw, 100vw" plain />
             </div>
             <span className={[styles.tag, styles.tagBefore, 't-label'].join(' ')} style={{ opacity: clip > 12 ? 1 : 0, transition: 'opacity 200ms' }}>Before</span>
             <span className={[styles.tag, styles.tagAfter, 't-label'].join(' ')} style={{ opacity: clip < 88 ? 1 : 0, transition: 'opacity 200ms' }}>After</span>
@@ -81,7 +81,7 @@ export function BeforeAfterTemplate({ ctx }: { ctx: SpreadCtx }) {
         )}
         <figcaption className={[styles.caption, 't-caption'].join(' ')}>
           {figBefore && figAfter && <span className="fig">Figs. {figBefore}–{figAfter.split('.')[1]}</span>}
-          <RichText as="span" html={caption} editable={ctx.editable} placeholder="Caption" />
+          <RichText as="span" html={caption} slotKey="caption" placeholder="Caption" />
         </figcaption>
         </div>
       </Span>

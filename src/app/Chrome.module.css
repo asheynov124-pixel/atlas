@@ -132,6 +132,18 @@
     height: calc(52px + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid var(--hairline);
   }
+  .bottom[data-edit='true'] {
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .bottom[data-edit='true'] .group {
+    flex: none;
+  }
+  .bottom[data-edit='true'] .button {
+    padding: 0 7px;
+  }
   .bar[data-visible='false'] {
     opacity: 0;
     pointer-events: none;

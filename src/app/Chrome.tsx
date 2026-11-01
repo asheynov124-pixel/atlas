@@ -4,6 +4,7 @@ import { chapterLabel } from '@/book/words';
 import { useBookStore } from '@/state/bookStore';
 import { useUiStore } from '@/state/uiStore';
 import { useIsDesktop } from './useMedia';
+import { EditBar } from '@/editor/EditBar';
 import { navigate } from './router';
 import styles from './Chrome.module.css';
 
@@ -32,6 +33,8 @@ export function Chrome() {
   const setTheme = useUiStore((s) => s.setTheme);
   const mode = useUiStore((s) => s.mode);
   const setMode = useUiStore((s) => s.setMode);
+  const author = useUiStore((s) => s.author);
+  const setPanel = useUiStore((s) => s.setPanel);
   const chromeVisible = useUiStore((s) => s.chromeVisible);
   const isDesktop = useIsDesktop();
   const spreads = useMemo(() => flattenSpreads(book), [book]);
@@ -68,8 +71,13 @@ export function Chrome() {
       <span>Contents</span>
     </button>
   );
+  const toggleMode = () => {
+    if (mode === 'edit') setMode('read');
+    else if (!author) setPanel('author');
+    else setMode('edit');
+  };
   const editButton = (
-    <button className={styles.button} onClick={() => setMode(mode === 'edit' ? 'read' : 'edit')} aria-pressed={mode === 'edit'} data-testid="mode-toggle">
+    <button className={styles.button} onClick={toggleMode} aria-pressed={mode === 'edit'} data-testid="mode-toggle">
       <Icon name={mode === 'edit' ? 'read' : 'edit'} />
       <span>{mode === 'edit' ? 'Done' : 'Edit'}</span>
     </button>
@@ -99,20 +107,20 @@ export function Chrome() {
         </div>
         {isDesktop && (
           <div className={styles.group}>
-            {contentsButton}
-            {nightButton}
+            {mode === 'edit' ? <EditBar /> : contentsButton}
+            {mode !== 'edit' && nightButton}
             {editButton}
-            {menu}
+            {mode !== 'edit' && menu}
           </div>
         )}
       </div>
       {!isDesktop && (
-        <div className={[styles.bar, styles.bottom].join(' ')} data-visible={visible ? 'true' : 'false'}>
+        <div className={[styles.bar, styles.bottom].join(' ')} data-visible={visible ? 'true' : 'false'} data-edit={mode === 'edit' ? 'true' : 'false'}>
           <div className={styles.group}>
-            {contentsButton}
-            {nightButton}
+            {mode === 'edit' ? <EditBar /> : contentsButton}
+            {mode !== 'edit' && nightButton}
             {editButton}
-            {menu}
+            {mode !== 'edit' && menu}
           </div>
         </div>
       )}

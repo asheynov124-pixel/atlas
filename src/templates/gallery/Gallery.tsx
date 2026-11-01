@@ -33,7 +33,7 @@ export function GalleryTemplate({ ctx }: { ctx: SpreadCtx }) {
         <header className={shared.head}>
           <div>
             <p className={[shared.headKicker, 't-label'].join(' ')}>Options</p>
-            <RichText as="h2" html={title} className={[shared.headTitle, 't-display'].join(' ')} editable={ctx.editable} placeholder="Title" />
+            <RichText as="h2" html={title} className={[shared.headTitle, 't-display'].join(' ')} slotKey="title" placeholder="Title" />
           </div>
           <p className={[shared.headMeta, 't-label'].join(' ')}>{n} {n === 1 ? 'option' : 'options'}</p>
         </header>

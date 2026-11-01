@@ -36,7 +36,7 @@ export function ContentsTemplate({ ctx }: { ctx: SpreadCtx }) {
   return (
     <Spread ctx={ctx} label="Contents">
       <Page side="left">
-        <RichText as="h2" html={title} className={[styles.title, 't-display'].join(' ')} />
+        <RichText as="h2" html={title} slotKey="title" className={[styles.title, 't-display'].join(' ')} />
         <List items={left} />
       </Page>
       <Page side="right">

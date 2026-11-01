@@ -1,0 +1,235 @@
+.strip {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 25;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: color-mix(in oklab, var(--paper) 92%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid var(--hairline);
+}
+
+@media (min-width: 820px) and (min-aspect-ratio: 1/1) {
+  .strip {
+    bottom: 0;
+    height: 112px;
+  }
+}
+
+@media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .strip {
+    bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+    height: 84px;
+  }
+}
+
+.scroller {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scroll-padding: 0 60px;
+}
+
+.scroller::-webkit-scrollbar {
+  height: 6px;
+}
+
+.scroller::-webkit-scrollbar-thumb {
+  background: var(--hairline);
+}
+
+.chapterMark {
+  flex: none;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 2px;
+  padding: 0 10px 0 10px;
+  margin-left: 6px;
+  height: 64px;
+  max-width: 92px;
+  border-left: 1px solid var(--ink);
+  color: var(--muted);
+  overflow: hidden;
+}
+
+.chapterNum {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.chapterName {
+  font-size: 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 72px;
+}
+
+.thumb {
+  flex: none;
+  position: relative;
+  width: 96px;
+  display: grid;
+  gap: 4px;
+  padding: 0;
+  text-align: left;
+  color: var(--muted);
+  cursor: pointer;
+  touch-action: none;
+}
+
+@media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .thumb {
+    width: 72px;
+  }
+  .chapterMark {
+    height: 48px;
+    max-width: 64px;
+  }
+  .chapterName {
+    display: none;
+  }
+}
+
+.thumbImage {
+  aspect-ratio: 3 / 2;
+  width: 100%;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--hairline);
+  background: var(--paper);
+  transition: box-shadow 140ms ease, transform 140ms ease;
+}
+
+.thumb:hover .thumbImage {
+  box-shadow: 0 0 0 1px var(--muted);
+}
+
+.thumb[data-current='true'] .thumbImage {
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.thumb[data-dragging='true'] {
+  opacity: 0.5;
+}
+
+.thumbLabel {
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thumb[data-current='true'] .thumbLabel {
+  color: var(--ink);
+}
+
+.tools {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 12px;
+  border-left: 1px solid var(--hairline);
+}
+
+@media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .tools {
+    flex-direction: row;
+    padding: 0 8px;
+  }
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 2px;
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tool:hover {
+  color: var(--ink);
+  background: color-mix(in oklab, var(--ink) 6%, transparent);
+}
+
+.tool:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tool svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .tool span {
+    display: none;
+  }
+}
+
+/* template picker */
+.picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.pick {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  text-align: left;
+  color: var(--ink);
+}
+
+.pick:hover,
+.pick[data-current='true'] {
+  border-color: var(--ink);
+}
+
+.pickImage {
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--hairline);
+}
+
+.pickName {
+  font-family: var(--font-text);
+  font-size: 15px;
+}
+
+.pickBlurb {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.35;
+}
