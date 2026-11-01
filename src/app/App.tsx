@@ -8,6 +8,7 @@ import { ChaptersPanel } from '@/editor/ChaptersPanel';
 import { ThemePanel } from '@/editor/ThemePanel';
 import { EditionsPanel } from '@/editor/EditionsPanel';
 import { AuthorPrompt } from '@/editor/AuthorPrompt';
+import { CompareDrawer } from '@/features/CompareDrawer';
 import { Chrome } from './Chrome';
 import { Specimen } from './Specimen';
 import { useRoute } from './router';
@@ -50,6 +51,7 @@ export default function App() {
     <>
       <Reader route={route} />
       <Chrome />
+      <CompareDrawer />
       {mode === 'edit' && <Strip />}
       {panel === 'chapters' && <ChaptersPanel />}
       {panel === 'theme' && <ThemePanel />}

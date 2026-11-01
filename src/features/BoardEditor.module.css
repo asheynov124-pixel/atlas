@@ -1,0 +1,83 @@
+.toolbar {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  z-index: 9;
+}
+
+@media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
+  .toolbar {
+    position: static;
+    justify-content: flex-start;
+    margin-bottom: 10px;
+  }
+}
+
+.sep {
+  width: 1px;
+  height: 18px;
+  background: var(--hairline);
+  margin: 0 4px;
+}
+
+.hint {
+  color: var(--muted);
+  margin-right: 6px;
+}
+
+.el {
+  outline: none;
+}
+
+.el[data-selected='true'] {
+  outline: 1px solid var(--clay);
+  outline-offset: 2px;
+}
+
+.el[data-editable='true'] {
+  cursor: grab;
+}
+
+.textEdit {
+  outline: none;
+  min-height: 1.2em;
+  white-space: pre-wrap;
+  cursor: text;
+}
+
+.textEdit:empty::before {
+  content: 'Type…';
+  opacity: 0.5;
+}
+
+.colour {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  background: none;
+  cursor: pointer;
+}
+
+/* moveable control box, toned to the book */
+:global(.moveable-control-box) {
+  --moveable-color: var(--clay) !important;
+}
+
+:global(.moveable-control-box .moveable-control) {
+  width: 10px !important;
+  height: 10px !important;
+  margin-top: -5px !important;
+  margin-left: -5px !important;
+  border: 1px solid var(--paper) !important;
+  background: var(--clay) !important;
+}
+
+:global(.moveable-control-box .moveable-line) {
+  background: var(--clay) !important;
+}

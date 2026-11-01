@@ -43,8 +43,8 @@
     --text: clamp(16px, 1.5cqw, 19px);
     --small: clamp(12.5px, 1.18cqw, 15px);
     --label: clamp(10px, 0.92cqw, 12px);
-    --title: clamp(32px, 4.2cqw, 60px);
-    --display: clamp(44px, 6.4cqw, 92px);
+    --title: clamp(24px, 4.2cqw, 60px);
+    --display: clamp(34px, 6.4cqw, 92px);
     --numeral: clamp(96px, 15cqw, 220px);
     --quote: clamp(22px, 2.5cqw, 36px);
     --hand: clamp(16px, 1.6cqw, 22px);

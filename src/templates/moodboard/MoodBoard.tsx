@@ -4,6 +4,7 @@ import { Plate } from '@/reader/Plate';
 import { RichText } from '@/reader/RichText';
 import { Page, Span, Spread } from '@/reader/Spread';
 import type { SpreadCtx } from '@/reader/SpreadContext';
+import { BoardEditor } from '@/features/BoardEditor';
 import styles from './MoodBoard.module.css';
 
 export function MoodBoardTemplate({ ctx }: { ctx: SpreadCtx }) {
@@ -25,11 +26,15 @@ export function MoodBoardTemplate({ ctx }: { ctx: SpreadCtx }) {
           <span>Mood board</span>
           <RichText as="span" html={title} slotKey="title" placeholder="Title" />
         </p>
-        <div className={styles.board} data-testid="moodboard">
-          {els.map((el) => (
-            <BoardElement key={el.id} el={el} />
-          ))}
-        </div>
+        {ctx.editable ? (
+          <BoardEditor slotKey="board" elements={board?.elements ?? []} />
+        ) : (
+          <div className={styles.board} data-testid="moodboard">
+            {els.map((el) => (
+              <BoardElement key={el.id} el={el} />
+            ))}
+          </div>
+        )}
       </Span>
     </Spread>
   );

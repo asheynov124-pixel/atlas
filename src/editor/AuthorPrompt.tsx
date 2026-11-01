@@ -9,10 +9,11 @@ export function AuthorPrompt() {
   const setAuthor = useUiStore((s) => s.setAuthor);
   const setPanel = useUiStore((s) => s.setPanel);
   const setMode = useUiStore((s) => s.setMode);
+  const intent = useUiStore((s) => s.authorIntent);
   const choose = (a: Author) => {
     setAuthor(a);
     setPanel(null);
-    setMode('edit');
+    if (intent === 'edit') setMode('edit');
   };
   return (
     <Sheet title="Who is editing?" onClose={() => setPanel(null)} testId="author-prompt">

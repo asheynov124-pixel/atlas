@@ -72,6 +72,7 @@
 }
 
 .where {
+  pointer-events: none !important;
   font-family: var(--font-ui);
   font-size: 11px;
   letter-spacing: 0.08em;

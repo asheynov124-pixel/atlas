@@ -84,7 +84,7 @@ export function EditBar() {
         <Icon name="editions" />
         {isDesktop && <span>Editions</span>}
       </button>
-      <button type="button" className={chrome.button} onClick={() => setPanel('author')} aria-label={`Editing as ${author ?? 'nobody'}. Change who is editing`} data-testid="author-chip">
+      <button type="button" className={chrome.button} onClick={() => useUiStore.getState().openAuthorPrompt('sign')} aria-label={`Editing as ${author ?? 'nobody'}. Change who is editing`} data-testid="author-chip">
         <Icon name="person" />
         <span>{author === 'sonny' ? 'Sonny' : author === 'adi' ? 'Adi' : 'Who?'}</span>
       </button>

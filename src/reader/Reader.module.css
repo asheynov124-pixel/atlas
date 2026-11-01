@@ -45,7 +45,11 @@
 /* phone: a vertical, snapping scroll of pages */
 @media not ((min-width: 820px) and (min-aspect-ratio: 1/1)) {
   .stage[data-mode='edit'] {
-    --m-bottom-extra: 84px;
+    scroll-padding-bottom: calc(148px + env(safe-area-inset-bottom, 0px));
+  }
+  .stage[data-mode='edit'] [data-side],
+  .stage[data-mode='edit'] [data-phone-single='true'] {
+    padding-bottom: calc(var(--m-bottom) + 148px);
   }
   .stage {
     overflow-y: auto;

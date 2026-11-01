@@ -34,7 +34,7 @@ export function Chrome() {
   const mode = useUiStore((s) => s.mode);
   const setMode = useUiStore((s) => s.setMode);
   const author = useUiStore((s) => s.author);
-  const setPanel = useUiStore((s) => s.setPanel);
+  const openAuthorPrompt = useUiStore((s) => s.openAuthorPrompt);
   const chromeVisible = useUiStore((s) => s.chromeVisible);
   const isDesktop = useIsDesktop();
   const spreads = useMemo(() => flattenSpreads(book), [book]);
@@ -73,7 +73,7 @@ export function Chrome() {
   );
   const toggleMode = () => {
     if (mode === 'edit') setMode('read');
-    else if (!author) setPanel('author');
+    else if (!author) openAuthorPrompt('edit');
     else setMode('edit');
   };
   const editButton = (

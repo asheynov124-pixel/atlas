@@ -1,6 +1,7 @@
 .table {
   grid-column: 1 / -1;
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: calc(var(--text) * 0.95);
   font-feature-settings: 'lnum', 'tnum';
@@ -23,6 +24,26 @@
 .table td:last-child,
 .num {
   text-align: right;
+}
+
+.table th:nth-child(2) {
+  width: 26%;
+}
+
+.table th:nth-child(3) {
+  width: 20%;
+}
+
+.table th:nth-child(4) {
+  width: 17%;
+}
+
+.table th:nth-child(5) {
+  width: 58px;
+}
+
+.table td {
+  overflow-wrap: anywhere;
 }
 
 .note {

@@ -1,12 +1,15 @@
 import type { Item, ImageSlot } from '@/book/types';
+import { patchItem, placeItemAsset } from '@/state/actions';
+import { EditableImage, type ImageTarget } from '@/editor/EditableImage';
 import { Plate } from './Plate';
+import { useSpread } from './SpreadContext';
 
 /** Render an item's picture through the same Plate as every other image. */
 export function itemSlot(item: Item): ImageSlot {
   return {
     kind: 'image',
     assetId: item.assetId,
-    focal: { x: 0.5, y: 0.5 },
+    focal: item.focal ?? { x: 0.5, y: 0.5 },
     caption: '',
     alt: item.name,
     credit: '',
@@ -14,6 +17,19 @@ export function itemSlot(item: Item): ImageSlot {
   };
 }
 
-export function ItemImage({ item, size = 'small', sizes, className }: { item: Item; size?: 'full' | 'small' | 'tiny'; sizes?: string; className?: string }) {
-  return <Plate slot={itemSlot(item)} size={size} sizes={sizes ?? '(min-width: 820px) 20vw, 45vw'} className={className} />;
+export function itemTarget(item: Item): ImageTarget {
+  return {
+    key: `item:${item.id}`,
+    place: (assets) => placeItemAsset(item.id, assets[0]),
+    patch: (patch) => patchItem(item.id, { focal: patch.focal ?? item.focal }),
+    clear: () => patchItem(item.id, { assetId: null }),
+  };
+}
+
+export function ItemImage({ item, size = 'small', sizes, className, editable }: { item: Item; size?: 'full' | 'small' | 'tiny'; sizes?: string; className?: string; editable?: boolean }) {
+  const ctx = useSpread();
+  const slot = itemSlot(item);
+  const s = sizes ?? '(min-width: 820px) 20vw, 45vw';
+  if (editable ?? ctx.editable) return <EditableImage target={itemTarget(item)} slot={slot} size={size} sizes={s} className={className} />;
+  return <Plate slot={slot} size={size} sizes={s} className={className} />;
 }

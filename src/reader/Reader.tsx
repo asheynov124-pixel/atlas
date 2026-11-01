@@ -27,6 +27,7 @@ export function Reader({ route }: { route: Extract<Route, { kind: 'spread' }> })
   const mode = useUiStore((s) => s.mode);
   const setSpreadIndex = useUiStore((s) => s.setSpreadIndex);
   const toggleChrome = useUiStore((s) => s.toggleChrome);
+  const drawerOpen = useUiStore((s) => s.compareIds.length > 0 && s.compareOpen);
   const isDesktop = useIsDesktop();
   const reduced = usePrefersReducedMotion();
 
@@ -184,6 +185,7 @@ export function Reader({ route }: { route: Extract<Route, { kind: 'spread' }> })
         onPointerUp={onPointerUp}
         onWheel={onWheel}
         data-mode={mode}
+        style={drawerOpen ? ({ ['--chrome-bottom' as string]: mode === 'edit' ? '470px' : '356px' } as React.CSSProperties) : undefined}
       >
         <div className={styles.spreadBox}>
           <AnimatePresence initial={false} custom={direction} mode="popLayout">

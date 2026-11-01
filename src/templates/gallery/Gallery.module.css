@@ -34,8 +34,40 @@
   line-height: 1.25;
   display: flex;
   justify-content: space-between;
-  gap: 0.6em;
-  align-items: baseline;
+  gap: 0.4em;
+  align-items: center;
+  min-width: 0;
+}
+
+.name > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grid[data-dense='true'] .name > span:last-child {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 1px;
+  background: color-mix(in oklab, var(--paper) 88%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--ink) 10%, transparent);
+  z-index: 7;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.tile:hover .name > span:last-child,
+.tile:focus-within .name > span:last-child,
+.tile[data-active='true'] .name > span:last-child {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .grid[data-dense='true'] .name > span:last-child {
+    opacity: 0.85;
+  }
 }
 
 .grid[data-dense='true'] .name {

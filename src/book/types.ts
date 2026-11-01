@@ -193,6 +193,7 @@ export interface Item {
   currency: string;
   url: string;
   assetId: string | null;
+  focal?: Focal;
   placeholder: string;
   tags: string[];
   status: ItemStatus;

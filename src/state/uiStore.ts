@@ -36,10 +36,15 @@ interface UiState {
   setSaveState: (s: SaveState) => void;
   panel: Panel;
   setPanel: (p: Panel) => void;
+  /** Why the author prompt opened: to start editing, or just to sign a heart or note. */
+  authorIntent: 'edit' | 'sign';
+  openAuthorPrompt: (intent: 'edit' | 'sign') => void;
   showResolved: boolean;
   setShowResolved: (v: boolean) => void;
   /** Phone: the spread whose edit tools are live. */
   compareIds: string[];
+  compareOpen: boolean;
+  setCompareOpen: (v: boolean) => void;
   toggleCompare: (id: string) => void;
   clearCompare: () => void;
   setMode: (m: Mode) => void;
@@ -60,9 +65,13 @@ export const useUiStore = create<UiState>()((set) => ({
   setSaveState: (saveState) => set({ saveState }),
   panel: null,
   setPanel: (panel) => set({ panel }),
+  authorIntent: 'sign',
+  openAuthorPrompt: (authorIntent) => set({ panel: 'author', authorIntent }),
   showResolved: false,
   setShowResolved: (showResolved) => set({ showResolved }),
   compareIds: [],
+  compareOpen: false,
+  setCompareOpen: (compareOpen) => set({ compareOpen }),
   toggleCompare: (id) =>
     set((s) => ({ compareIds: s.compareIds.includes(id) ? s.compareIds.filter((x) => x !== id) : s.compareIds.length >= 3 ? s.compareIds : [...s.compareIds, id] })),
   clearCompare: () => set({ compareIds: [] }),

@@ -33,9 +33,9 @@ export interface PlateProps {
  * shown framed on paper, with a quiet note in Edit mode. Empty slots render a
  * designed placeholder. With a slotKey in Edit mode it becomes editable.
  */
-export function Plate({ slotKey, ...props }: PlateProps & { slotKey?: string }) {
+export function Plate({ slotKey, compact, ...props }: PlateProps & { slotKey?: string; compact?: boolean }) {
   const { editable } = useSpread();
-  if (editable && slotKey) return <EditableImage slotKey={slotKey} {...props} />;
+  if (editable && slotKey) return <EditableImage slotKey={slotKey} compact={compact} {...props} />;
   return <PlateInner {...props} />;
 }
 

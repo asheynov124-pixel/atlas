@@ -4,18 +4,25 @@
  */
 import { current, isDraft } from 'immer';
 import { newId } from '@/book/ids';
-import type {
-  Asset,
-  Author,
-  Book,
-  Chapter,
-  ImageSlot,
-  Item,
-  Note,
-  Spread,
-  TemplateId,
-  Theme,
-  ThemeColorKey,
+import {
+  emptyClean,
+  type Asset,
+  type Author,
+  type BoardEl,
+  type Book,
+  type Chapter,
+  type CleanFields,
+  type DecisionSlot,
+  type ImageSlot,
+  type Item,
+  type MaterialCard,
+  type Note,
+  type Pin,
+  type ShoppingRow,
+  type Spread,
+  type TemplateId,
+  type Theme,
+  type ThemeColorKey,
 } from '@/book/types';
 import { newSpread, retemplate } from '@/templates/defaults';
 import { useBookStore } from './bookStore';
@@ -328,5 +335,282 @@ export function upsertItem(item: Item) {
 export function replaceBook(book: Book) {
   update((b) => {
     Object.assign(b, structuredClone(book));
+  });
+}
+
+/* ---------------- items & galleries ---------------- */
+
+export function addItem(name: string, placeholder: string): string {
+  const it: Item = {
+    id: newId('it'),
+    name,
+    brand: '',
+    price: null,
+    currency: 'USD',
+    url: '',
+    assetId: null,
+    placeholder,
+    tags: [],
+    status: 'considering',
+    favorites: { adi: false, sonny: false },
+    clean: emptyClean(),
+    notes: '',
+  };
+  update((b) => {
+    b.items[it.id] = it;
+  });
+  return it.id;
+}
+
+export function addItemToSlot(spreadId: string, key: string, itemId: string) {
+  update((b) => {
+    const slot = findSpread(b, spreadId)?.spread.slots[key];
+    if (slot?.kind === 'items' && !slot.itemIds.includes(itemId)) slot.itemIds.push(itemId);
+  });
+}
+
+export function removeItemFromSlot(spreadId: string, key: string, itemId: string) {
+  update((b) => {
+    const slot = findSpread(b, spreadId)?.spread.slots[key];
+    if (slot?.kind === 'items') slot.itemIds = slot.itemIds.filter((id) => id !== itemId);
+  });
+}
+
+/* ---------------- mood boards ---------------- */
+
+export function addBoardEl(spreadId: string, key: string, el: Omit<BoardEl, 'id' | 'z'>): string | null {
+  let id: string | null = null;
+  update((b) => {
+    const slot = findSpread(b, spreadId)?.spread.slots[key];
+    if (slot?.kind !== 'board') return;
+    const z = slot.elements.reduce((m, e) => Math.max(m, e.z), 0) + 1;
+    const full: BoardEl = { ...el, id: newId('el'), z };
+    slot.elements.push(full);
+    id = full.id;
+  });
+  return id;
+}
+
+export function patchBoardEl(spreadId: string, key: string, elId: string, patch: Partial<BoardEl>) {
+  update((b) => {
+    const slot = findSpread(b, spreadId)?.spread.slots[key];
+    if (slot?.kind !== 'board') return;
+    const el = slot.elements.find((e) => e.id === elId);
+    if (el) Object.assign(el, patch);
+  });
+}
+
+export function removeBoardEl(spreadId: string, key: string, elId: string) {
+  update((b) => {
+    const slot = findSpread(b, spreadId)?.spread.slots[key];
+    if (slot?.kind === 'board') slot.elements = slot.elements.filter((e) => e.id !== elId);
+  });
+}
+
+/** Bring forward (+1) or send back (-1). */
+export function bumpBoardEl(spreadId: string, key: string, elId: string, dir: 1 | -1) {
+  update((b) => {
+    const slot = findSpread(b, spreadId)?.spread.slots[key];
+    if (slot?.kind !== 'board') return;
+    const sorted = [...slot.elements].sort((a, c) => a.z - c.z);
+    const i = sorted.findIndex((e) => e.id === elId);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= sorted.length) return;
+    [sorted[i], sorted[j]] = [sorted[j], sorted[i]];
+    sorted.forEach((e, idx) => {
+      const el = slot.elements.find((x) => x.id === e.id)!;
+      el.z = idx + 1;
+    });
+  });
+}
+
+/* ---------------- pins ---------------- */
+
+export function addPin(spreadId: string, key: string, x: number, y: number): string | null {
+  let id: string | null = null;
+  update((b) => {
+    const slot = findSpread(b, spreadId)?.spread.slots[key];
+    if (slot?.kind !== 'pins') return;
+    const pin: Pin = { id: newId('pin'), x, y, title: '', body: '' };
+    slot.pins.push(pin);
+    id = pin.id;
+  });
+  return id;
+}
+
+export function patchPin(spreadId: string, key: string, pinId: string, patch: Partial<Pin>) {
+  update((b) => {
+    const slot = findSpread(b, spreadId)?.spread.slots[key];
+    if (slot?.kind !== 'pins') return;
+    const pin = slot.pins.find((p) => p.id === pinId);
+    if (pin) Object.assign(pin, patch);
+  });
+}
+
+export function removePin(spreadId: string, key: string, pinId: string) {
+  update((b) => {
+    const slot = findSpread(b, spreadId)?.spread.slots[key];
+    if (slot?.kind === 'pins') slot.pins = slot.pins.filter((p) => p.id !== pinId);
+  });
+}
+
+/* ---------------- materials ---------------- */
+
+export function addMaterial(spreadId: string, key: string): string | null {
+  let id: string | null = null;
+  update((b) => {
+    const slot = findSpread(b, spreadId)?.spread.slots[key];
+    if (slot?.kind !== 'materials') return;
+    const card: MaterialCard = {
+      id: newId('mt'),
+      name: 'New material',
+      finish: '',
+      maker: '',
+      url: '',
+      pricePerUnit: null,
+      unit: '',
+      swatchColor: '#D9D2C7',
+      assetId: null,
+      clean: emptyClean(),
+    };
+    slot.cards.push(card);
+    id = card.id;
+  });
+  return id;
+}
+
+export function patchMaterial(spreadId: string, key: string, cardId: string, patch: Partial<MaterialCard>) {
+  update((b) => {
+    const slot = findSpread(b, spreadId)?.spread.slots[key];
+    if (slot?.kind !== 'materials') return;
+    const card = slot.cards.find((c) => c.id === cardId);
+    if (card) Object.assign(card, patch);
+  });
+}
+
+export function patchMaterialClean(spreadId: string, key: string, cardId: string, patch: Partial<CleanFields>) {
+  update((b) => {
+    const slot = findSpread(b, spreadId)?.spread.slots[key];
+    if (slot?.kind !== 'materials') return;
+    const card = slot.cards.find((c) => c.id === cardId);
+    if (card) Object.assign(card.clean, patch);
+  });
+}
+
+export function removeMaterial(spreadId: string, key: string, cardId: string) {
+  update((b) => {
+    const slot = findSpread(b, spreadId)?.spread.slots[key];
+    if (slot?.kind === 'materials') slot.cards = slot.cards.filter((c) => c.id !== cardId);
+  });
+}
+
+export function patchItemClean(itemId: string, patch: Partial<CleanFields>) {
+  update((b) => {
+    const it = b.items[itemId];
+    if (it) Object.assign(it.clean, patch);
+  });
+}
+
+/* ---------------- decisions ---------------- */
+
+export function patchDecision(spreadId: string, patch: Partial<Omit<DecisionSlot, 'kind'>>) {
+  update((b) => {
+    const d = findSpread(b, spreadId)?.spread.slots.decision;
+    if (d?.kind === 'decision') Object.assign(d, patch);
+  });
+}
+
+export function chooseOption(spreadId: string, itemId: string | null) {
+  update((b) => {
+    const d = findSpread(b, spreadId)?.spread.slots.decision;
+    if (d?.kind !== 'decision') return;
+    d.chosenId = itemId;
+    if (itemId && d.status === 'thinking') d.status = 'decided';
+    if (itemId && !d.date) d.date = new Date().toISOString().slice(0, 10);
+    for (const id of d.optionIds) {
+      const it = b.items[id];
+      if (!it) continue;
+      if (id === itemId) it.status = 'chosen';
+      else if (it.status === 'chosen') it.status = 'considering';
+    }
+  });
+}
+
+export function addDecisionOption(spreadId: string, itemId: string) {
+  update((b) => {
+    const d = findSpread(b, spreadId)?.spread.slots.decision;
+    if (d?.kind === 'decision' && !d.optionIds.includes(itemId)) d.optionIds.push(itemId);
+  });
+}
+
+export function removeDecisionOption(spreadId: string, itemId: string) {
+  update((b) => {
+    const d = findSpread(b, spreadId)?.spread.slots.decision;
+    if (d?.kind !== 'decision') return;
+    d.optionIds = d.optionIds.filter((id) => id !== itemId);
+    if (d.chosenId === itemId) d.chosenId = null;
+  });
+}
+
+/* ---------------- shopping ---------------- */
+
+export function addShoppingRow(spreadId: string, key: string, name = ''): string | null {
+  let id: string | null = null;
+  update((b) => {
+    const slot = findSpread(b, spreadId)?.spread.slots[key];
+    if (slot?.kind !== 'shopping') return;
+    const row: ShoppingRow = { id: newId('row'), name, status: 'needed', price: null, retailer: '', url: '', note: '' };
+    slot.rows.push(row);
+    id = row.id;
+  });
+  return id;
+}
+
+export function patchShoppingRow(spreadId: string, key: string, rowId: string, patch: Partial<ShoppingRow>) {
+  update((b) => {
+    const slot = findSpread(b, spreadId)?.spread.slots[key];
+    if (slot?.kind !== 'shopping') return;
+    const row = slot.rows.find((r) => r.id === rowId);
+    if (row) Object.assign(row, patch);
+  });
+}
+
+export function removeShoppingRow(spreadId: string, key: string, rowId: string) {
+  update((b) => {
+    const slot = findSpread(b, spreadId)?.spread.slots[key];
+    if (slot?.kind === 'shopping') slot.rows = slot.rows.filter((r) => r.id !== rowId);
+  });
+}
+
+/* ---------------- placing assets outside image slots ---------------- */
+
+export function placeItemAsset(itemId: string, asset: Asset) {
+  update((b) => {
+    b.assets[asset.id] = asset;
+    const it = b.items[itemId];
+    if (it) {
+      it.assetId = asset.id;
+      it.focal = { x: 0.5, y: 0.5 };
+    }
+  });
+}
+
+export function placeBoardAsset(spreadId: string, key: string, elId: string, asset: Asset) {
+  update((b) => {
+    b.assets[asset.id] = asset;
+    const slot = findSpread(b, spreadId)?.spread.slots[key];
+    if (slot?.kind !== 'board') return;
+    const el = slot.elements.find((e) => e.id === elId);
+    if (el) el.assetId = asset.id;
+  });
+}
+
+export function placeMaterialAsset(spreadId: string, key: string, cardId: string, asset: Asset) {
+  update((b) => {
+    b.assets[asset.id] = asset;
+    const slot = findSpread(b, spreadId)?.spread.slots[key];
+    if (slot?.kind !== 'materials') return;
+    const card = slot.cards.find((c) => c.id === cardId);
+    if (card) card.assetId = asset.id;
   });
 }

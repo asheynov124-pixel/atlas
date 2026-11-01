@@ -1,0 +1,164 @@
+/* Small form controls that live on the page in Edit mode: paper, hairlines, small caps. */
+
+.input,
+.select,
+.number {
+  font-family: var(--font-text);
+  font-size: var(--small);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  padding: 3px 7px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.input:focus,
+.select:focus,
+.number:focus {
+  outline: none;
+  border-color: var(--clay);
+}
+
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 22px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236F6A63' stroke-width='1.6'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 5px center;
+  background-size: 14px;
+  cursor: pointer;
+}
+
+.number {
+  width: 7.5em;
+  font-feature-settings: 'tnum';
+  text-align: right;
+}
+
+.small {
+  font-family: var(--font-ui);
+  font-size: var(--label);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.iconButton {
+  width: 26px;
+  height: 26px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 2px;
+  color: var(--muted);
+  flex: none;
+}
+
+.iconButton:hover,
+.iconButton[aria-pressed='true'] {
+  color: var(--ink);
+  background: color-mix(in oklab, var(--ink) 7%, transparent);
+}
+
+.iconButton svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.iconButton[data-on='true'] svg {
+  fill: currentColor;
+}
+
+.ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 9px;
+  border: 1px dashed var(--hairline);
+  border-radius: 2px;
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: var(--label);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ghost:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.ghost svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+}
+
+.toolbar {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  padding: 3px;
+  background: var(--paper);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), 0 0 0 1px var(--hairline);
+}
+
+.fieldGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+}
+
+.fieldRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.field .input,
+.field .select,
+.field .number {
+  width: 100%;
+  font-size: 15px;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.cleanGrid {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--hairline);
+}
+
+.cleanRow {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.hover {
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+*:hover > .hover,
+*:focus-within > .hover,
+.hover[data-always='true'] {
+  opacity: 1;
+}
