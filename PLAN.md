@@ -26,7 +26,7 @@ calls I made where the brief left room. It is updated as phases land.
 | Rich text | TipTap 3, minimal schema | Bold, italic, link, pull-quote. Paste strips. |
 | Export | JSZip | `book.json` + `assets/*` |
 | Offline | `vite-plugin-pwa` | autoUpdate, precache app shell + fonts. |
-| Checks | Playwright + Vitest | Screenshots, a11y smoke, zip round-trip. |
+| Checks | Playwright 1.63 + Vitest + axe + Lighthouse | Screenshots, the brief's edit scenarios, axe scans, zip round-trip. Playwright is pinned to the browser build in this environment. |
 | Fonts | `@fontsource` packages | Instrument Serif, Newsreader (variable), Inter (variable), Caveat. Self-hosted via npm, no runtime Google request. |
 | Styling | Plain CSS + custom properties, CSS Modules per component | No UI kit. |
 | Photos | `sharp` + `heic-convert` in `scripts/import-photos.ts` | Node script, `npm run import-photos`. |
@@ -225,3 +225,40 @@ them against section 8 of the brief before moving on.
 - Prices are USD; the shopping total ignores rows with no price.
 - The Clean materials panel is data entry only, with "Unknown" as a valid
   value for every field; nothing is prefilled.
+
+## 9. Status at the end of the build
+
+All four phases landed, each as one commit on `sixteen-bannehr`.
+
+**Checked** (phone 390×844 and laptop 1440×900, Chromium):
+- 23 Playwright scenarios: retitle a chapter, edit text in place, replace a
+  photo from a file and set its focal point, add a note, favourite two
+  vanities and compare them, add a spread, change its template, delete it,
+  undo all of it, save and restore an edition, mood board drag with snapping,
+  add a pin, shopping totals, choose an option, reload persistence, zip
+  export → import into a fresh browser, offline open through the service
+  worker, one landscape PDF page per spread, axe on six spreads plus Edit mode.
+- 8 Vitest cases: seed, folios, figure numbers, template carry-over,
+  migration, photo manifest filling, zip round trip.
+- Lighthouse accessibility: 100 on cover, contents, essay and gallery on the
+  desktop preset; 100 on cover and contents, 96 on essay and gallery on the
+  mobile preset. The mobile 96 is axe judging off-screen spreads (the phone
+  keeps every spread in the document) against an ancestor background instead
+  of the photo and scrim actually behind the type.
+
+**Cut, and why**
+- Real-time sync, accounts, AI, ordering, 3D: out of scope by the brief. The
+  storage seam (`BookStorage`) is where sync plugs in.
+- Static photos are not packed in the export (§7.2). Both phones open the same
+  deployment, so they already have them.
+- HEIC dropped straight into the browser is not decoded on desktop Chrome;
+  iPhone Safari hands over a JPEG, and `import-photos` converts HEIC on a Mac.
+- Multi-page galleries: a gallery holds what fits on one spread (up to 32
+  tiles). More than that wants a second gallery spread.
+
+**Known rough edges**
+- The mood board's handles come from react-moveable and are pointer-only;
+  the keyboard path is arrow-key nudging with the element selected.
+- Print uses the browser's PDF engine; fonts embed, but very long essays that
+  overflow a page on screen also overflow in print.
+- The thumbnail strip draws schematic glyphs, not live miniatures.

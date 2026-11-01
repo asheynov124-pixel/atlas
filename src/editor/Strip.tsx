@@ -85,19 +85,19 @@ export function Strip() {
         </SortableContext>
       </DndContext>
       <div className={styles.tools} role="toolbar" aria-label="Spread tools">
-        <button type="button" className={styles.tool} onClick={() => setPicker('add')} data-testid="strip-add">
+        <button type="button" className={styles.tool} onClick={() => setPicker('add')} data-testid="strip-add" aria-label="Add a spread after this one">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
           <span>Add</span>
         </button>
-        <button type="button" className={styles.tool} onClick={onDuplicate} disabled={locked} data-testid="strip-duplicate">
+        <button type="button" className={styles.tool} onClick={onDuplicate} disabled={locked} data-testid="strip-duplicate" aria-label="Duplicate this spread">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" /><path d="M16 8V4H4v12h4" /></svg>
           <span>Duplicate</span>
         </button>
-        <button type="button" className={styles.tool} onClick={() => setPicker('change')} disabled={locked} data-testid="strip-template">
+        <button type="button" className={styles.tool} onClick={() => setPicker('change')} disabled={locked} data-testid="strip-template" aria-label="Change this spread's template">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" /><path d="M4 12h16M12 4v16" /></svg>
           <span>Template</span>
         </button>
-        <button type="button" className={styles.tool} onClick={onDelete} disabled={locked} data-testid="strip-delete">
+        <button type="button" className={styles.tool} onClick={onDelete} disabled={locked} data-testid="strip-delete" aria-label="Delete this spread">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13" /></svg>
           <span>Delete</span>
         </button>
@@ -149,7 +149,7 @@ function Thumb({ ref_, current, onGo }: { ref_: SpreadRef; current: boolean; onG
         data-current={current ? 'true' : 'false'}
         data-dragging={isDragging ? 'true' : 'false'}
         data-spread-thumb={ref_.spread.id}
-        aria-label={`${spreadTitle(ref_)}, ${TEMPLATE_META[ref_.spread.template].name}${current ? ', current' : ''}`}
+        aria-label={`${spreadTitle(ref_)}${spreadTitle(ref_) !== TEMPLATE_META[ref_.spread.template].name ? `, ${TEMPLATE_META[ref_.spread.template].name}` : ''}${current ? ', current' : ''}`}
         aria-current={current ? 'true' : undefined}
         onClick={onGo}
         {...attributes}

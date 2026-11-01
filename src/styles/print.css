@@ -1,0 +1,89 @@
+/* Print: one spread per landscape page. Chrome stays on screen. */
+
+@page {
+  size: 11in 8.5in;
+  margin: 0;
+}
+
+.print-book {
+  background: var(--desk);
+  min-height: 100%;
+  padding: 24px 0 64px;
+  display: grid;
+  gap: 24px;
+  justify-items: center;
+}
+
+.print-note {
+  width: 11in;
+  max-width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 0 4px;
+  color: var(--muted);
+}
+
+.print-note a,
+.print-note button {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+  border: 1px solid var(--ink);
+  padding: 8px 12px;
+  background: var(--paper);
+}
+
+.print-spread {
+  width: 11in;
+  height: 8.5in;
+  position: relative;
+  overflow: hidden;
+  background: var(--paper);
+  break-after: page;
+  page-break-after: always;
+  break-inside: avoid;
+}
+
+.print-spread > * {
+  position: absolute;
+  inset: 0;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    height: auto;
+  }
+  .print-book {
+    display: block;
+    padding: 0;
+    background: none;
+  }
+  .print-note {
+    display: none !important;
+  }
+  .print-spread {
+    width: 11in;
+    height: 8.5in;
+    margin: 0;
+    box-shadow: none;
+  }
+  .print-spread:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+  /* no shadows on paper: the gutter and edge effects are screen-only */
+  .print-spread section {
+    box-shadow: none !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

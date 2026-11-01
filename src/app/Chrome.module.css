@@ -9,7 +9,8 @@
   gap: 16px;
   padding: 0 20px;
   height: 48px;
-  color: var(--muted);
+  color: var(--chrome-ink);
+  --chrome-ink: color-mix(in oklab, var(--ink) 76%, var(--paper));
   pointer-events: none;
 }
 
@@ -40,7 +41,7 @@
   height: 34px;
   padding: 0 10px;
   border-radius: var(--radius-ui);
-  color: var(--muted);
+  color: var(--chrome-ink);
   font-family: var(--font-ui);
   font-size: 11px;
   letter-spacing: 0.08em;
@@ -77,7 +78,7 @@
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--chrome-ink);
   display: flex;
   gap: 1.2em;
   align-items: baseline;

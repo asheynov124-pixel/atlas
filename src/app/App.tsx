@@ -11,6 +11,8 @@ import { AuthorPrompt } from '@/editor/AuthorPrompt';
 import { CompareDrawer } from '@/features/CompareDrawer';
 import { Chrome } from './Chrome';
 import { Specimen } from './Specimen';
+import { PrintBook } from './PrintBook';
+import { TransferSheet } from './Transfer';
 import { useRoute } from './router';
 import { useApplyTheme } from './useTheme';
 
@@ -44,8 +46,8 @@ export default function App() {
   }, []);
 
   if (route.kind === 'specimen') return <Specimen />;
-  if (route.kind === 'print') return <Specimen />;
   if (!loaded) return <div aria-busy="true" style={{ position: 'fixed', inset: 0, background: 'var(--desk)' }} />;
+  if (route.kind === 'print') return <PrintBook />;
 
   return (
     <>
@@ -57,6 +59,7 @@ export default function App() {
       {panel === 'theme' && <ThemePanel />}
       {panel === 'editions' && <EditionsPanel />}
       {panel === 'author' && <AuthorPrompt />}
+      {panel === 'transfer' && <TransferSheet onClose={() => useUiStore.getState().setPanel(null)} />}
     </>
   );
 }

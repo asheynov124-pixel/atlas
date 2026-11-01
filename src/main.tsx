@@ -9,7 +9,11 @@ import '@fontsource-variable/caveat/wght.css';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/paper.css';
+import './styles/print.css';
+import { registerSW } from 'virtual:pwa-register';
 import App from './app/App';
+
+registerSW({ immediate: true });
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

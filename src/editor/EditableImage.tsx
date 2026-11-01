@@ -156,7 +156,7 @@ export function EditableImage({ slotKey, target: givenTarget, slot, compact, ...
           </div>
         )}
         {empty && !busy && !compact && (
-          <button type="button" className={styles.hit} onClick={() => inputRef.current?.click()} aria-label={`Add a photo: ${slot.placeholder}`}>
+          <button type="button" className={styles.hit} onClick={() => inputRef.current?.click()} aria-label={`${touch ? 'Tap to choose a photo' : 'Drop a photo, or click to choose'} — ${slot.placeholder}`}>
             <span className={[styles.hint, 't-label'].join(' ')}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l2-3h6l2 3h3v12H4z" /><circle cx="12" cy="13" r="3.5" /></svg>
               <span>{touch ? 'Tap to choose a photo' : 'Drop a photo, or click to choose'}</span>

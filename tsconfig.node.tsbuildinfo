@@ -1,1 +1,1 @@
-{"root":["./vite.config.ts","./playwright.config.ts","./scripts/montage.ts","./scripts/sheet.ts","./scripts/shots.ts","./tests/e2e/edit.spec.ts","./tests/e2e/features.spec.ts"],"version":"5.9.3"}
+{"root":["./vite.config.ts","./playwright.config.ts","./scripts/icons.ts","./scripts/import-photos.ts","./scripts/montage.ts","./scripts/sheet.ts","./scripts/shots.ts","./scripts/types.d.ts","./tests/e2e/book.spec.ts","./tests/e2e/edit.spec.ts","./tests/e2e/features.spec.ts","./tests/unit/book.test.ts"],"version":"5.9.3"}

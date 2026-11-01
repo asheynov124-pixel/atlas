@@ -17,14 +17,15 @@ export function CoverTemplate({ ctx }: { ctx: SpreadCtx }) {
     <Spread ctx={ctx} label={`Cover: ${stripHtml(title)}`}>
       <div className={styles.root}>
         {hero && <Plate slot={hero} slotKey="hero" className={styles.hero} priority plain sizes="100vw" />}
-        <div className={styles.scrim} />
-        <div className={styles.frame} />
-        <p className={[styles.mark, 't-label'].join(' ')}>A book in progress</p>
-        <div className={styles.block}>
-          <RichText as="h1" html={title} slotKey="title" placeholder="Title" className={[styles.title, 't-display'].join(' ')} />
-          <RichText as="p" html={subtitle} slotKey="subtitle" placeholder="Subtitle" className={styles.subtitle} />
+        <div className={styles.scrim}>
+          <div className={styles.frame} />
+          <p className={[styles.mark, 't-label'].join(' ')}>A book in progress</p>
+          <div className={styles.block}>
+            <RichText as="h1" html={title} slotKey="title" placeholder="Title" className={[styles.title, 't-display'].join(' ')} />
+            <RichText as="p" html={subtitle} slotKey="subtitle" placeholder="Subtitle" className={styles.subtitle} />
+          </div>
+          <RichText as="p" html={address} slotKey="address" placeholder="Address" className={[styles.address, 't-label'].join(' ')} />
         </div>
-        <RichText as="p" html={address} slotKey="address" placeholder="Address" className={[styles.address, 't-label'].join(' ')} />
         <NotesLayer side="bleed" />
       </div>
     </Spread>

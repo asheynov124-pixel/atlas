@@ -89,8 +89,9 @@ export function Chrome() {
       </button>
       {menuOpen && (
         <div className={styles.menuList} role="menu">
-          <a className={styles.button} role="menuitem" href="#/specimen" onClick={() => setMenuOpen(false)}>Type specimen</a>
+          <button className={styles.button} role="menuitem" onClick={() => { setMenuOpen(false); useUiStore.getState().setPanel('transfer'); }} data-testid="menu-transfer">Share / export</button>
           <a className={styles.button} role="menuitem" href="#/print" onClick={() => setMenuOpen(false)}>Print the book</a>
+          <a className={styles.button} role="menuitem" href="#/specimen" onClick={() => setMenuOpen(false)}>Type specimen</a>
         </div>
       )}
     </div>

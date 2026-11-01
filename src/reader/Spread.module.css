@@ -273,7 +273,8 @@
   inset: 0;
   background:
     repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0 1px, transparent 1px 34px),
-    radial-gradient(120% 100% at 100% 100%, rgba(0, 0, 0, 0.18), transparent 55%);
+    linear-gradient(0deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.08) 22%, transparent 40%),
+    radial-gradient(120% 100% at 100% 100%, rgba(0, 0, 0, 0.14), transparent 55%);
   pointer-events: none;
 }
 

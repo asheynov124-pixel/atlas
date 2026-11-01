@@ -3,6 +3,7 @@
   width: 100%;
   color: var(--paper);
   overflow: hidden;
+  background: #2a2824;
 }
 
 @media (min-width: 820px) and (min-aspect-ratio: 1/1) {
@@ -29,6 +30,10 @@
   pointer-events: none;
 }
 
+.scrim > * {
+  pointer-events: auto;
+}
+
 .numeral {
   position: absolute;
   left: 5cqw;
@@ -37,7 +42,6 @@
   line-height: 0.82;
   color: rgba(255, 255, 255, 0.9);
   font-feature-settings: 'lnum';
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
 .numeral[data-word='true'] {

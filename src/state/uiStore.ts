@@ -4,7 +4,7 @@ import type { Author } from '@/book/types';
 export type Mode = 'read' | 'edit';
 export type ThemeName = 'day' | 'night';
 export type SaveState = 'saved' | 'dirty' | 'saving' | 'error';
-export type Panel = null | 'chapters' | 'theme' | 'editions' | 'author' | 'compare';
+export type Panel = null | 'chapters' | 'theme' | 'editions' | 'author' | 'compare' | 'transfer';
 
 const read = <T,>(key: string, fallback: T): T => {
   try {

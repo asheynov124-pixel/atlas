@@ -51,6 +51,10 @@ export function Reader({ route }: { route: Extract<Route, { kind: 'spread' }> })
 
   useEffect(() => setSpreadIndex(current), [current, setSpreadIndex]);
   useEffect(() => {
+    const ref = spreads[current];
+    if (ref) document.title = ref.chapter.hidden ? book.title : `${ref.chapter.title} — ${book.title}`;
+  }, [current, spreads, book.title]);
+  useEffect(() => {
     (window as unknown as { __sb: { spreadCount: number } }).__sb = { spreadCount: spreads.length };
   }, [spreads.length]);
 

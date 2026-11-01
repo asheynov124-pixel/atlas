@@ -14,7 +14,7 @@ export function Glyph({ template, accent = 'var(--accent, var(--sage))' }: { tem
       case 'contents':
         return (<>{[8, 13, 18, 23, 28].map((y) => <g key={y}>{line(6, y, 16)}{line(24, y, 3)}</g>)}{[8, 13, 18].map((y) => <g key={y}>{line(36, y, 16)}{line(54, y, 3)}</g>)}</>);
       case 'opener':
-        return (<><rect width="60" height="40" fill={accent} /><text x="6" y="17" fontFamily="Georgia, serif" fontSize="14" fill={paper}>1</text><rect x="6" y="30" width="16" height="2.4" fill={paper} /></>);
+        return (<><rect width="60" height="40" fill={accent} /><rect x="6" y="7" width="3" height="11" fill={paper} /><rect x="6" y="30" width="16" height="2.4" fill={paper} /></>);
       case 'essay':
         return (<>{line(6, 8, 18, 2.6)}{[14, 17, 20, 23, 26].map((y) => <g key={y}>{line(6, y, 8)}{line(16, y, 8)}</g>)}{line(36, 10, 16, 2)}{line(36, 14, 12, 2)}<rect x="42" y="24" width="12" height="9" fill={accent} /></>);
       case 'fullbleed':
@@ -32,7 +32,7 @@ export function Glyph({ template, accent = 'var(--accent, var(--sage))' }: { tem
       case 'decision':
         return (<><rect x="6" y="9" width="22" height="16" fill={accent} />{line(6, 28, 16)}{[36, 46].map((x) => [9, 20].map((y) => <rect key={`${x}${y}`} x={x} y={y} width="8" height="8" fill={accent} opacity="0.6" />))}</>);
       case 'shopping':
-        return (<>{[9, 14, 19, 24, 29].map((y) => <g key={y}>{line(6, y, 14)}{line(22, y, 5)}</g>)}<text x="38" y="26" fontFamily="Georgia, serif" fontSize="11" fill={ink}>$</text></>);
+        return (<>{[9, 14, 19, 24, 29].map((y) => <g key={y}>{line(6, y, 14)}{line(22, y, 5)}</g>)}<rect x="36" y="22" width="18" height="2.4" fill={ink} opacity="0.8" /><rect x="36" y="27" width="18" height="2.4" fill={ink} opacity="0.8" /></>);
       case 'stilltodecide':
         return (<>{[9, 15, 21, 27].map((y) => line(6, y, 20))}{[9, 15, 21].map((y) => line(36, y, 14))}</>);
     }
