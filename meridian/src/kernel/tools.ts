@@ -31,7 +31,7 @@ export class ToolRuntime {
   private handlers = new Map<string, ToolHandler>();
   private seq = 0;
   /** Sentinel feed: per-task signatures of calls. */
-  readonly callLog: Array<{ task_id?: string; agent_id: string; tool: string; args_sig: string; at: number }> = [];
+  readonly callLog: Array<{ task_id?: string; attempt?: number; agent_id: string; tool: string; args_sig: string; at: number }> = [];
 
   constructor(readonly gate: GateEngine, readonly inbox: ApprovalsInbox, readonly l2: EpisodicStore, readonly events: EventStream) {}
 
@@ -44,9 +44,10 @@ export class ToolRuntime {
     return this.handlers.has(tool);
   }
 
-  async call(call: Omit<ToolCall, 'tier_ceiling'> & { tier_ceiling: ActionTier; workspace_id?: string; reviewer_rbac?: string[] }): Promise<ToolOutcome> {
-    const gate = this.gate.evaluate(call);
-    this.callLog.push({ ...(call.task_id ? { task_id: call.task_id } : {}), agent_id: call.agent_id, tool: call.tool, args_sig: JSON.stringify(call.args), at: Date.now() });
+  async call(call: Omit<ToolCall, 'tier_ceiling'> & { tier_ceiling: ActionTier; workspace_id?: string; reviewer_rbac?: string[]; attempt?: number }): Promise<ToolOutcome> {
+    const { workspace_id: _ws, reviewer_rbac: _rbac, attempt, ...gateCall } = call;
+    const gate = this.gate.evaluate(gateCall);
+    this.callLog.push({ ...(call.task_id ? { task_id: call.task_id } : {}), ...(attempt !== undefined ? { attempt } : {}), agent_id: call.agent_id, tool: call.tool, args_sig: JSON.stringify(call.args), at: Date.now() });
     if (gate.decision === 'block') return { status: 'blocked', gate };
     if (gate.decision === 'question') return { status: 'needs_human', gate, question: gate.question_hint! };
     const handler = this.handlers.get(call.tool);

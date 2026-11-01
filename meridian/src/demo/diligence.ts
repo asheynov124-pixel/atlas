@@ -38,17 +38,18 @@ export function registerDemoTools(kernel: Kernel): void {
 
 export function diligenceTemplate(kernel: Kernel, provider: MockProvider, companies = COMPANIES): { planner: Planner; executor: SpecialistExecutor } {
   registerDemoTools(kernel);
-  provider
-    .on('grade', (req) => {
+  provider.defaults({
+    grade: (req) => {
       // Rubric grader: coverage/consistency/evidence. Penalize when a sentence lacks a pointer.
       const deliverable = req.prompt.split('DELIVERABLE:')[1] ?? '';
       const unsourced = deliverable.split(/(?<=[.!?])\s+/).filter((s) => /\d/.test(s) && !/\[\[ep:/.test(s)).length;
       const ev = unsourced ? 0.5 : 1;
       return JSON.stringify({ scores: { coverage: 1, consistency: 0.95, evidence: ev }, justifications: { evidence: unsourced ? `${unsourced} figures lack source pointers` : 'all figures sourced' } });
-    })
-    .on('critic', () => JSON.stringify({ severity: 0.1, issues: [] }))
-    .on('synthesize', (req) => req.prompt)
-    .on('integrate', (req) => `# Comparative Diligence Memo\n\n${req.prompt.split('SECTIONS:\n')[1] ?? ''}`);
+    },
+    critic: () => JSON.stringify({ severity: 0.1, issues: [] }),
+    synthesize: (req) => req.prompt,
+    integrate: (req) => `# Comparative Diligence Memo\n\n${req.prompt.split('SECTIONS:\n')[1] ?? ''}`,
+  });
 
   const planner: Planner = {
     async plan(): Promise<TaskSpec[]> {

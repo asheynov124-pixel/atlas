@@ -13,7 +13,8 @@
     "test": "node --import tsx --test test/*.test.ts",
     "demo:diligence": "tsx src/demo/diligence.ts",
     "demo:initiative": "tsx src/demo/initiative.ts",
-    "serve": "tsx src/api/server.ts"
+    "serve": "tsx src/app/main.ts",
+    "start": "tsx src/app/main.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

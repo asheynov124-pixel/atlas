@@ -7,6 +7,7 @@ import { makeId, nowIso } from '../core/types.js';
 import { EpisodicStore } from '../memory/episodic.js';
 import type { ModelProvider } from '../models/provider.js';
 import type { Deliverable } from './deliverable.js';
+import { splitUnits } from '../core/text.js';
 
 export interface EnsembleVerdict {
   records: GraderRecord[];
@@ -43,8 +44,8 @@ export class EvidenceVerifier {
     const inline = [...d.text.matchAll(/\[\[(ep:[^\]\[]+)\]\]/g)].map((m) => m[1]!);
     for (const p of inline) if (!this.l2.resolve(p)) problems.push(`inline pointer ${p} does not resolve`);
     // Numbers in the deliverable must be near a pointer (same sentence).
-    for (const sentence of d.text.split(/(?<=[.!?])\s+/)) {
-      if (/\$?\d[\d,.]*\s?(m|bn|million|billion|%|employees|k)?/i.test(sentence) && /\d/.test(sentence) && !/\[\[ep:/.test(sentence) && !/^\s*[#|-]/.test(sentence)) {
+    for (const sentence of splitUnits(d.text)) {
+      if (/\d/.test(sentence) && !/\[\[ep:/.test(sentence) && !/^\s*[#|]/.test(sentence)) {
         problems.push(`figure without pointer: "${sentence.trim().slice(0, 80)}"`);
       }
     }

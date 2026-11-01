@@ -19,9 +19,9 @@ export class Sentinel {
   private warned = new Set<string>();
   constructor(private events: EventStream, private tools: ToolRuntime, private loopThreshold = 3) {}
 
-  /** Repeated identical tool calls within a task → loop. */
-  checkLoops(task_id: string, run_id: string): boolean {
-    const sigs = this.tools.callLog.filter((c) => c.task_id === task_id).map((c) => `${c.tool}|${c.args_sig}`);
+  /** Repeated identical tool calls within one attempt of a task → loop. A revision legitimately re-reads its inputs. */
+  checkLoops(task_id: string, run_id: string, attempt?: number): boolean {
+    const sigs = this.tools.callLog.filter((c) => c.task_id === task_id && (attempt === undefined || c.attempt === undefined || c.attempt === attempt)).map((c) => `${c.tool}|${c.args_sig}`);
     const counts = new Map<string, number>();
     for (const s of sigs) counts.set(s, (counts.get(s) ?? 0) + 1);
     for (const [sig, n] of counts) {

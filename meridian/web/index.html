@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Meridian</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%230f5c6b'/%3E%3Cpath d='M16 4v24M4 16h24' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.12/marked.min.js"></script>
+</head>
+<body data-tab="canvas">
+<header class="top">
+  <div class="brand"><span class="mark" aria-hidden="true"></span>Meridian</div>
+  <div class="ws"><span class="muted">Workspace</span> <strong id="ws-label">…</strong></div>
+  <form class="search" id="search-form" role="search"><input id="search" type="search" placeholder="Search memory…" autocomplete="off"></form>
+  <button class="bell" id="bell" title="Pending approvals" aria-label="Pending approvals">🔔<span id="bell-count" class="count" hidden>0</span></button>
+  <span class="badge" id="provider">…</span>
+  <span class="user" id="user">…</span>
+</header>
+
+<div class="shell">
+  <!-- LEFT: Runs + Conversation -->
+  <aside class="col left" data-zone="runs">
+    <section class="zone">
+      <h2 class="zh">Runs <button class="link" id="new-run">+ New run</button></h2>
+      <ul class="runs" id="runs"></ul>
+    </section>
+    <section class="zone needs-you" id="needs-you" hidden>
+      <h2 class="zh">Needs you</h2>
+      <div id="needs-you-list"></div>
+    </section>
+    <section class="zone conv">
+      <h2 class="zh">Conversation</h2>
+      <div class="messages" id="messages"></div>
+      <form class="composer" id="composer">
+        <textarea id="prompt" rows="2" placeholder="Ask or delegate…" aria-label="Ask or delegate"></textarea>
+        <div class="composer-row">
+          <label class="tpl"><span class="muted">Workflow</span> <select id="template"><option value="">auto</option></select></label>
+          <button type="button" class="ghost" id="ask">Ask</button>
+          <button type="submit" class="primary" id="delegate">Delegate</button>
+        </div>
+      </form>
+    </section>
+  </aside>
+
+  <!-- CENTER: Canvas -->
+  <main class="col canvas" data-zone="canvas" id="canvas">
+    <div class="empty" id="canvas-empty">
+      <h1>Nothing on the canvas yet</h1>
+      <p>Delegate a goal and the result lands here with every figure traceable to its source. Ask a question and Meridian answers from memory, with pointers.</p>
+      <div class="suggest" id="suggestions"></div>
+      <h3>Documents in this workspace</h3>
+      <ul class="files" id="files"></ul>
+    </div>
+    <article id="canvas-run" hidden>
+      <header class="run-head">
+        <div>
+          <p class="eyebrow" id="run-id"></p>
+          <h1 id="run-goal"></h1>
+        </div>
+        <div class="chips" id="run-chips"></div>
+      </header>
+      <section class="plan" id="plan-card" hidden></section>
+      <section class="questions" id="questions" hidden></section>
+      <section class="progress-live" id="progress-live" hidden></section>
+      <section class="doc" id="artifact"></section>
+      <aside class="prov-card" id="prov-card" hidden></aside>
+    </article>
+  </main>
+
+  <!-- RIGHT: Swarm, Approvals, Memory -->
+  <aside class="col right" data-zone="memory">
+    <section class="zone swarm" id="swarm">
+      <h2 class="zh">Swarm <button class="link" id="open-trace" hidden>Open trace</button></h2>
+      <div id="swarm-body" class="muted small">Select a run.</div>
+    </section>
+    <section class="zone approvals" id="approvals">
+      <h2 class="zh">Approvals <span class="count-inline" id="approvals-count">0</span></h2>
+      <div id="approvals-list" class="small muted">Nothing waiting on you.</div>
+    </section>
+    <section class="zone memory" id="memory">
+      <h2 class="zh">Memory <button class="link" id="explore">Explore</button></h2>
+      <div id="memory-summary" class="small"></div>
+    </section>
+  </aside>
+</div>
+
+<nav class="tabs" aria-label="Zones">
+  <button data-tab-btn="runs">Runs</button>
+  <button data-tab-btn="canvas" class="on">Canvas</button>
+  <button data-tab-btn="memory">Memory</button>
+</nav>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
+    <header><h2 id="overlay-title">Memory</h2><button class="ghost" id="overlay-close">Close</button></header>
+    <div id="overlay-body"></div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<script src="/app.js"></script>
+</body>
+</html>

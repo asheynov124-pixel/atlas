@@ -87,6 +87,15 @@ export class SemanticGraph {
     }
   }
 
+  /** User marks a claim contested (§10.6 "Dispute"); a Reconciler task resolves it later. */
+  dispute(claim_id: string, by: string): Claim {
+    const c = this.claims.get(claim_id);
+    if (!c) throw new Error('unknown claim');
+    c.status = 'contested';
+    c.contradicted_by.push(`dispute:${by}`);
+    return c;
+  }
+
   query(entity?: string, attribute?: string): Claim[] {
     return [...this.claims.values()].filter((c) => (!entity || c.entity.toLowerCase() === entity.toLowerCase()) && (!attribute || c.attribute === attribute));
   }

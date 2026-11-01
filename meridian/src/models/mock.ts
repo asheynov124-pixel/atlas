@@ -18,6 +18,16 @@ export class MockProvider implements ModelProvider {
     return this;
   }
 
+  has(tag: string): boolean {
+    return this.handlers.has(tag);
+  }
+
+  /** Register only when no handler exists for the tag (lets generic app handlers win over demo defaults). */
+  defaults(handlers: Record<string, MockHandler>): this {
+    for (const [tag, h] of Object.entries(handlers)) if (!this.handlers.has(tag)) this.handlers.set(tag, h);
+    return this;
+  }
+
   async complete(req: CompletionRequest): Promise<CompletionResult> {
     this.calls.push(req);
     if (this.latencyMs) await new Promise((r) => setTimeout(r, this.latencyMs));

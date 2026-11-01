@@ -14,6 +14,7 @@
 import type { Effort, ModelTier } from '../core/types.js';
 import { HybridRetriever, type RetrievedSpan } from '../memory/retrieval.js';
 import { PlanCache } from './planCache.js';
+import { splitUnits } from '../core/text.js';
 
 export type Intent = 'trivial' | 'lookup' | 'moderate' | 'complex' | 'agentic';
 
@@ -32,6 +33,8 @@ export interface RoutingDecision {
 const AGENTIC = /\b(prepare|produce|draft|build|compare|audit|review all|for each|every|memo|report|across|batch|deploy|migrate)\b/i;
 const COMPLEX = /\b(why|prove|analy[sz]e|trade-?off|reconcile|design|strategy|implications)\b/i;
 const LOOKUP = /\b(what is|who is|when|where|how many|define|lookup|look up|find)\b/i;
+/** An imperative that changes the world or produces a deliverable is agentic however short it is. */
+const IMPERATIVE = /^(please\s+)?(send|reply|respond|e-?mail|notify|draft|prepare|produce|build|review|compare|audit|deploy|publish|schedule)\b/i;
 
 export const EFFORT_BY_INTENT: Record<Intent, Effort> = { trivial: 'low', lookup: 'low', moderate: 'medium', complex: 'high', agentic: 'high' };
 export const TIER_BY_INTENT: Record<Intent, ModelTier> = { trivial: 'fast', lookup: 'fast', moderate: 'balanced', complex: 'frontier', agentic: 'frontier' };
@@ -39,6 +42,7 @@ export const BUDGET_BY_EFFORT: Record<Effort, number> = { low: 1500, medium: 400
 
 export function classify(text: string): Intent {
   const words = text.trim().split(/\s+/).length;
+  if (IMPERATIVE.test(text.trim())) return 'agentic';
   if (AGENTIC.test(text) && (words > 12 || /\b(all|every|each|\d{2,})\b/.test(text))) return 'agentic';
   if (COMPLEX.test(text)) return 'complex';
   if (LOOKUP.test(text)) return 'lookup';
@@ -80,7 +84,7 @@ export class Router {
  * provisional stream on the client).
  */
 export function cascadeCheck(answer: string, resolves: (pointer: string) => boolean): { accept: boolean; unsourced: string[] } {
-  const sentences = answer.split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean);
+  const sentences = splitUnits(answer);
   const unsourced: string[] = [];
   for (const s of sentences) {
     const ptrs = [...s.matchAll(/\[\[(ep:[^\]\[]+)\]\]/g)].map((m) => m[1]!);

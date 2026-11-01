@@ -76,7 +76,7 @@ export interface RunResult {
 }
 
 export class LeadRuntime {
-  readonly artifacts = new Map<string, { run_id: string; text: string; created_at: string }>();
+  readonly artifacts = new Map<string, { run_id: string; text: string; created_at: string; provenance: RunResult['provenance'] }>();
   private deliverables = new Map<string, Deliverable>();
   private configs = new Map<string, RunConfig>();
   private specs = new Map<string, Map<string, TaskSpec>>();
@@ -192,7 +192,7 @@ export class LeadRuntime {
     const cfg = this.configs.get(task.run_id)!;
     const d = this.deliverables.get(task_id) ?? { text: '', evidence: [], tokens_in: 0, tokens_out: 0, usd: 0 };
     // One sentence, so the evidence verifier sees the pointer beside every figure in the receipt.
-    d.text = `${d.text}\nExecuted: ${executed.text.replace(/[.!?]\s+/g, '; ')} [[${executed.pointer}]].`;
+    d.text = `${d.text}\n\n**Executed:** ${executed.text.replace(/[.!?]\s+/g, '; ').replace(/\n+/g, ' ')} [[${executed.pointer}]].`;
     d.evidence.push(evidence(executed.pointer, executed.text));
     this.deliverables.set(task_id, d);
     this.ledger.transition(task_id, 'awaiting_grade', 'approved action executed');
@@ -224,7 +224,7 @@ export class LeadRuntime {
 
     const integrated = await this.integrate(run, cfg, accepted);
     const artifact_id = makeId('art');
-    this.artifacts.set(artifact_id, { run_id, text: integrated.text, created_at: nowIso() });
+    this.artifacts.set(artifact_id, { run_id, text: integrated.text, created_at: nowIso(), provenance: integrated.provenance });
     run.artifact_ids.push(artifact_id);
 
     // Archive: episodic record of the final artifact, then stage claims through quarantine.
@@ -253,9 +253,9 @@ export class LeadRuntime {
       const ctx: SpecialistContext = {
         task, run, provider: this.provider, tier_hint, upstream, ...(lastCritique ? { critique: lastCritique } : {}),
         tool: async (name, args, opts = {}) => {
-          const out = await this.tools.call({ tool: name, args, agent_id, task_id, run_id: run.run_id, tier_ceiling: task.risk_tier_ceiling, workspace_id: cfg.workspace_id, ...(cfg.reviewer_rbac ? { reviewer_rbac: cfg.reviewer_rbac } : {}), ...(opts.confidence !== undefined ? { confidence: opts.confidence } : {}), ...(opts.topics ? { topics: opts.topics } : {}), inside_sandbox: true });
+          const out = await this.tools.call({ tool: name, args, agent_id, task_id, run_id: run.run_id, tier_ceiling: task.risk_tier_ceiling, workspace_id: cfg.workspace_id, attempt: task.attempts, ...(cfg.reviewer_rbac ? { reviewer_rbac: cfg.reviewer_rbac } : {}), ...(opts.confidence !== undefined ? { confidence: opts.confidence } : {}), ...(opts.topics ? { topics: opts.topics } : {}), inside_sandbox: true });
           if (out.status !== 'ok') blockedByGate = out;
-          if (this.sentinel.checkLoops(task_id, run.run_id)) throw new Error('sentinel: loop detected');
+          if (this.sentinel.checkLoops(task_id, run.run_id, task.attempts)) throw new Error('sentinel: loop detected');
           return out;
         },
       };
