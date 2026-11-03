@@ -32,6 +32,18 @@ function parseJson<T>(text: string, fallback: T): T {
   try { return JSON.parse(m[0]) as T; } catch { return fallback; }
 }
 
+/** Remove references that contain digits but are not factual assertions about the record. */
+export function stripCitationNoise(s: string): string {
+  return s
+    .replace(/\bR\.\s?\d+:\d+(?:-\d+)?(?:\([a-z0-9]+\))*/gi, '')
+    .replace(/\bRPC\s?\d+\.\d+(?:\([a-z0-9]+\))*/gi, '')
+    .replace(/\bN\.J\.R\.E\.\s?\d+(?:\([a-z0-9]+\))*/gi, '')
+    .replace(/¶\s?\d+/g, '')
+    .replace(/\b\d{1,4}\s+(?:N\.\s?J\.(?:\s?Super\.)?|A\.[23]d|U\.S\.|S\.\s?Ct\.|F\.\d?d|F\.\s?Supp\.(?:\s?\dd)?)\s+(?:at\s+)?\d{1,5}(?:[-–]\d+)?(?:,\s*\d{1,5}(?:[-–]\d+)?)?/g, '')
+    .replace(/\((?:App\.\s?Div\.\s?)?\d{4}\)/g, '')
+    .replace(/⟦\d+⟧/g, '');
+}
+
 export class EvidenceVerifier {
   constructor(private l2: EpisodicStore) {}
 
@@ -45,7 +57,9 @@ export class EvidenceVerifier {
     for (const p of inline) if (!this.l2.resolve(p)) problems.push(`inline pointer ${p} does not resolve`);
     // Numbers in the deliverable must be near a pointer (same sentence).
     for (const sentence of splitUnits(d.text)) {
-      if (/\d/.test(sentence) && !/\[\[ep:/.test(sentence) && !/^\s*[#|]/.test(sentence)) {
+      // Rule numbers, paragraph marks and case citations are not record facts; they are checked elsewhere.
+      const facts = stripCitationNoise(sentence);
+      if (/\d/.test(facts) && !/\[\[ep:/.test(sentence) && !/^\s*[#|]/.test(sentence)) {
         problems.push(`figure without pointer: "${sentence.trim().slice(0, 80)}"`);
       }
     }

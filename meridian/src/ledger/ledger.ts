@@ -62,6 +62,36 @@ export class TaskLedger {
     return this.log;
   }
 
+  /** Persistence: the full ledger as plain JSON. */
+  serialize(): { runs: Run[]; tasks: Task[]; grades: GraderRecord[]; log: LedgerLogEntry[]; seq: number } {
+    return { runs: [...this.runs.values()], tasks: [...this.tasks.values()], grades: [...this.grades.values()], log: this.log, seq: this.seq };
+  }
+
+  /**
+   * Restore after a restart. Work that was mid-flight cannot be trusted to have finished,
+   * so running and grading tasks come back `blocked` (reason: interrupted) and their runs `paused`.
+   */
+  restore(data: ReturnType<TaskLedger['serialize']>): { interrupted: string[] } {
+    this.runs = new Map(data.runs.map((r) => [r.run_id, r]));
+    this.tasks = new Map(data.tasks.map((t) => [t.task_id, t]));
+    this.grades = new Map(data.grades.map((g) => [g.id, g]));
+    this.log = data.log;
+    this.seq = data.seq;
+    const interrupted: string[] = [];
+    for (const t of this.tasks.values()) {
+      if (t.status === 'running' || t.status === 'awaiting_grade') {
+        t.status = 'blocked';
+        t.inputs = { ...t.inputs, interrupted: true };
+        interrupted.push(t.task_id);
+        this.record({ kind: 'transition', run_id: t.run_id, task_id: t.task_id, detail: { from: 'running', to: 'blocked', reason: 'interrupted by restart' } });
+      }
+    }
+    for (const r of this.runs.values()) {
+      if (r.status === 'running' || r.status === 'planning') { r.status = 'paused'; r.updated_at = nowIso(); }
+    }
+    return { interrupted };
+  }
+
   createRun(input: {
     workspace_id: string;
     goal: string;

@@ -9,7 +9,7 @@ import { ApprovalsInbox, type ApprovalPayload } from '../approvals/inbox.js';
 import { EpisodicStore } from '../memory/episodic.js';
 import { EventStream } from '../core/events.js';
 
-export type ToolHandler = (args: Record<string, unknown>) => Promise<{ text: string; source?: string; state_snapshot?: Record<string, unknown>; alternatives?: string[] }>;
+export type ToolHandler = (args: Record<string, unknown>) => Promise<{ text: string; source?: string; state_snapshot?: Record<string, unknown>; alternatives?: string[]; /** Reuse an L2 record that already holds this text verbatim (ingested documents, opinions). */ pointer?: SpanPointer }>;
 
 export interface ToolOutcome {
   status: 'ok' | 'pending_approval' | 'needs_human' | 'blocked';
@@ -39,6 +39,9 @@ export class ToolRuntime {
     this.handlers.set(tool, handler);
     return this;
   }
+
+  /** Keep tool_N pointer ids unique across restarts. */
+  setSeq(n: number): void { this.seq = Math.max(this.seq, n); }
 
   has(tool: string): boolean {
     return this.handlers.has(tool);
@@ -72,6 +75,7 @@ export class ToolRuntime {
     }
 
     const result = await handler(call.args);
+    if (result.pointer && this.l2.resolve(result.pointer)) return { status: 'ok', gate, text: result.text, pointer: result.pointer };
     const turn_id = `tool_${++this.seq}`;
     const pointer = this.l2.append({ run_id: call.run_id ?? 'adhoc', turn_id, role: 'tool', text: result.text, trusted: false, ...(result.source ? { source: result.source } : {}) }, call.workspace_id);
     return { status: 'ok', gate, text: result.text, pointer };

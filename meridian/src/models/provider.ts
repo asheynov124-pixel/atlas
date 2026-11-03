@@ -24,6 +24,9 @@ export interface CompletionResult {
 
 export interface ModelProvider {
   complete(req: CompletionRequest): Promise<CompletionResult>;
+  /** Transcribe one scanned PDF page (base64 single-page PDF). Live providers only. */
+  transcribePdfPage?(pdfBase64: string): Promise<string>;
+  readonly live?: boolean;
 }
 
 /** Approximate list prices per 1M tokens, used for budget accounting. */

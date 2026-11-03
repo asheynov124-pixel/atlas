@@ -23,6 +23,25 @@ export class AnthropicProvider implements ModelProvider {
     this.client = client ?? new Anthropic();
   }
 
+  readonly live = true;
+
+  /** OCR a scanned page: Claude reads PDFs natively, including image-only pages. */
+  async transcribePdfPage(pdfBase64: string): Promise<string> {
+    const response = await this.client.beta.messages.create({
+      model: this.models.balanced,
+      max_tokens: 8000,
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      messages: [{ role: 'user', content: [
+        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
+        { type: 'text', text: 'Transcribe this scanned page verbatim. Preserve line breaks exactly as printed, one printed line per output line. Do not add commentary, headings or corrections. If a word is illegible write [illegible].' },
+      ] }],
+    } as Parameters<Anthropic['beta']['messages']['create']>[0]);
+    const msg = response as Anthropic.Beta.BetaMessage;
+    if (msg.stop_reason === 'refusal') throw new Error('OCR request was declined');
+    return msg.content.filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text').map((b) => b.text).join('');
+  }
+
   async complete(req: CompletionRequest): Promise<CompletionResult> {
     const model = this.models[req.tier];
     const useFallback = req.tier !== 'fast';

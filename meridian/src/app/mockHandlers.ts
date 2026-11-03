@@ -34,6 +34,25 @@ function pickSentences(prompt: string, queryText: string, limit: number): Array<
   return scored.sort((a, b) => b.score - a.score).slice(0, limit);
 }
 
+/**
+ * Generic step for user-built workflows: picks the input sentences that best match the
+ * step's instructions and keeps their pointers, so evidence checks pass on real text.
+ */
+function customStep(prompt: string, system: string): string {
+  const instr = (/INSTRUCTIONS:\s*([\s\S]*?)\n\n/.exec(prompt)?.[1] ?? system).toLowerCase();
+  const terms = instr.split(/[^a-z0-9]+/).filter((t) => t.length > 3 && !['each', 'every', 'document', 'from', 'with', 'that', 'this', 'list', 'extract', 'write', 'summarize', 'into', 'cite', 'pointer', 'sentence'].includes(t));
+  const blocks = [...prompt.matchAll(/\[\[(ep:[^\]\[]+)\]\]\n?([\s\S]*?)(?=\n\[\[ep:|\n\nEND INPUT|$)/g)];
+  const lines: string[] = [];
+  for (const b of blocks) {
+    const ptr = b[1]!; const body = b[2]!; const base = Number(/chars_(\d+)-/.exec(ptr)?.[1] ?? 0);
+    const sents = body.split(/\n+/).flatMap((l) => l.split(/(?<=[.!?])\s+(?=[A-Z])/)).map((x) => x.trim()).filter((x) => x.length > 25);
+    const ranked = sents.map((x) => ({ x, n: terms.reduce((k, t) => k + (x.toLowerCase().includes(t) ? 1 : 0), 0) })).sort((a, c) => c.n - a.n).slice(0, 3);
+    for (const r of ranked) { const i = body.indexOf(r.x); if (i >= 0) lines.push(`- ${r.x.replace(/^[-*]\s+/, '')} [[${ptr.replace(/chars_\d+-\d+$/, `chars_${base + i}-${base + i + r.x.length}`)}]]`); }
+  }
+  const upstream = [...prompt.matchAll(/^- .*\[\[ep:[^\]]+\]\]$/gm)].map((m) => m[0]);
+  return (lines.length ? lines : upstream).join('\n') || '- Nothing in the inputs matched this step.';
+}
+
 export function installMockHandlers(p: MockProvider): MockProvider {
   return p
     .on('grade', (req) => {
@@ -41,7 +60,7 @@ export function installMockHandlers(p: MockProvider): MockProvider {
       const lines = splitUnits(deliverable).filter((l) => /\d/.test(l) && !/^\s*[#|]/.test(l));
       const unsourced = lines.filter((l) => !/\[\[ep:/.test(l)).length;
       const ev = unsourced ? Math.max(0, 1 - unsourced / Math.max(1, lines.length)) : 1;
-      const ids = [...(req.prompt.split('DELIVERABLE:')[0] ?? '').matchAll(/^([a-z_]+):/gm)].map((m) => m[1]!);
+      const ids = [...(req.prompt.split('DELIVERABLE:')[0] ?? '').matchAll(/^([a-z0-9_]+):/gm)].map((m) => m[1]!);
       const scores: Record<string, number> = {};
       for (const id of ids) scores[id] = id === 'evidence' ? ev : 1;
       return JSON.stringify({ scores, justifications: { evidence: unsourced ? `${unsourced} line(s) lack source pointers` : 'every line carries a pointer' } });
@@ -76,6 +95,26 @@ export function installMockHandlers(p: MockProvider): MockProvider {
       const facts = pickSentences(req.prompt, goal, 2).map((x) => `${x.sentence.replace(/[.]$/, '')} [[${x.pointer}]].`).join(' ');
       return `Dear ${to.split('@')[0]},\n\nThank you for your message. ${facts || 'We are reviewing the file and will revert shortly.'} We will follow up with a proposed schedule.\n\nRegards,\nMurphy Orlando LLP`;
     })
+    .on('research_plan', () => '{}')
+    .on('research_answer', (req) => {
+      const q = (/QUESTION: (.+)/.exec(req.prompt)?.[1] ?? '').toLowerCase();
+      const terms = q.split(/[^a-z0-9]+/).filter((t) => t.length > 3);
+      const blocks = [...req.prompt.matchAll(/\[S(\d)\] ([^:]+): ([\s\S]*?)(?=\n\n\[S\d\]|$)/g)].slice(0, 3);
+      if (!blocks.length) return 'The research database has nothing on point yet. Import opinions or add a CourtListener token, then search again.';
+      const parts = blocks.map((b) => {
+        const sentences = b[3]!.replace(/\[\*\d+\]\s?/g, '').split(/\n+/).flatMap((para) => para.split(/(?<=[.!?][\u201d"]?)\s+(?=[A-Z])/)).map((x) => x.trim()).filter((x) => x.length > 40 && /^[A-Z]/.test(x) && !/Excerpt|omitted|\]$/.test(x) && !/[\u00ab*]/.test(x.slice(0, 3)));
+        const best = sentences.map((x) => ({ x, n: terms.reduce((k, t) => k + (x.toLowerCase().includes(t) ? 1 : 0), 0) })).sort((a, b2) => b2.n - a.n)[0]?.x ?? '';
+        const clause = best.replace(/^[\u201c"]|[\u201d"]$/g, '').replace(/[.]$/, '');
+        return clause ? `${b[2]!.split(',')[0]} explains that "${clause}" [S${b[1]}].` : '';
+      }).filter(Boolean);
+      return `${parts.join(' ')} These passages come from the research database; read each opinion in full before filing.`;
+    })
+    .on('research_read', () => '{}')
+    .on('research_memo', () => '')
+    .on('sumf_support', () => '{}')
+    .on('sim_opposing', () => '{}')
+    .on('custom', (req) => customStep(req.prompt, req.system))
+    .on('workflow_design', () => '{}')
     .on('answer', (req) => {
       const q = (req.prompt.split('MEMORY:')[0] ?? '').replace(/QUESTION:/, '');
       const picked = pickSentences(req.prompt, q, 2);

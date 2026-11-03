@@ -157,6 +157,9 @@ export type EventName =
   | 'run.completed'
   | 'run.failed'
   | 'memory.quarantined'
+  | 'doc.ingested'
+  | 'deadline.proposed'
+  | 'tripwire.tripped'
   | 'sentinel.alert';
 
 export interface KernelEvent {

@@ -63,6 +63,9 @@ export interface RunConfig {
   /** Projected minutes; triggers planning checkpoint when > 30. */
   projected_minutes?: number;
   reviewer_rbac?: string[];
+  /** Template name, recorded so a restart can reattach planner and executor. */
+  template?: string;
+  started_by?: string;
 }
 
 export interface RunResult {
@@ -95,6 +98,41 @@ export class LeadRuntime {
     readonly gateTierOf: (tool: string) => ActionTier | null,
   ) {}
 
+  /** Which template produced each run, so a restarted server can reattach planner and executor. */
+  readonly runMeta = new Map<string, { template: string; started_by?: string }>();
+
+  serialize() {
+    return { artifacts: [...this.artifacts.entries()], deliverables: [...this.deliverables.entries()], runMeta: [...this.runMeta.entries()] };
+  }
+
+  restore(data: ReturnType<LeadRuntime['serialize']>): void {
+    for (const [k, v] of data.artifacts) this.artifacts.set(k, v);
+    for (const [k, v] of data.deliverables) this.deliverables.set(k, v);
+    for (const [k, v] of data.runMeta ?? []) this.runMeta.set(k, v);
+  }
+
+  /** Reattach a run's configuration after a restart (planner/executor are code, not data). */
+  rehydrate(run_id: string, cfg: RunConfig): void {
+    this.configs.set(run_id, cfg);
+  }
+
+  hasConfig(run_id: string): boolean {
+    return this.configs.has(run_id);
+  }
+
+  /** Requeue tasks a restart interrupted, then resume the run. */
+  async retryInterrupted(run_id: string): Promise<RunResult> {
+    for (const t of this.ledger.tasksForRun(run_id)) {
+      if (t.status === 'blocked' && t.inputs['interrupted']) {
+        const { interrupted: _i, ...rest } = t.inputs;
+        t.inputs = rest;
+        this.ledger.transition(t.task_id, 'revising', 'requeued after restart');
+      }
+    }
+    if (this.ledger.getRun(run_id).status !== 'paused') this.ledger.setRunStatus(run_id, 'paused');
+    return this.resume(run_id);
+  }
+
   deliverableOf(task_id: string): Deliverable | undefined {
     return this.deliverables.get(task_id);
   }
@@ -103,6 +141,7 @@ export class LeadRuntime {
   async start(cfg: RunConfig): Promise<{ run: Run; checkpoint_required: boolean; anticipated_tier3: string[]; task_count: number }> {
     const run = this.ledger.createRun({ workspace_id: cfg.workspace_id, goal: cfg.goal, topology: cfg.topology ?? 'hierarchical', budget: cfg.budget, risk_tier_ceiling: cfg.risk_tier_ceiling ?? 1, rubric: cfg.rubric });
     this.configs.set(run.run_id, cfg);
+    if (cfg.template) this.runMeta.set(run.run_id, { template: cfg.template, ...(cfg.started_by ? { started_by: cfg.started_by } : {}) });
     const specs = await cfg.planner.plan(cfg.goal, { run, provider: this.provider });
     const byKey = new Map<string, TaskSpec>();
     const ids = new Map<string, string>();

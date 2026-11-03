@@ -40,6 +40,15 @@ export class SemanticGraph {
 
   constructor(readonly l2: EpisodicStore, readonly events: EventStream) {}
 
+  serialize(): { claims: Claim[]; quarantine: QuarantinedClaim[] } {
+    return { claims: this.all(), quarantine: this.quarantine };
+  }
+
+  restore(data: ReturnType<SemanticGraph['serialize']>): void {
+    this.claims = new Map(data.claims.map((c) => [c.id, c]));
+    this.quarantine.splice(0, this.quarantine.length, ...data.quarantine);
+  }
+
   /** Stage + verify + promote. Returns the claim or a quarantine record. */
   stage(candidate: Omit<Claim, 'id' | 'contradicted_by' | 'status' | 'utility'>): { promoted?: Claim; quarantined?: QuarantinedClaim } {
     const problems: string[] = [];

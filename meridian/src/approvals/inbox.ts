@@ -107,6 +107,20 @@ export class ApprovalsInbox {
     return p;
   }
 
+  serialize(): { items: ApprovalPayload[]; delegations: Delegation[]; auditLog: ApprovalsInbox['auditLog'] } {
+    return { items: [...this.items.values()], delegations: this.delegations, auditLog: this.auditLog };
+  }
+
+  restore(data: ReturnType<ApprovalsInbox['serialize']>): void {
+    this.items = new Map(data.items.map((p) => [p.approval_id, p]));
+    this.delegations = data.delegations;
+    this.auditLog.splice(0, this.auditLog.length, ...data.auditLog);
+  }
+
+  all(): ApprovalPayload[] {
+    return [...this.items.values()];
+  }
+
   get(approval_id: string): ApprovalPayload {
     const p = this.items.get(approval_id);
     if (!p) throw new ApprovalError(`unknown approval ${approval_id}`, 'not_found');
@@ -209,6 +223,7 @@ export class ApprovalsInbox {
 
     p.status = 'approved';
     if (decision === 'edit') p.edited_preview = opts.edited_preview ?? p.diff.preview;
+    this.auditLog.push({ at: now, approval_id, actor: reviewer.id, event: 'payload_as_seen', detail: { action: p.action, target: p.target, preview: p.diff.preview, edited_preview: p.edited_preview ?? null, evidence_refs: p.evidence_refs, state_snapshot: p.state_snapshot, uncertainty_notes: p.uncertainty_notes } });
     this.auditLog.push({ at: now, approval_id, actor: reviewer.id, event: decision === 'edit' ? 'edited_and_approved' : 'approved', ...(auth.via ? { detail: { via_delegation: auth.via } } : {}) });
     this.events.emit('approval.decided', { approval_id, decision, reviewer: reviewer.id, via_delegation: auth.via ?? null }, p.run_id);
     return { status: p.status, payload: p, execute_with: p.edited_preview ?? p.diff.preview };

@@ -1,88 +1,106 @@
-# Meridian — Canvas Workspace app and kernel (PAS-001 v1.1)
+# Meridian
 
-A runnable, tested implementation of `docs/SPEC.md` (the Meridian Product Architecture
-Specification, revised to v1.1 after architecture review): the Swarm Kernel, Gate
-Engine, Approvals Inbox, Continuum Memory and Fast Path underneath, and the Canvas
-Workspace (§10) on top. TypeScript on Node 22. The only runtime dependency is the
-Anthropic SDK, used when you opt into live models.
+A litigation workspace for a New Jersey firm, built on the kernel described in
+`docs/SPEC.md` (the Meridian Product Architecture Specification, v1.1). Every fact carries
+a pin cite to the record, every quotation of law is checked word for word against the
+opinion, and nothing leaves the building without a partner's approval.
 
-## Run the app
+## Run it
 
 ```
 npm install
-npm start                      # http://localhost:8787 — mock model fleet, sample matter loaded
-ANTHROPIC_API_KEY=… npm start  # live fleet: Opus 5.5 (frontier) / Sonnet 5.5 (balanced) / Haiku 5.5 (fast)
-MERIDIAN_WORKSPACE=~/matters/harbor npm start   # review your own folder of .txt/.md/.eml/.csv/.json/.html files
+npm start
 ```
 
-| Variable | Default | Meaning |
+Open http://localhost:8787. The first visit creates the admin account and a fictional
+sample matter (Harbor Logistics v. Cinder Freight) so every feature has something to work
+on. Stop with Control + C. Everything is saved in `.meridian-data/` and comes back on the
+next start.
+
+| Variable | Default | What it does |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | unset → mock fleet | Any Anthropic credential the SDK accepts; an `ant auth login` profile also works |
-| `MERIDIAN_WORKSPACE` | `./workspace` | Folder the review workflow reads. Nothing outside it is readable (gate-enforced) |
-| `MERIDIAN_LABEL` | `Local workspace` | Name in the header |
-| `MERIDIAN_USER` | `user:owner` | Reviewer identity recorded on every approval |
-| `MERIDIAN_CONCURRENCY` | `8` | Specialists per run |
-| `PORT` | `8787` | |
+| `ANTHROPIC_API_KEY` | unset: mock fleet | Live Claude fleet (Opus 5.5 frontier, Sonnet 5.5 balanced, Haiku 5.5 fast) and OCR of scanned pages. An `ant auth login` profile also works. |
+| `COURTLISTENER_TOKEN` | unset | Search every published opinion on CourtListener and import full texts with star pagination. Free account at courtlistener.com. |
+| `MERIDIAN_DATA` | `./.meridian-data` | Database (SQLite), matter folders, outbox, calendars. |
+| `MERIDIAN_WORKSPACE` | unset | Use an existing folder as the sample matter's documents. |
+| `MERIDIAN_COMMUNITY_DIR` | `./community` | Shared folder for community workflows, such as a firm network drive. |
+| `MERIDIAN_HOST`, `PORT` | `127.0.0.1`, `8787` | Set `MERIDIAN_HOST=0.0.0.0` to share on the firm network. |
+| `MERIDIAN_WATCH` | on | Docket watch on matter folders. `off` disables it. |
 
-### What you can do in it
+Without an API key no AI runs: deterministic rules stand in for the models so the whole
+system can be explored for free. Live mode sends document text to Anthropic's API; check
+that against firm policy and RPC 1.6 before using client files.
 
-- **Ask** a question in the composer. The router classifies it, retrieves from memory with a budget sized to the predicted effort, answers at the cheapest adequate tier, and runs the evidence check. Every factual sentence carries a `src` chip that opens the verbatim source span.
-- **Delegate** a goal. It becomes a run with a task DAG. Three workflows ship:
-  - `review` — one task per document in the workspace, then a chronology; every event cites the sentence it came from. Each event is also staged into the semantic graph through the fact quarantine.
-  - `reply` — drafts an outbound email from memory and tries to send it. Sending is Tier 3, so the plan checkpoint fires first and the send waits in the **Approvals** rail with a verification payload: what changes, the evidence, the state snapshot, the alternatives. Edit, reject, or approve. If the thread changed meanwhile the approval is invalidated and reissued.
-  - `diligence` — the §9.3 demo on 40 fictional companies (mock fleet only).
-- **Canvas** shows the artifact with provenance markers ⟦n⟧. Click one for the source, pin it, copy the pointer, or open the full record.
-- **Swarm** rail shows pools, task status, grader scores, critiques of revisions, cost against budget, Sentinel alerts, and cancel. **Open trace** returns the full ledger, event and gate-audit log.
-- **Memory** rail opens the explorer: verbatim search, claims with confidence and evidence, contested claims you can dispute, the quarantine, exports, and litigation holds (workspace-wide or per run; a hold freezes retention and Forgetting).
-- Works one-handed on a phone: Runs · Canvas · Memory tabs, approvals under **Needs you**.
+## What is in it
 
-### Demos and tests
+**Firm and matters.** Accounts with roles (admin, partner, associate, paralegal), scrypt
+passwords, HttpOnly SameSite=Strict sessions. Each matter is a sealed kernel: its own
+memory, ledger, approvals and audit, with no retrieval across matters. Ethical screens
+remove a person from a matter, block re-adding them, and record every blocked attempt.
+Only partners and admins approve Tier 3 actions; partners can delegate that authority
+with a scope and an expiry. The reviewer on every approval comes from the session, never
+from the request.
+
+**Permanence and audit.** Every state change is snapshotted to SQLite. After a restart,
+interrupted work comes back flagged so it can be resumed. The audit log is append-only
+and hash-chained with SHA-256; editing or deleting any row breaks the chain, and
+verification says where. Every approval records exactly what the approver saw. Export per
+matter or firm-wide as CSV or JSONL.
+
+**Documents.** PDFs (text layer, page and line index, Bates stamp per page), scans (Claude
+OCR in live mode, marked "(OCR)" in every cite), email, text, Markdown, HTML. Upload by
+drag and drop, or save files into the matter folder. Every pointer converts to a record
+cite: `HARBOR_000402, p. 2, ll. 2–7`, or `02-cinder-correspondence.eml, l. 8`.
+
+**Research database.** Cases with full text and star pagination, BM25 full-text search,
+a citation graph, and a quote bank that accepts a quote only if it is verbatim in the
+opinion and computes its pin cite (`Brill, 142 N.J. at 540`), with "quoting" parentheticals.
+The agentic search shows its work: it expands the question into doctrinal phrasings,
+searches the library and CourtListener, fuses the rankings, weights binding authority and
+your quote bank, reads the best passage of each opinion, and recommends next steps (the
+authority a case relies on, passages worth saving, a treatment check, adverse authority).
+The research assistant answers only from verified passages and removes any quotation that
+is not verbatim. Seeded with verbatim excerpts of *Brill*, *Judson* and *Printing Mart*.
+
+**Drafting.** An editor that takes authorities by drag and drop: quotes from the bank,
+record cites from the matter, search results. Each becomes a live cite token. Verify
+re-checks every token and every typed quotation followed by a citation, reports wrong pins
+with the correct one, builds a table of authorities, and exports to Word.
+
+**Deadlines.** A New Jersey Court Rules table (R. 4:6-1, 4:17-4, 4:18-1, 4:22-1, 2:4-1,
+4:49-2, 4:46-1, 1:6-3) with R. 1:3-1 computation, the court holiday table, and R. 1:3-3
+mail time. Triggers are found in documents with the sentence that proves them; contract
+clocks are cross-checked against dates stated in the file. Each deadline shows its math
+and waits for a partner's approval before it goes on the matter calendar (`.ics`). Docket
+watch ingests and scans new files saved into the matter folder. A second set of eyes, not
+the calendar of record.
+
+**Workflows.** Built in: document review and chronology; reply to opposing counsel
+(Tier 3 send); Statement of Material Facts cite-check under R. 4:46-2(a); opposing-counsel
+simulator (opposing counsel, a skeptical judge and a cite-checker, a vulnerability map,
+and tripwires that fire when a new document contradicts a relied-on paragraph); verified
+research memo (quotes verified, adverse authority under RPC 3.3(a)(3), heuristic treatment
+scan). The workflow creator builds your own: by hand, by describing it to Meridian, or by
+starting from the gallery or the community folder. A user workflow can reach only the
+tools it declares, and its sends and calendar entries still stop for approval.
+
+## Tests and demos
 
 ```
-npm test                 # 29 tests: ledger invariants, gate rules, inbox, memory, fast path, kernel, app API
-npm run demo:diligence   # §9.3: 40 companies → 88-task DAG → graders → memo with provenance markers
-npm run demo:initiative  # §9.4: stale thread → draft → Tier 3 approval → revalidation → send → resume
+npm test                  # units, kernel, and end-to-end firm flows over HTTP
+npm run demo:diligence    # spec §9.3 swarm demo
+npm run demo:initiative   # spec §9.4 proactive approval demo
+npm run make:sample-pdf   # rebuilds the fictional Bates-stamped production
 ```
 
-## What is here
+## Honest limits
 
-| Spec section | Module | What it enforces |
-|---|---|---|
-| §5.4 Task Ledger | `src/ledger/ledger.ts` | Status enum, derived readiness, single owner, `accepted` requires a grader record, hard budgets, append-only log |
-| §8.4 Gate Engine | `src/gate/engine.ts`, `src/gate/shell.ts` | Tiers 0/1/3/4 on action classes; confidence and topic **modifiers** that can only raise to a Tier 2 question; static deny → ceiling → tier → modifier order; shell operators and `bash -c` never inherit allow status; unknown tools blocked |
-| §8.6–8.7 Approvals Inbox | `src/approvals/inbox.ts` | Verification payloads, TTL with re-request on expiry, state revalidation with reissue, RBAC, scoped/expiring/revocable delegation, audit trail, telemetry that flags payload redesign and never a tier change |
-| §7 Continuum Memory | `src/memory/*` | L2 append-only store with one-hop pointers, L0/L1 streaming compaction that refuses pointer-less sentences, L3 graph with contradiction detection and **fact quarantine**, hybrid BM25 + graph retrieval with budgeted packing, litigation holds, JSONL export |
-| §6 Fast Path | `src/fastpath/*` | Two-phase router (prefetch → classify → budgeted retrieval), plan cache that stores skeletons and refuses conclusions, cascade evidence check on provisional answers |
-| §5 Swarm Kernel | `src/kernel/*` | Lead runtime (plan → checkpoint → DAG → schedule → grade → revise → fan-in → archive), grader ensemble (rubric, sampled critic, deterministic evidence verifier, calibration), scheduler with cost envelopes, Sentinel loop and budget detection, gate-checked tool runtime |
-| §8 Initiative Engine | `src/initiative/engine.ts` | Event bus, hypothesis rules with rank threshold, planning checkpoint, Tier 3 lands in the Inbox, run pauses and resumes |
-| §9 API | `src/api/server.ts` | `/v1/state`, `/v1/ask`, `/v1/runs` (+ `/events` SSE, `/trace`, `/approve-plan`, `/answer`, `/cancel`), `/v1/approvals` (+ `/open`, `/decide`, `/telemetry`), `/v1/memory/query|spans|export|hold|holds|claims`, `/v1/triggers`, `/v1/webhooks`, `/v1/skills` |
-| §10 Canvas Workspace | `web/` | Five zones, provenance chips, plan checkpoint card, Tier 2 question form, approvals with edit/reject/approve, memory explorer, mobile tabs. Vanilla JS over the API with SSE |
-| App wiring | `src/app/` | Environment-driven provider choice, mock handlers, `review` and `reply` workflow templates |
-| §4.1 Model fleet | `src/models/*` | `ModelProvider` interface; deterministic `MockProvider`; `AnthropicProvider` mapping frontier/balanced/fast to Claude Opus 5.5 / Sonnet 5.5 / Haiku 5.5 with adaptive thinking and effort |
-
-## Using the live model fleet
-
-```ts
-import { createKernel, AnthropicProvider } from './src/index.js';
-const kernel = createKernel({ provider: new AnthropicProvider() }); // reads ANTHROPIC_API_KEY or an `ant auth login` profile
-```
-
-Everything else is identical. Specialists you write receive a `SpecialistContext` whose
-`tool()` call is already gate-checked; results come back with an L2 pointer so your
-deliverable can cite them and the evidence verifier can check the citation.
-
-## Adding your own workflow
-
-A workflow is a planner (goal → task specs) and an executor (task → deliverable with
-evidence). Register it in `src/app/main.ts` with a `match` function and it appears in
-the composer's workflow menu and in auto-routing. Tools are registered on
-`kernel.tools` and pass the Gate Engine on every call; the result comes back with an
-L2 pointer so the deliverable can cite it. See `src/app/templates/review.ts`.
-
-## What is deliberately not here
-
-Real connectors (§8.3: mail, calendar, repos), ephemeral sandboxes and an egress
-firewall (§8.8), dense embeddings and a cross-encoder reranker (§7.4), speculative
-reasoning (§6.3), and PDF text extraction. Each has a seam (`ToolHandler`,
-`inside_sandbox`, `DenseScorer`, `Summarizer`, `TEXT_EXT`) where the real thing plugs
-in. The `mail.send` tool in this build prints a receipt; it does not deliver mail.
+- `mail.send` writes the approved message to the matter's `outbox/` as an `.eml` file. It
+  does not deliver mail.
+- The treatment scan reads citing opinions for negative language. It is not KeyCite or
+  Shepard's.
+- The seed opinions are excerpts. Import full texts before relying on context.
+- Deadlines are computed from the Rules as encoded here; confirm against the current
+  Rules, any order, and the Judiciary's holiday schedule.
+- Mock mode does no OCR; scanned pages are flagged until live models read them.
+- Word `.docx` uploads are not read yet; save as PDF.

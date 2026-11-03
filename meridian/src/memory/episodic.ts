@@ -59,6 +59,22 @@ export class EpisodicStore {
     return makePointer(rec.run_id, rec.turn_id, 0, rec.text.length);
   }
 
+  serialize(): { records: EpisodicRecord[]; holds: LitigationHold[]; workspaceOfRun: Array<[string, string]> } {
+    return { records: this.all(), holds: this.holds, workspaceOfRun: [...this.workspaceOfRun.entries()] };
+  }
+
+  restore(data: ReturnType<EpisodicStore['serialize']>): void {
+    this.records = new Map();
+    this.order = [];
+    for (const r of data.records) { const k = this.key(r.run_id, r.turn_id); this.records.set(k, r); this.order.push(k); }
+    this.holds = data.holds;
+    this.workspaceOfRun = new Map(data.workspaceOfRun);
+  }
+
+  has(run_id: string, turn_id: string): boolean {
+    return this.records.has(this.key(run_id, turn_id));
+  }
+
   get(run_id: string, turn_id: string): EpisodicRecord | undefined {
     return this.records.get(this.key(run_id, turn_id));
   }

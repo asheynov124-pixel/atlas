@@ -96,6 +96,9 @@ export const DEFAULT_ACTIONS: ActionClass[] = [
   { name: 'calendar.create_external', tier: 3, description: 'Create event with external attendees', reversible_locally: false, target_arg: 'attendees' },
   { name: 'payment.send', tier: 3, description: 'Move money', reversible_locally: false, target_arg: 'to' },
   { name: 'publish', tier: 3, description: 'Publish content', reversible_locally: false, target_arg: 'destination' },
+  { name: 'calendar.add_deadline', tier: 3, description: 'Put a computed deadline on the firm calendar', reversible_locally: false, target_arg: 'title' },
+  { name: 'research.search', tier: 0, description: 'Search the research database and case-law sources', reversible_locally: true },
+  { name: 'research.read', tier: 0, description: 'Read an opinion in the research database', reversible_locally: true, target_arg: 'case_id' },
   { name: 'fs.delete_outside_sandbox', tier: 4, description: 'Destructive op outside sandbox', reversible_locally: false },
   { name: 'secrets.read', tier: 4, description: 'Read secrets or keys', reversible_locally: false },
   { name: 'credential.exfiltrate', tier: 4, description: 'Move credentials off-host', reversible_locally: false },
@@ -122,6 +125,10 @@ export class GateEngine {
       question_topics: ['money', 'identity', 'legal_commitment'],
       ...policy,
     };
+  }
+
+  restoreAudit(entries: AuditEntry[]): void {
+    this.audit.splice(0, this.audit.length, ...entries);
   }
 
   register(action: ActionClass): void {

@@ -1,0 +1,12 @@
+HARBOR LOGISTICS, INC.'S STATEMENT OF UNDISPUTED MATERIAL FACTS (DRAFT - SAMPLE, FICTIONAL)
+Cinder Freight Co. v. Harbor Logistics, Inc., Docket No. MID-L-002417-26
+In support of Harbor's cross-motion for partial summary judgment, R. 4:46-2(a)
+
+1. Harbor and Cinder entered into the Master Services Agreement on June 14, 2024. (01-engagement-letter.txt, l. 9)
+2. Cinder's shipment under PO 44817 arrived at Harbor's Dock 3 at 07:40 on January 22, 2026. (HARBOR_000401, p. 1, l. 3)
+3. On arrival, pallets 3 and 7 were "crushed on arrival; shrink wrap torn; product exposed." (HARBOR_000401, p. 1, l. 4)
+4. Harbor gave written notice of the defect on January 29, 2026, within the seven-day window required by Section 9.2. (HARBOR_000402, p. 2, ll. 2-7)
+5. Cinder has never disputed that the shipment was non-conforming. (02-cinder-correspondence.eml, l. 8)
+6. Harbor received Cinder's rate-increase notice on January 5, 2026. (HARBOR_000403, p. 3, l. 3)
+7. Harbor rejected Cinder's offer of a 4% credit on February 20, 2026.
+8. Cinder's own delivery receipt records that pallets 3 and 7 were damaged. (HARBOR_000404, p. 4)

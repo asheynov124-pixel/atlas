@@ -20,6 +20,10 @@ export class EventStream {
     return () => this.listeners.delete(listener);
   }
 
+  restore(history: KernelEvent[]): void {
+    this.history.splice(0, this.history.length, ...history);
+  }
+
   forRun(run_id: string): KernelEvent[] {
     return this.history.filter((e) => e.run_id === run_id);
   }
