@@ -25,7 +25,7 @@ export interface TemplateContext {
   docs: DocumentIndex;
   lib: ResearchLibrary;
   agent: ResearchAgent;
-  matter: { id: string; name: string };
+  matter: { id: string; name: string; client?: string | null };
   /** Copy an opinion into this matter's L2 (once) so quotes from it carry resolvable pointers. */
   lawPointer: (case_id: string) => SpanPointer | null;
   /** Arm tripwires on paragraphs a brief relies on. */

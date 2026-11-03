@@ -87,6 +87,10 @@ function renderEmpty() {
   const names = st.docs.map((d) => d.name.toLowerCase()).join(' ');
   const sugg = ['Review every document in the matter and build a sourced chronology'];
   if (/sumf|material facts/.test(names)) sugg.push('Cite-check the statement of material facts', 'Run the opposing counsel simulator on the statement of material facts');
+  const briefs = st.docs.filter((d) => /\bbrief\b/i.test(d.name)).length;
+  if (briefs) sugg.push('Dissect the opposing brief', 'Run the misquote hunter on their brief', 'Check all the briefs for unpublished opinions');
+  if (briefs > 1) sugg.push('Find the reply gaps: what did they not respond to?');
+  if ((names.match(/sumf|material facts/g) ?? []).length > 1) sugg.push('Draft our responding statement to their statement of material facts');
   sugg.push('What is the standard for summary judgment in New Jersey? Write a research memo', 'When is the mediation deadline?');
   $('suggestions').innerHTML = sugg.map((s) => `<button>${esc(s)}</button>`).join('');
   $('suggestions').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { $('prompt').value = b.textContent; setTab('runs'); $('prompt').focus(); }));

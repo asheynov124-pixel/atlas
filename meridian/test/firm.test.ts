@@ -57,7 +57,7 @@ test('firm: setup, sign-in, roles, ethical screens, deadlines through the approv
   admin.matter = s.body.matters[0].id;
 
   const st = (await admin.req('/v1/state')).body;
-  assert.equal(st.docs.length, 7);
+  assert.equal(st.docs.length, 10);
   assert.ok(st.docs.find((d: any) => d.bates_first === 'HARBOR_000401'));
   const due = (t: string) => st.deadlines.find((d: any) => d.title.startsWith(t))?.due;
   assert.equal(due('Answer to complaint'), '2026-04-24');
@@ -182,7 +182,7 @@ test('workflows: SUMF cite-check findings, simulator tripwires on a new producti
 
   // Workflow creator: design from a description, save, run.
   const lib = (await c.req('/v1/workflows')).body;
-  assert.ok(lib.examples.length >= 8 && lib.community.length >= 2 && lib.builtins.length === 5);
+  assert.ok(lib.examples.length >= 8 && lib.community.length >= 2 && lib.builtins.length >= 10);
   assert.ok(lib.recommendations.some((r: any) => /material facts/i.test(r.name)));
   const designed = (await c.req('/v1/workflows/design', { body: { description: 'For each document, list every date the shipment was handled with a cite, then build a table of the handling timeline.' } })).body;
   assert.equal(designed.def.steps[0].kind, 'per_document');

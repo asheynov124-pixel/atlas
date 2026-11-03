@@ -50,7 +50,7 @@ export function findSumf(ctx: TemplateContext, goal: string): DocRecord | undefi
 }
 
 export function splitCites(paragraph: string): { assertion: string; cites: string[] } {
-  const m = /\(([^()]*(?:[A-Z][A-Z0-9]*_\d{5,8}|\.(?:txt|md|eml|pdf|html)|Ex\.\s?[A-Z])[^()]*)\)\s*\.?\s*$/.exec(paragraph);
+  const m = /\(([^()]*(?:[A-Z][A-Z0-9]*_\d{5,8}|\.(?:txt|md|eml|pdf|html)|Ex\.\s?[A-Z]|\b(?:Cert|Certif\w*|Decl|Aff|Dep|Tr)\.?\s)[^()]*)\)\s*\.?\s*$/.exec(paragraph);
   if (!m) return { assertion: paragraph.trim(), cites: [] };
   return { assertion: paragraph.slice(0, m.index).trim(), cites: m[1]!.split(/;\s*/).map((s) => s.trim()).filter(Boolean) };
 }
@@ -75,6 +75,12 @@ export function resolveCite(ctx: TemplateContext, raw: string, exhibits: Record<
     const pointer = lr ? ctx.docs.pointerForLines(doc, doc.kind === 'pdf' && page ? Number(page[1]) : undefined, lr.from, lr.to) : doc.pointer;
     if (!pointer) return { raw, pointer: null, cite: raw, text: '', pending: false, problem: `${doc.name} has no text at the cited lines.` };
     return { raw, pointer, cite: ctx.docs.citeFor(pointer) ?? doc.name, text: ctx.kernel.l2.resolve(pointer)?.text ?? '', pending: !!ctx.docs.linesFor(pointer)?.lines.some((l) => l.pending), doc };
+  }
+  const witness = /([A-Z][A-Za-z'’-]+)\s+(?:Cert|Certif\w*|Decl|Aff)\.?/.exec(raw);
+  if (witness) {
+    const doc = ctx.docs.list().find((d) => d.name.toLowerCase().includes(witness[1]!.toLowerCase()) && /cert|decl|aff/i.test(d.name));
+    if (doc) return { raw, pointer: doc.pointer, cite: doc.name, text: ctx.kernel.l2.resolve(doc.pointer)?.text ?? '', pending: false, doc };
+    return { raw, pointer: null, cite: raw, text: '', pending: false, problem: `the ${witness[1]} certification is not among the matter’s documents. If it was served, upload it and re-run.` };
   }
   return { raw, pointer: null, cite: raw, text: '', pending: false, problem: 'Unrecognized citation format. Use a Bates number with page and lines, or a document name with lines.' };
 }

@@ -22,6 +22,7 @@ import { replyTemplate } from '../app/templates/reply.js';
 import { sumfTemplate } from '../app/templates/sumf.js';
 import { simulatorTemplate } from '../app/templates/simulator.js';
 import { researchTemplate, lawCite } from '../app/templates/research.js';
+import { PACK } from '../app/templates/pack/index.js';
 import { compile } from '../workflows/definition.js';
 import { findTriggers } from '../deadlines/triggers.js';
 import { RULES, compute, computeContract, type Computed, parseIso, iso } from '../deadlines/rules.js';
@@ -161,12 +162,13 @@ export class MatterRuntime {
   }
 
   ctx(): TemplateContext {
-    return { kernel: this.kernel, docs: this.docs, lib: this.firm.library, agent: this.firm.agent, matter: { id: this.id, name: this.row.name }, lawPointer: (id) => this.lawPointer(id), armTripwires: (doc, paras) => this.armTripwires(doc, paras) };
+    return { kernel: this.kernel, docs: this.docs, lib: this.firm.library, agent: this.firm.agent, matter: { id: this.id, name: this.row.name, client: this.row.client }, lawPointer: (id) => this.lawPointer(id), armTripwires: (doc, paras) => this.armTripwires(doc, paras) };
   }
 
   buildTemplates(): void {
     const ctx = this.ctx();
     const t: Record<string, WorkflowTemplate> = { review: reviewTemplate(ctx), reply: replyTemplate(ctx), sumf: sumfTemplate(ctx), simulate: simulatorTemplate(ctx), research: researchTemplate(ctx) };
+    for (const [k, make] of Object.entries(PACK)) t[k] = make(ctx);
     for (const w of this.firm.workflows.list()) t[w.id] = compile(w.def, ctx);
     this.templates = t;
   }

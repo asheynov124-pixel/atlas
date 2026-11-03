@@ -14,7 +14,7 @@ import type { TaskSpec } from '../../kernel/run.js';
 import { evidence } from '../../kernel/run.js';
 import type { OutcomeRubric, SpanPointer } from '../../core/types.js';
 import { makePointer } from '../../memory/episodic.js';
-import { keyFacts, numberedParagraphs, recordSentences, type TemplateContext, type WorkflowTemplate } from '../context.js';
+import { keyFacts, numberedParagraphs, recordSentences, isWorkProduct, type TemplateContext, type WorkflowTemplate } from '../context.js';
 import { checkParagraph, exhibitIndex, renderCheck, splitCites, spell, cap } from './sumf.js';
 
 export const SIM_RUBRIC: OutcomeRubric = {
@@ -36,7 +36,8 @@ const NEGATED = /\b(never|not|no|without)\b[^.]{0,30}\b(dispute|denie|deny|conte
 export function findAttacks(ctx: TemplateContext, docId: string, assertion: string): Attack[] {
   const f = keyFacts(assertion);
   const out: Attack[] = [];
-  const sentences = recordSentences(ctx.docs, docId);
+  // Briefs and statements are argument, not evidence: attacks come only from the record.
+  const sentences = recordSentences(ctx.docs, docId).filter((s) => !isWorkProduct(ctx.docs.get(s.doc_id)?.name ?? ''));
   // Words that appear everywhere (party names, "shipment") say nothing about subject matter.
   const df = new Map<string, number>();
   for (const s of sentences) for (const w of new Set(keyFacts(s.text).words)) df.set(w, (df.get(w) ?? 0) + 1);
