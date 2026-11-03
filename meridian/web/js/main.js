@@ -11,7 +11,16 @@ let setupMode = false;
 
 async function boot() {
   let s;
-  try { s = await api('/v1/session'); } catch (e) { toast(`Could not reach Meridian: ${e.message}`, 'bad'); return; }
+  try { s = await api('/v1/session'); } catch (e) {
+    // A 404 here means an older Meridian server is still running and serving these newer screens.
+    const stale = e.status === 404;
+    const msg = stale
+      ? 'An older copy of Meridian is still running. In the Terminal window where it runs, press Control-C, then type npm start and reload this page.'
+      : `Could not reach Meridian (${e.message}). Check that npm start is still running in Terminal, then reload this page.`;
+    document.body.insertAdjacentHTML('afterbegin', `<div role="alert" style="margin:16px;padding:14px 16px;border:1px solid var(--bad);background:var(--bad-soft);color:var(--fg);border-radius:6px;font:15px/1.5 var(--sans)">${msg}</div>`);
+    toast(msg, 'bad');
+    return;
+  }
   Object.assign(session, { user: s.user, matters: s.matters, live: s.live, provider: s.provider, courtlistener: s.courtlistener });
   if (!s.user) return showAuth(s.setup_needed);
   $('auth').hidden = true; $('app').hidden = false;

@@ -43,6 +43,16 @@ if (process.argv[1]?.endsWith('main.ts') || process.argv[1]?.endsWith('main.js')
   const { firm, server, live } = await buildApp();
   const port = Number(process.env['PORT'] ?? 8787);
   const host = process.env['MERIDIAN_HOST'] ?? '127.0.0.1';
+  server.on('error', (e: NodeJS.ErrnoException) => {
+    if (e.code === 'EADDRINUSE') {
+      console.error(`\nPort ${port} is already in use, most likely by an older copy of Meridian.`);
+      console.error('Find the Terminal window where it is running and press Control-C, or run:');
+      console.error(`  lsof -ti tcp:${port} | xargs kill`);
+      console.error('then run npm start again.\n');
+      process.exit(1);
+    }
+    throw e;
+  });
   server.listen(port, host, () => {
     console.log(`Meridian · http://localhost:${port}`);
     console.log(`  models:        ${live ? 'Claude fleet (ANTHROPIC_API_KEY set)' : 'mock fleet (set ANTHROPIC_API_KEY for live models and OCR)'}`);
