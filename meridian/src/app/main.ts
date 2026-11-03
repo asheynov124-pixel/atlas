@@ -10,6 +10,7 @@
  *   MERIDIAN_COMMUNITY_DIR shared folder for community workflows (default ./community)
  *   PORT, MERIDIAN_HOST    default 8787 on 127.0.0.1
  */
+import { spawn } from 'node:child_process';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MockProvider } from '../models/mock.js';
@@ -58,7 +59,15 @@ if (process.argv[1]?.endsWith('main.ts') || process.argv[1]?.endsWith('main.js')
     console.log(`  models:        ${live ? 'Claude fleet (ANTHROPIC_API_KEY set)' : 'mock fleet (set ANTHROPIC_API_KEY for live models and OCR)'}`);
     console.log(`  case law:      ${firm.agent.cl.enabled ? 'CourtListener connected' : 'local library (set COURTLISTENER_TOKEN to search CourtListener)'}`);
     console.log(`  data:          ${firm.dataDir}`);
-    console.log(firm.needsSetup() ? '  first run:     open the link above to create the admin account' : `  matters:       ${firm.allMatters().length}`);
+    console.log(firm.needsSetup() ? '  first run:     your browser opens to the setup screen; create the admin account there' : `  matters:       ${firm.allMatters().length}`);
+    console.log('  keep this window open while you use Meridian; press Control-C to stop it');
+    // Open the app in the default browser when started by hand from a terminal.
+    if (process.stdout.isTTY && process.env['MERIDIAN_NO_OPEN'] !== '1') {
+      const url = `http://localhost:${port}`;
+      const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'cmd' : 'xdg-open';
+      const args = process.platform === 'win32' ? ['/c', 'start', '', url] : [url];
+      try { spawn(cmd, args, { stdio: 'ignore', detached: true }).on('error', () => {}).unref(); } catch { /* no browser available */ }
+    }
   });
   const stop = async () => { server.close(); await firm.close(); process.exit(0); };
   process.on('SIGINT', () => void stop());
