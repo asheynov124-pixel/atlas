@@ -1,0 +1,15 @@
+{
+  "id": "cm_expert_weak_points",
+  "name": "Expert report weak points",
+  "category": "motion practice",
+  "description": "Find the assumptions, data gaps and methodology problems in an expert report, each tied to the page and line, for a Daubert-style (N.J.R.E. 702) challenge or cross outline.",
+  "input": { "kind": "documents", "filter": "*expert*" },
+  "triggers": ["expert report", "net opinion", "cross the expert"],
+  "steps": [
+    { "id": "s1", "title": "Read the report", "kind": "per_document", "instructions": "List every factual assumption the expert relies on, every data source, and every conclusion that is not tied to a stated methodology. Cite the line for each.", "model": "frontier", "effort": "high", "tools": [], "output": "list" },
+    { "id": "s2", "title": "Check assumptions against the record", "kind": "combine", "instructions": "For each assumption, find record facts that support or contradict it. Flag conclusions that may be a net opinion: bare conclusions unsupported by factual evidence or other data.", "model": "frontier", "effort": "high", "tools": ["memory.query"], "output": "table" }
+  ],
+  "rubric": [{ "id": "c1", "text": "Every weak point cites the report line and the record fact that undercuts it." }],
+  "min_score": 0.85, "max_revisions": 2, "budget_usd": 15,
+  "author": "Community sample", "source": "community", "tags": ["experts", "motions"]
+}

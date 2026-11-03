@@ -1,0 +1,24 @@
+HARBOR LOGISTICS, INC.'S BRIEF IN SUPPORT OF ITS CROSS-MOTION FOR PARTIAL SUMMARY JUDGMENT (DRAFT - SAMPLE, FICTIONAL)
+Cinder Freight Co. v. Harbor Logistics, Inc., Docket No. MID-L-002417-26
+
+PRELIMINARY STATEMENT
+Cinder Freight delivered crushed pallets, received Harbor's written notice of the defect, and now asks the Court to enforce a rate increase that Harbor did not receive until January 8, 2026. The record admits of one answer on each point.
+
+POINT I
+HARBOR GAVE TIMELY WRITTEN NOTICE OF THE DEFECT UNDER SECTION 9.2.
+Harbor's receiving log records that pallets 3 and 7 arrived crushed at 07:40 on January 22, 2026 (HARBOR_000401, p. 1, ll. 3-4). Harbor's written notice of defect is dated January 29, 2026, seven days after delivery (HARBOR_000402, p. 2, ll. 2-7). Cinder's own email acknowledges receipt of that letter (02-cinder-correspondence.eml, l. 8).
+
+POINT II
+THE THIRTY-DAY OBJECTION WINDOW UNDER SECTION 4.3 RAN FROM RECEIPT, SO THE RATE INCREASE COULD NOT TAKE EFFECT ON FEBRUARY 1, 2026.
+Cinder's rate notice is dated December 15, 2025, but the envelope is postmarked January 5, 2026 and Harbor's mailroom logged its arrival on January 8, 2026 (HARBOR_000403, p. 3, ll. 3-6). Notice is effective when received, and thirty days from January 8, 2026 is February 7, 2026.
+
+POINT III
+SUMMARY JUDGMENT IS APPROPRIATE BECAUSE THE RECORD PERMITS ONLY ONE RESOLUTION OF EACH ISSUE.
+“If there exists a single, unavoidable resolution of the alleged disputed issue of fact, that issue should be considered insufficient to constitute a ‘genuine’ issue of material fact for purposes of Rule 4:46-2.” Brill v. Guardian Life Ins. Co. of Am., 142 N.J. 520, 540 (1995). The court must undertake “a discriminating search of the merits in the pleadings, depositions and admissions on file, together with the affidavits submitted on the motion.” Judson v. Peoples Bank & Trust Co. of Westfield, 17 N.J. 67, 74 (1954).
+
+POINT IV
+CINDER'S DELIVERY RECEIPT.
+Cinder's own delivery receipt No. 88213 records the exception “PALLETS 3 + 7 DAMAGED” and is countersigned by Cinder's driver (HARBOR_000404, p. 4). A statement in a party's own business record is admissible against it. N.J.R.E. 803(b)(1). Cinder cannot manufacture a dispute about damage its own driver recorded.
+
+CONCLUSION
+The Court should grant Harbor partial summary judgment on notice and on the effective date of the rate increase.
