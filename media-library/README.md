@@ -106,6 +106,24 @@ What each run does:
 - **`--restrict-filenames` is a trap.** It turns spaces into underscores and strips non-ASCII characters, which breaks scraper matching for Japanese and other non-English titles. The kit uses `--windows-filenames` instead, so names stay legal on NTFS and exFAT drives without the mangling.
 - **Direct-file URLs have no uploader**, so they file under `library/videos/Generic/`. Rename the folder, or let identify fix the studio.
 
+## On your phone (with Tailscale)
+
+Stash treats Tailscale addresses (`100.64.0.0/10`) as local network traffic (`internal/api/request_ip.go`), so no Stash-side changes are needed beyond a password.
+
+**A. No commands** (Stash installed with the normal app or `stash-win.exe`, which listens on all networks by default):
+1. Set a password: **Settings › Security**. Required, because your home Wi-Fi can see Stash too.
+2. On the phone, turn on Tailscale and open `http://<computer-name>:9999` (or `http://100.x.y.z:9999`). The name and address are shown in the Tailscale menu on the computer.
+3. Add it to the Home Screen (iPhone: Share › Add to Home Screen. Android: ⋮ › Add to Home screen).
+
+**B. Private HTTPS address** (also works with this kit's localhost-only config, and hides Stash from home Wi-Fi):
+1. In the Tailscale admin console › DNS, turn on **MagicDNS** and **HTTPS Certificates**.
+2. Run this once on the computer. It keeps working after restarts.
+   - Windows (PowerShell): `tailscale serve --bg 9999`
+   - Mac (Terminal): `/Applications/Tailscale.app/Contents/MacOS/Tailscale serve --bg 9999`
+3. Open the `https://<computer>.<tailnet>.ts.net` address it prints on your phone.
+
+The computer has to stay on and awake, with Stash running. Turn off sleep while it's plugged in, and add Stash to your login items or startup folder. If playback stutters on cellular, lower **Settings › System › Transcoding › Maximum streaming transcode size** to 720p.
+
 ## Hardening options
 
 - **Encrypt at rest:** put the whole `MediaVault/` folder on a VeraCrypt container, a LUKS volume, FileVault, or BitLocker. The database, thumbnails, and previews reveal as much as the videos do, so encrypting only the media isn't enough.
