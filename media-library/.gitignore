@@ -1,0 +1,7 @@
+# secrets and anything that could reveal library contents
+.env
+*cookies*.txt
+vault/
+*.sqlite
+download-archive*
+__pycache__/

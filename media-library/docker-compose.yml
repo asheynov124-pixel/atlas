@@ -1,0 +1,30 @@
+# MediaVault via Docker. Pinned to the release this kit was tested against.
+#   MEDIAVAULT_ROOT=/srv/vault docker compose up -d
+# Then open http://127.0.0.1:9999
+services:
+  stash:
+    image: stashapp/stash:v0.32.0
+    container_name: stash
+    restart: unless-stopped
+    # 127.0.0.1 = not reachable from the LAN. Remove the prefix only after setting a password.
+    ports:
+      - "127.0.0.1:9999:9999"
+    environment:
+      - STASH_STASH=/data/
+      - STASH_GENERATED=/generated/
+      - STASH_METADATA=/metadata/
+      - STASH_CACHE=/cache/
+      - STASH_PORT=9999
+      - TZ=America/New_York
+    volumes:
+      - ${MEDIAVAULT_ROOT:-./vault}/stash/config:/root/.stash
+      - ${MEDIAVAULT_ROOT:-./vault}/library:/data          # your media (mount :ro if you never want Stash to touch it)
+      - ${MEDIAVAULT_ROOT:-./vault}/stash/metadata:/metadata
+      - ${MEDIAVAULT_ROOT:-./vault}/stash/cache:/cache
+      - ${MEDIAVAULT_ROOT:-./vault}/stash/blobs:/blobs
+      - ${MEDIAVAULT_ROOT:-./vault}/stash/generated:/generated
+    logging:
+      driver: json-file
+      options: { max-file: "5", max-size: "2m" }
+    # GPU transcoding (Intel/AMD VAAPI) - uncomment:
+    # devices: ["/dev/dri:/dev/dri"]
