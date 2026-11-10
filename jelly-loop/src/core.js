@@ -31,8 +31,16 @@ var PALETTE = {
 };
 
 // level = { name, art: [row strings, '.' = empty], hand: ['R12 B9', 'Y10 G4', ...] }
-function Game(level) {
+// opts  = upgrades in play: { slots: extra belt slots, turbo: speed steps,
+//           jumps: times the second jelly of a column may be played, rescues: jams survived }
+function Game(level, opts) {
   var art = level.art, x, y, id = 0;
+  opts = opts || {};
+  this.maxSlots = MAX_SLOTS + (opts.slots || 0);
+  this.speed = BELT_SPEED * (1 + 0.15 * (opts.turbo || 0));
+  this.jumps = opts.jumps || 0;
+  this.rescues = opts.rescues || 0;
+  this.peak = 0;   // most jellies on the belt at once, which is what the stars measure
   this.w = art[0].length;
   this.h = art.length;
   this.grid = [];
@@ -113,17 +121,21 @@ Game.prototype.slotsUsed = function () {
 };
 
 // Tap on a hand column: its front jelly heads for the belt.
-Game.prototype.send = function (c) {
+// With a Queue Jump to spend, `second` plays the jelly behind the front one instead.
+Game.prototype.send = function (c, second) {
   if (this.status !== 'playing') return false;
   var col = this.hand[c];
   if (!col || !col.length) return false;
-  if (this.slotsUsed() >= MAX_SLOTS) {
+  if (second && (col.length < 2 || this.jumps < 1)) second = false;
+  if (this.slotsUsed() >= this.maxSlots) {
     this.events.push({ type: 'full' });
     return false;
   }
-  var j = col.shift();
+  var j = second ? col.splice(1, 1)[0] : col.shift();
+  if (second) this.jumps--;
   this.pending.push(j);
-  this.events.push({ type: 'send', jelly: j, col: c });
+  this.peak = Math.max(this.peak, this.slotsUsed());
+  this.events.push({ type: 'send', jelly: j, col: c, second: !!second });
   this.checkJam();
   return true;
 };
@@ -164,7 +176,7 @@ Game.prototype.step = function (dt) {
 
   for (i = this.belt.length - 1; i >= 0; i--) {
     j = this.belt[i];
-    j.d += BELT_SPEED * dt;
+    j.d += this.speed * dt;
     while (j.ammo > 0 && j.d >= j.nextD) {
       k = j.ammo;
       this.fire(j, t[j.k]);
@@ -190,14 +202,29 @@ Game.prototype.step = function (dt) {
 };
 
 // The belt is jammed when it is full (or the hand is spent) and nothing riding it
-// matches any cube on the outside of the picture. Nothing can ever move again.
+// matches any cube on the outside of the picture. Nothing can ever move again,
+// unless a Second Wind is left: then the fullest jelly goes to the back of the
+// shortest queue and play carries on.
 Game.prototype.checkJam = function () {
   if (this.status !== 'playing' || !this.remaining) return;
   var on = this.belt.concat(this.pending), i;
   var handLeft = this.hand.some(function (c) { return c.length > 0; });
-  if (on.length < MAX_SLOTS && handLeft) return;
+  if (on.length < this.maxSlots && handLeft) return;
   var ex = this.exposed();
   for (i = 0; i < on.length; i++) if (ex[on[i].color]) return;
+  if (this.rescues > 0 && on.length) {
+    var out = on[0], to = 0, at;
+    for (i = 1; i < on.length; i++) if (on[i].ammo > out.ammo) out = on[i];
+    for (i = 1; i < this.hand.length; i++) if (this.hand[i].length < this.hand[to].length) to = i;
+    at = this.belt.indexOf(out);
+    var p = at >= 0 ? this.pointAt(this.entry + out.d) : this.pointAt(this.entry);
+    if (at >= 0) this.belt.splice(at, 1);
+    else this.pending.splice(this.pending.indexOf(out), 1);
+    this.hand[to].push(out);
+    this.rescues--;
+    this.events.push({ type: 'rescue', jelly: out, col: to, x: p[0], y: p[1] });
+    return;
+  }
   this.status = 'lost';
   this.events.push({ type: 'lost' });
 };

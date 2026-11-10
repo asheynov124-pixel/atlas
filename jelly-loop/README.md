@@ -33,6 +33,30 @@ JavaScript and canvas, which runs in any browser and installs as a home-screen a
 - If the belt is full and none of the five jellies matches any cube on the outside, the belt is
   jammed and the level is lost.
 
+## Home screen, coins, upgrades and awards
+
+The game opens on a home screen with three tabs. This is an original design; it does not copy the
+screens, upgrades or awards of any other game.
+
+- **Levels.** Each cleared level shows one to three stars. Stars are for speed, measured in belt
+  seconds against the time the build bot took (`par` in `src/levels.js`): three stars at up to
+  1.6x par, two at up to 2.4x.
+- **Coins.** A win pays 10, plus 15 for every star that is new for that level. Awards pay once each.
+- **Upgrades** (`UPGRADES` in `src/home.js`), bought with coins and applied from the next round:
+
+  | Upgrade | Levels | Cost | Effect |
+  |---|---|---|---|
+  | Turbo Belt | 3 | 60, 120, 200 | Belt runs 15% faster per level |
+  | Queue Jump | 3 | 80, 160, 260 | Play the second jelly of a column; one use per round per level |
+  | Second Wind | 2 | 120, 240 | A jam sends the fullest jelly back to the hand instead of ending the round |
+  | Sixth Slot | 1 | 300 | Belt holds six |
+
+- **Awards** (`AWARDS` in `src/home.js`): 13 goals such as clearing every level, collecting stars,
+  popping 3,000 cubes or a 40-pop chain. Each has a `have()` and a `goal`; add one by adding a row.
+
+Progress lives in the browser's `localStorage` under `jellyloop1`, so it is per device and is lost
+if site data is cleared. Saves from before this screen existed are upgraded on load.
+
 ## What differs from the Unity prototype
 
 - **Shooting.** The prototype fired only at path waypoints and looked three cells deep, so most of
@@ -48,7 +72,8 @@ JavaScript and canvas, which runs in any browser and installs as a home-screen a
 ## Layout
 
 ```
-src/            the game as written: index.html, core.js (rules), render.js, app.js, sw.js, icons
+src/            the game as written: index.html, core.js (rules), render.js, home.js (home screen,
+                upgrades, awards), app.js (loop, input, saving), sw.js, icons
 src/levels.js   generated - do not edit
 dist/           minified copy of src/; this is exactly what is deployed
 tools/          levels.mjs (the pictures), build.mjs, make-icons.py
@@ -59,7 +84,7 @@ unity-original/ the scripts this was ported from
 
 ```
 cd jelly-loop/tools && npm install     # once; installs the minifier
-node build.mjs                         # deals hands, proves each level winnable, writes ../dist
+node build.mjs                         # deals hands, proves each level winnable, sets par, writes ../dist
 ```
 
 To add a level, draw it in `tools/levels.mjs` and run the build. For each picture the build finds
@@ -72,5 +97,5 @@ To try it locally, serve `dist/` with any static file server and open it in a br
 ## Deploying
 
 The Vercel project is `jelly-loop`, a plain static site with no build step and no Git connection.
-A deploy is the nine files in `dist/` uploaded as a production deployment. `build.mjs` prints each
+A deploy is the ten files in `dist/` uploaded as a production deployment. `build.mjs` prints each
 file's size and SHA-1 so a deploy can be checked against the build.

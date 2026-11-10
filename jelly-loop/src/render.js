@@ -193,7 +193,7 @@ function draw(g, time) {
   ctx.strokeStyle = fx.deny > 0 ? 'rgba(127,29,29,.75)' : 'rgba(30,41,59,.9)';
   ctx.stroke();
   ctx.setLineDash([c * 0.35, c * 0.85]);
-  ctx.lineDashOffset = -time * BELT_SPEED * c * (g.status === 'playing' ? 1 : 0);
+  ctx.lineDashOffset = -time * g.speed * c * (g.status === 'playing' ? 1 : 0);
   ctx.lineWidth = Math.max(2, c * 0.14);
   ctx.strokeStyle = 'rgba(148,163,184,.55)';
   ctx.stroke();
@@ -206,11 +206,23 @@ function draw(g, time) {
 
   // slot pips, just under the spot where jellies join the belt
   var used = g.slotsUsed(), ey = py(g, g.h - 1 + m) + c * 1.12, pr = Math.max(3, c * 0.16);
-  for (i = 0; i < MAX_SLOTS; i++) {
+  for (i = 0; i < g.maxSlots; i++) {
     ctx.beginPath();
-    ctx.arc(view.cx + (i - (MAX_SLOTS - 1) / 2) * pr * 3.2, ey, pr, 0, 7);
-    ctx.fillStyle = i < used ? (used >= MAX_SLOTS ? '#f87171' : '#fde047') : 'rgba(255,255,255,.22)';
+    ctx.arc(view.cx + (i - (g.maxSlots - 1) / 2) * pr * 3.2, ey, pr, 0, 7);
+    ctx.fillStyle = i < used ? (used >= g.maxSlots ? '#f87171' : '#fde047') : 'rgba(255,255,255,.22)';
     ctx.fill();
+  }
+  // upgrade charges left this level, either side of the pips
+  ctx.font = '700 ' + Math.max(9, Math.round(c * 0.44)) + 'px system-ui,-apple-system,sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(253,224,71,.9)';
+  if (g.jumps > 0) {
+    ctx.textAlign = 'right';
+    ctx.fillText('JUMP x' + g.jumps, view.cx - g.maxSlots * pr * 1.9, ey);
+  }
+  if (g.rescues > 0) {
+    ctx.textAlign = 'left';
+    ctx.fillText('WIND x' + g.rescues, view.cx + g.maxSlots * pr * 1.9, ey);
   }
 
   // cubes
@@ -291,7 +303,7 @@ function draw(g, time) {
   ctx.globalAlpha = 1;
 
   // hand: one queue per column, front jelly on top and playable
-  var jr = view.jr, fy = frontY(), full = used >= MAX_SLOTS;
+  var jr = view.jr, fy = frontY(), full = used >= g.maxSlots;
   for (i = 0; i < g.hand.length; i++) {
     var col = g.hand[i], hx = colX(g, i), sl = fx.slide[i] || 0;
     roundRect(hx - view.colGap * 0.44, view.handTop + 2, view.colGap * 0.88, view.handH - 6, 16);
@@ -306,6 +318,17 @@ function draw(g, time) {
       y = fy + (back <= 1 ? back * jr * 1.62 : jr * 1.62 + (back - 1) * jr * 1.12);
       var bob = k === 0 && !full && g.status === 'playing' ? Math.sin(time * 4 + i) * 0.04 : 0;
       drawJelly(hx, y, jr * s, col[k].color, col[k].ammo, bob, k === 0 ? (full ? 0.55 : 1) : 0.9);
+      if (k === 1 && g.jumps > 0 && !full && sl < 0.05) {
+        // a Queue Jump is available: ring the second jelly to show it can be tapped
+        ctx.beginPath();
+        ctx.arc(hx, y + jr * 0.06, jr * 0.84, 0, 7);
+        ctx.setLineDash([jr * 0.22, jr * 0.2]);
+        ctx.lineDashOffset = -time * jr * 0.5;
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#fde047';
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
     }
     if (col.length - 1 > show) {
       ctx.fillStyle = 'rgba(255,255,255,.7)';
@@ -323,4 +346,10 @@ function columnAt(g, x, y) {
   if (y < view.handTop - view.jr * 0.4) return -1;
   var c = Math.round((x - view.cx) / view.colGap + (g.hand.length - 1) / 2);
   return c >= 0 && c < g.hand.length && Math.abs(x - colX(g, c)) < view.colGap * 0.5 ? c : -1;
+}
+
+// Is a touch at height y on the second jelly of a column (the Queue Jump target)?
+function secondAt(y) {
+  var top = frontY() + view.jr * 1.08;
+  return y > top && y < top + view.jr * 1.25;
 }

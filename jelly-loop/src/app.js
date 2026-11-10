@@ -1,10 +1,12 @@
-// app.js - game loop, touch input, sound, menus, saved progress.
+// app.js - game loop, touch input, sound, saved progress, end-of-round panel.
 
 var game = null;
 var levelIndex = 0;
 var clock = 0;
 var endTimer = 0;
-var combo = 0, comboAt = 0;
+var combo = 0, comboAt = 0, chain = 0;
+var shownSec = -1;
+var result = null;   // { stars, gain, time } of the round just won
 var save = { unlocked: 1, muted: false, fast: false };
 var $ = function (id) { return document.getElementById(id); };
 
@@ -15,6 +17,22 @@ try {
 
 function persist() {
   try { localStorage.setItem('jellyloop1', JSON.stringify(save)); } catch (e) { /* ignore */ }
+}
+
+// Fill in anything an older save does not have yet.
+function normalise() {
+  var i;
+  ['coins', 'pops', 'chain', 'light', 'quick', 'saved'].forEach(function (k) { save[k] = save[k] || 0; });
+  save.unlocked = save.unlocked || 1;
+  save.awards = save.awards || {};
+  save.up = save.up || {};
+  if (!save.stars) {
+    // Saves from before stars existed: every level already passed counts as one star.
+    save.stars = [];
+    for (i = 0; i < save.unlocked - 1; i++) save.stars[i] = 1;
+  }
+  for (i = 0; i < LEVELS.length; i++) save.stars[i] = save.stars[i] || 0;
+  UPGRADES.forEach(function (u) { save.up[u.id] = Math.min(save.up[u.id] || 0, u.cost.length); });
 }
 
 // ---------- sound ----------
@@ -42,20 +60,33 @@ function buzz(ms) {
   if (navigator.vibrate) navigator.vibrate(ms);
 }
 
-// ---------- levels ----------
+// ---------- rounds ----------
+
+function clockText(sec) {
+  var s = Math.floor(sec);
+  return Math.floor(s / 60) + ':' + (s % 60 < 10 ? '0' : '') + s % 60;
+}
+
+// Stars are for speed: three at up to 1.6x the build bot's time, two at up to 2.4x.
+function starsFor(level, sec) {
+  return sec <= level.par * 1.6 ? 3 : sec <= level.par * 2.4 ? 2 : 1;
+}
 
 function startLevel(i) {
   levelIndex = Math.max(0, Math.min(LEVELS.length - 1, i));
-  game = new Game(LEVELS[levelIndex]);
+  game = new Game(LEVELS[levelIndex], { slots: save.up.slot, turbo: save.up.turbo, jumps: save.up.jump, rescues: save.up.wind });
   endTimer = 0;
   combo = 0;
+  chain = 0;
+  shownSec = -1;
+  result = null;
   resetFx(game);
   layout(game);
   $('lvNum').textContent = 'Level ' + (levelIndex + 1);
   $('lvName').textContent = LEVELS[levelIndex].name;
   $('panel').hidden = true;
-  $('levels').hidden = true;
-  $('hint').hidden = levelIndex > 0 || save.unlocked > 1;
+  $('home').hidden = true;
+  $('hint').hidden = levelIndex > 0 || starCount() > 0;
   updateBar();
 }
 
@@ -67,50 +98,27 @@ function updateBar() {
 }
 
 function showPanel(won) {
-  var last = levelIndex === LEVELS.length - 1;
-  $('pTitle').textContent = won ? (last ? 'All clear!' : 'Cleared!') : 'Belt jammed';
-  $('pText').textContent = won
-    ? (last ? 'That was the last picture. Play any of them again from the menu.' : LEVELS[levelIndex].name + ' is busted. On to ' + LEVELS[levelIndex + 1].name + '.')
-    : 'Five jellies on the belt and none of them can reach a cube of its own colour.';
-  $('pGo').textContent = won ? (last ? 'Play again' : 'Next level') : 'Try again';
-  $('pGo').onclick = function () { startLevel(won && !last ? levelIndex + 1 : (won ? 0 : levelIndex)); };
+  var last = levelIndex === LEVELS.length - 1, lv = LEVELS[levelIndex];
+  $('pTitle').textContent = won ? 'Cleared!' : 'Belt jammed';
+  $('pStars').hidden = !won;
+  $('pGain').hidden = !won;
+  if (won) {
+    $('pStars').textContent = '';
+    $('pStars').appendChild(starRow(result.stars));
+    $('pGainN').textContent = '+' + result.gain;
+    $('pText').textContent = 'Time ' + clockText(result.time) + '. Three stars at ' + clockText(lv.par * 1.6) + ' or faster.';
+  } else {
+    $('pText').textContent = 'Every slot on the belt is taken and no jelly there can reach a cube of its own colour.';
+  }
+  $('pGo').textContent = won ? (last ? 'Back to home' : 'Next level') : 'Try again';
+  $('pGo').onclick = function () {
+    if (won && last) showHome('list');
+    else startLevel(won ? levelIndex + 1 : levelIndex);
+  };
+  $('pHome').hidden = won && last;
+  $('pHome').onclick = function () { showHome(); };
   $('panel').className = won ? 'overlay won' : 'overlay lost';
   $('panel').hidden = false;
-}
-
-function thumb(level) {
-  var art = level.art, s = Math.floor(56 / Math.max(art[0].length, art.length));
-  var c = document.createElement('canvas'), x, y;
-  c.width = art[0].length * s;
-  c.height = art.length * s;
-  var t = c.getContext('2d');
-  for (y = 0; y < art.length; y++) {
-    for (x = 0; x < art[0].length; x++) {
-      if (art[y].charAt(x) === '.') continue;
-      t.fillStyle = PALETTE[art[y].charAt(x)][1];
-      t.fillRect(x * s, y * s, s, s);
-    }
-  }
-  return c;
-}
-
-function showLevels() {
-  var list = $('list');
-  list.textContent = '';
-  LEVELS.forEach(function (level, i) {
-    var b = document.createElement('button'), open = i < save.unlocked;
-    b.className = 'lv' + (open ? '' : ' locked') + (i === levelIndex ? ' current' : '');
-    b.disabled = !open;
-    if (open) b.appendChild(thumb(level));
-    else b.appendChild(document.createElement('i'));
-    var label = document.createElement('span');
-    label.textContent = (i + 1) + '. ' + level.name;
-    b.appendChild(label);
-    b.onclick = function () { startLevel(i); };
-    list.appendChild(b);
-  });
-  $('install').hidden = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-  $('levels').hidden = false;
 }
 
 // ---------- events from the rules ----------
@@ -118,9 +126,9 @@ function showLevels() {
 function handle(ev) {
   var c = view.cell, j = ev.jelly;
   if (ev.type === 'send') {
-    fx.pos[j.id] = { x: colX(game, ev.col), y: frontY(), done: false };
-    fx.slide[ev.col] = 1;
-    tone(330, 0.12, 'triangle', 0.12, 1.8);
+    fx.pos[j.id] = { x: colX(game, ev.col), y: frontY() + (ev.second ? view.jr * 1.62 : 0), done: false };
+    fx.slide[ev.col] = ev.second ? 0 : 1;
+    tone(ev.second ? 440 : 330, 0.12, 'triangle', 0.12, 1.8);
     buzz(8);
     $('hint').hidden = true;
   } else if (ev.type === 'shot') {
@@ -129,6 +137,7 @@ function handle(ev) {
     var dist = Math.abs(x1 - x0) + Math.abs(y1 - y0);
     fx.shots.push({ x0: x0, y0: y0, x1: x1, y1: y1, t: 0, dur: 0.05 + dist / (c * 90), key: ev.color, cell: ev.cell });
     fx.kick[j.id] = 1;
+    save.pops++;
   } else if (ev.type === 'retire') {
     burst(px(game, ev.x), py(game, ev.y), j.color, 12, c * 7);
     tone(660, 0.18, 'sine', 0.1, 1.5);
@@ -136,13 +145,29 @@ function handle(ev) {
     fx.deny = 1;
     tone(140, 0.12, 'square', 0.06, 0.8);
     buzz(20);
+  } else if (ev.type === 'rescue') {
+    burst(px(game, ev.x), py(game, ev.y), j.color, 16, c * 8);
+    delete fx.pos[j.id];
+    save.saved = 1;
+    toast('Second Wind!');
+    buzz(30);
+    checkAwards();
   } else if (ev.type === 'won') {
+    var stars = starsFor(LEVELS[levelIndex], game.time);
+    var gain = 10 + 15 * Math.max(0, stars - save.stars[levelIndex]);
+    save.stars[levelIndex] = Math.max(save.stars[levelIndex], stars);
+    save.coins += gain;
     if (save.unlocked < levelIndex + 2) save.unlocked = Math.min(LEVELS.length, levelIndex + 2);
+    if (game.peak <= 2) save.light = 1;
+    if (game.time < 20) save.quick = 1;
+    result = { stars: stars, gain: gain, time: game.time };
     persist();
+    checkAwards();
   } else if (ev.type === 'lost') {
     fx.shake = 1;
     tone(200, 0.4, 'sawtooth', 0.08, 0.4);
     buzz(60);
+    persist();
   }
 }
 
@@ -151,22 +176,37 @@ function handle(ev) {
 var lastFrame = 0;
 function frame(now) {
   var dt = Math.min(0.05, (now - lastFrame) / 1000 || 0), i, steps;
+  var playing = $('home').hidden;
   lastFrame = now;
   clock += dt;
-  if ($('levels').hidden) {
+  if (playing) {
     steps = save.fast ? 4 : 2;
     for (i = 0; i < steps; i++) game.step(dt * (save.fast ? 2 : 1) / steps);
     while (game.events.length) handle(game.events.shift());
+    if (Math.floor(game.time) !== shownSec) {
+      shownSec = Math.floor(game.time);
+      $('time').textContent = clockText(shownSec);
+    }
   }
   var landed = stepFx(game, dt);
   if (landed) {
-    combo = clock - comboAt < 0.35 ? Math.min(combo + landed, 16) : 0;
+    if (clock - comboAt < 0.35) {
+      combo = Math.min(combo + landed, 16);
+      chain += landed;
+    } else {
+      combo = 0;
+      chain = landed;
+    }
     comboAt = clock;
+    if (chain > save.chain) {
+      save.chain = chain;
+      checkAwards();
+    }
     tone(380 * Math.pow(2, combo / 12), 0.07, 'triangle', 0.1, 1.3);
     buzz(4);
     updateBar();
   }
-  if (game.status !== 'playing' && $('panel').hidden && !fx.shots.length) {
+  if (playing && game.status !== 'playing' && $('panel').hidden && !fx.shots.length) {
     if (!endTimer) {
       endTimer = clock;
       if (game.status === 'won') {
@@ -187,12 +227,13 @@ function frame(now) {
 canvas.addEventListener('pointerdown', function (e) {
   e.preventDefault();
   var c = columnAt(game, e.clientX, e.clientY);
-  if (c >= 0) game.send(c);
+  if (c >= 0) game.send(c, secondAt(e.clientY));
 });
-document.addEventListener('touchmove', function (e) { if (!e.target.closest('#list')) e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', function (e) { if (!e.target.closest('.pane')) e.preventDefault(); }, { passive: false });
 document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
 window.addEventListener('resize', function () { layout(game); });
 window.addEventListener('orientationchange', function () { setTimeout(function () { layout(game); }, 250); });
+window.addEventListener('pagehide', persist);
 
 function syncButtons() {
   $('bSound').className = save.muted ? 'off' : '';
@@ -200,13 +241,19 @@ function syncButtons() {
   $('bSpeed').className = save.fast ? 'on' : '';
 }
 $('bRestart').onclick = function () { startLevel(levelIndex); };
-$('bLevels').onclick = showLevels;
-$('bClose').onclick = function () { $('levels').hidden = true; };
+$('bHome').onclick = function () { showHome(); };
 $('bSound').onclick = function () { save.muted = !save.muted; persist(); syncButtons(); tone(520, 0.08, 'triangle', 0.1); };
 $('bSpeed').onclick = function () { save.fast = !save.fast; persist(); syncButtons(); };
+['list', 'shop', 'wall'].forEach(function (id) {
+  $('t-' + id).onclick = function () { setTab(id); };
+});
 
+normalise();
 syncButtons();
+drawMascot();
 startLevel(Math.min(save.unlocked, LEVELS.length) - 1);
+checkAwards();
+showHome('list');
 requestAnimationFrame(frame);
 
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
