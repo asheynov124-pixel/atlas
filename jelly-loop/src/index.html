@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang='en'>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover'>
+<title>Jelly Loop</title>
+<meta name='description' content='Send jellies round the belt to pop the picture.'>
+<meta name='theme-color' content='#1e1b4b'>
+<meta name='apple-mobile-web-app-capable' content='yes'>
+<meta name='mobile-web-app-capable' content='yes'>
+<meta name='apple-mobile-web-app-status-bar-style' content='black-translucent'>
+<meta name='apple-mobile-web-app-title' content='Jelly Loop'>
+<link rel='manifest' href='manifest.webmanifest'>
+<link rel='apple-touch-icon' href='icons/icon-192.png'>
+<link rel='icon' type='image/png' href='icons/icon-192.png'>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none;color:#fff;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html{background:#1e1b4b}
+body{position:fixed;top:0;right:0;bottom:0;left:0;background:radial-gradient(120% 80% at 50% 0%,#4f46e5 0%,#312e81 50%,#1e1b4b 100%)}
+[hidden]{display:none!important}
+#game{position:absolute;top:0;left:0;width:100%;height:100%;touch-action:none}
+#hud{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 10px) 6px calc(env(safe-area-inset-left) + 10px)}
+#hud button{flex:none;width:40px;height:40px;padding:0;border:0;border-radius:12px;background:rgba(255,255,255,.14);color:#fff;font:700 17px system-ui,sans-serif}
+#hud button.on{background:#fde047;color:#422006}
+#hud button.off{opacity:.45;text-decoration:line-through}
+#title{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;font-size:12px;color:#c7d2fe}
+#title b{font-size:17px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#track{height:5px;margin-top:3px;border-radius:3px;background:rgba(255,255,255,.16);overflow:hidden}
+#bar{width:0;height:100%;border-radius:3px;background:#4ade80;transition:width .2s}
+#hint{position:absolute;left:4%;right:4%;bottom:calc(env(safe-area-inset-bottom) + 10px);max-width:420px;margin:0 auto;padding:10px 14px;border-radius:14px;background:rgba(15,23,42,.9);font-size:14px;line-height:1.35;text-align:center;pointer-events:none}
+#safe{position:absolute;bottom:0;left:0;width:1px;height:env(safe-area-inset-bottom);pointer-events:none}
+.overlay{position:absolute;top:0;right:0;bottom:0;left:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.62)}
+.card{width:100%;max-width:340px;padding:22px;border-radius:22px;background:#eef2ff;color:#1e1b4b;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.4)}
+.card.wide{display:flex;flex-direction:column;max-width:460px;max-height:100%}
+.card h1{margin:0 0 8px;font-size:26px}
+.won h1{color:#15803d}
+.lost h1{color:#b91c1c}
+.card p{margin:0 0 16px;font-size:15px;line-height:1.4;color:#3730a3}
+.go{flex:none;width:100%;padding:14px;border:0;border-radius:14px;background:#4f46e5;color:#fff;font:700 17px system-ui,sans-serif}
+#list{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 14px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.lv{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;min-height:98px;padding:8px 4px;border:2px solid transparent;border-radius:14px;background:#fff;color:#1e1b4b;font:600 12px system-ui,sans-serif}
+.lv.current{border-color:#4f46e5}
+.lv.locked{background:#c7d2fe;color:#6366f1}
+.lv i{width:28px;height:28px;margin-bottom:14px;border-radius:8px;background:#a5b4fc}
+.lv canvas{image-rendering:pixelated}
+#install{margin-bottom:12px;font-size:13px}
+</style>
+</head>
+<body>
+<canvas id='game'></canvas>
+<header id='hud'>
+<button id='bLevels' aria-label='Levels'>&#9776;</button>
+<div id='title'><b id='lvName'></b><span><span id='lvNum'></span> &middot; <span id='left'></span> cubes left</span><div id='track'><div id='bar'></div></div></div>
+<button id='bSpeed' aria-label='Speed'>1x</button>
+<button id='bSound' aria-label='Sound'>&#9834;</button>
+<button id='bRestart' aria-label='Restart'>&#8635;</button>
+</header>
+<div id='hint'>Tap a jelly to send it round the belt. It pops the outermost cube of its own colour in each row and column it passes.</div>
+<div id='panel' class='overlay' hidden><div class='card'><h1 id='pTitle'></h1><p id='pText'></p><button id='pGo' class='go'></button></div></div>
+<div id='levels' class='overlay' hidden><div class='card wide'><h1>Levels</h1><div id='list'></div><p id='install'>To install on a phone: tap Share, then <b>Add to Home Screen</b>.</p><button id='bClose' class='go'>Back to game</button></div></div>
+<div id='safe'></div>
+<script src='core.js'></script>
+<script src='levels.js'></script>
+<script src='render.js'></script>
+<script src='app.js'></script>
+</body>
+</html>
