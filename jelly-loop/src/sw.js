@@ -1,5 +1,5 @@
 // sw.js - keeps the game playable offline once it has been opened.
-var CACHE = 'jelly-loop-v4';
+var CACHE = 'jelly-loop-v5';
 var FILES = ['./', 'core.js', 'levels.js', 'deal.js', 'render.js', 'home.js', 'app.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', function (e) {

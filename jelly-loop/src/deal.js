@@ -3,7 +3,7 @@
 // make endless new levels once the hand-drawn ones run out.
 
 var Deal = (function () {
-  var core = typeof Game !== 'undefined' ? { Game: Game, PALETTE: PALETTE } : require('./core.js');
+  var core = typeof Game !== 'undefined' ? { Game: Game, PALETTE: PALETTE, cubeColor: cubeColor, cubeHits: cubeHits } : require('./core.js');
 
   function rng(seed) {
     var a = seed >>> 0;
@@ -75,16 +75,17 @@ var Deal = (function () {
     return { status: g.status, seconds: g.time, order: order };
   }
 
-  // Cubes of each colour are split into jellies of about `chunk` ammo.
+  // Hits of each colour (an ice cube needs two) are split into jellies of about `chunk` ammo.
   function jelliesFor(art, chunk) {
     var count = {}, out = [], keys = [];
     art.forEach(function (row) {
       for (var i = 0; i < row.length; i++) {
-        var ch = row.charAt(i);
-        if (ch === '.') continue;
-        if (!core.PALETTE[ch]) throw new Error('unknown colour ' + ch);
-        if (!count[ch]) keys.push(ch);
-        count[ch] = (count[ch] || 0) + 1;
+        var ch = row.charAt(i), k;
+        if (ch === '.' || ch === '#') continue;
+        k = core.cubeColor(ch);
+        if (!core.PALETTE[k] || k === '*') throw new Error('unknown colour ' + ch);
+        if (!count[k]) keys.push(k);
+        count[k] = (count[k] || 0) + core.cubeHits(ch);
       }
     });
     keys.forEach(function (k) {
@@ -94,10 +95,15 @@ var Deal = (function () {
     return out;
   }
 
-  function dealInto(order, cols) {
+  // Deal the order into queue columns. `mystery` is the share of jellies (never the front
+  // one of a column) whose colour stays hidden until they reach the front.
+  function dealInto(order, cols, mystery, rand) {
     var hand = [], i;
     for (i = 0; i < cols; i++) hand.push([]);
-    order.forEach(function (tok, n) { hand[n % cols].push(tok); });
+    order.forEach(function (tok, n) {
+      var col = hand[n % cols];
+      col.push(mystery && col.length && rand() < mystery ? tok + '?' : tok);
+    });
     return hand.map(function (c) { return c.join(' '); });
   }
 
@@ -121,7 +127,7 @@ var Deal = (function () {
         var j = Math.min(order.length - 1, i + 1 + Math.floor(rand() * reach));
         var tmp = order[i]; order[i] = order[j]; order[j] = tmp;
       }
-      var lv = { name: pic.name, art: pic.art, hand: dealInto(order, pic.cols) };
+      var lv = { name: pic.name, art: pic.art, hand: dealInto(order, pic.cols, pic.mystery || 0, rng(77 + index)) };
       var proof = play(lv, smart);
       if (proof.status !== 'won') continue;
       var rate = 0, miss;
@@ -144,10 +150,11 @@ var Deal = (function () {
   // ---------- endless levels, made from the hand-drawn pictures ----------
 
   var MOODS = ['Night', 'Sunset', 'Mint', 'Candy', 'Frost', 'Ember', 'Lagoon', 'Meadow', 'Neon', 'Dusk'];
-  var KEYS = Object.keys(core.PALETTE).filter(function (k) { return k !== '*'; });
+  var KEYS = Object.keys(core.PALETTE).filter(function (k) { return k !== '*' && k !== '#'; });
 
   // Level n (0-based) past the hand-drawn list: a picture from the list, maybe mirrored,
-  // with its colours swapped round. Cheap; no dealing.
+  // with its colours swapped round. Further along, some cubes freeze into ice and some
+  // jellies are dealt as mysteries. Cheap; no dealing.
   function variant(n, list) {
     var H = list.length, r = rng(n * 7919 + 17), base = list[Math.floor(r() * H)];
     var perm = KEYS.slice(), map = {}, i, step = n - H;
@@ -159,14 +166,28 @@ var Deal = (function () {
     var art = base.art.map(function (row) {
       var cells = row.split('');
       if (mirror) cells.reverse();
-      return cells.map(function (ch) { return ch === '.' ? '.' : map[ch]; }).join('');
+      return cells.map(function (ch) {
+        if (ch === '.' || ch === '#') return ch;
+        var to = map[core.cubeColor(ch)];
+        return ch === core.cubeColor(ch) ? to : to.toLowerCase();
+      }).join('');
     });
+    var name = base.name + ' ' + MOODS[Math.floor(r() * MOODS.length)];
+    var ice = step >= 4 ? Math.min(0.18, 0.04 + step * 0.004) : 0;
+    if (ice) {
+      art = art.map(function (row) {
+        return row.split('').map(function (ch) {
+          return ch !== '.' && ch !== '#' && r() < ice ? ch.toLowerCase() : ch;
+        }).join('');
+      });
+    }
     return {
-      name: base.name + ' ' + MOODS[Math.floor(r() * MOODS.length)],
+      name: name,
       art: art,
       cols: 3 + Math.min(2, Math.floor(step / 4)),
       chunk: 8 + Math.floor(r() * 4),
-      mix: Math.min(6, 2 + Math.floor(step / 5))
+      mix: Math.min(6, 2 + Math.floor(step / 5)),
+      mystery: step >= 8 ? Math.min(0.3, 0.1 + step * 0.005) : (base.mystery || 0)
     };
   }
 
@@ -179,6 +200,7 @@ var Deal = (function () {
     while (!got && tries < 6) {
       got = level(pic, n + tries * 100003, { attempts: 12 });
       if (!got) pic.mix = Math.max(0, pic.mix - 1);
+      if (!got && tries === 2) pic.art = pic.art.map(function (row) { return row.toUpperCase(); });
       tries++;
     }
     cache[n] = got ? got.level : list[n % list.length];

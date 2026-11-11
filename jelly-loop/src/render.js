@@ -85,19 +85,64 @@ function roundRect(x, y, w, h, r) {
   ctx.closePath();
 }
 
+var MYSTERY = ['Mystery', '#64748b', '#fff'];
+
 function fillFor(key, r) {
+  if (key === '?') {
+    var g = ctx.createLinearGradient(-r, -r, r, r);
+    g.addColorStop(0, '#94a3b8');
+    g.addColorStop(1, '#475569');
+    return g;
+  }
   if (key !== '*') return PALETTE[key][1];
   var gr = ctx.createLinearGradient(-r, -r, r, r);
   ['#ef4444', '#facc15', '#22c55e', '#22d3ee', '#3b82f6', '#a855f7'].forEach(function (c, i) { gr.addColorStop(i / 5, c); });
   return gr;
 }
 
+// key is the board character: 'R' a cube, 'r' an ice cube, '#' a crate.
 function drawCube(x, y, s, key, alpha) {
-  var r = s * 0.22;
+  var r = s * 0.22, ice = key !== '#' && key !== key.toUpperCase();
   ctx.globalAlpha = alpha;
+  if (key === '#') {
+    roundRect(x - s / 2, y - s / 2, s, s, r * 0.5);
+    ctx.fillStyle = '#b45309';
+    ctx.fill();
+    ctx.strokeStyle = '#78350f';
+    ctx.lineWidth = Math.max(1, s * 0.09);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x - s * 0.36, y - s * 0.36);
+    ctx.lineTo(x + s * 0.36, y + s * 0.36);
+    ctx.moveTo(x + s * 0.36, y - s * 0.36);
+    ctx.lineTo(x - s * 0.36, y + s * 0.36);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.18)';
+    ctx.fillRect(x - s * 0.42, y - s * 0.42, s * 0.84, s * 0.12);
+    ctx.globalAlpha = 1;
+    return;
+  }
   roundRect(x - s / 2, y - s / 2, s, s, r);
-  ctx.fillStyle = PALETTE[key][1];
+  ctx.fillStyle = PALETTE[cubeColor(key)][1];
   ctx.fill();
+  if (ice) {
+    // frosted over: pale glaze, a white rim and a glint
+    ctx.fillStyle = 'rgba(224,242,254,.55)';
+    ctx.fill();
+    ctx.lineWidth = Math.max(1.2, s * 0.08);
+    ctx.strokeStyle = 'rgba(255,255,255,.95)';
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.9)';
+    ctx.lineWidth = Math.max(1, s * 0.06);
+    ctx.beginPath();
+    ctx.moveTo(x - s * 0.22, y + s * 0.2);
+    ctx.lineTo(x + s * 0.2, y - s * 0.22);
+    ctx.moveTo(x - s * 0.05, y + s * 0.26);
+    ctx.lineTo(x + s * 0.26, y - s * 0.05);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    return;
+  }
   ctx.fillStyle = 'rgba(255,255,255,.28)';
   roundRect(x - s * 0.36, y - s * 0.38, s * 0.72, s * 0.26, r * 0.7);
   ctx.fill();
@@ -107,8 +152,62 @@ function drawCube(x, y, s, key, alpha) {
   ctx.globalAlpha = 1;
 }
 
+// The jelly face bought in the shop's Looks tab: classic, blush, sleepy, starry, shades.
+var FACE = 'classic';
+function drawFace(r) {
+  var e, ex, ey = -r * 0.2;
+  if (FACE === 'shades') {
+    ctx.fillStyle = '#0f172a';
+    roundRect(-r * 0.62, ey - r * 0.17, r * 0.56, r * 0.32, r * 0.12);
+    ctx.fill();
+    roundRect(r * 0.06, ey - r * 0.17, r * 0.56, r * 0.32, r * 0.12);
+    ctx.fill();
+    ctx.fillRect(-r * 0.1, ey - r * 0.1, r * 0.2, r * 0.07);
+    ctx.fillStyle = 'rgba(255,255,255,.5)';
+    ctx.fillRect(-r * 0.5, ey - r * 0.1, r * 0.16, r * 0.05);
+    ctx.fillRect(r * 0.18, ey - r * 0.1, r * 0.16, r * 0.05);
+    return;
+  }
+  for (e = -1; e <= 1; e += 2) {
+    ex = e * r * 0.32;
+    if (FACE === 'sleepy') {
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = Math.max(1.2, r * 0.08);
+      ctx.beginPath();
+      ctx.arc(ex, ey - r * 0.04, r * 0.13, 0.15 * Math.PI, 0.85 * Math.PI);
+      ctx.stroke();
+      continue;
+    }
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(ex, ey, r * 0.2, 0, 7);
+    ctx.fill();
+    if (FACE === 'starry') {
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      for (var k = 0; k < 10; k++) {
+        var rr = k % 2 ? r * 0.06 : r * 0.15, a = -Math.PI / 2 + k * Math.PI / 5;
+        ctx.lineTo(ex + Math.cos(a) * rr, ey + Math.sin(a) * rr);
+      }
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.arc(ex + r * 0.04, ey + r * 0.03, r * 0.1, 0, 7);
+      ctx.fill();
+    }
+    if (FACE === 'blush') {
+      ctx.fillStyle = 'rgba(244,114,182,.75)';
+      ctx.beginPath();
+      ctx.ellipse(e * r * 0.62, r * 0.08, r * 0.14, r * 0.08, 0, 0, 7);
+      ctx.fill();
+    }
+  }
+}
+
 function drawJelly(x, y, r, key, ammo, squash, alpha) {
-  var col = PALETTE[key];
+  var col = key === '?' ? MYSTERY : PALETTE[key];
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(1 + squash, 1 - squash);
@@ -129,17 +228,7 @@ function drawJelly(x, y, r, key, ammo, squash, alpha) {
   ctx.beginPath();
   ctx.ellipse(-r * 0.5, -r * 0.42, r * 0.13, r * 0.26, 0.6, 0, 7);
   ctx.fill();
-  var e;
-  for (e = -1; e <= 1; e += 2) {
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(e * r * 0.32, -r * 0.2, r * 0.2, 0, 7);
-    ctx.fill();
-    ctx.fillStyle = '#0f172a';
-    ctx.beginPath();
-    ctx.arc(e * r * 0.32 + r * 0.04, -r * 0.17, r * 0.1, 0, 7);
-    ctx.fill();
-  }
+  drawFace(r);
   if (ammo !== '') {
     ctx.fillStyle = col[2];
     ctx.font = '800 ' + Math.round(r * 0.74) + 'px ' + UI;
@@ -192,7 +281,7 @@ function stepFx(g, dt) {
     s = fx.shots[i];
     s.t += dt;
     if (s.t >= s.dur) {
-      fx.vis[s.cell] = '';
+      fx.vis[s.cell] = s.to || '';
       fx.pops.push({ x: s.x1, y: s.y1, key: s.key, t: 0 });
       burst(s.x1, s.y1, s.key, 5, view.cell * 5);
       fx.shots.splice(i, 1);
@@ -390,7 +479,8 @@ function draw(g, time, mode) {
       y = handY(back);
       var bob = k === 0 && !seatsFull && playing ? Math.sin(time * 4 + i) * 0.04 : 0;
       var dim = mode === 'grab' ? 1 : k === 0 ? (seatsFull ? 0.55 : 1) : 0.9;
-      drawJelly(hx, y, jr * s, col[k].color, col[k].ammo, bob, dim);
+      var hid = col[k].hidden;
+      drawJelly(hx, y, jr * s, hid ? '?' : col[k].color, hid ? '?' : col[k].ammo, bob, dim);
       if (mode === 'grab') {
         ctx.beginPath();
         ctx.arc(hx, y + jr * s * 0.06, jr * s * 0.98, 0, 7);
@@ -458,9 +548,14 @@ function thumb(art, size) {
   var t = cv.getContext('2d');
   for (y = 0; y < art.length; y++) {
     for (x = 0; x < art[0].length; x++) {
-      if (art[y].charAt(x) === '.') continue;
-      t.fillStyle = PALETTE[art[y].charAt(x)][1];
+      var ch = art[y].charAt(x);
+      if (ch === '.') continue;
+      t.fillStyle = PALETTE[cubeColor(ch)][1];
       t.fillRect(x * s, y * s, s, s);
+      if (ch !== '#' && ch !== ch.toUpperCase()) {
+        t.fillStyle = 'rgba(224,242,254,.6)';
+        t.fillRect(x * s, y * s, s, s);
+      }
     }
   }
   return cv;

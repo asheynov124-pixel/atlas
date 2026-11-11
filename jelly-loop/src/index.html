@@ -16,8 +16,8 @@
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none;color:#fff;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-html{background:#1e1b4b}
-body{position:fixed;top:0;right:0;bottom:0;left:0;background:radial-gradient(120% 80% at 50% 0%,#4f46e5 0%,#312e81 50%,#1e1b4b 100%)}
+html{--bg1:#4f46e5;--bg2:#312e81;--bg3:#1e1b4b;background:var(--bg3)}
+body{position:fixed;top:0;right:0;bottom:0;left:0;background:radial-gradient(120% 80% at 50% 0%,var(--bg1) 0%,var(--bg2) 50%,var(--bg3) 100%)}
 [hidden]{display:none!important}
 button{font-family:inherit;color:inherit;cursor:pointer}
 button:active{transform:scale(.96)}
@@ -59,7 +59,7 @@ button:active{transform:scale(.96)}
 .card .stars b{font-size:40px;margin:0 2px}
 .gain{display:flex;align-items:center;justify-content:center;gap:14px;margin:-4px 0 12px;font-weight:800;font-size:17px}
 .gain span{display:inline-flex;align-items:center;gap:5px}
-#home{position:absolute;z-index:2;top:0;right:0;bottom:0;left:0;display:flex;justify-content:center;background:radial-gradient(120% 70% at 50% 0%,#4f46e5 0%,#3730a3 45%,#1e1b4b 100%)}
+#home{position:absolute;z-index:2;top:0;right:0;bottom:0;left:0;display:flex;justify-content:center;background:radial-gradient(120% 70% at 50% 0%,var(--bg1) 0%,var(--bg2) 45%,var(--bg3) 100%)}
 .sheet{display:flex;flex-direction:column;width:100%;max-width:480px;padding:calc(env(safe-area-inset-top) + 10px) 0 0}
 #top{display:flex;align-items:center;gap:8px;padding:0 12px 8px}
 #top .grow{flex:1}
@@ -74,6 +74,9 @@ button:active{transform:scale(.96)}
 .lvl.now{transform:scale(1.12);background:linear-gradient(#fde047,#f59e0b);box-shadow:0 5px 0 #b45309,0 0 30px rgba(253,224,71,.6)}
 .lvl.now strong{-webkit-text-stroke:1px #92400e}
 .lvl.lock{opacity:.6}
+.lvl.fresh{background:linear-gradient(#34d399,#059669);box-shadow:0 5px 0 #065f46}
+.lvl .tagnew{position:absolute;top:-9px;right:-6px;padding:2px 7px;border-radius:9px;background:#ef4444;font-style:normal;font-size:11px;font-weight:800}
+.lvl .pz{position:absolute;bottom:6px;right:8px;font-size:13px;font-weight:800}
 .lvl .stars{position:absolute;top:-10px}
 .lvl .stars b{font-size:18px;text-shadow:0 1px 2px rgba(0,0,0,.4)}
 .road{flex:none;width:14px;height:26px;background:rgba(15,23,42,.5)}
@@ -138,6 +141,29 @@ button:active{transform:scale(.96)}
 #toast{position:absolute;z-index:5;top:calc(env(safe-area-inset-top) + 64px);left:50%;padding:10px 16px;border-radius:999px;background:#fde047;color:#422006;font-weight:800;font-size:14px;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.35);pointer-events:none;transform:translateX(-50%)}
 #toast.show{animation:toast 2.3s both}
 @keyframes toast{0%{opacity:0;transform:translate(-50%,-14px)}10%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-8px)}}
+.tabs{display:flex;gap:6px;margin:0 2px 12px}
+.tabs button{flex:1;padding:9px 4px;border:0;border-radius:12px;background:rgba(15,23,42,.4);color:#c7d2fe;font:800 13px system-ui,sans-serif}
+.tabs button.on{background:#fde047;color:#422006}
+.sub{margin:14px 4px 8px;font-size:15px}
+.deal{position:relative;margin-bottom:10px;padding:16px 14px 14px;border-radius:18px;background:linear-gradient(#fef3c7,#fde68a);color:#422006;text-align:center;box-shadow:0 4px 0 #d97706}
+.deal .big{font-size:40px;line-height:1.1}
+.deal h2{margin:4px 0;font-size:17px}
+.deal p{margin:0 0 4px;font-size:13px}
+.deal small{display:block;margin-bottom:10px;font-size:11px;font-weight:700;color:#92400e}
+.ribbon{position:absolute;top:10px;left:-4px;padding:3px 10px;border-radius:0 10px 10px 0;background:#ef4444;color:#fff;font-size:11px;font-weight:800}
+.buys{display:flex;flex-direction:column;gap:6px}
+.buy .qty{margin-right:6px;font-size:12px;opacity:.85}
+.swatch{border:3px solid #fff}
+.tag.face{background:#e0e7ff}
+.wheel{position:relative;width:250px;height:250px;margin:4px auto 10px}
+.wheel canvas{display:block;border-radius:50%;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.wheel .pin{position:absolute;z-index:1;top:-6px;left:50%;width:0;height:0;margin-left:-12px;border:12px solid transparent;border-top:22px solid #ef4444}
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:-4px 0 10px}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px 3px 4px;border-radius:999px;background:#e0e7ff;color:#3730a3;font-size:12px;font-weight:800}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.stats div{padding:8px 4px;border-radius:12px;background:#e0e7ff}
+.stats b{display:block;font-size:17px}
+.stats small{font-size:10px;font-weight:700;color:#4338ca}
 </style>
 </head>
 <body>
@@ -161,8 +187,8 @@ button:active{transform:scale(.96)}
 <div id='top'><button id='tCoins' class='pill'><i class='coin'></i><span id='coins'></span><em>+</em></button><button id='tHearts' class='pill'><span class='heart'>&#10084;</span><span id='hearts'></span><span id='heartT' class='dim'></span></button><span class='grow'></span><button id='bSet' class='sq' aria-label='Settings'>&#9881;</button></div>
 <div id='pages'>
 <section id='pg-map' class='page'>
-<div class='side l'><button id='sTasks' class='sb'><i>&#128203;</i><span id='sTasksT'></span><b hidden></b></button><button id='sRoad' class='sb'><i>&#128273;</i><span id='sRoadT'></span><b hidden></b></button></div>
-<div class='side r'><button id='sGift' class='sb'><i>&#127873;</i><span id='sGiftT'></span><b hidden></b></button><button id='sStreak' class='sb'><i>&#128293;</i><span id='sStreakT'></span></button></div>
+<div class='side l'><button id='sTasks' class='sb'><i>&#128203;</i><span id='sTasksT'></span><b hidden></b></button><button id='sRoad' class='sb'><i>&#128273;</i><span id='sRoadT'></span><b hidden></b></button><button id='sDaily' class='sb'><i>&#128197;</i><span id='sDailyT'></span><b hidden></b></button></div>
+<div class='side r'><button id='sGift' class='sb'><i>&#127873;</i><span id='sGiftT'></span><b hidden></b></button><button id='sStreak' class='sb'><i>&#128293;</i><span id='sStreakT'></span></button><button id='sWheel' class='sb'><i>&#127905;</i><span id='sWheelT'></span><b hidden></b></button></div>
 <div id='map'></div>
 <button id='bPlay' class='go'>Play</button>
 </section>

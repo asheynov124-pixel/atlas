@@ -23,11 +23,22 @@ function persist() {
 
 // Fill in anything an older save does not have yet.
 function normalise() {
+  // Ten hand-drawn levels (21-30) were slotted in before the endless ones. A player who
+  // was already past level 21 keeps their place: the endless levels they had cleared move
+  // up by ten, and the new levels show up behind them on the map, open and marked NEW.
+  if (!(save.v >= 5) && save.unlocked > 21 && save.stars) {
+    var old = save.stars.slice(20);
+    save.stars = save.stars.slice(0, 20).concat([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], old);
+    save.unlocked += 10;
+  }
   var DEF = {
     unlocked: 1, coins: 0, pops: 0, chain: 0, light: 0, quick: 0, saved: 0, autos: 0,
     muted: false, fast: false, hearts: 5, heartAt: Date.now(), infUntil: 0,
     streak: 0, bestStreak: 0, keys: 0, roadGot: 0, giftDay: '', giftN: 0,
-    taskDay: '', tasks: [], taskPts: 0, chestsGot: [], wins: 0
+    taskDay: '', tasks: [], taskPts: 0, chestsGot: [], wins: 0,
+    v: 5, seen: {}, iceCracked: 0, cratesBroken: 0, dailyDay: '', dailyWins: 0,
+    spins: 0, spinDay: '', paidDay: '', paidSpins: 0, dealDay: '',
+    theme: 'night', face: 'classic', looks: ['theme:night', 'face:classic']
   };
   var k, i;
   for (k in DEF) if (save[k] === undefined) save[k] = DEF[k];
@@ -88,7 +99,7 @@ function starsFor(lv, sec) {
 function startLevel(i, pre) {
   pre = pre || {};
   levelIndex = i;
-  level = Deal.get(i, LEVELS);
+  level = i === DAILY ? dailyLevel() : Deal.get(i, LEVELS);
   game = new Game(level, {
     slots: save.up.slot, seats: (save.up.seat || 0) + (pre.seat ? 1 : 0),
     turbo: save.up.turbo, rescues: save.up.wind, wild: pre.wild ? 12 : 0
@@ -107,16 +118,17 @@ function startLevel(i, pre) {
   $('tip').hidden = true;
   layout(game);
   if (pre.fire) game.firework(12);
-  $('lvNum').textContent = 'Level ' + (i + 1);
+  $('lvNum').textContent = i === DAILY ? 'Daily' : 'Level ' + (i + 1);
   $('lvName').textContent = level.name;
-  $('hint').hidden = i > 2 || clearedCount() > 2;
+  $('hint').hidden = i === DAILY || i > 2 || clearedCount() > 2;
   syncBoosts();
   updateBar();
+  showIntros(level);
 }
 
 function updateBar() {
   var left = 0, i;
-  for (i = 0; i < fx.vis.length; i++) if (fx.vis[i]) left++;
+  for (i = 0; i < fx.vis.length; i++) left += cubeHits(fx.vis[i]);
   $('bar').style.width = (100 * (1 - left / game.total)) + '%';
   $('left').textContent = left;
   $('hCoins').textContent = save.coins;
@@ -172,14 +184,16 @@ function showPanel(won) {
   $('pStars').textContent = '';
   $('pGain').textContent = '';
   if (won) {
-    $('pTitle').textContent = 'Cleared!';
+    $('pTitle').textContent = result.daily ? 'Daily Challenge won!' : 'Cleared!';
     $('pStars').appendChild(starRow(result.stars));
-    $('pText').textContent = 'Time ' + clockText(result.time) + '. Three stars at ' + clockText(lv.par * 1.6) + ' or faster.';
+    $('pText').textContent = result.daily
+      ? (result.first ? 'Time ' + clockText(result.time) + '. A Wild Jelly is in your bag. A new challenge arrives tomorrow.' : 'Time ' + clockText(result.time) + '. Today' + E(0x2019) + 's prize is already yours.')
+      : 'Time ' + clockText(result.time) + '. Three stars at ' + clockText(lv.par * 1.6) + ' or faster.';
     $('pGain').appendChild(coinRow('+' + result.coins));
     $('pGain').appendChild(el('span', '', E(0x1F511) + ' +' + result.keys));
-    btns.appendChild(btn('go', 'Next level', function () {
+    btns.appendChild(btn('go', result.daily ? 'Play - Level ' + save.unlocked : 'Next level', function () {
       showHome('map');
-      openLevel(levelIndex + 1);
+      openLevel(result.daily ? save.unlocked - 1 : levelIndex + 1);
     }));
     btns.appendChild(btn('go plain', 'Home', function () { showHome('map'); }));
   } else {
@@ -222,13 +236,27 @@ function showPanel(won) {
 }
 
 function winRound() {
-  var stars = starsFor(level, game.time), prev = save.stars[levelIndex] || 0;
-  var coins = 20 + 15 * Math.max(0, stars - prev), keys = 1 + (stars === 3 ? 1 : 0);
-  save.stars[levelIndex] = Math.max(prev, stars);
-  save.coins += coins;
+  var stars = starsFor(level, game.time), daily = levelIndex === DAILY, prev = daily ? 3 : save.stars[levelIndex] || 0;
+  var coins = 20 + 15 * Math.max(0, stars - prev), keys = 1 + (stars === 3 ? 1 : 0), first = false;
+  if (daily) {
+    first = !dailyDone();
+    if (first) {
+      save.dailyDay = today();
+      save.dailyWins++;
+      grant(DAILY_PRIZE);
+      coins = 20 + DAILY_PRIZE.coins;
+      keys = 3;
+      save.coins += 20;
+    } else {
+      save.coins += coins;
+    }
+  } else {
+    save.stars[levelIndex] = Math.max(prev, stars);
+    save.coins += coins;
+  }
   save.keys += keys;
   save.wins++;
-  if (save.unlocked < levelIndex + 2) save.unlocked = levelIndex + 2;
+  if (!daily && save.unlocked < levelIndex + 2) save.unlocked = levelIndex + 2;
   if (game.peak <= 2) save.light = 1;
   if (game.time < 20) save.quick = 1;
   save.streak++;
@@ -236,7 +264,7 @@ function winRound() {
   track('win', 1);
   track('stars', stars);
   if (stars === 3) track('three', 1);
-  result = { stars: stars, coins: coins, keys: keys, time: game.time };
+  result = { stars: stars, coins: coins, keys: keys, time: game.time, daily: daily, first: first };
   persist();
   checkAwards();
 }
@@ -281,22 +309,38 @@ function handle(ev) {
     var x1 = px(game, ev.cell % game.w), y1 = py(game, Math.floor(ev.cell / game.w));
     var x0 = px(game, ev.x), y0 = py(game, ev.y);
     var dist = Math.abs(x1 - x0) + Math.abs(y1 - y0);
-    fx.shots.push({ x0: x0, y0: y0, x1: x1, y1: y1, t: 0, dur: 0.05 + dist / (c * 90), key: ev.color, cell: ev.cell });
+    fx.shots.push({ x0: x0, y0: y0, x1: x1, y1: y1, t: 0, dur: 0.05 + dist / (c * 90), key: ev.color, cell: ev.cell, to: ev.to });
     fx.kick[j.id] = 1;
-    save.pops++;
-    track('pop', 1);
+    if (ev.to) {
+      save.iceCracked++;
+    } else {
+      save.pops++;
+      track('pop', 1);
+    }
   } else if (ev.type === 'blast') {
     en = entryXY(game);
     ev.cells.forEach(function (b, n) {
       x = px(game, b.cell % game.w);
       y = py(game, Math.floor(b.cell / game.w));
       var from = ev.kind === 'firework' ? [en[0], en[1]] : [x, y - c * 0.01];
-      fx.shots.push({ x0: from[0], y0: from[1], x1: x, y1: y, t: -n * 0.04, dur: ev.kind === 'firework' ? 0.35 : 0.08, key: b.color, cell: b.cell });
+      fx.shots.push({ x0: from[0], y0: from[1], x1: x, y1: y, t: -n * 0.04, dur: ev.kind === 'firework' ? 0.35 : 0.08, key: b.color, cell: b.cell, to: b.to });
+      if (b.color === '#') save.cratesBroken++;
+      else if (b.to) save.iceCracked++;
+      else { save.pops++; track('pop', 1); }
     });
-    save.pops += ev.cells.length;
-    track('pop', ev.cells.length);
     tone(ev.kind === 'firework' ? 300 : 900, 0.3, 'sawtooth', 0.06, ev.kind === 'firework' ? 3 : 0.3);
     buzz(25);
+  } else if (ev.type === 'crate') {
+    x = px(game, ev.cell % game.w);
+    y = py(game, Math.floor(ev.cell / game.w));
+    fx.vis[ev.cell] = '';
+    fx.pops.push({ x: x, y: y, key: '#', t: 0 });
+    burst(x, y, '#', 14, c * 6);
+    tone(150, 0.16, 'square', 0.07, 0.6);
+    save.cratesBroken++;
+  } else if (ev.type === 'reveal') {
+    burst(colX(game, ev.col), frontY(), j.color, 12, c * 5);
+    tone(880, 0.12, 'sine', 0.08, 1.4);
   } else if (ev.type === 'park') {
     en = entryXY(game);
     fx.pos[j.id] = { x: en[0], y: en[1], done: false };
@@ -476,6 +520,11 @@ $('sTasks').onclick = openTasks;
 $('sRoad').onclick = openRoad;
 $('sGift').onclick = openGift;
 $('sStreak').onclick = openStreak;
+$('sDaily').onclick = function () {
+  if (!canPlay()) { openHearts(); return; }
+  openLevel(DAILY);
+};
+$('sWheel').onclick = openWheel;
 
 setInterval(function () {
   if ($('home').hidden) return;
@@ -484,6 +533,7 @@ setInterval(function () {
 }, 1000);
 
 normalise();
+applyLooks();
 regen();
 rollTasks();
 checkAwards();

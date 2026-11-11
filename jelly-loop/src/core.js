@@ -19,6 +19,15 @@
 //     they all launch, keep circling, and the round fast-forwards to the end.
 //
 // Coordinates are in cells: cell (x, y) has its centre at (x, y), y grows downward.
+//
+// Board pieces (one character per cell in a level's art):
+//   R, B, ...  a cube of that colour: one hit
+//   r, b, ...  an ICE cube: the first hit cracks the ice and leaves an ordinary cube
+//   #          a CRATE: no jelly can shoot it, and it blocks the lanes it sits in. It
+//              breaks when a cube next to it (left, right, above or below) is popped,
+//              or when a Bolt or Firework hits it.
+// Hand jellies written 'R8?' are MYSTERY jellies: their colour stays hidden until they
+// reach the front of their column.
 
 var BELT_MARGIN = 1.4;   // loop centre line sits this far outside the outer cells
 var BELT_SPEED = 6;      // cells per second            (ConveyorManager.moveSpeed)
@@ -40,8 +49,14 @@ var PALETTE = {
   N: ['Pink', '#f472b6', '#500724'],
   W: ['White', '#f8fafc', '#334155'],
   T: ['Brown', '#a16207', '#fff'],
-  '*': ['Wild', '#e879f9', '#1e1b4b']
+  '*': ['Wild', '#e879f9', '#1e1b4b'],
+  '#': ['Crate', '#b45309', '#fff']
 };
+
+// The colour key of a board cell: 'r' (ice) -> 'R', '#' stays '#'.
+function cubeColor(ch) { return ch === '#' ? '#' : ch.toUpperCase(); }
+// Hits a cell needs: ice 2, a plain cube 1, a crate or an empty cell 0.
+function cubeHits(ch) { return !ch || ch === '#' ? 0 : ch === ch.toUpperCase() ? 1 : 2; }
 
 // level = { name, art: [row strings, '.' = empty], hand: ['R12 B9', 'Y10 G4', ...] }
 // opts  = what is in play this round:
@@ -58,24 +73,30 @@ function Game(level, opts) {
   this.w = art[0].length;
   this.h = art.length;
   this.grid = [];
-  this.left = {};          // cubes still standing, per colour
-  this.remaining = 0;
+  this.left = {};          // hits still needed, per colour (an ice cube counts twice)
+  this.remaining = 0;      // hits still needed in all
+  this.crates = 0;
   for (y = 0; y < this.h; y++) {
     for (x = 0; x < this.w; x++) {
-      var ch = art[y].charAt(x);
+      var ch = art[y].charAt(x), n;
       if (ch === '.') ch = '';
       this.grid.push(ch);
-      if (ch) {
-        this.remaining++;
-        this.left[ch] = (this.left[ch] || 0) + 1;
+      if (ch === '#') this.crates++;
+      n = cubeHits(ch);
+      if (n) {
+        this.remaining += n;
+        this.left[cubeColor(ch)] = (this.left[cubeColor(ch)] || 0) + n;
       }
     }
   }
   this.total = this.remaining;
   this.nextId = 0;
+  this.idle = 0;           // loop distance travelled in the quick finish since the last pop
   this.hand = level.hand.map(function (col) {
-    return col.split(' ').filter(Boolean).map(function (tok) {
-      return self.jelly(tok.charAt(0), parseInt(tok.slice(1), 10));
+    return col.split(' ').filter(Boolean).map(function (tok, i) {
+      var j = self.jelly(tok.charAt(0), parseInt(tok.slice(1), 10));
+      if (i > 0 && tok.charAt(tok.length - 1) === '?') j.hidden = true;
+      return j;
     });
   });
   this.slots = [];         // the belt: a parked jelly or null in each place
@@ -146,7 +167,7 @@ Game.prototype.exposed = function () {
   var out = {}, t = this.triggers, i, c;
   for (i = 0; i < t.length; i++) {
     c = this.firstInLane(t[i].side, t[i].lane);
-    if (c >= 0) out[this.grid[c]] = (out[this.grid[c]] || 0) + 1;
+    if (c >= 0) { var k = cubeColor(this.grid[c]); out[k] = (out[k] || 0) + 1; }
   }
   return out;
 };
@@ -172,6 +193,8 @@ Game.prototype.send = function (c, depth) {
     return false;
   }
   var j = col.splice(depth, 1)[0];
+  j.hidden = false;
+  this.revealFronts();
   this.pending.push(j);
   this.sent++;
   this.events.push({ type: 'send', jelly: j, col: c, depth: depth });
@@ -194,6 +217,17 @@ Game.prototype.relaunch = function (slot) {
   return true;
 };
 
+// A mystery jelly that reaches the front of its column shows its colour.
+Game.prototype.revealFronts = function () {
+  for (var c = 0; c < this.hand.length; c++) {
+    var f = this.hand[c][0];
+    if (f && f.hidden) {
+      f.hidden = false;
+      this.events.push({ type: 'reveal', jelly: f, col: c });
+    }
+  }
+};
+
 Game.prototype.entryClear = function () {
   var P = this.perim, i, ph;
   for (i = 0; i < this.belt.length; i++) {
@@ -203,15 +237,24 @@ Game.prototype.entryClear = function () {
   return true;
 };
 
-// Remove one cube. When the last cube of a colour goes, every jelly of that colour is
-// spent, whatever ammo it has left (the Bolt, the Firework and the wild jelly pop cubes
-// without using that colour's ammo).
+// One hit on a cell: a cube pops, ice cracks, a crate breaks. Returns the colour hit
+// ('#' for a crate, '' for nothing). When the last cube of a colour goes, every jelly of
+// that colour is spent, whatever ammo it has left (the Bolt, the Firework and the wild
+// jelly pop cubes without using that colour's ammo).
 Game.prototype.pop = function (c) {
-  var col = this.grid[c];
-  if (!col) return '';
-  this.grid[c] = '';
+  var ch = this.grid[c];
+  if (!ch) return '';
+  if (ch === '#') {
+    this.grid[c] = '';
+    this.crates--;
+    return '#';
+  }
+  var col = cubeColor(ch);
+  this.grid[c] = ch === col ? '' : col;   // ice cracks first
   this.remaining--;
   this.left[col]--;
+  this.idle = 0;
+  if (!this.grid[c]) this.breakCrates(c);
   if (!this.left[col]) this.spend(col);
   if (this.remaining === 0 && this.status === 'playing') {
     this.status = 'won';
@@ -219,6 +262,22 @@ Game.prototype.pop = function (c) {
     this.events.push({ type: 'won' });
   }
   return col;
+};
+
+// A cube popped: crates touching it break.
+Game.prototype.breakCrates = function (c) {
+  var x = c % this.w, y = Math.floor(c / this.w), n = [], i, k;
+  if (x > 0) n.push(c - 1);
+  if (x < this.w - 1) n.push(c + 1);
+  if (y > 0) n.push(c - this.w);
+  if (y < this.h - 1) n.push(c + this.w);
+  for (i = 0; i < n.length; i++) {
+    k = n[i];
+    if (this.grid[k] !== '#') continue;
+    this.grid[k] = '';
+    this.crates--;
+    this.events.push({ type: 'crate', cell: k });
+  }
 };
 
 Game.prototype.spend = function (col) {
@@ -238,15 +297,16 @@ Game.prototype.spend = function (col) {
     }
   });
   this.belt.concat(this.pending).forEach(function (j) { if (j.color === col) j.done = true; });
+  this.revealFronts();
 };
 
 Game.prototype.fire = function (j, trig) {
   var c = this.firstInLane(trig.side, trig.lane);
-  if (c < 0 || (j.color !== '*' && this.grid[c] !== j.color)) return;
+  if (c < 0 || this.grid[c] === '#' || (j.color !== '*' && cubeColor(this.grid[c]) !== j.color)) return;
   var p = this.pointAt(this.entry + j.nextD);
   j.ammo--;
   var col = this.pop(c);
-  this.events.push({ type: 'shot', jelly: j, cell: c, color: col, x: p[0], y: p[1] });
+  this.events.push({ type: 'shot', jelly: j, cell: c, color: col, to: this.grid[c], x: p[0], y: p[1] });
   if (!j.ammo) j.done = true;
 };
 
@@ -352,7 +412,18 @@ Game.prototype.step = function (dt) {
   }
   this.belt = keep;
   this.sweep();
-  if (this.status === 'playing') this.checkStuck();
+  if (this.status !== 'playing') return;
+  this.checkStuck();
+  // The quick finish has every jelly circling; if two whole laps go by without a pop,
+  // what is left cannot be reached (a crate walls it in) and the round is over.
+  if (this.auto && this.belt.length) {
+    this.idle += mv;
+    if (this.idle > 2 * P + 3 * ENTRY_GAP) {
+      this.status = 'lost';
+      this.reason = 'stuck';
+      this.events.push({ type: 'lost', reason: 'stuck' });
+    }
+  }
 };
 
 // Safety net: nothing riding, nothing in the hand, and nothing parked can reach a cube.
@@ -372,7 +443,7 @@ Game.prototype.blast = function (cells, kind) {
   var out = [], i, col;
   for (i = 0; i < cells.length && this.remaining; i++) {
     col = this.pop(cells[i]);
-    if (col) out.push({ cell: cells[i], color: col });
+    if (col) out.push({ cell: cells[i], color: col, to: this.grid[cells[i]] });
   }
   if (out.length) this.events.push({ type: 'blast', kind: kind, cells: out });
   this.sweep();
@@ -382,12 +453,12 @@ Game.prototype.blast = function (cells, kind) {
 
 // Bolt: the tapped cube and the cubes of its colour touching it, up to `max`.
 Game.prototype.bolt = function (cell, max) {
-  var col = this.grid[cell], seen = {}, list = [], todo = [cell], c, x, y, n;
-  if (!col || this.status !== 'playing') return [];
+  var col = cubeColor(this.grid[cell] || ''), seen = {}, list = [], todo = [cell], c, x, y, n;
+  if (!this.grid[cell] || this.status !== 'playing') return [];
   max = max || 10;
   while (todo.length && list.length < max) {
     c = todo.shift();
-    if (seen[c] || this.grid[c] !== col) continue;
+    if (seen[c] || !this.grid[c] || cubeColor(this.grid[c]) !== col) continue;
     seen[c] = 1;
     list.push(c);
     x = c % this.w;
@@ -454,7 +525,8 @@ Game.prototype.revive = function () {
 
 if (typeof module !== 'undefined') {
   module.exports = {
-    Game: Game, PALETTE: PALETTE, LOOP_SEATS: LOOP_SEATS, BELT_SLOTS: BELT_SLOTS,
+    Game: Game, PALETTE: PALETTE, cubeColor: cubeColor, cubeHits: cubeHits,
+    LOOP_SEATS: LOOP_SEATS, BELT_SLOTS: BELT_SLOTS,
     BELT_SPEED: BELT_SPEED, BELT_MARGIN: BELT_MARGIN
   };
 }

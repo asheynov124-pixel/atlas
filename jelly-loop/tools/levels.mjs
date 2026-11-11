@@ -1,10 +1,13 @@
 // Level pictures. One character per cube; '.' is empty.
 // R red, Y yellow, B blue, G green, P purple, K black, C cyan, O orange, N pink, W white, T brown.
+// A lowercase letter is an ICE cube of that colour (two hits). '#' is a CRATE: it blocks its
+// lanes and breaks when a cube beside it pops.
 //
 // cols  - how many queue columns the hand has
 // chunk - roughly how much ammo each jelly carries (cubes of a colour are split into jellies this size)
 // mix   - how far the hand order is shuffled away from the easy order (0 = gentle)
 // bg    - optional colour that fills the empty cells, so the subject starts out buried
+// mystery - share of jellies dealt face down: their colour shows only at the front of the column
 //
 // build.mjs turns these into src/levels.js, dealing a hand for each picture and
 // proving with a bot that the level can be won.
@@ -341,6 +344,185 @@ export const PICTURES = [
       'PNYNNPKPNNYNP',
       'PNNNP...PNNNP',
       '.PPP.....PPP.'
+    ]
+  },
+  // ---------- 21-30: ice, crates and mystery jellies ----------
+  {
+    name: 'Ice Pond', cols: 4, chunk: 10, mix: 2, intro: 'ice',
+    art: [
+      'BBBBBBBBBBBB',
+      'BbbBBBBBBbbB',
+      'BbbbBWWBbbbB',
+      'BBbBWWWWBbBB',
+      'BBBBWKKWBBBB',
+      'BBBBWWWWBBBB',
+      'BbBBBOOBBBbB',
+      'BbbBBBBBBbbB',
+      'BBBBBBBBBBBB',
+      'GGGGGGGGGGGG'
+    ]
+  },
+  {
+    name: 'Snowman', cols: 4, chunk: 12, mix: 3,
+    art: [
+      'CCCCKKKCCCC',
+      'CCCCKKKCCCC',
+      'CCCKKKKKCCC',
+      'CCCCwwwCCCC',
+      'CCCwKwKwCCC',
+      'CCCwwOwwCCC',
+      'CCCRRRRRCCC',
+      'CCwwwwwwwCC',
+      'CwwwKwwwwwC',
+      'CwwwwwwwwwC',
+      'CwwwKwwwwwC',
+      'CCwwwwwwwCC',
+      'GGGGGGGGGGG'
+    ]
+  },
+  {
+    name: 'Treasure Chest', cols: 4, chunk: 10, mix: 3, intro: 'crate',
+    art: [
+      'CCCCCCCCCCCC',
+      'CC#TTTTTT#CC',
+      'C#TTTTTTTT#C',
+      'C#TYYYYYYT#C',
+      'CTTTTYYTTTTC',
+      'CTTTTKKTTTTC',
+      'CTYTTYYTTYTC',
+      'CTYTTTTTTYTC',
+      'CTTTTTTTTTTC',
+      'C##########C',
+      'BBBBBBBBBBBB'
+    ]
+  },
+  {
+    name: 'Lighthouse', cols: 4, chunk: 10, mix: 4,
+    art: [
+      'KKKKKYKKKKK',
+      'KKKKYYYKKKK',
+      'KKKKRRRKKKK',
+      'KKKKWWWKKKK',
+      'KKKKRRRKKKK',
+      'KKKKWWWKKKK',
+      'KKKKRRRKKKK',
+      'KKKWWWWWKKK',
+      'KKKRRRRRKKK',
+      'KK##WWW##KK',
+      'K###RRR###K',
+      'bbbbbbbbbbb',
+      'BbBBbBBbBBb',
+      'BBBBBBBBBBB'
+    ]
+  },
+  {
+    name: 'Mystery Gift', cols: 4, chunk: 10, mix: 3, mystery: 0.35, intro: 'mystery',
+    art: [
+      'NNNNNYYNNNNN',
+      'NNNNYNNYNNNN',
+      'NNNNNYYNNNNN',
+      'NPPPPYYPPPPN',
+      'NPPPPYYPPPPN',
+      'NYYYYYYYYYYN',
+      'NPPPPYYPPPPN',
+      'NPPPPYYPPPPN',
+      'NPPPPYYPPPPN',
+      'NPPPPYYPPPPN',
+      'NPPPPYYPPPPN',
+      'NNNNNNNNNNNN'
+    ]
+  },
+  {
+    name: 'Castle', cols: 5, chunk: 10, mix: 4, mystery: 0.25,
+    art: [
+      'CCRCCCCCCCCRCC',
+      'CRRRCCCCCCRRRC',
+      'CWWWCCYCCCWWWC',
+      'CWKWCCYYCCWKWC',
+      'CWWWCRRRCCWWWC',
+      'CWWWWWWWWWWWWC',
+      'CWWKWWWWWKWWWC',
+      'CWWWWW##WWWWWC',
+      'CWWWW####WWWWC',
+      'CWWWW#TT#WWWWC',
+      'CWWWW#TT#WWWWC',
+      'GGGGGGGGGGGGGG',
+      'GGGGGGGGGGGGGG'
+    ]
+  },
+  {
+    name: 'Hot Air Balloon', cols: 5, chunk: 10, mix: 4, mystery: 0.3,
+    art: [
+      'CwwCCCCCCCwwC',
+      'wwwwCRRRCwwww',
+      'CCCCRYYYRCCCC',
+      'CCCRYRRRYRCCC',
+      'CCRYRYYYRYRCC',
+      'CCRYRYYYRYRCC',
+      'CCRYRYYYRYRCC',
+      'CCCRYRRRYRCCC',
+      'CCCCRYYYRCCCC',
+      'CCCCCKCKCCCCC',
+      'CCCCCKCKCCCCC',
+      'CwwCCTTTCCCww',
+      'wwwwCTTTCCwww',
+      'GGGGGGGGGGGGG'
+    ]
+  },
+  {
+    name: 'Dragon', cols: 5, chunk: 10, mix: 5, mystery: 0.3,
+    art: [
+      'KKKKKKKKKKKKKKK',
+      'KKGGGKKKKKKKKKK',
+      'KGGKGGKKKKKKKKK',
+      'KGGGGGGORRKKKKK',
+      'KKGGGGooRRRKKKK',
+      'KKKGGKKORRKKKKK',
+      'KKKGGGKKKKKGGKK',
+      'KKGGYGGGKKGGGGK',
+      'KGGYYYGGGGGKKGK',
+      'KGGYYYGGGGKKKKK',
+      'KKGGYGGGGKKKKKK',
+      'KKGGKGGKGGKKKKK',
+      '##############K'
+    ]
+  },
+  {
+    name: 'Night City', cols: 5, chunk: 9, mix: 5, mystery: 0.25,
+    art: [
+      'KKYKKKKKKKYKKKK',
+      'KKKKKKYKKKKKKKK',
+      'KPPPKKKKKKKBBBK',
+      'KPYPKKCCCKKBYBK',
+      'KPPPKKCYCKKBBBK',
+      'KPYPKKCCCKKBYBK',
+      'KPPPBBCYCPPBBBK',
+      'KPyPBYCCCPYBYBK',
+      'KPPPBBCYCPPBBBK',
+      'KPYPByCCCPyBYBK',
+      'KPPPBBCCCPPBBBK',
+      '#T##T##T##T##T#',
+      'WWWWWWWWWWWWWWW'
+    ]
+  },
+  {
+    name: 'Peacock', cols: 5, chunk: 9, mix: 6, mystery: 0.3,
+    art: [
+      'CCCCBBBBBBBCCCC',
+      'CCBBGGGGGGGBBCC',
+      'CBGGBBBBBBBGGBC',
+      'BGBBPPPPPPPBBGB',
+      'BGBPPGGGGGPPBGB',
+      'BGBPGGbbbGGPBGB',
+      'BGBPGbbYbbGPBGB',
+      'CBGBPGbbbGPBGBC',
+      'CCBGBPPBPPBGBCC',
+      'CCCBGBBKBBGBCCC',
+      'CCCCCBBBBBCCCCC',
+      'CCCCCCBBBCCCCCC',
+      'CCCCCCBOBCCCCCC',
+      'CC####TTT####CC',
+      'GGGGGGGGGGGGGGG'
     ]
   }
 ];
