@@ -190,5 +190,157 @@ export const PICTURES = [
       '..YTYTYTYT..',
       '..YTYTYTYT..'
     ]
+  },
+  {
+    name: 'Sun', cols: 4, chunk: 10, mix: 3, bg: 'C',
+    art: [
+      '.....YY.....',
+      '.Y...YY...Y.',
+      '..Y.OOOO.Y..',
+      '...OOYYOO...',
+      '..OYYYYYYO..',
+      'YYOYKYYKYOYY',
+      'YYOYYYYYYOYY',
+      '..OYYRRYYO..',
+      '...OOYYOO...',
+      '..Y.OOOO.Y..',
+      '.Y...YY...Y.',
+      '.....YY.....'
+    ]
+  },
+  {
+    name: 'Ice Cream', cols: 4, chunk: 9, mix: 4, bg: 'B',
+    art: [
+      '...NNNN...',
+      '..NNWNNN..',
+      '.NNNNNNNN.',
+      '.CCCCCCCC.',
+      'CCCWCCCCCC',
+      'CCCCCCCWCC',
+      '.TTTTTTTT.',
+      '.TYTYTYTY.',
+      '..TYTYTYT.',
+      '..YTYTYT..',
+      '...TYTYT..',
+      '...YTYT...',
+      '....TY....',
+      '....YT....'
+    ]
+  },
+  {
+    name: 'Ghost', cols: 4, chunk: 10, mix: 4, bg: 'P',
+    art: [
+      '....WWWW....',
+      '..WWWWWWWW..',
+      '.WWWWWWWWWW.',
+      '.WWKKWWKKWW.',
+      'WWWKKWWKKWWW',
+      'WWWWWWWWWWWW',
+      'WWWWWNNWWWWW',
+      'WWWWWWWWWWWW',
+      'WWWWWWWWWWWW',
+      'WWWWWWWWWWWW',
+      'WW.WWW.WWW.W',
+      'W...W...W...'
+    ]
+  },
+  {
+    name: 'Penguin', cols: 4, chunk: 10, mix: 5, bg: 'C',
+    art: [
+      '....KKK....',
+      '...KKKKK...',
+      '..KKWWWKK..',
+      '..KWKWKWK..',
+      '..KWWOWWK..',
+      '.KKWWWWWKK.',
+      'KKWWWWWWWKK',
+      'KKWWWWWWWKK',
+      '.KWWWWWWWK.',
+      '.KKWWWWWKK.',
+      '..KKWWWKK..',
+      '...OO.OO...',
+      '..OOO.OOO..'
+    ]
+  },
+  {
+    name: 'Strawberry', cols: 4, chunk: 10, mix: 5, bg: 'W',
+    art: [
+      '....GGGG....',
+      '..GGGGGGGG..',
+      '..RRGGGGRR..',
+      '.RRRRGGRRRR.',
+      'RRYRRRRRRYRR',
+      'RRRRRYRRRRRR',
+      'RYRRRRRRRYRR',
+      'RRRRYRRRRRRR',
+      '.RRRRRRYRRR.',
+      '.RRYRRRRRRR.',
+      '..RRRRRYRR..',
+      '...RRRRRR...',
+      '.....RR.....'
+    ]
+  },
+  {
+    name: 'Sailboat', cols: 4, chunk: 10, mix: 5, bg: 'C',
+    art: [
+      '......K......',
+      '......KW.....',
+      '.....WKWW....',
+      '....WWKWWW...',
+      '...WWWKWWWW..',
+      '..WWWWKWWWWW.',
+      '......K......',
+      'TTTTTTTTTTTTT',
+      '.TTTTTTTTTTT.',
+      '..TTTTTTTTT..',
+      'BBBBBBBBBBBBB',
+      'BCBBBCBBBCBBB'
+    ]
+  },
+  {
+    name: 'Robot', cols: 5, chunk: 9, mix: 6, bg: 'P',
+    art: [
+      '.....RR.....',
+      '.....KK.....',
+      '..KKKKKKKK..',
+      '..KWWWWWWK..',
+      '..KWCWWCWK..',
+      '..KWWWWWWK..',
+      '..KWNNNNWK..',
+      '..KKKKKKKK..',
+      'KKKOOOOOOKKK',
+      'K.KOYOOYOK.K',
+      'K.KOOOOOOK.K',
+      '..KKKKKKKK..',
+      '..KK....KK..'
+    ]
+  },
+  {
+    name: 'Watermelon', cols: 5, chunk: 9, mix: 6, bg: 'C',
+    art: [
+      'GWRRRRRRRRRRWG',
+      'GWRRKRRRRKRRWG',
+      '.GWRRRRKRRRWG.',
+      '.GWRKRRRRKRWG.',
+      '..GWRRRKRRWG..',
+      '...GWRRRRWG...',
+      '....GWWWWG....',
+      '.....GGGG.....'
+    ]
+  },
+  {
+    name: 'Butterfly', cols: 5, chunk: 9, mix: 6, bg: 'C',
+    art: [
+      '.PP.......PP.',
+      'PNNP.....PNNP',
+      'PNYNP...PNYNP',
+      'PNNNNPKPNNNNP',
+      '.PNNNPKPNNNP.',
+      '..PPPPKPPPP..',
+      '.PNNNPKPNNNP.',
+      'PNYNNPKPNNYNP',
+      'PNNNP...PNNNP',
+      '.PPP.....PPP.'
+    ]
   }
 ];

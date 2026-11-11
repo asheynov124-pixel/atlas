@@ -3,7 +3,8 @@
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
 var view = { w: 0, h: 0, cell: 20, cx: 0, cy: 0, handTop: 0, handH: 0, colGap: 0, jr: 0, tr: 20, trayY: 0 };
-var fx = { shots: [], pops: [], bits: [], vis: [], pos: {}, kick: {}, slide: [], shake: 0, deny: 0 };
+var fx = { shots: [], pops: [], bits: [], vis: [], pos: {}, kick: {}, slide: [], shake: 0, deny: 0, flash: 0 };
+var UI = 'system-ui,-apple-system,sans-serif';
 
 function layout(g) {
   var dpr = Math.min(window.devicePixelRatio || 1, 3);
@@ -11,13 +12,14 @@ function layout(g) {
   canvas.width = Math.round(w * dpr);
   canvas.height = Math.round(h * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  var top = document.getElementById('hud').getBoundingClientRect().bottom + 4;
-  var safe = document.getElementById('safe').offsetHeight;
-  var handH = Math.max(140, Math.min(240, h * 0.27));
+  var top = document.getElementById('hud').getBoundingClientRect().bottom + 2;
+  var bar = document.getElementById('boost').getBoundingClientRect().top;
+  if (!bar) bar = h;
+  var handH = Math.max(124, Math.min(200, h * 0.2));
   // the belt of parking places sits between the loop and the hand
-  var tr = Math.max(14, Math.min(22, (w - 28) / (g.maxSlots * 2.5)));
-  var trayH = tr * 2.4 + 22;
-  var bottom = h - safe - handH - trayH;
+  var tr = Math.max(14, Math.min(24, (w - 28) / (g.maxSlots * 2.5)));
+  var trayH = tr * 2.4 + 14;
+  var bottom = bar - handH - trayH;
   var spanX = g.w + 2 * BELT_MARGIN + 1.7, spanY = g.h + 2 * BELT_MARGIN + 1.7;
   view.w = w;
   view.h = h;
@@ -25,20 +27,31 @@ function layout(g) {
   view.cx = w / 2;
   view.cy = top + (bottom - top) / 2;
   view.tr = tr;
-  view.trayY = bottom + tr * 1.2 + 2;
+  view.trayY = bottom + tr * 1.2 + 6;
   view.handTop = bottom + trayH;
   view.handH = handH;
   view.colGap = Math.min((w - 20) / g.hand.length, 96);
-  view.jr = Math.min(view.colGap * 0.38, handH * 0.2, 36);
+  view.jr = Math.min(view.colGap * 0.36, handH * 0.21, 34);
 }
 
 function px(g, x) { return view.cx + (x - (g.w - 1) / 2) * view.cell; }
 function py(g, y) { return view.cy + (y - (g.h - 1) / 2) * view.cell; }
 function colX(g, c) { return view.cx + (c - (g.hand.length - 1) / 2) * view.colGap; }
-function frontY() { return view.handTop + view.jr * 1.15 + 10; }
+function frontY() { return view.handTop + view.jr * 1.1 + 6; }
 function slotX(g, i) { return view.cx + (i - (g.maxSlots - 1) / 2) * view.tr * 2.5; }
+function entryXY(g) { return [px(g, g.w / 2 - 0.5), py(g, g.h - 1 + BELT_MARGIN)]; }
 
-// Where a jelly is drawn at belt distance u: the same rectangle as the rules use,
+// How many jellies of a column are drawn below the front one, and where the k-th sits.
+function handShow(col) {
+  var room = Math.floor(1 + (view.handH - 14 - view.jr * 3.39) / (view.jr * 1.12));
+  return Math.max(0, Math.min(3, room, col.length - 1));
+}
+function handY(k) {
+  var jr = view.jr, fy = frontY();
+  return fy + (k <= 1 ? k * jr * 1.62 : jr * 1.62 + (k - 1) * jr * 1.12);
+}
+
+// Where a jelly is drawn at loop distance u: the same rectangle as the rules use,
 // with the corners rounded off so jellies sweep round them.
 function beltPoint(g, u) {
   var P = g.perim, m = BELT_MARGIN, r = m * 0.9, i, d, t, a;
@@ -72,6 +85,13 @@ function roundRect(x, y, w, h, r) {
   ctx.closePath();
 }
 
+function fillFor(key, r) {
+  if (key !== '*') return PALETTE[key][1];
+  var gr = ctx.createLinearGradient(-r, -r, r, r);
+  ['#ef4444', '#facc15', '#22c55e', '#22d3ee', '#3b82f6', '#a855f7'].forEach(function (c, i) { gr.addColorStop(i / 5, c); });
+  return gr;
+}
+
 function drawCube(x, y, s, key, alpha) {
   var r = s * 0.22;
   ctx.globalAlpha = alpha;
@@ -100,7 +120,7 @@ function drawJelly(x, y, r, key, ammo, squash, alpha) {
   ctx.lineTo(-r * 0.55, r);
   ctx.quadraticCurveTo(-r, r, -r, r * 0.5);
   ctx.closePath();
-  ctx.fillStyle = col[1];
+  ctx.fillStyle = fillFor(key, r);
   ctx.fill();
   ctx.lineWidth = Math.max(1.5, r * 0.1);
   ctx.strokeStyle = 'rgba(255,255,255,.9)';
@@ -120,12 +140,26 @@ function drawJelly(x, y, r, key, ammo, squash, alpha) {
     ctx.arc(e * r * 0.32 + r * 0.04, -r * 0.17, r * 0.1, 0, 7);
     ctx.fill();
   }
-  ctx.fillStyle = col[2];
-  ctx.font = '800 ' + Math.round(r * 0.74) + 'px system-ui,-apple-system,sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(ammo, 0, r * 0.52);
+  if (ammo !== '') {
+    ctx.fillStyle = col[2];
+    ctx.font = '800 ' + Math.round(r * 0.74) + 'px ' + UI;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(ammo, 0, r * 0.52);
+  }
   ctx.restore();
+}
+
+// The little cart a jelly rides round the loop on.
+function drawCart(x, y, r) {
+  ctx.fillStyle = '#0f172a';
+  roundRect(x - r * 0.85, y + r * 0.82, r * 1.7, r * 0.3, r * 0.14);
+  ctx.fill();
+  ctx.fillStyle = '#94a3b8';
+  ctx.beginPath();
+  ctx.arc(x - r * 0.5, y + r * 1.16, r * 0.15, 0, 7);
+  ctx.arc(x + r * 0.5, y + r * 1.16, r * 0.15, 0, 7);
+  ctx.fill();
 }
 
 function burst(x, y, key, n, power) {
@@ -133,7 +167,7 @@ function burst(x, y, key, n, power) {
   for (i = 0; i < n; i++) {
     a = Math.random() * 6.283;
     v = power * (0.4 + Math.random() * 0.8);
-    fx.bits.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - power * 0.3, life: 0.35 + Math.random() * 0.3, t: 0, key: key, s: view.cell * (0.12 + Math.random() * 0.14) });
+    fx.bits.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - power * 0.3, life: 0.35 + Math.random() * 0.3, t: 0, key: key === '*' ? 'P' : key, s: view.cell * (0.12 + Math.random() * 0.14) });
   }
 }
 
@@ -148,6 +182,7 @@ function resetFx(g) {
   fx.slide = g.hand.map(function () { return 0; });
   fx.shake = 0;
   fx.deny = 0;
+  fx.flash = 0;
 }
 
 // Advance animations. Returns how many shots landed this frame (for the pop sound).
@@ -180,28 +215,42 @@ function stepFx(g, dt) {
   for (i = 0; i < fx.slide.length; i++) fx.slide[i] = Math.max(0, fx.slide[i] - dt * 6);
   fx.shake = Math.max(0, fx.shake - dt * 3);
   fx.deny = Math.max(0, fx.deny - dt * 4);
+  fx.flash = Math.max(0, fx.flash - dt * 1.5);
   return landed;
 }
 
-function draw(g, time) {
-  var c = view.cell, m = BELT_MARGIN, i, j, p, x, y, k;
+// Move a drawn jelly towards where the rules put it, so it glides instead of jumping.
+function glide(id, x, y, settle) {
+  var at = fx.pos[id];
+  if (!at || at.done) return [x, y];
+  var ease = 0.23;
+  at.x += (x - at.x) * ease;
+  at.y += (y - at.y) * ease;
+  if (settle && Math.abs(at.x - x) + Math.abs(at.y - y) < 1.5) at.done = true;
+  return [at.x, at.y];
+}
+
+// mode: '' | 'bolt' | 'grab' - which booster is waiting for a tap
+function draw(g, time, mode) {
+  var c = view.cell, m = BELT_MARGIN, i, j, p, x, y, k, q;
+  var playing = g.status === 'playing';
   ctx.clearRect(0, 0, view.w, view.h);
   ctx.save();
   if (fx.shake > 0) ctx.translate(Math.sin(time * 70) * fx.shake * 7, Math.cos(time * 55) * fx.shake * 4);
 
-  // belt
+  // the loop
   var bx = px(g, -m), by = py(g, -m), bw = g.lw * c, bh = g.lh * c, br = m * 0.9 * c;
   roundRect(bx, by, bw, bh, br);
   ctx.lineWidth = c * 1.62;
   ctx.strokeStyle = 'rgba(15,23,42,.5)';
   ctx.stroke();
   ctx.lineWidth = c * 1.62 - 4;
-  ctx.strokeStyle = fx.deny > 0 ? 'rgba(127,29,29,.75)' : 'rgba(30,41,59,.9)';
+  ctx.strokeStyle = fx.deny > 0 ? 'rgba(127,29,29,.75)' : g.auto ? 'rgba(49,46,129,.95)' : 'rgba(30,41,59,.9)';
   ctx.stroke();
   ctx.setLineDash([c * 0.35, c * 0.85]);
-  ctx.lineDashOffset = -time * g.speed * c * (g.status === 'playing' ? 1 : 0);
+  ctx.lineDashOffset = -time * g.speed * c * (playing ? (g.auto ? AUTO_SPEED : 1) : 0);
   ctx.lineWidth = Math.max(2, c * 0.14);
-  ctx.strokeStyle = 'rgba(148,163,184,.55)';
+  ctx.strokeStyle = g.auto ? 'rgba(253,224,71,.8)' : 'rgba(148,163,184,.55)';
   ctx.stroke();
   ctx.setLineDash([]);
 
@@ -210,48 +259,39 @@ function draw(g, time) {
   ctx.fillStyle = 'rgba(238,242,255,.94)';
   ctx.fill();
 
-  // the belt: one place per jelly in play, under the loop
-  var used = g.slotsUsed(), tr = view.tr, full = used >= g.maxSlots;
-  roundRect(slotX(g, 0) - tr * 1.3, view.trayY - tr * 1.2, (g.maxSlots - 1) * tr * 2.5 + tr * 2.6, tr * 2.4, tr * 0.9);
-  ctx.fillStyle = 'rgba(15,23,42,.5)';
+  // free seats on the loop, at the bottom-left corner where the carts wait
+  var free = g.maxSeats - g.riders(), sx = px(g, -m), sy = py(g, g.h - 1 + m);
+  var sr = Math.max(13, c * 0.95);
+  ctx.beginPath();
+  ctx.arc(sx, sy, sr, 0, 7);
+  ctx.fillStyle = free ? '#0f172a' : '#7f1d1d';
   ctx.fill();
-  for (i = 0; i < g.maxSlots; i++) {
-    j = g.slots[i];
-    ctx.beginPath();
-    ctx.arc(slotX(g, i), view.trayY, tr * 0.92, 0, 7);
-    ctx.fillStyle = 'rgba(255,255,255,.07)';
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = full ? 'rgba(248,113,113,.8)' : 'rgba(255,255,255,.16)';
-    ctx.stroke();
-    if (j && !j.parked) {
-      // this place is held for a jelly that is out on the loop
-      ctx.globalAlpha = 0.45;
-      ctx.beginPath();
-      ctx.arc(slotX(g, i), view.trayY, tr * 0.3, 0, 7);
-      ctx.fillStyle = PALETTE[j.color][1];
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
-  }
-  // upgrade charges left this round, under the belt
-  var notes = [];
-  if (g.jumps > 0) notes.push('Queue Jump x' + g.jumps);
-  if (g.rescues > 0) notes.push('Second Wind x' + g.rescues);
-  if (notes.length) {
-    ctx.font = '700 11px system-ui,-apple-system,sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(253,224,71,.9)';
-    ctx.fillText(notes.join('     '), view.cx, view.trayY + tr * 1.2 + 9);
-  }
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(255,255,255,.5)';
+  ctx.stroke();
+  ctx.fillStyle = '#fff';
+  ctx.font = '800 ' + Math.round(sr * 0.62) + 'px ' + UI;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(free + '/' + g.maxSeats, sx, sy - sr * 0.08);
+  ctx.font = '700 ' + Math.max(7, Math.round(sr * 0.32)) + 'px ' + UI;
+  ctx.fillStyle = 'rgba(255,255,255,.7)';
+  ctx.fillText('SEATS', sx, sy + sr * 0.48);
 
   // cubes
+  var glow = mode === 'bolt' ? 0.5 + 0.5 * Math.sin(time * 8) : 0;
   for (i = 0; i < fx.vis.length; i++) {
     x = px(g, i % g.w);
     y = py(g, Math.floor(i / g.w));
-    if (fx.vis[i]) drawCube(x, y, c * 0.92, fx.vis[i], 1);
-    else {
+    if (fx.vis[i]) {
+      drawCube(x, y, c * 0.92, fx.vis[i], 1);
+      if (glow && g.grid[i]) {
+        ctx.strokeStyle = 'rgba(253,224,71,' + (0.35 + glow * 0.5) + ')';
+        ctx.lineWidth = 1.5;
+        roundRect(x - c * 0.46, y - c * 0.46, c * 0.92, c * 0.92, c * 0.2);
+        ctx.stroke();
+      }
+    } else {
       ctx.fillStyle = 'rgba(99,102,241,.1)';
       ctx.beginPath();
       ctx.arc(x, y, c * 0.1, 0, 7);
@@ -289,47 +329,43 @@ function draw(g, time) {
     ctx.fill();
   }
 
-  // jellies parked on the belt
-  var ease = 1 - Math.exp(-0.016 * 16), at;
+  // the belt: one place per parked jelly, under the loop
+  var tr = view.tr, fullBelt = g.parkedCount() >= g.maxSlots;
+  roundRect(slotX(g, 0) - tr * 1.3, view.trayY - tr * 1.2, (g.maxSlots - 1) * tr * 2.5 + tr * 2.6, tr * 2.4, tr * 0.9);
+  ctx.fillStyle = 'rgba(15,23,42,.5)';
+  ctx.fill();
+  for (i = 0; i < g.maxSlots; i++) {
+    roundRect(slotX(g, i) - tr, view.trayY - tr, tr * 2, tr * 2, tr * 0.45);
+    ctx.fillStyle = 'rgba(255,255,255,.08)';
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = fullBelt ? 'rgba(248,113,113,.85)' : 'rgba(255,255,255,.18)';
+    ctx.stroke();
+  }
   for (i = 0; i < g.maxSlots; i++) {
     j = g.slots[i];
-    if (!j || !j.parked) continue;
-    x = slotX(g, i);
-    y = view.trayY;
-    at = fx.pos[j.id];
-    if (at && !at.done) {
-      at.x += (x - at.x) * ease;
-      at.y += (y - at.y) * ease;
-      if (Math.abs(at.x - x) + Math.abs(at.y - y) < 1.5) at.done = true;
-      x = at.x;
-      y = at.y;
-    }
-    drawJelly(x, y + tr * 0.06, tr * 0.8, j.color, j.ammo, g.status === 'playing' ? Math.sin(time * 4 + j.id) * 0.04 : 0, 1);
+    if (!j) continue;
+    q = glide(j.id, slotX(g, i), view.trayY, true);
+    drawJelly(q[0], q[1] + tr * 0.06, tr * 0.8, j.color, j.ammo, playing ? Math.sin(time * 4 + j.id) * 0.04 : 0, 1);
   }
 
   // jellies out on the loop, and those waiting to join it
-  var r = c * 0.7, ride = g.belt.concat(g.pending);
+  var r = c * 0.7, ride = g.belt.concat(g.pending), en = entryXY(g);
   for (i = 0; i < ride.length; i++) {
     j = ride[i];
-    var onBelt = i < g.belt.length;
-    if (onBelt) {
+    var onLoop = i < g.belt.length;
+    if (onLoop) {
       p = beltPoint(g, g.entry + j.d);
       x = px(g, p[0]);
       y = py(g, p[1]);
     } else {
-      x = view.cx + (i - g.belt.length) * r * 0.7;
-      y = py(g, g.h - 1 + m) + c * 0.2;
+      x = en[0] + (i - g.belt.length) * r * 0.7;
+      y = en[1] + c * 0.2;
     }
-    at = fx.pos[j.id];
-    if (at && !at.done) {
-      at.x += (x - at.x) * ease;
-      at.y += (y - at.y) * ease;
-      if (onBelt && Math.abs(at.x - x) + Math.abs(at.y - y) < 1.5) at.done = true;
-      x = at.x;
-      y = at.y;
-    }
+    q = glide(j.id, x, y, onLoop);
     k = fx.kick[j.id] || 0;
-    drawJelly(x, y, r * (1 + k * 0.22), j.color, j.ammo, Math.sin(time * 9 + j.id) * 0.05, 1);
+    drawCart(q[0], q[1], r);
+    drawJelly(q[0], q[1], r * (1 + k * 0.22), j.color, j.ammo, Math.sin(time * 9 + j.id) * 0.05, 1);
   }
 
   // particles
@@ -342,25 +378,22 @@ function draw(g, time) {
   ctx.globalAlpha = 1;
 
   // hand: one queue per column, front jelly on top and playable
-  var jr = view.jr, fy = frontY();
+  var jr = view.jr, seatsFull = g.riders() >= g.maxSeats;
   for (i = 0; i < g.hand.length; i++) {
-    var col = g.hand[i], hx = colX(g, i), sl = fx.slide[i] || 0;
+    var col = g.hand[i], hx = colX(g, i), sl = fx.slide[i] || 0, show = handShow(col);
     roundRect(hx - view.colGap * 0.44, view.handTop + 2, view.colGap * 0.88, view.handH - 6, 16);
     ctx.fillStyle = 'rgba(255,255,255,.07)';
     ctx.fill();
-    // how many queued jellies fit under the front one
-    var room = Math.floor(1 + (view.handH - 14 - jr * 3.39) / (jr * 1.12));
-    var show = Math.max(0, Math.min(3, room, col.length - 1));
     for (k = col.length ? show : -1; k >= 0; k--) {
       var back = Math.min(k + sl, show + 0.5);
       var s = back <= 1 ? 1 - 0.38 * back : 0.62;
-      y = fy + (back <= 1 ? back * jr * 1.62 : jr * 1.62 + (back - 1) * jr * 1.12);
-      var bob = k === 0 && !full && g.status === 'playing' ? Math.sin(time * 4 + i) * 0.04 : 0;
-      drawJelly(hx, y, jr * s, col[k].color, col[k].ammo, bob, k === 0 ? (full ? 0.55 : 1) : 0.9);
-      if (k === 1 && g.jumps > 0 && !full && sl < 0.05) {
-        // a Queue Jump is available: ring the second jelly to show it can be tapped
+      y = handY(back);
+      var bob = k === 0 && !seatsFull && playing ? Math.sin(time * 4 + i) * 0.04 : 0;
+      var dim = mode === 'grab' ? 1 : k === 0 ? (seatsFull ? 0.55 : 1) : 0.9;
+      drawJelly(hx, y, jr * s, col[k].color, col[k].ammo, bob, dim);
+      if (mode === 'grab') {
         ctx.beginPath();
-        ctx.arc(hx, y + jr * 0.06, jr * 0.84, 0, 7);
+        ctx.arc(hx, y + jr * s * 0.06, jr * s * 0.98, 0, 7);
         ctx.setLineDash([jr * 0.22, jr * 0.2]);
         ctx.lineDashOffset = -time * jr * 0.5;
         ctx.lineWidth = 2;
@@ -371,31 +404,64 @@ function draw(g, time) {
     }
     if (col.length - 1 > show) {
       ctx.fillStyle = 'rgba(255,255,255,.7)';
-      ctx.font = '700 ' + Math.round(jr * 0.4) + 'px system-ui,-apple-system,sans-serif';
+      ctx.font = '700 ' + Math.round(jr * 0.4) + 'px ' + UI;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      ctx.fillText('+' + (col.length - 1 - show), hx + jr * 0.72, fy + jr * (show ? 1.62 + (show - 1) * 1.12 : 1.3));
+      ctx.fillText('+' + (col.length - 1 - show), hx + jr * 0.72, show ? handY(show) : frontY() + jr * 1.3);
     }
+  }
+
+  // quick finish: a light sweep over everything
+  if (fx.flash > 0) {
+    ctx.fillStyle = 'rgba(253,224,71,' + fx.flash * 0.18 + ')';
+    ctx.fillRect(0, 0, view.w, view.h);
   }
   ctx.restore();
 }
 
-// Which hand column is under a touch, or -1.
+// ---------- what is under a touch ----------
+
 function columnAt(g, x, y) {
   if (y < view.handTop) return -1;
   var c = Math.round((x - view.cx) / view.colGap + (g.hand.length - 1) / 2);
   return c >= 0 && c < g.hand.length && Math.abs(x - colX(g, c)) < view.colGap * 0.5 ? c : -1;
 }
 
-// Which place on the belt is under a touch, or -1.
+// With the Grabber: which jelly of the column (0 = front) is nearest the touch.
+function depthAt(g, c, y) {
+  var col = g.hand[c], show = handShow(col), best = 0, d = 1e9, k;
+  for (k = 0; k <= show; k++) {
+    var dy = Math.abs(y - handY(k));
+    if (dy < d) { d = dy; best = k; }
+  }
+  return best;
+}
+
 function slotAt(g, x, y) {
   if (Math.abs(y - view.trayY) > view.tr * 1.35) return -1;
   var s = Math.round((x - view.cx) / (view.tr * 2.5) + (g.maxSlots - 1) / 2);
   return s >= 0 && s < g.maxSlots ? s : -1;
 }
 
-// Is a touch at height y on the second jelly of a column (the Queue Jump target)?
-function secondAt(y) {
-  var top = frontY() + view.jr * 1.08;
-  return y > top && y < top + view.jr * 1.25;
+function cellAt(g, x, y) {
+  var gx = Math.round((x - px(g, 0)) / view.cell), gy = Math.round((y - py(g, 0)) / view.cell);
+  if (gx < 0 || gy < 0 || gx >= g.w || gy >= g.h) return -1;
+  return gy * g.w + gx;
+}
+
+// A picture as a little pixel image, for the map and the level card.
+function thumb(art, size) {
+  var s = Math.max(1, Math.floor(size / Math.max(art[0].length, art.length)));
+  var cv = document.createElement('canvas'), x, y;
+  cv.width = art[0].length * s;
+  cv.height = art.length * s;
+  var t = cv.getContext('2d');
+  for (y = 0; y < art.length; y++) {
+    for (x = 0; x < art[0].length; x++) {
+      if (art[y].charAt(x) === '.') continue;
+      t.fillStyle = PALETTE[art[y].charAt(x)][1];
+      t.fillRect(x * s, y * s, s, s);
+    }
+  }
+  return cv;
 }
