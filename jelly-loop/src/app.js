@@ -82,7 +82,7 @@ function startLevel(i) {
   result = null;
   resetFx(game);
   layout(game);
-  $('lvNum').textContent = 'Level ' + (levelIndex + 1);
+  $('lvNum').textContent = 'Lv ' + (levelIndex + 1);
   $('lvName').textContent = LEVELS[levelIndex].name;
   $('panel').hidden = true;
   $('home').hidden = true;
@@ -108,7 +108,7 @@ function showPanel(won) {
     $('pGainN').textContent = '+' + result.gain;
     $('pText').textContent = 'Time ' + clockText(result.time) + '. Three stars at ' + clockText(lv.par * 1.6) + ' or faster.';
   } else {
-    $('pText').textContent = 'Every slot on the belt is taken and no jelly there can reach a cube of its own colour.';
+    $('pText').textContent = 'Every place on the belt is taken and no jelly in play can reach a cube of its own colour.';
   }
   $('pGo').textContent = won ? (last ? 'Back to home' : 'Next level') : 'Try again';
   $('pGo').onclick = function () {
@@ -126,9 +126,14 @@ function showPanel(won) {
 function handle(ev) {
   var c = view.cell, j = ev.jelly;
   if (ev.type === 'send') {
-    fx.pos[j.id] = { x: colX(game, ev.col), y: frontY() + (ev.second ? view.jr * 1.62 : 0), done: false };
-    fx.slide[ev.col] = ev.second ? 0 : 1;
-    tone(ev.second ? 440 : 330, 0.12, 'triangle', 0.12, 1.8);
+    if (ev.slot !== undefined) {
+      // sent again from its place on the belt
+      fx.pos[j.id] = { x: slotX(game, ev.slot), y: view.trayY, done: false };
+    } else {
+      fx.pos[j.id] = { x: colX(game, ev.col), y: frontY() + (ev.second ? view.jr * 1.62 : 0), done: false };
+      fx.slide[ev.col] = ev.second ? 0 : 1;
+    }
+    tone(ev.second ? 440 : ev.slot !== undefined ? 392 : 330, 0.12, 'triangle', 0.12, 1.8);
     buzz(8);
     $('hint').hidden = true;
   } else if (ev.type === 'shot') {
@@ -138,6 +143,10 @@ function handle(ev) {
     fx.shots.push({ x0: x0, y0: y0, x1: x1, y1: y1, t: 0, dur: 0.05 + dist / (c * 90), key: ev.color, cell: ev.cell });
     fx.kick[j.id] = 1;
     save.pops++;
+  } else if (ev.type === 'park') {
+    // lap done with ammo to spare: glide from the end of the loop to its place
+    fx.pos[j.id] = { x: view.cx, y: py(game, game.h - 1 + BELT_MARGIN), done: false };
+    tone(260, 0.1, 'sine', 0.07, 0.8);
   } else if (ev.type === 'retire') {
     burst(px(game, ev.x), py(game, ev.y), j.color, 12, c * 7);
     tone(660, 0.18, 'sine', 0.1, 1.5);
@@ -226,6 +235,11 @@ function frame(now) {
 
 canvas.addEventListener('pointerdown', function (e) {
   e.preventDefault();
+  var s = slotAt(game, e.clientX, e.clientY);
+  if (s >= 0) {
+    game.relaunch(s);
+    return;
+  }
   var c = columnAt(game, e.clientX, e.clientY);
   if (c >= 0) game.send(c, secondAt(e.clientY));
 });

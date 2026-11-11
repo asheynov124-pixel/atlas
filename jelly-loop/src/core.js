@@ -4,7 +4,7 @@
 //   ColorTypes.cs      -> PALETTE
 //   Cell.cs + BoardManager.cs -> Game.grid, firstInLane, exposed
 //   Jelly.cs           -> the jelly objects in hand / pending / belt
-//   ConveyorManager.cs -> the belt: triggers, step, fire
+//   ConveyorManager.cs -> the loop round the picture and the belt of parking places
 //   HandManager.cs     -> Game.hand (columns, front jelly is playable)
 //   GameManager.cs     -> send, status, checkJam
 //
@@ -12,7 +12,7 @@
 
 var BELT_MARGIN = 1.4;   // belt centre line sits this far outside the outer cells
 var BELT_SPEED = 6;      // cells per second            (ConveyorManager.moveSpeed)
-var MAX_SLOTS = 5;       // jellies allowed on the belt (ConveyorManager.maxSlots)
+var MAX_SLOTS = 5;       // places on the belt        (ConveyorManager.maxSlots)
 var ENTRY_GAP = 1.7;     // minimum spacing between jellies on the belt
 
 // key: [name, fill, text colour]
@@ -60,8 +60,12 @@ function Game(level, opts) {
       return { id: ++id, color: tok.charAt(0), ammo: n, max: n, d: 0, k: 0, nextD: 0 };
     });
   });
-  this.belt = [];
-  this.pending = [];
+  // A jelly in play holds one place on the belt from the moment it is sent until its
+  // ammo runs out. It goes once round the loop, then parks in its place until tapped again.
+  this.slots = [];
+  for (x = 0; x < this.maxSlots; x++) this.slots.push(null);
+  this.belt = [];      // jellies travelling round the loop right now
+  this.pending = [];   // jellies waiting for a gap to join the loop
   this.events = [];
   this.status = 'playing';
   this.time = 0;
@@ -116,27 +120,46 @@ Game.prototype.exposed = function () {
   return out;
 };
 
-Game.prototype.slotsUsed = function () {
-  return this.belt.length + this.pending.length;
+// Every jelly in play: travelling, waiting to join, or parked.
+Game.prototype.inPlay = function () {
+  return this.slots.filter(Boolean);
 };
 
-// Tap on a hand column: its front jelly heads for the belt.
+Game.prototype.slotsUsed = function () {
+  return this.inPlay().length;
+};
+
+// Tap on a hand column: its front jelly takes a place on the belt and sets off round the loop.
 // With a Queue Jump to spend, `second` plays the jelly behind the front one instead.
 Game.prototype.send = function (c, second) {
   if (this.status !== 'playing') return false;
   var col = this.hand[c];
   if (!col || !col.length) return false;
   if (second && (col.length < 2 || this.jumps < 1)) second = false;
-  if (this.slotsUsed() >= this.maxSlots) {
+  var free = this.slots.indexOf(null);
+  if (free < 0) {
     this.events.push({ type: 'full' });
     return false;
   }
   var j = second ? col.splice(1, 1)[0] : col.shift();
   if (second) this.jumps--;
+  j.slot = free;
+  j.parked = false;
+  this.slots[free] = j;
   this.pending.push(j);
   this.peak = Math.max(this.peak, this.slotsUsed());
   this.events.push({ type: 'send', jelly: j, col: c, second: !!second });
   this.checkJam();
+  return true;
+};
+
+// Tap on a parked jelly: it goes round the loop once more.
+Game.prototype.relaunch = function (slot) {
+  var j = this.slots[slot];
+  if (this.status !== 'playing' || !j || !j.parked) return false;
+  j.parked = false;
+  this.pending.push(j);
+  this.events.push({ type: 'send', jelly: j, slot: slot });
   return true;
 };
 
@@ -177,7 +200,8 @@ Game.prototype.step = function (dt) {
   for (i = this.belt.length - 1; i >= 0; i--) {
     j = this.belt[i];
     j.d += this.speed * dt;
-    while (j.ammo > 0 && j.d >= j.nextD) {
+    // one lap only: each lane is passed once, then the jelly comes off the loop
+    while (j.ammo > 0 && j.d >= j.nextD && j.nextD <= P + 1e-6) {
       k = j.ammo;
       this.fire(j, t[j.k]);
       if (j.ammo < k) fired = true;
@@ -188,8 +212,13 @@ Game.prototype.step = function (dt) {
     }
     if (j.ammo === 0) {
       this.belt.splice(i, 1);
+      this.slots[j.slot] = null;
       var p = this.pointAt(this.entry + j.d);
       this.events.push({ type: 'retire', jelly: j, x: p[0], y: p[1] });
+    } else if (j.d >= P) {
+      this.belt.splice(i, 1);
+      j.parked = true;
+      this.events.push({ type: 'park', jelly: j });
     }
   }
 
@@ -201,13 +230,13 @@ Game.prototype.step = function (dt) {
   }
 };
 
-// The belt is jammed when it is full (or the hand is spent) and nothing riding it
-// matches any cube on the outside of the picture. Nothing can ever move again,
+// The belt is jammed when every place is taken (or the hand is spent) and no jelly in
+// play matches any cube on the outside of the picture. Nothing can ever move again,
 // unless a Second Wind is left: then the fullest jelly goes to the back of the
 // shortest queue and play carries on.
 Game.prototype.checkJam = function () {
   if (this.status !== 'playing' || !this.remaining) return;
-  var on = this.belt.concat(this.pending), i;
+  var on = this.inPlay(), i;
   var handLeft = this.hand.some(function (c) { return c.length > 0; });
   if (on.length < this.maxSlots && handLeft) return;
   var ex = this.exposed();
@@ -219,7 +248,9 @@ Game.prototype.checkJam = function () {
     at = this.belt.indexOf(out);
     var p = at >= 0 ? this.pointAt(this.entry + out.d) : this.pointAt(this.entry);
     if (at >= 0) this.belt.splice(at, 1);
-    else this.pending.splice(this.pending.indexOf(out), 1);
+    else if (this.pending.indexOf(out) >= 0) this.pending.splice(this.pending.indexOf(out), 1);
+    this.slots[out.slot] = null;
+    out.parked = false;
     this.hand[to].push(out);
     this.rescues--;
     this.events.push({ type: 'rescue', jelly: out, col: to, x: p[0], y: p[1] });

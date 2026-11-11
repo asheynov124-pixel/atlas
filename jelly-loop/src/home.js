@@ -6,14 +6,14 @@ var homeTab = 'list';
 
 // cost[n] is the price of going from level n to n + 1.
 var UPGRADES = [
-  { id: 'turbo', name: 'Turbo Belt', tag: '>>', cost: [60, 120, 200],
-    text: 'The belt runs 15% faster for each level of this upgrade.' },
+  { id: 'turbo', name: 'Turbo Loop', tag: '>>', cost: [60, 120, 200],
+    text: 'Jellies travel round the loop 15% faster for each level of this upgrade.' },
   { id: 'jump', name: 'Queue Jump', tag: '2nd', cost: [80, 160, 260],
     text: 'Tap the second jelly in a column to play it ahead of the front one. One use per round for each level.' },
   { id: 'wind', name: 'Second Wind', tag: 'SOS', cost: [120, 240],
     text: 'When the belt jams, the fullest jelly goes back to the hand and play carries on. One rescue per round for each level.' },
   { id: 'slot', name: 'Sixth Slot', tag: '+1', cost: [300],
-    text: 'The belt carries six jellies instead of five.' }
+    text: 'The belt has six places instead of five.' }
 ];
 
 function clearedCount() {
@@ -36,8 +36,8 @@ var AWARDS = [
   { id: 'perfect', name: 'Perfectionist', text: 'Three stars on every level.', coins: 300, goal: LEVELS.length * 3, have: starCount },
   { id: 'pop500', name: 'Cube Crusher', text: 'Pop 500 cubes.', coins: 30, goal: 500, have: function () { return save.pops; } },
   { id: 'pop3000', name: 'Demolition Crew', text: 'Pop 3,000 cubes.', coins: 120, goal: 3000, have: function () { return save.pops; } },
-  { id: 'chain', name: 'Chain Reaction', text: 'Pop 40 cubes in one unbroken run.', coins: 40, goal: 40, have: function () { return save.chain; } },
-  { id: 'light', name: 'Light Touch', text: 'Clear a level with never more than 2 jellies on the belt.', coins: 60, goal: 1, have: function () { return save.light; } },
+  { id: 'chain', name: 'Chain Reaction', text: 'Pop 30 cubes in one unbroken run.', coins: 40, goal: 30, have: function () { return save.chain; } },
+  { id: 'light', name: 'Light Touch', text: 'Clear a level using no more than 2 places on the belt.', coins: 60, goal: 1, have: function () { return save.light; } },
   { id: 'quick', name: 'Quick Hands', text: 'Clear a level in under 20 seconds.', coins: 50, goal: 1, have: function () { return save.quick; } },
   { id: 'saved', name: 'Saved by the Wind', text: 'Survive a jam with Second Wind.', coins: 30, goal: 1, have: function () { return save.saved; } },
   { id: 'spender', name: 'Big Spender', text: 'Buy 3 upgrades.', coins: 50, goal: 3, have: upgradeCount }

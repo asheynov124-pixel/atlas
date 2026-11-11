@@ -29,11 +29,13 @@ function rng(seed) {
   };
 }
 
-// Careful player: sends a jelly only when its colour is showing and not already covered.
+// Careful player: sends a parked jelly round again whenever its colour is showing, and
+// takes a new one from the hand only when its colour is showing and not already covered.
 function smart(g) {
-  if (g.slotsUsed() >= g.maxSlots) return -1;
   const ex = g.exposed();
-  const on = g.belt.concat(g.pending);
+  g.slots.forEach((j, s) => { if (j && j.parked && ex[j.color]) g.relaunch(s); });
+  if (g.slotsUsed() >= g.maxSlots) return -1;
+  const on = g.inPlay();
   const riding = {};
   for (const j of on) riding[j.color] = (riding[j.color] || 0) + j.ammo;
   let best = -1, score = 0;
@@ -54,15 +56,22 @@ function smart(g) {
   return best;
 }
 
-// Careless player: sends any front jelly about once a second.
+// Careless player: about once a second, taps something at random - a front jelly in the
+// hand if a place is free, or a jelly parked on the belt.
 function casual(rand) {
   let wait = 0;
   return (g) => {
-    if (--wait > 0 || g.slotsUsed() >= g.maxSlots) return -1;
-    const live = g.hand.map((c, i) => (c.length ? i : -1)).filter((i) => i >= 0);
-    if (!live.length) return -1;
+    if (--wait > 0) return -1;
+    const free = g.slotsUsed() < g.maxSlots;
+    const moves = [];
+    g.hand.forEach((c, i) => { if (free && c.length) moves.push(i); });
+    g.slots.forEach((j, s) => { if (j && j.parked) moves.push(-1 - s); });
+    if (!moves.length) return -1;
     wait = 30 + Math.floor(rand() * 60);
-    return live[Math.floor(rand() * live.length)];
+    const pick = moves[Math.floor(rand() * moves.length)];
+    if (pick >= 0) return pick;
+    g.relaunch(-1 - pick);
+    return -1;
   };
 }
 

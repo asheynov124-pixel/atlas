@@ -26,11 +26,16 @@ JavaScript and canvas, which runs in any browser and installs as a home-screen a
 
 ## Rules
 
-- Tap the front jelly of a column to send it onto the belt. The belt holds five (`MAX_SLOTS`).
-- A jelly circles clockwise. In every row and column it passes, it pops the outermost cube if that
-  cube is its colour. Each pop costs one ammo; at zero the jelly leaves and frees its slot.
+- Tap the front jelly of a column to play it. It takes one of the five places on the **belt**
+  (`MAX_SLOTS`) and sets off round the **loop** that circles the picture.
+- A jelly goes round the loop once. In every row and column it passes, it pops the outermost cube
+  if that cube is its colour. Each pop costs one ammo.
+- After one lap it parks in its place on the belt. Tap a parked jelly to send it round again.
+  A jelly only leaves the belt, and frees its place, when its ammo reaches zero.
+- So the belt is the scarce thing: every jelly you play holds a place until it is used up, and
+  one whose colour is buried just sits there. Choosing which five to have out is the game.
 - Clear every cube to win. Total ammo per colour equals the cubes of that colour, so nothing is spare.
-- If the belt is full and none of the five jellies matches any cube on the outside, the belt is
+- If every place is taken and no jelly in play matches any cube on the outside, the belt is
   jammed and the level is lost.
 
 ## Home screen, coins, upgrades and awards
@@ -46,13 +51,13 @@ screens, upgrades or awards of any other game.
 
   | Upgrade | Levels | Cost | Effect |
   |---|---|---|---|
-  | Turbo Belt | 3 | 60, 120, 200 | Belt runs 15% faster per level |
+  | Turbo Loop | 3 | 60, 120, 200 | Jellies travel the loop 15% faster per level |
   | Queue Jump | 3 | 80, 160, 260 | Play the second jelly of a column; one use per round per level |
   | Second Wind | 2 | 120, 240 | A jam sends the fullest jelly back to the hand instead of ending the round |
-  | Sixth Slot | 1 | 300 | Belt holds six |
+  | Sixth Slot | 1 | 300 | Belt has six places |
 
 - **Awards** (`AWARDS` in `src/home.js`): 13 goals such as clearing every level, collecting stars,
-  popping 3,000 cubes or a 40-pop chain. Each has a `have()` and a `goal`; add one by adding a row.
+  popping 3,000 cubes or a 30-pop chain. Each has a `have()` and a `goal`; add one by adding a row.
 
 Progress lives in the browser's `localStorage` under `jellyloop1`, so it is per device and is lost
 if site data is cleared. Saves from before this screen existed are upgraded on load.
@@ -62,6 +67,8 @@ if site data is cleared. Saves from before this screen existed are upgraded on l
 - **Shooting.** The prototype fired only at path waypoints and looked three cells deep, so most of
   the board could never be reached. Here a jelly fires at the outermost cube of every lane it
   passes, which is the "real shooting logic" the original README listed as a next step.
+- **One lap, then park.** The prototype's jellies circled forever. Here they do one lap and park
+  on the belt until tapped again, which is the "waiting slots" idea from the original README.
 - **Hand.** Columns are queues: only the front jelly can be played. The prototype let any jelly be
   tapped, which leaves no puzzle.
 - **Ammo.** The prototype's default hand (40/40/40/20...) could not clear its own test board. Hands

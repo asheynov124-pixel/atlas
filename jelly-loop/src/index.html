@@ -25,7 +25,8 @@ body{position:fixed;top:0;right:0;bottom:0;left:0;background:radial-gradient(120
 #hud button.on{background:#fde047;color:#422006}
 #hud button.off{opacity:.45;text-decoration:line-through}
 #title{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;font-size:12px;color:#c7d2fe}
-#title b{font-size:17px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#title b,#title>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#title b{font-size:17px;color:#fff}
 #track{height:5px;margin-top:3px;border-radius:3px;background:rgba(255,255,255,.16);overflow:hidden}
 #bar{width:0;height:100%;border-radius:3px;background:#4ade80;transition:width .2s}
 #hint{position:absolute;left:4%;right:4%;bottom:calc(env(safe-area-inset-bottom) + 10px);max-width:420px;margin:0 auto;padding:10px 14px;border-radius:14px;background:rgba(15,23,42,.9);font-size:14px;line-height:1.35;text-align:center;pointer-events:none}
@@ -90,7 +91,7 @@ body{position:fixed;top:0;right:0;bottom:0;left:0;background:radial-gradient(120
 <button id='bSound' aria-label='Sound'>&#9834;</button>
 <button id='bRestart' aria-label='Restart'>&#8635;</button>
 </header>
-<div id='hint'>Tap a jelly to send it round the belt. It pops the outermost cube of its own colour in each row and column it passes.</div>
+<div id='hint'>Tap a jelly to send it once round the loop. It pops the outermost cube of its own colour in each row and column, then parks on the belt. Tap a parked jelly to send it round again.</div>
 <div id='panel' class='overlay' hidden><div class='card'><h1 id='pTitle'></h1><div id='pStars'></div><p id='pText'></p><div id='pGain'><i class='coin'></i><span id='pGainN'></span></div><button id='pGo' class='go'></button><button id='pHome' class='go alt'>Home</button></div></div>
 <div id='home'><div class='sheet'><div id='top'><canvas id='mascot' width='132' height='132'></canvas><h1>Jelly Loop</h1><span class='pill'><i class='coin'></i><span id='coins'></span></span><span class='pill'><em>&#9733;</em><span id='starsN'></span></span></div>
 <button id='bPlay' class='go'></button>

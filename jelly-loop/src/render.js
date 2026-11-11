@@ -2,7 +2,7 @@
 
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
-var view = { w: 0, h: 0, cell: 20, cx: 0, cy: 0, handTop: 0, handH: 0, colGap: 0, jr: 0 };
+var view = { w: 0, h: 0, cell: 20, cx: 0, cy: 0, handTop: 0, handH: 0, colGap: 0, jr: 0, tr: 20, trayY: 0 };
 var fx = { shots: [], pops: [], bits: [], vis: [], pos: {}, kick: {}, slide: [], shake: 0, deny: 0 };
 
 function layout(g) {
@@ -14,14 +14,19 @@ function layout(g) {
   var top = document.getElementById('hud').getBoundingClientRect().bottom + 4;
   var safe = document.getElementById('safe').offsetHeight;
   var handH = Math.max(140, Math.min(240, h * 0.27));
-  var bottom = h - safe - handH;
+  // the belt of parking places sits between the loop and the hand
+  var tr = Math.max(14, Math.min(22, (w - 28) / (g.maxSlots * 2.5)));
+  var trayH = tr * 2.4 + 22;
+  var bottom = h - safe - handH - trayH;
   var spanX = g.w + 2 * BELT_MARGIN + 1.7, spanY = g.h + 2 * BELT_MARGIN + 1.7;
   view.w = w;
   view.h = h;
   view.cell = Math.max(8, Math.min((w - 6) / spanX, (bottom - top) / spanY, 44));
   view.cx = w / 2;
   view.cy = top + (bottom - top) / 2;
-  view.handTop = bottom;
+  view.tr = tr;
+  view.trayY = bottom + tr * 1.2 + 2;
+  view.handTop = bottom + trayH;
   view.handH = handH;
   view.colGap = Math.min((w - 20) / g.hand.length, 96);
   view.jr = Math.min(view.colGap * 0.38, handH * 0.2, 36);
@@ -31,6 +36,7 @@ function px(g, x) { return view.cx + (x - (g.w - 1) / 2) * view.cell; }
 function py(g, y) { return view.cy + (y - (g.h - 1) / 2) * view.cell; }
 function colX(g, c) { return view.cx + (c - (g.hand.length - 1) / 2) * view.colGap; }
 function frontY() { return view.handTop + view.jr * 1.15 + 10; }
+function slotX(g, i) { return view.cx + (i - (g.maxSlots - 1) / 2) * view.tr * 2.5; }
 
 // Where a jelly is drawn at belt distance u: the same rectangle as the rules use,
 // with the corners rounded off so jellies sweep round them.
@@ -204,25 +210,40 @@ function draw(g, time) {
   ctx.fillStyle = 'rgba(238,242,255,.94)';
   ctx.fill();
 
-  // slot pips, just under the spot where jellies join the belt
-  var used = g.slotsUsed(), ey = py(g, g.h - 1 + m) + c * 1.12, pr = Math.max(3, c * 0.16);
+  // the belt: one place per jelly in play, under the loop
+  var used = g.slotsUsed(), tr = view.tr, full = used >= g.maxSlots;
+  roundRect(slotX(g, 0) - tr * 1.3, view.trayY - tr * 1.2, (g.maxSlots - 1) * tr * 2.5 + tr * 2.6, tr * 2.4, tr * 0.9);
+  ctx.fillStyle = 'rgba(15,23,42,.5)';
+  ctx.fill();
   for (i = 0; i < g.maxSlots; i++) {
+    j = g.slots[i];
     ctx.beginPath();
-    ctx.arc(view.cx + (i - (g.maxSlots - 1) / 2) * pr * 3.2, ey, pr, 0, 7);
-    ctx.fillStyle = i < used ? (used >= g.maxSlots ? '#f87171' : '#fde047') : 'rgba(255,255,255,.22)';
+    ctx.arc(slotX(g, i), view.trayY, tr * 0.92, 0, 7);
+    ctx.fillStyle = 'rgba(255,255,255,.07)';
     ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = full ? 'rgba(248,113,113,.8)' : 'rgba(255,255,255,.16)';
+    ctx.stroke();
+    if (j && !j.parked) {
+      // this place is held for a jelly that is out on the loop
+      ctx.globalAlpha = 0.45;
+      ctx.beginPath();
+      ctx.arc(slotX(g, i), view.trayY, tr * 0.3, 0, 7);
+      ctx.fillStyle = PALETTE[j.color][1];
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
   }
-  // upgrade charges left this level, either side of the pips
-  ctx.font = '700 ' + Math.max(9, Math.round(c * 0.44)) + 'px system-ui,-apple-system,sans-serif';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = 'rgba(253,224,71,.9)';
-  if (g.jumps > 0) {
-    ctx.textAlign = 'right';
-    ctx.fillText('JUMP x' + g.jumps, view.cx - g.maxSlots * pr * 1.9, ey);
-  }
-  if (g.rescues > 0) {
-    ctx.textAlign = 'left';
-    ctx.fillText('WIND x' + g.rescues, view.cx + g.maxSlots * pr * 1.9, ey);
+  // upgrade charges left this round, under the belt
+  var notes = [];
+  if (g.jumps > 0) notes.push('Queue Jump x' + g.jumps);
+  if (g.rescues > 0) notes.push('Second Wind x' + g.rescues);
+  if (notes.length) {
+    ctx.font = '700 11px system-ui,-apple-system,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(253,224,71,.9)';
+    ctx.fillText(notes.join('     '), view.cx, view.trayY + tr * 1.2 + 9);
   }
 
   // cubes
@@ -268,8 +289,26 @@ function draw(g, time) {
     ctx.fill();
   }
 
-  // jellies riding the belt, and those waiting to join it
-  var r = c * 0.7, ride = g.belt.concat(g.pending), ease = 1 - Math.exp(-0.016 * 16);
+  // jellies parked on the belt
+  var ease = 1 - Math.exp(-0.016 * 16), at;
+  for (i = 0; i < g.maxSlots; i++) {
+    j = g.slots[i];
+    if (!j || !j.parked) continue;
+    x = slotX(g, i);
+    y = view.trayY;
+    at = fx.pos[j.id];
+    if (at && !at.done) {
+      at.x += (x - at.x) * ease;
+      at.y += (y - at.y) * ease;
+      if (Math.abs(at.x - x) + Math.abs(at.y - y) < 1.5) at.done = true;
+      x = at.x;
+      y = at.y;
+    }
+    drawJelly(x, y + tr * 0.06, tr * 0.8, j.color, j.ammo, g.status === 'playing' ? Math.sin(time * 4 + j.id) * 0.04 : 0, 1);
+  }
+
+  // jellies out on the loop, and those waiting to join it
+  var r = c * 0.7, ride = g.belt.concat(g.pending);
   for (i = 0; i < ride.length; i++) {
     j = ride[i];
     var onBelt = i < g.belt.length;
@@ -281,7 +320,7 @@ function draw(g, time) {
       x = view.cx + (i - g.belt.length) * r * 0.7;
       y = py(g, g.h - 1 + m) + c * 0.2;
     }
-    var at = fx.pos[j.id];
+    at = fx.pos[j.id];
     if (at && !at.done) {
       at.x += (x - at.x) * ease;
       at.y += (y - at.y) * ease;
@@ -303,7 +342,7 @@ function draw(g, time) {
   ctx.globalAlpha = 1;
 
   // hand: one queue per column, front jelly on top and playable
-  var jr = view.jr, fy = frontY(), full = used >= g.maxSlots;
+  var jr = view.jr, fy = frontY();
   for (i = 0; i < g.hand.length; i++) {
     var col = g.hand[i], hx = colX(g, i), sl = fx.slide[i] || 0;
     roundRect(hx - view.colGap * 0.44, view.handTop + 2, view.colGap * 0.88, view.handH - 6, 16);
@@ -343,9 +382,16 @@ function draw(g, time) {
 
 // Which hand column is under a touch, or -1.
 function columnAt(g, x, y) {
-  if (y < view.handTop - view.jr * 0.4) return -1;
+  if (y < view.handTop) return -1;
   var c = Math.round((x - view.cx) / view.colGap + (g.hand.length - 1) / 2);
   return c >= 0 && c < g.hand.length && Math.abs(x - colX(g, c)) < view.colGap * 0.5 ? c : -1;
+}
+
+// Which place on the belt is under a touch, or -1.
+function slotAt(g, x, y) {
+  if (Math.abs(y - view.trayY) > view.tr * 1.35) return -1;
+  var s = Math.round((x - view.cx) / (view.tr * 2.5) + (g.maxSlots - 1) / 2);
+  return s >= 0 && s < g.maxSlots ? s : -1;
 }
 
 // Is a touch at height y on the second jelly of a column (the Queue Jump target)?
