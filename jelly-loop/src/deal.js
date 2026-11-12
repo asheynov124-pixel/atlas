@@ -147,6 +147,11 @@ var Deal = (function () {
     return chosen;
   }
 
+  // Jellies grow as the levels go up: one more ammo per jelly for every four levels,
+  // up to 30. Level n is 0-based.
+  var MAX_CHUNK = 30;
+  function jellyChunk(base, n) { return Math.min(MAX_CHUNK, base + Math.floor(n / 4)); }
+
   // ---------- endless levels, made from the hand-drawn pictures ----------
 
   var MOODS = ['Night', 'Sunset', 'Mint', 'Candy', 'Frost', 'Ember', 'Lagoon', 'Meadow', 'Neon', 'Dusk'];
@@ -185,7 +190,7 @@ var Deal = (function () {
       name: name,
       art: art,
       cols: 3 + Math.min(2, Math.floor(step / 4)),
-      chunk: 8 + Math.floor(r() * 4),
+      chunk: jellyChunk(8 + Math.floor(r() * 4), n),
       mix: Math.min(6, 2 + Math.floor(step / 5)),
       mystery: step >= 8 ? Math.min(0.3, 0.1 + step * 0.005) : (base.mystery || 0)
     };
@@ -213,7 +218,7 @@ var Deal = (function () {
   }
 
   return {
-    rng: rng, smart: smart, casual: casual, play: play,
+    rng: rng, smart: smart, casual: casual, play: play, jellyChunk: jellyChunk,
     jelliesFor: jelliesFor, dealInto: dealInto, level: level,
     variant: variant, get: get, preview: preview
   };

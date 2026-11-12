@@ -60,10 +60,13 @@ Coins are earned only by playing.
 
 - **Map.** Levels as a column of picture cards, the next one lit up, with icons for the pieces
   each level uses. Tap one for its card: picture, pieces, win streak, and pre-round boosters.
-  The 30 hand-drawn levels in `tools/levels.mjs` come first; after them the game deals endless
+  The 45 hand-drawn levels in `tools/levels.mjs` come first; after them the game deals endless
   levels by mirroring and recolouring those pictures (`Deal.variant` in `src/deal.js`), freezing
   more cubes and hiding more jellies the further you go. Every hand, hand-drawn or endless, is
   checked winnable by a bot before you see it.
+- **Jellies grow with the levels.** Each jelly carries one more shot for every four levels in
+  (`jellyChunk` in `src/deal.js`): about 10 at the start, 16 by level 30, 21 by level 45, and up
+  to 30 in the endless levels. The level card says how big the jellies are.
 - **Daily Challenge.** One hard endless-style level a day, the same for everyone (seeded by the
   date). The first win each day pays 170 coins, 3 keys and a Wild Jelly; replays pay a little.
 - **Stars and coins.** Stars are for speed against the bot's time (`par`): three stars at up to
@@ -98,14 +101,14 @@ Coins are earned only by playing.
 - **Daily tasks.** Four a day from `TASKS`, 25 points each; chests at 25, 50 and 100 points.
 - **Daily gift.** A seven-day cycle of rewards (`GIFTS`), one claim a day.
 - **Star Road.** Every three keys opens a step with a reward; the road repeats with bigger rewards.
-- **Awards** (`AWARDS`): 21 goals, each paying once.
+- **Awards** (`AWARDS`): 21 goals, each paying once (Full Gallery now means all 45 hand-drawn levels).
 - **Stats** in Settings: levels, stars, wins, best streak, cubes, ice, crates, daily wins, spins.
 
 Progress lives in the browser's `localStorage` under `jellyloop1`, so it is per device and is lost
 if site data is cleared. Saves from every earlier version are upgraded on load (the old Queue Jump
-upgrade becomes Grabbers, two per level bought). Levels 21-30 were added in front of the endless
-levels: a save already past level 21 keeps its progress, the endless stars move up ten, and the
-new levels appear behind it on the map marked NEW.
+upgrade becomes Grabbers, two per level bought). Levels 21-30, then 31-45, were added in front of
+the endless levels: a save already past them keeps its progress, its endless-level stars move up
+to match, and the new levels appear behind it on the map marked NEW.
 
 ## What differs from the Unity prototype
 

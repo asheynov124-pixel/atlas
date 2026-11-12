@@ -20,6 +20,7 @@ function buildLevel(pic, index) {
   const w = pic.art[0].length;
   for (const row of pic.art) if (row.length !== w) throw new Error(pic.name + ': ragged row ' + row);
   if (pic.bg) pic.art = pic.art.map((row) => row.replace(/\./g, pic.bg));
+  pic.chunk = Deal.jellyChunk(pic.chunk, index);
   const jellies = Deal.jelliesFor(pic.art, pic.chunk);
   // Deal a hand, prove it winnable with the careful bot, and keep the hand whose loss rate
   // for a careless player is closest to the target for this level's mix.
@@ -30,7 +31,7 @@ function buildLevel(pic, index) {
     String(index + 1).padStart(2) + '. ' + pic.name.padEnd(16) +
     (w + 'x' + pic.art.length).padEnd(7) + String(cubes).padStart(4) + ' cubes  ' +
     String(jellies.length).padStart(2) + ' jellies  bot wins in ' + chosen.seconds.toFixed(0).padStart(3) +
-    's  careless play loses ' + String(Math.round(chosen.rate * 100)).padStart(3) + '%  par ' + chosen.level.par + 's'
+    's  jelly size ' + String(pic.chunk).padStart(2) + '  careless play loses ' + String(Math.round(chosen.rate * 100)).padStart(3) + '%  par ' + chosen.level.par + 's'
   );
   if (pic.intro) chosen.level.intro = pic.intro;
   return chosen.level;

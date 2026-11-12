@@ -31,12 +31,20 @@ function normalise() {
     save.stars = save.stars.slice(0, 20).concat([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], old);
     save.unlocked += 10;
   }
+  // Fifteen more (31-45) went in the same way in the next version.
+  if (!(save.v >= 6) && save.unlocked > 31 && save.stars) {
+    var old2 = save.stars.slice(30), gap = [], g;
+    for (g = 0; g < 15; g++) gap.push(0);
+    save.stars = save.stars.slice(0, 30).concat(gap, old2);
+    save.unlocked += 15;
+  }
+  save.v = 6;
   var DEF = {
     unlocked: 1, coins: 0, pops: 0, chain: 0, light: 0, quick: 0, saved: 0, autos: 0,
     muted: false, fast: false, hearts: 5, heartAt: Date.now(), infUntil: 0,
     streak: 0, bestStreak: 0, keys: 0, roadGot: 0, giftDay: '', giftN: 0,
     taskDay: '', tasks: [], taskPts: 0, chestsGot: [], wins: 0,
-    v: 5, seen: {}, iceCracked: 0, cratesBroken: 0, dailyDay: '', dailyWins: 0,
+    seen: {}, iceCracked: 0, cratesBroken: 0, dailyDay: '', dailyWins: 0,
     spins: 0, spinDay: '', paidDay: '', paidSpins: 0, dealDay: '',
     theme: 'night', face: 'classic', looks: ['theme:night', 'face:classic']
   };

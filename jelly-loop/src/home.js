@@ -40,7 +40,7 @@ function firstStars(n) { return save.stars.slice(0, n).reduce(function (a, s) { 
 var AWARDS = [
   { id: 'first', name: 'First Pop', text: 'Clear a level.', coins: 20, goal: 1, have: clearedCount },
   { id: 'half', name: 'Getting Going', text: 'Clear 10 levels.', coins: 50, goal: 10, have: clearedCount },
-  { id: 'all', name: 'Full Gallery', text: 'Clear the 30 hand-drawn levels.', coins: 150, goal: 30, have: clearedCount },
+  { id: 'all', name: 'Full Gallery', text: 'Clear the 45 hand-drawn levels.', coins: 200, goal: 45, have: clearedCount },
   { id: 'fifty', name: 'Endless Road', text: 'Clear 50 levels.', coins: 300, goal: 50, have: clearedCount },
   { id: 'star10', name: 'Star Pupil', text: 'Collect 10 stars.', coins: 40, goal: 10, have: starCount },
   { id: 'star25', name: 'Constellation', text: 'Collect 25 stars.', coins: 100, goal: 25, have: starCount },
@@ -915,6 +915,8 @@ function openLevel(i) {
         ? 'You won today' + E(0x2019) + 's challenge. Play again for fun; a new one arrives in ' + fmt(untilMidnight()) + '.'
         : 'A tougher level, new every day. Win it today for ' + describe(DAILY_PRIZE) + ' and 3 keys.'));
     }
+    var big = info.hand ? Math.max.apply(null, info.hand.join(' ').split(' ').map(function (t) { return parseInt(t.slice(1), 10) || 0; })) : info.chunk;
+    b.appendChild(el('p', 'note', 'Jellies here carry up to ' + big + ' shots each.'));
     var chips = pieceChips(info);
     if (chips) b.appendChild(chips);
     var st = el('div', 'streak'), txt = el('div', 'body'), steps = el('div', 'steps');

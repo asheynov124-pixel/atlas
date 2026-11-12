@@ -4,7 +4,9 @@
 // lanes and breaks when a cube beside it pops.
 //
 // cols  - how many queue columns the hand has
-// chunk - roughly how much ammo each jelly carries (cubes of a colour are split into jellies this size)
+// chunk - roughly how much ammo each jelly carries at level 1 (cubes of a colour are split into
+//         jellies this size). Jellies grow with the level: build.mjs adds one for every four
+//         levels in (jellyChunk in src/deal.js), so later levels deal fewer, bigger jellies.
 // mix   - how far the hand order is shuffled away from the easy order (0 = gentle)
 // bg    - optional colour that fills the empty cells, so the subject starts out buried
 // mystery - share of jellies dealt face down: their colour shows only at the front of the column
@@ -523,6 +525,307 @@ export const PICTURES = [
       'CCCCCCBOBCCCCCC',
       'CC####TTT####CC',
       'GGGGGGGGGGGGGGG'
+    ]
+  },
+  // ---------- 31-45: bigger pictures, bigger jellies ----------
+  {
+    name: 'Octopus', cols: 5, chunk: 9, mix: 5, mystery: 0.3,
+    art: [
+      'BBBBBNNNNNNBBBBB',
+      'BBBBNNNNNNNNBBBB',
+      'BcBNNNNNNNNNNBBB',
+      'BBBNNWKNNWKNNBcB',
+      'BBBNNWKNNWKNNBBB',
+      'BBBNNNNNNNNNNBBB',
+      'BBBBNNNRRNNNBBBB',
+      'BBBNNNNNNNNNNBBB',
+      'BBNNBNNBBNNBNNBB',
+      'BNNBBNNBBNNBBNNB',
+      'BNBBNNBBBBNNBBNB',
+      'BNBBNBBcBBBNBBNB',
+      'BBBBNBBBBBBNBBBB',
+      'YYYYYYYYYYYYYYYY',
+      'yyyyyyyyyyyyyyyy'
+    ]
+  },
+  {
+    name: 'Mushroom', cols: 5, chunk: 9, mix: 5, mystery: 0.3,
+    art: [
+      'CCCCCRRRRRCCCCC',
+      'CCCRRWWRRRRRCCC',
+      'CCRRWWWRRRWWRCC',
+      'CRRRRWRRRRWWWRC',
+      'CRRRRRRRRRRWRRC',
+      'RRWWRRRRRRRRRRR',
+      'RWWWWRRRWWRRRRR',
+      'RRWWRRRWWWWRRRR',
+      'CCCCCWWWWWCCCCC',
+      'CCCCCWKWKWCCCCC',
+      'CCCCCWWWWWCCCCC',
+      'CCCCCWWWWWCCCCC',
+      'GGGGGWWWWWGGGGG',
+      'G##GGGGGGGGG##G',
+      'ggggggggggggggg'
+    ]
+  },
+  {
+    name: 'Owl', cols: 5, chunk: 9, mix: 5, mystery: 0.35,
+    art: [
+      'KKKyKKKKKKKKyKK',
+      'KKTTKKKKKKKTTKK',
+      'KKTTTTTTTTTTTKK',
+      'KTTWWWTTTWWWTTK',
+      'KTWWYYWTWYYWWTK',
+      'KTWYKKYTYKKYWTK',
+      'KTWWYYWTWYYWWTK',
+      'KTTWWWTOTWWWTTK',
+      'KTTTTTTOTTTTTTK',
+      'KTTWTWTTTWTWTTK',
+      'KTTTWTWTWTWTTTK',
+      'KTTWTWTTTWTWTTK',
+      'KKTTTTTTTTTTTKK',
+      'KKKTTTTTTTTTKKK',
+      'KKKOOKKKKKOOKKK',
+      'TTTTTTTTTTTTTTT'
+    ]
+  },
+  {
+    name: 'Cactus', cols: 5, chunk: 9, mix: 5, mystery: 0.3,
+    art: [
+      'YYYYYYNNYYYYYY',
+      'YYYYYGGGGYYYYY',
+      'YYYYYGgGGYYYYY',
+      'YGGYYGGGgYYYYY',
+      'YGgYYGGGGYYGGY',
+      'YGGYYGgGGYYGgY',
+      'YGGGGGGGGYYGGY',
+      'YYGGGGGGgGGGGY',
+      'YYYYYGGGGGGGYY',
+      'YYYYYGgGGYYYYY',
+      'YYYYYGGGGYYYYY',
+      'YYYYYGGgGYYYYY',
+      'YYYOOOOOOOOYYY',
+      'YYYYOOOOOOYYYY',
+      'YYYYOOOOOOYYYY',
+      'TTTTTTTTTTTTTT'
+    ]
+  },
+  {
+    name: 'Hamburger', cols: 5, chunk: 10, mix: 5, mystery: 0.3,
+    art: [
+      'CCCCCCCCCCCCCCCC',
+      'CCCCTTTTTTTTCCCC',
+      'CCTTTWTTTTWTTTCC',
+      'CTTTTTTTWTTTTTTC',
+      'CTTWTTTTTTTTWTTC',
+      'CGGGGGGGGGGGGGGC',
+      'CRRRRRRRRRRRRRRC',
+      'CYYYYYYYYYYYYYYC',
+      'CKKKKKKKKKKKKKKC',
+      'CKkKKkKKKkKKkKKC',
+      'CGgGGgGGgGGgGGgC',
+      'CTTTTTTTTTTTTTTC',
+      'CCTTTTTTTTTTTTCC',
+      '################'
+    ]
+  },
+  {
+    name: 'Saturn', cols: 5, chunk: 10, mix: 5, mystery: 0.35,
+    art: [
+      'KKKKKKKKKKKKKyKK',
+      'KKyKKKOOOOKKKKKK',
+      'KKKKKOOYYOOKKKKK',
+      'KKKKOYYYYYYOKKKK',
+      'wwKKOOOOOOOOKKww',
+      'KwwwOYYYYYYOwwwK',
+      'KKKwwwwwwwwwwKKK',
+      'KKKKOwwwwwwOKKKK',
+      'KKKKOYYYYYYOKKKK',
+      'KKKKKOOYYOOKKKKK',
+      'KKyKKKOOOOKKKKKK',
+      'KKKKKKKKKKKKKyKK',
+      'KKKKyKKKKKKKKKKK',
+      'KKKKKKKKKKyKKKKK'
+    ]
+  },
+  {
+    name: 'Volcano', cols: 5, chunk: 10, mix: 6, mystery: 0.35,
+    art: [
+      'CCCCCCWWWWCCCCCC',
+      'CCCCCWWWWWWCCCCC',
+      'CCCCCCWWWWCCCCCC',
+      'CCCCCCCOOCCCCCCC',
+      'CCCCCCROORCCCCCC',
+      'CCCCCCRRORCCCCCC',
+      'CCCCCTRORRTCCCCC',
+      'CCCCTTTRRTTTCCCC',
+      'CCCTTTTORTTTTCCC',
+      'CCTTKTTTOTTKTTCC',
+      'CTTTTTKTTTTTTTTC',
+      'TTKTTTTTTKTTTKTT',
+      'TTTTKTTTTTTTTTTT',
+      '##TTTTT##TTTTT##',
+      'GGGGGGGGGGGGGGGG'
+    ]
+  },
+  {
+    name: 'Turtle', cols: 5, chunk: 10, mix: 6, mystery: 0.35,
+    art: [
+      'BBBBBBBGGBBBBBBB',
+      'BBBBBGGGGGGBBBBB',
+      'BBBBGTTGGTTGBBBB',
+      'BBBGTGGTTGGTGBBB',
+      'BGGGTGGTTGGTGGGB',
+      'GGBGGTTGGTTGGBGG',
+      'BBBGTGGTTGGTGBBB',
+      'BBBBGTTGGTTGBBBB',
+      'BBBGGGGGGGGGGBBB',
+      'BBGGBBBBBBBBGGBB',
+      'BBBBBBBBBBBBBBBB',
+      'bBBBbBBBbBBBbBBB',
+      'BBbBBBbBBBbBBBbB',
+      'YYYYYYYYYYYYYYYY'
+    ]
+  },
+  {
+    name: 'Pirate Ship', cols: 5, chunk: 10, mix: 6, mystery: 0.35,
+    art: [
+      'CCCCCCCKKCCCCCCC',
+      'CCCCCCCKWCCCCCCC',
+      'CCCCCCCTCCCCCCCC',
+      'CCCWWWWTWWWWCCCC',
+      'CCCWwWWTWWwWCCCC',
+      'CCCWWWWTWWWWCCCC',
+      'CCCCWWWTWWWCCCCC',
+      'CCWWWWWTWWWWWCCC',
+      'CCWWwWWTWWwWWCCC',
+      'CCWWWWWTWWWWWCCC',
+      'CCCCCCCTCCCCCCCC',
+      'TTTTTTTTTTTTTTTT',
+      'CTT#TT#TT#TT#TTC',
+      'CCTTTTTTTTTTTTCC',
+      'BBBbBBBBbBBBBbBB',
+      'bBBBBbBBBBBbBBBB'
+    ]
+  },
+  {
+    name: 'Fox', cols: 5, chunk: 10, mix: 6, mystery: 0.4,
+    art: [
+      'GGOGGGGGGGGGGOGG',
+      'GOOOGGGGGGGGOOOG',
+      'GOWOOGGGGGGOOWOG',
+      'GOWWOOOOOOOOWWOG',
+      'GOOOOOOOOOOOOOOG',
+      'OOOKKOOOOOOKKOOO',
+      'OOOOOOOOOOOOOOOO',
+      'WOOOOOOOOOOOOOOW',
+      'WWOOOOOKKOOOOOWW',
+      'GWWWOOOKKOOOWWWG',
+      'GGWWWWOOOOWWWWGG',
+      'GGGWWWWWWWWWWGGG',
+      'GGGGWWWWWWWWGGGG',
+      'gggggggggggggggg'
+    ]
+  },
+  {
+    name: 'Whale', cols: 5, chunk: 10, mix: 6, mystery: 0.4,
+    art: [
+      'CCCCCCWCCWCCCCCC',
+      'CCCCCCCWWCCCCCCC',
+      'CCCCCCCCWCCCCCCC',
+      'CCCCBBBBBBBBCCCC',
+      'CCBBBBBBBBBBBBCC',
+      'CBBBBBBBBBBBBBBC',
+      'BBWKBBBBBBBBBBBB',
+      'BBBBBBBBBBBBBBBC',
+      'BWWWWWWWWWBBBBBB',
+      'CWWWWWWWWWWBBBCC',
+      'CCWWWWWWWWBBBCCC',
+      'bbbbbbbbbbbbbbbb',
+      'BBbBBBBbBBBBbBBB',
+      'BBBBBBBBBBBBBBBB'
+    ]
+  },
+  {
+    name: 'Lantern', cols: 5, chunk: 10, mix: 6, mystery: 0.4,
+    art: [
+      'KKKKKKYYKKKKKK',
+      'KKKKKKYYKKKKKK',
+      'KKKKTTTTTTKKKK',
+      'KKKRRRRRRRRKKK',
+      'KKRRYRRRRYRRKK',
+      'KRRRYRRRRYRRRK',
+      'KRRRYRRRRYRRRK',
+      'KRRRYRRrrYRRRK',
+      'KRRRYRRrrYRRRK',
+      'KRRRYRRRRYRRRK',
+      'KKRRYRRRRYRRKK',
+      'KKKRRRRRRRRKKK',
+      'KKKKTTTTTTKKKK',
+      'KKKKKKYYKKKKKK',
+      'KKKKKYYYYKKKKK',
+      '#KKKKYKKYKKKK#'
+    ]
+  },
+  {
+    name: 'Crown', cols: 5, chunk: 10, mix: 6, mystery: 0.4,
+    art: [
+      'CCYCCCCYYCCCCYCC',
+      'CCYYCCCYYCCCYYCC',
+      'CCYYYCYYYYCYYYCC',
+      'CCYYYYYYYYYYYYCC',
+      'CCYRYYYBBYYYRYCC',
+      'CCYYYYYYYYYYYYCC',
+      'CCYYyyYYYYyyYYCC',
+      'CCYYYYYNNYYYYYCC',
+      'CCYYYYYYYYYYYYCC',
+      'CCPPPPPPPPPPPPCC',
+      'CPPPPPPPPPPPPPPC',
+      'C#PPP#PPPP#PPP#C',
+      'CCCCCCCCCCCCCCCC'
+    ]
+  },
+  {
+    name: 'Cherry Blossom', cols: 5, chunk: 10, mix: 6, mystery: 0.4,
+    art: [
+      'CCNNNCCCCCNNNCCC',
+      'CNNnNNCCCNNnNNCC',
+      'CNnNNNNCNNNNnNCC',
+      'CCNNTNNCNNTNNCCC',
+      'CCCCCTCCCTCCCCCC',
+      'CNNNCCTCTCCNNNCC',
+      'NNnNNCCTCCNNnNNC',
+      'CNNNNTTTTTTNNNNC',
+      'CCNNCCTTTTCCNNCC',
+      'CCCCCCCTTCCCCCCC',
+      'CCCCCCCTTCCCCCCC',
+      'CCCCCCCTTCCCCCCC',
+      'CCCCCCTTTTCCCCCC',
+      'GGGGGTTTTTTGGGGG',
+      'GgGGGGGGGGGGGgGG',
+      'GGGGgGGGGGGgGGGG'
+    ]
+  },
+  {
+    name: 'Galaxy', cols: 5, chunk: 10, mix: 6, mystery: 0.4,
+    art: [
+      'KKKKKKKPPKKKKKKK',
+      'KKyKKKPPPPKKKKyK',
+      'KKKKKPPNNPPKKKKK',
+      'KKKKPPNNNNPPKKKK',
+      'KKKPPNNWWNNPPKKK',
+      'KKPPNNWYYWNNPPKK',
+      'KPPNNWYyyYWNNPPK',
+      'PPNNWYyYYyYWNNPP',
+      'KPPNNWYyyYWNNPPK',
+      'KKPPNNWYYWNNPPKK',
+      'KKKPPNNWWNNPPKKK',
+      'KKKKPPNNNNPPKKKK',
+      'KKKKKPPNNPPKKKKK',
+      'KyKKKKPPPPKKKKyK',
+      'KKKKKKKPPKKKKKKK',
+      '##KKK##KK##KKK##',
+      'CCCCCCCCCCCCCCCC'
     ]
   }
 ];
