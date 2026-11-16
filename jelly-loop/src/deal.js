@@ -29,7 +29,7 @@ var Deal = (function () {
     }
     if (g.maxSlots - g.parkedCount() - g.riders() <= 0) return;
     g.hand.forEach(function (col, c) {
-      if (!col.length) return;
+      if (!col.length || col[0].locked) return;
       var need = (ex[col[0].color] || 0) - (riding[col[0].color] || 0);
       if (need > score) { score = need; best = c; }
     });
@@ -37,6 +37,7 @@ var Deal = (function () {
     if (g.riders()) return; // something is still working: wait
     // Nothing useful anywhere: dig toward the nearest useful jelly.
     g.hand.forEach(function (col, c) {
+      if (!col.length || col[0].locked) return;
       for (k = 0; k < col.length; k++) if (ex[col[k].color]) break;
       if (k < col.length && k < depth) { depth = k; best = c; }
     });
@@ -107,13 +108,34 @@ var Deal = (function () {
     return hand.map(function (c) { return c.join(' '); });
   }
 
-  // pic = { name, art, cols, chunk, mix }. o.trials > 0 tunes difficulty against the
-  // careless player (slow; the build does it). o.attempts caps the hands tried.
+  // Chain `n` jellies of a dealt hand (never a front one, never a mystery one) and pick `n`
+  // key cubes on the picture that set them free.
+  function addLocks(hand, art, n, rand) {
+    var spots = [], cells = [], i, k, w = art[0].length;
+    var cols = hand.map(function (h) { return h.split(' '); });
+    cols.forEach(function (col, c) {
+      col.forEach(function (tok, d) { if (d > 0 && tok.slice(-1) !== '?') spots.push([c, d]); });
+    });
+    art.forEach(function (row, y) {
+      for (var x = 0; x < w; x++) if (row.charAt(x) !== '.' && row.charAt(x) !== '#') cells.push(y * w + x);
+    });
+    var keys = [];
+    for (i = 0; i < n && spots.length && cells.length; i++) {
+      k = spots.splice(Math.floor(rand() * spots.length), 1)[0];
+      cols[k[0]][k[1]] += '!';
+      keys.push(cells.splice(Math.floor(rand() * cells.length), 1)[0]);
+    }
+    return { hand: cols.map(function (c) { return c.join(' '); }), keys: keys.sort(function (a, b) { return a - b; }) };
+  }
+
+  // pic = { name, art, cols, chunk, mix, mystery?, locks?, boss? }. o.trials > 0 tunes
+  // difficulty against the careless player (slow; the build does it). o.attempts caps the
+  // hands tried.
   function level(pic, index, o) {
     o = o || {};
     var jellies = jelliesFor(pic.art, pic.chunk);
     // With every jelly free to pick, the careful bot finds a natural order to clear the picture.
-    var free = play({ art: pic.art, hand: jellies }, smart);
+    var free = play({ name: pic.name, art: pic.art, hand: jellies, boss: pic.boss }, smart);
     if (free.status !== 'won') return null;
     var target = Math.min(0.7, pic.mix * 0.12), rand = rng(1000 + index), chosen = null;
     var attempts = o.attempts || 60, a, s, t;
@@ -128,6 +150,12 @@ var Deal = (function () {
         var tmp = order[i]; order[i] = order[j]; order[j] = tmp;
       }
       var lv = { name: pic.name, art: pic.art, hand: dealInto(order, pic.cols, pic.mystery || 0, rng(77 + index)) };
+      if (pic.locks) {
+        var lk = addLocks(lv.hand, pic.art, pic.locks, rng(500 + index * 13 + a));
+        lv.hand = lk.hand;
+        lv.keys = lk.keys;
+      }
+      if (pic.boss) lv.boss = pic.boss;
       var proof = play(lv, smart);
       if (proof.status !== 'won') continue;
       var rate = 0, miss;
@@ -161,7 +189,9 @@ var Deal = (function () {
   // with its colours swapped round. Further along, some cubes freeze into ice and some
   // jellies are dealt as mysteries. Cheap; no dealing.
   function variant(n, list) {
-    var H = list.length, r = rng(n * 7919 + 17), base = list[Math.floor(r() * H)];
+    var H = list.length, r = rng(n * 7919 + 17), boss = isBoss(n);
+    var pool = list.filter(function (l) { return !!l.boss === boss; });
+    var base = pool[Math.floor(r() * pool.length)];
     var perm = KEYS.slice(), map = {}, i, step = n - H;
     for (i = perm.length - 1; i > 0; i--) {
       var k = Math.floor(r() * (i + 1)), tmp = perm[i]; perm[i] = perm[k]; perm[k] = tmp;
@@ -192,9 +222,14 @@ var Deal = (function () {
       cols: 3 + Math.min(2, Math.floor(step / 4)),
       chunk: jellyChunk(8 + Math.floor(r() * 4), n),
       mix: Math.min(6, 2 + Math.floor(step / 5)),
-      mystery: step >= 8 ? Math.min(0.3, 0.1 + step * 0.005) : (base.mystery || 0)
+      mystery: step >= 8 ? Math.min(0.3, 0.1 + step * 0.005) : (base.mystery || 0),
+      locks: boss ? 0 : step >= 3 ? Math.min(3, 1 + Math.floor(step / 12)) : 0,
+      boss: boss ? { every: 20, grow: Math.min(16, base.boss.grow + Math.floor(step / 10)) } : null
     };
   }
+
+  // Every tenth level is a boss.
+  function isBoss(n) { return n % 10 === 9; }
 
   var cache = {};
   // The playable level n: hand-drawn, or dealt now and remembered for this session.
@@ -205,6 +240,7 @@ var Deal = (function () {
     while (!got && tries < 6) {
       got = level(pic, n + tries * 100003, { attempts: 12 });
       if (!got) pic.mix = Math.max(0, pic.mix - 1);
+      if (!got && tries === 1) pic.locks = 0;
       if (!got && tries === 2) pic.art = pic.art.map(function (row) { return row.toUpperCase(); });
       tries++;
     }
@@ -217,10 +253,100 @@ var Deal = (function () {
     return n < list.length ? list[n] : variant(n, list);
   }
 
+  // ---------- puzzles ----------
+  //
+  // A puzzle has one seat on the loop, so a send plays out in full before the next one and
+  // the whole round is a sequence of choices: which column's front jelly to send, or which
+  // landed jelly to send again. That makes it searchable.
+
+  // Play one choice out until nothing is riding. m = { c: column } or { s: slot }.
+  function lap(g, m) {
+    if (m.s !== undefined) g.relaunch(m.s); else g.send(m.c, 0);
+    for (var n = 0; g.status === 'playing' && g.riders() && n < 6000; n++) g.step(0.25);
+    g.events.length = 0;
+    return g;
+  }
+
+  function stateKey(g) {
+    return g.grid.join('') + '|' +
+      g.hand.map(function (col) { return col.map(function (j) { return j.color + j.ammo + (j.locked ? '!' : ''); }).join(','); }).join('/') + '|' +
+      g.parked().map(function (j) { return j.color + j.ammo; }).sort().join(',');
+  }
+
+  function choices(g) {
+    var out = [], seen = {};
+    g.hand.forEach(function (col, c) { if (col.length && !col[0].locked) out.push({ c: c }); });
+    g.slots.forEach(function (j, s) {
+      if (j && !seen[j.color + j.ammo]) { seen[j.color + j.ammo] = 1; out.push({ s: s }); }
+    });
+    return out;
+  }
+
+  // Fewest sends that clear the picture from game `start` (nothing riding), searching at most
+  // `limit` sends deep and `cap` positions. Returns { path: [choices] or null, nodes }.
+  function solve(start, limit, cap) {
+    var frontier = [{ g: start, path: [] }], seen = {}, nodes = 0, depth, i, m;
+    seen[stateKey(start)] = 1;
+    for (depth = 0; depth < limit && frontier.length; depth++) {
+      var next = [];
+      for (i = 0; i < frontier.length; i++) {
+        var f = frontier[i], ms = choices(f.g);
+        for (m = 0; m < ms.length; m++) {
+          if (++nodes > (cap || 30000)) return { path: null, nodes: nodes, capped: true };
+          var g = lap(f.g.clone(), ms[m]), path = f.path.concat([ms[m]]);
+          if (g.status === 'won') return { path: path, nodes: nodes };
+          if (g.status !== 'playing') continue;
+          var key = stateKey(g);
+          if (seen[key]) continue;
+          seen[key] = 1;
+          next.push({ g: g, path: path });
+        }
+      }
+      frontier = next;
+    }
+    return { path: null, nodes: nodes };
+  }
+
+  // How often random choices clear the puzzle within its sends: a measure of how hard it is.
+  function luck(lv, tries, rand) {
+    var wins = 0, t, g, ms;
+    for (t = 0; t < tries; t++) {
+      g = new core.Game(lv);
+      while (g.status === 'playing') {
+        ms = choices(g);
+        if (!ms.length) break;
+        lap(g, ms[Math.floor(rand() * ms.length)]);
+      }
+      if (g.status === 'won') wins++;
+    }
+    return wins / tries;
+  }
+
+  // pic = { name, art, cols, chunk, belt }. Deals hands, solves each, and keeps the one that
+  // random play clears least often (but that can be cleared).
+  function puzzle(pic, index, attempts) {
+    var jellies = jelliesFor(pic.art, pic.chunk), rand = rng(4242 + index * 31), best = null, a, i;
+    for (a = 0; a < (attempts || 24); a++) {
+      var order = jellies.slice();
+      for (i = order.length - 1; i > 0; i--) {
+        var k = Math.floor(rand() * (i + 1)), t = order[i]; order[i] = order[k]; order[k] = t;
+      }
+      var lv = { name: pic.name, art: pic.art, hand: dealInto(order, pic.cols, 0, rand), seats: 1, belt: pic.belt || 3 };
+      var res = solve(new core.Game(lv), jellies.length + 8, 60000);
+      if (!res.path) continue;
+      lv.moves = res.path.length;
+      var odds = luck(lv, 120, rng(99 + a));
+      if (odds > 0.6) continue;
+      if (!best || odds < best.odds) best = { level: lv, odds: odds, solution: res.path };
+    }
+    return best;
+  }
+
   return {
     rng: rng, smart: smart, casual: casual, play: play, jellyChunk: jellyChunk,
-    jelliesFor: jelliesFor, dealInto: dealInto, level: level,
-    variant: variant, get: get, preview: preview
+    jelliesFor: jelliesFor, dealInto: dealInto, level: level, addLocks: addLocks,
+    variant: variant, get: get, preview: preview, isBoss: isBoss,
+    lap: lap, solve: solve, choices: choices, luck: luck, puzzle: puzzle
   };
 })();
 

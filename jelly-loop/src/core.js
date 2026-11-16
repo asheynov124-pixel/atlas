@@ -27,7 +27,18 @@
 //              breaks when a cube next to it (left, right, above or below) is popped,
 //              or when a Bolt or Firework hits it.
 // Hand jellies written 'R8?' are MYSTERY jellies: their colour stays hidden until they
-// reach the front of their column.
+// reach the front of their column. 'R8!' is a CHAINED jelly: it is padlocked in the hand
+// until a KEY cube (the cells listed in level.keys) is popped; each key frees one jelly,
+// the one nearest the front.
+//
+// Also in here:
+//   FEVER (opts.fever) - pops in quick succession heat up a meter; when it is full, every
+//     shot for a few seconds pops a second cube in the same lane for free.
+//   MEGA jellies (makeMega) - one jelly of the hand carries double ammo.
+//   BOSS levels (level.boss = { every, grow }) - every `every` seconds the picture grows back
+//     `grow` of its popped cubes, and the hand gets a jelly with just enough ammo for them.
+//   PUZZLES (level.seats, level.belt, level.moves) - one seat on the loop, a short belt and a
+//     fixed number of sends, so every round plays out the same way and can be solved exactly.
 
 var BELT_MARGIN = 1.4;   // loop centre line sits this far outside the outer cells
 var BELT_SPEED = 6;      // cells per second            (ConveyorManager.moveSpeed)
@@ -35,6 +46,22 @@ var LOOP_SEATS = 5;      // jellies on the loop at once (ConveyorManager.maxSlot
 var BELT_SLOTS = 5;      // parking places on the belt
 var ENTRY_GAP = 1.7;     // minimum spacing between jellies on the loop
 var AUTO_SPEED = 3;      // how much faster the quick finish runs
+var FEVER_HEAT = 26;     // pops that fill the Fever meter
+var FEVER_DECAY = 2.2;   // meter lost per second while nothing pops
+var FEVER_TIME = 6;      // seconds of double shots
+
+// A small seeded random number source (the same one deal.js uses), so a boss grows back
+// the same way every time a level is played.
+function seeded(seed) {
+  var a = seed >>> 0;
+  return function () {
+    a = (a + 0x6d2b79f5) >>> 0;
+    var t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 // key: [name, fill, text colour]. '*' is the wild jelly from the Wild Jelly booster.
 var PALETTE = {
@@ -63,11 +90,13 @@ function cubeHits(ch) { return !ch || ch === '#' ? 0 : ch === ch.toUpperCase() ?
 //   slots, seats - extra belt places / loop seats      turbo - loop speed steps (+15% each)
 //   rescues      - times a jelly with nowhere to land goes back to the hand instead
 //   wild         - ammo of a wild jelly (pops any colour) that starts on the loop
+//   fever        - turn the Fever meter on (the bots that deal levels play without it)
 function Game(level, opts) {
   var art = level.art, x, y, self = this;
   opts = opts || {};
-  this.maxSlots = BELT_SLOTS + (opts.slots || 0);
-  this.maxSeats = LOOP_SEATS + (opts.seats || 0);
+  this.maxSlots = (level.belt || BELT_SLOTS) + (opts.slots || 0);
+  this.maxSeats = (level.seats || LOOP_SEATS) + (opts.seats || 0);
+  this.moves = level.moves || 0;   // sends allowed in a puzzle; 0 = no limit
   this.speed = BELT_SPEED * (1 + 0.15 * (opts.turbo || 0));
   this.rescues = opts.rescues || 0;
   this.w = art[0].length;
@@ -90,12 +119,26 @@ function Game(level, opts) {
     }
   }
   this.total = this.remaining;
+  this.art0 = this.grid.map(function (ch) { return ch && ch !== '#' ? cubeColor(ch) : ''; });
+  this.keyCells = {};
+  (level.keys || []).forEach(function (c) { self.keyCells[c] = 1; });
+  this.feverOn = !!opts.fever;
+  this.heat = 0;           // Fever meter, 0 to FEVER_HEAT
+  this.fever = 0;          // seconds of Fever left
+  this.fevers = 0;
+  this.boss = level.boss || null;
+  this.bossT = 0;          // seconds since the boss last grew
+  this.grown = 0;
+  var seed = 7;
+  for (x = 0; x < level.name.length; x++) seed = (seed * 31 + level.name.charCodeAt(x)) >>> 0;
+  this.rand = seeded(seed);
   this.nextId = 0;
   this.idle = 0;           // loop distance travelled in the quick finish since the last pop
   this.hand = level.hand.map(function (col) {
     return col.split(' ').filter(Boolean).map(function (tok, i) {
-      var j = self.jelly(tok.charAt(0), parseInt(tok.slice(1), 10));
-      if (i > 0 && tok.charAt(tok.length - 1) === '?') j.hidden = true;
+      var j = self.jelly(tok.charAt(0), parseInt(tok.slice(1), 10)), end = tok.charAt(tok.length - 1);
+      if (i > 0 && end === '?') j.hidden = true;
+      if (end === '!') j.locked = true;
       return j;
     });
   });
@@ -137,6 +180,38 @@ function Game(level, opts) {
 
 Game.prototype.jelly = function (color, ammo) {
   return { id: ++this.nextId, color: color, ammo: ammo, max: ammo, d: 0, k: 0, nextD: 0 };
+};
+
+// One jelly a little way back in the hand (never the front one, never a hidden or chained
+// one) becomes a MEGA jelly with double ammo. Returns it, or null if none qualifies.
+Game.prototype.makeMega = function (rand) {
+  var list = [];
+  this.hand.forEach(function (col) {
+    col.forEach(function (j, d) { if (d >= 1 && d <= 3 && !j.hidden && !j.locked) list.push(j); });
+  });
+  if (!list.length) return null;
+  var j = list[Math.floor((rand || Math.random)() * list.length)];
+  j.mega = true;
+  j.ammo *= 2;
+  j.max *= 2;
+  return j;
+};
+
+// A copy that can be played forward without touching this one (the puzzle solver uses it).
+Game.prototype.clone = function () {
+  var g = Object.create(Game.prototype), k;
+  var cp = function (j) { return j ? Object.assign({}, j) : j; };
+  for (k in this) if (Object.prototype.hasOwnProperty.call(this, k)) g[k] = this[k];
+  g.grid = this.grid.slice();
+  g.left = Object.assign({}, this.left);
+  g.keyCells = Object.assign({}, this.keyCells);
+  g.hand = this.hand.map(function (col) { return col.map(cp); });
+  g.slots = this.slots.map(cp);
+  g.belt = this.belt.map(cp);
+  g.pending = this.pending.map(cp);
+  g.events = [];
+  g.stranded = null;
+  return g;
 };
 
 // Position on the (sharp-cornered) loop at path distance u.
@@ -188,6 +263,11 @@ Game.prototype.send = function (c, depth) {
   var col = this.hand[c];
   depth = depth || 0;
   if (!col || depth >= col.length) return false;
+  if (col[depth].locked) {
+    this.events.push({ type: 'locked', col: c });
+    return false;
+  }
+  if (this.outOfMoves()) return false;
   if (this.riders() >= this.maxSeats) {
     this.events.push({ type: 'full' });
     return false;
@@ -206,6 +286,7 @@ Game.prototype.send = function (c, depth) {
 Game.prototype.relaunch = function (slot) {
   var j = this.slots[slot];
   if (this.status !== 'playing' || !j) return false;
+  if (this.outOfMoves()) return false;
   if (this.riders() >= this.maxSeats) {
     this.events.push({ type: 'full' });
     return false;
@@ -215,6 +296,25 @@ Game.prototype.relaunch = function (slot) {
   this.sent++;
   this.events.push({ type: 'send', jelly: j, slot: slot });
   return true;
+};
+
+// Puzzles: every send is used up.
+Game.prototype.outOfMoves = function () {
+  if (!this.moves || this.sent < this.moves) return false;
+  this.events.push({ type: 'nomoves' });
+  return true;
+};
+
+// A key cube popped: the chained jelly nearest the front of the hand is set free.
+Game.prototype.unlockOne = function (cell) {
+  var best = null, bc = -1, bd = 1e9, c, d;
+  for (c = 0; c < this.hand.length; c++) {
+    for (d = 0; d < this.hand[c].length && d < bd; d++) {
+      if (this.hand[c][d].locked) { best = this.hand[c][d]; bc = c; bd = d; break; }
+    }
+  }
+  this.events.push({ type: 'unlock', jelly: best, col: bc, depth: bd, cell: cell });
+  if (best) best.locked = false;
 };
 
 // A mystery jelly that reaches the front of its column shows its colour.
@@ -254,6 +354,10 @@ Game.prototype.pop = function (c) {
   this.remaining--;
   this.left[col]--;
   this.idle = 0;
+  if (!this.grid[c] && this.keyCells[c]) {
+    delete this.keyCells[c];
+    this.unlockOne(c);
+  }
   if (!this.grid[c]) this.breakCrates(c);
   if (!this.left[col]) this.spend(col);
   if (this.remaining === 0 && this.status === 'playing') {
@@ -300,14 +404,37 @@ Game.prototype.spend = function (col) {
   this.revealFronts();
 };
 
-Game.prototype.fire = function (j, trig) {
+// The cube a jelly passing this lane can hit, or -1.
+Game.prototype.target = function (j, trig) {
   var c = this.firstInLane(trig.side, trig.lane);
-  if (c < 0 || this.grid[c] === '#' || (j.color !== '*' && cubeColor(this.grid[c]) !== j.color)) return;
+  if (c < 0 || this.grid[c] === '#' || (j.color !== '*' && cubeColor(this.grid[c]) !== j.color)) return -1;
+  return c;
+};
+
+Game.prototype.fire = function (j, trig) {
+  var c = this.target(j, trig);
+  if (c < 0) return;
   var p = this.pointAt(this.entry + j.nextD);
   j.ammo--;
-  var col = this.pop(c);
-  this.events.push({ type: 'shot', jelly: j, cell: c, color: col, to: this.grid[c], x: p[0], y: p[1] });
+  this.shoot(j, c, p, false);
+  if (this.feverOn && this.status === 'playing') {
+    if (this.fever > 0) {
+      // Fever: a second pop down the same lane, free of charge
+      c = this.target(j, trig);
+      if (c >= 0) this.shoot(j, c, p, true);
+    } else if ((this.heat += 1) >= FEVER_HEAT) {
+      this.heat = 0;
+      this.fever = FEVER_TIME;
+      this.fevers++;
+      this.events.push({ type: 'fever' });
+    }
+  }
   if (!j.ammo) j.done = true;
+};
+
+Game.prototype.shoot = function (j, c, p, bonus) {
+  var col = this.pop(c);
+  this.events.push({ type: 'shot', jelly: j, cell: c, color: col, to: this.grid[c], x: p[0], y: p[1], bonus: bonus });
 };
 
 Game.prototype.retire = function (j, onLoop) {
@@ -360,19 +487,79 @@ Game.prototype.checkAuto = function () {
 };
 
 Game.prototype.autoLaunch = function () {
-  var s, c;
+  var s, c, ok;
   while (this.riders() < this.maxSeats) {
+    ok = false;
     s = this.slots.findIndex(Boolean);
-    if (s >= 0) { this.relaunch(s); continue; }
-    for (c = 0; c < this.hand.length; c++) if (this.hand[c].length) break;
-    if (c === this.hand.length) return;
-    this.send(c, 0);
+    if (s >= 0) {
+      ok = this.relaunch(s);
+    } else {
+      for (c = 0; c < this.hand.length; c++) if (this.hand[c].length && !this.hand[c][0].locked) break;
+      if (c < this.hand.length) ok = this.send(c, 0);
+    }
+    if (!ok) return;   // chained jellies wait for their key; a puzzle may be out of sends
   }
+};
+
+// Boss: some popped cubes grow back, nearest the cubes still standing first. The hand gets
+// a jelly of each colour that grew, carrying exactly the ammo it needs.
+Game.prototype.touchesCube = function (c) {
+  var x = c % this.w, y = Math.floor(c / this.w), g = this.grid, w = this.w;
+  var hit = function (k) { return g[k] && g[k] !== '#'; };
+  return (x > 0 && hit(c - 1)) || (x < w - 1 && hit(c + 1)) || (y > 0 && hit(c - w)) || (y < this.h - 1 && hit(c + w));
+};
+
+Game.prototype.regrow = function (n) {
+  var near = [], far = [], add = {}, made = [], list, c, i, k, self = this;
+  var shuffle = function (a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var r = Math.floor(self.rand() * (i + 1)), t = a[i]; a[i] = a[r]; a[r] = t;
+    }
+    return a;
+  };
+  for (c = 0; c < this.grid.length; c++) {
+    if (this.grid[c] || !this.art0[c]) continue;
+    (this.touchesCube(c) ? near : far).push(c);
+  }
+  list = shuffle(near).concat(shuffle(far)).slice(0, n);
+  if (!list.length) return;
+  list.forEach(function (c) {
+    var ch = self.art0[c];
+    self.grid[c] = ch;
+    self.remaining++;
+    self.left[ch] = (self.left[ch] || 0) + 1;
+    add[ch] = (add[ch] || 0) + 1;
+  });
+  Object.keys(add).forEach(function (key) {
+    for (k = 0, i = 1; i < self.hand.length; i++) if (self.hand[i].length < self.hand[k].length) k = i;
+    var j = self.jelly(key, add[key]);
+    self.hand[k].push(j);
+    made.push({ jelly: j, col: k });
+  });
+  this.grown++;
+  this.idle = 0;
+  this.events.push({ type: 'grow', cells: list, jellies: made });
 };
 
 Game.prototype.step = function (dt) {
   if (this.status !== 'playing') return;
   this.time += dt;
+  if (this.fever > 0) {
+    this.fever -= dt;
+    if (this.fever <= 0) {
+      this.fever = 0;
+      this.events.push({ type: 'feverEnd' });
+    }
+  } else if (this.heat > 0) {
+    this.heat = Math.max(0, this.heat - FEVER_DECAY * dt);
+  }
+  if (this.boss) {
+    this.bossT += dt;
+    if (this.bossT >= this.boss.every) {
+      this.bossT -= this.boss.every;
+      this.regrow(this.boss.grow);
+    }
+  }
   this.checkAuto();
   if (this.auto) this.autoLaunch();
   var mv = this.speed * dt * (this.auto ? AUTO_SPEED : 1);
@@ -426,9 +613,17 @@ Game.prototype.step = function (dt) {
   }
 };
 
-// Safety net: nothing riding, nothing in the hand, and nothing parked can reach a cube.
+// Safety net: nothing riding, nothing in the hand that can be sent (chained jellies wait for
+// a key), and nothing parked can reach a cube. A puzzle is also over once its sends are used.
 Game.prototype.checkStuck = function () {
-  if (this.riders() || this.handCount() || !this.remaining) return;
+  if (this.riders() || !this.remaining) return;
+  if (this.moves && this.sent >= this.moves) {
+    this.status = 'lost';
+    this.reason = 'moves';
+    this.events.push({ type: 'lost', reason: 'moves' });
+    return;
+  }
+  for (var c = 0; c < this.hand.length; c++) if (this.hand[c].length && !this.hand[c][0].locked) return;
   var ex = this.exposed(), p = this.parked(), i;
   for (i = 0; i < p.length; i++) if (p[i].color === '*' || ex[p[i].color]) return;
   this.status = 'lost';
@@ -527,6 +722,7 @@ if (typeof module !== 'undefined') {
   module.exports = {
     Game: Game, PALETTE: PALETTE, cubeColor: cubeColor, cubeHits: cubeHits,
     LOOP_SEATS: LOOP_SEATS, BELT_SLOTS: BELT_SLOTS,
-    BELT_SPEED: BELT_SPEED, BELT_MARGIN: BELT_MARGIN
+    BELT_SPEED: BELT_SPEED, BELT_MARGIN: BELT_MARGIN,
+    FEVER_HEAT: FEVER_HEAT, FEVER_TIME: FEVER_TIME
   };
 }

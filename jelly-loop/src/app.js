@@ -9,7 +9,8 @@ var combo = 0, comboAt = 0, chain = 0;
 var shownSec = -1;
 var result = null;   // { stars, coins, keys, time } of the round just won
 var mode = '';       // '' | 'bolt' | 'grab': a booster waiting for its tap
-var lastFull = 0;
+var lastFull = 0, lastLock = 0;
+var puzzleNo = -1;   // which puzzle is being played, or -1
 var save = {};
 var $ = function (id) { return document.getElementById(id); };
 
@@ -38,7 +39,13 @@ function normalise() {
     save.stars = save.stars.slice(0, 30).concat(gap, old2);
     save.unlocked += 15;
   }
-  save.v = 6;
+  // Four boss levels took the places of four pictures (levels 10, 20, 30 and 40), and those
+  // pictures moved to the end as 46-49. Endless levels a player had cleared move up by four.
+  if (!(save.v >= 7) && save.unlocked > 46 && save.stars) {
+    save.stars = save.stars.slice(0, 45).concat([0, 0, 0, 0], save.stars.slice(45));
+    save.unlocked += 4;
+  }
+  save.v = 7;
   var DEF = {
     unlocked: 1, coins: 0, pops: 0, chain: 0, light: 0, quick: 0, saved: 0, autos: 0,
     muted: false, fast: false, hearts: 5, heartAt: Date.now(), infUntil: 0,
@@ -46,7 +53,8 @@ function normalise() {
     taskDay: '', tasks: [], taskPts: 0, chestsGot: [], wins: 0,
     seen: {}, iceCracked: 0, cratesBroken: 0, dailyDay: '', dailyWins: 0,
     spins: 0, spinDay: '', paidDay: '', paidSpins: 0, dealDay: '',
-    theme: 'night', face: 'classic', looks: ['theme:night', 'face:classic']
+    theme: 'night', face: 'classic', looks: ['theme:night', 'face:classic'],
+    fevers: 0, megas: 0, unlocks: 0, bossWins: 0, puzzles: {}, hintsUsed: 0, albumGot: {}
   };
   var k, i;
   for (k in DEF) if (save[k] === undefined) save[k] = DEF[k];
@@ -107,11 +115,29 @@ function starsFor(lv, sec) {
 function startLevel(i, pre) {
   pre = pre || {};
   levelIndex = i;
+  puzzleNo = -1;
   level = i === DAILY ? dailyLevel() : Deal.get(i, LEVELS);
   game = new Game(level, {
     slots: save.up.slot, seats: (save.up.seat || 0) + (pre.seat ? 1 : 0),
-    turbo: save.up.turbo, rescues: save.up.wind, wild: pre.wild ? 12 : 0
+    turbo: save.up.turbo, rescues: save.up.wind, wild: pre.wild ? 12 : 0, fever: true
   });
+  // From level 3 on, one jelly in the hand is a gold Mega jelly with double ammo.
+  if (i >= 2 || i === DAILY) {
+    if (game.makeMega(Deal.rng(i === DAILY ? dailyIndex() : i * 31 + 7))) save.megas++;
+  }
+  begin(pre);
+}
+
+// Puzzles: one seat, a short belt, a fixed number of sends. No lives, no boosters, no Fever.
+function startPuzzle(k) {
+  levelIndex = PUZZLE;
+  puzzleNo = k;
+  level = PUZZLES[k];
+  game = new Game(level, {});
+  begin({});
+}
+
+function begin(pre) {
   endTimer = 0;
   combo = 0;
   chain = 0;
@@ -124,22 +150,46 @@ function startLevel(i, pre) {
   $('pause').hidden = true;
   $('modal').hidden = true;
   $('tip').hidden = true;
-  layout(game);
-  if (pre.fire) game.firework(12);
-  $('lvNum').textContent = i === DAILY ? 'Daily' : 'Level ' + (i + 1);
+  // Fill the header first: the board is sized to the space left under it.
+  var i = levelIndex, puz = puzzleNo >= 0;
+  $('time').textContent = puz ? movesText() : clockText(0);
+  $('lvNum').textContent = puz ? 'Puzzle ' + (puzzleNo + 1) : i === DAILY ? 'Daily' : (level.boss ? 'BOSS ' : 'Level ') + (i + 1);
   $('lvName').textContent = level.name;
-  $('hint').hidden = i === DAILY || i > 2 || clearedCount() > 2;
+  $('hint').textContent = puz
+    ? 'One jelly rides at a time and the belt has ' + game.maxSlots + ' places. Clear the picture in ' + game.moves + ' sends. Stuck? Tap the bulb for a hint.'
+    : 'Tap a jelly: it rides once round the picture, popping cubes of its colour, then lands on the belt. Tap a landed jelly to send it again. If one comes back to a full belt, the round is lost.';
+  $('hint').hidden = puz ? puzzleNo > 0 || !!save.puzzles[0] : i === DAILY || i > 2 || clearedCount() > 2;
+  $('ftrack').hidden = puz;
+  $('bar').className = level.boss ? 'boss' : '';
+  IN_ROUND.forEach(function (id) { $('k-' + id).hidden = puz; });
+  $('k-hint').hidden = !puz;
   syncBoosts();
   updateBar();
+  layout(game);
+  // in a puzzle the first-time tip sits above the hand, which must stay in view
+  $('hint').style.bottom = puz ? (view.h - view.handTop + 10) + 'px' : '';
+  if (pre.fire) game.firework(12);
   showIntros(level);
 }
 
 function updateBar() {
   var left = 0, i;
   for (i = 0; i < fx.vis.length; i++) left += cubeHits(fx.vis[i]);
-  $('bar').style.width = (100 * (1 - left / game.total)) + '%';
-  $('left').textContent = left;
+  $('bar').style.width = (100 * (level.boss ? left / game.total : 1 - left / game.total)) + '%';
+  $('left').textContent = level.boss ? left + ' HP' : left + ' left';
   $('hCoins').textContent = save.coins;
+}
+
+// The Fever meter under the progress bar: filling, or burning down while Fever lasts.
+function updateFever() {
+  var f = $('fbar'), hot = game.fever > 0;
+  f.style.width = (100 * (hot ? game.fever / FEVER_TIME : game.heat / FEVER_HEAT)) + '%';
+  f.className = hot ? 'hot' : '';
+}
+
+function movesText() {
+  var n = game.moves - game.sent;
+  return n + (n === 1 ? ' send' : ' sends') + ' left';
 }
 
 function syncBoosts() {
@@ -149,6 +199,26 @@ function syncBoosts() {
     b.querySelector('b').className = n ? '' : 'plus';
     b.className = mode === id ? 'on' : '';
   });
+  var h = $('k-hint').querySelector('b');
+  h.textContent = HINT_COST;
+  h.className = 'cost';
+}
+
+// Puzzle hint: search from where the round stands for the fewest sends that still clear it,
+// and ring the jelly to send next. Paid only when a way is found.
+var HINT_COST = 30;
+function tapHint() {
+  if (!game || game.status !== 'playing' || puzzleNo < 0) return;
+  if (game.riders()) { toast('Wait for the jelly to come round'); return; }
+  if (save.coins < HINT_COST) { toast('A hint costs ' + HINT_COST + ' coins'); return; }
+  var res = Deal.solve(game.clone(), game.moves - game.sent, 40000);
+  if (!res.path) { toast('No way to clear it from here. Try again!'); return; }
+  save.coins -= HINT_COST;
+  save.hintsUsed++;
+  persist();
+  fx.hint = res.path[0];
+  tone(880, 0.2, 'sine', 0.1, 1.5);
+  updateBar();
 }
 
 function setMode(m) {
@@ -191,12 +261,33 @@ function showPanel(won) {
   btns.textContent = '';
   $('pStars').textContent = '';
   $('pGain').textContent = '';
+  if (puzzleNo >= 0) {
+    $('pTitle').textContent = won ? 'Solved!' : 'Out of sends';
+    $('pText').textContent = won
+      ? 'Cleared in ' + game.sent + ' sends.' + (result.first ? '' : ' You had solved this one before.')
+      : game.reason === 'full' ? 'A jelly came back to a full belt. Try a different order.' : 'The sends ran out before the picture was cleared. Try a different order.';
+    if (won) {
+      $('pStars').textContent = E(0x2705);
+      if (result.coins) {
+        $('pGain').appendChild(coinRow('+' + result.coins));
+        $('pGain').appendChild(el('span', '', E(0x1F511) + ' +' + result.keys));
+      }
+    }
+    var k = puzzleNo;
+    if (won && k + 1 < PUZZLES.length) btns.appendChild(btn('go', 'Next puzzle', function () { startPuzzle(k + 1); }));
+    btns.appendChild(btn(won ? 'go alt' : 'go', won ? 'Play again' : 'Try again', function () { startPuzzle(k); }));
+    btns.appendChild(btn('go plain', 'All puzzles', function () { showHome('map'); openPuzzles(); }));
+    $('panel').className = won ? 'overlay won' : 'overlay lost';
+    $('panel').hidden = false;
+    return;
+  }
   if (won) {
-    $('pTitle').textContent = result.daily ? 'Daily Challenge won!' : 'Cleared!';
+    $('pTitle').textContent = result.daily ? 'Daily Challenge won!' : level.boss ? 'Boss beaten!' : 'Cleared!';
     $('pStars').appendChild(starRow(result.stars));
     $('pText').textContent = result.daily
       ? (result.first ? 'Time ' + clockText(result.time) + '. A Wild Jelly is in your bag. A new challenge arrives tomorrow.' : 'Time ' + clockText(result.time) + '. Today' + E(0x2019) + 's prize is already yours.')
-      : 'Time ' + clockText(result.time) + '. Three stars at ' + clockText(lv.par * 1.6) + ' or faster.';
+      : 'Time ' + clockText(result.time) + '. Three stars at ' + clockText(lv.par * 1.6) + ' or faster.' +
+        (result.boss ? ' Boss bonus: ' + result.boss + ' coins.' : '') + (result.sticker ? ' New sticker for your album!' : '');
     $('pGain').appendChild(coinRow('+' + result.coins));
     $('pGain').appendChild(el('span', '', E(0x1F511) + ' +' + result.keys));
     btns.appendChild(btn('go', result.daily ? 'Play - Level ' + save.unlocked : 'Next level', function () {
@@ -244,6 +335,20 @@ function showPanel(won) {
 }
 
 function winRound() {
+  if (puzzleNo >= 0) {
+    var firstSolve = !save.puzzles[puzzleNo];
+    result = { first: firstSolve, coins: firstSolve ? 40 : 0, keys: firstSolve ? 1 : 0 };
+    if (firstSolve) {
+      save.puzzles[puzzleNo] = 1;
+      save.coins += 40;
+      save.keys += 1;
+    }
+    save.wins++;
+    track('win', 1);
+    persist();
+    checkAwards();
+    return;
+  }
   var stars = starsFor(level, game.time), daily = levelIndex === DAILY, prev = daily ? 3 : save.stars[levelIndex] || 0;
   var coins = 20 + 15 * Math.max(0, stars - prev), keys = 1 + (stars === 3 ? 1 : 0), first = false;
   if (daily) {
@@ -262,6 +367,13 @@ function winRound() {
     save.stars[levelIndex] = Math.max(prev, stars);
     save.coins += coins;
   }
+  // a boss pays 100 more the first time it is beaten
+  var bossBonus = 0;
+  if (level.boss && !daily) {
+    save.bossWins++;
+    if (!prev) { bossBonus = 100; save.coins += 100; coins += 100; }
+  }
+  var sticker = !daily && !prev && levelIndex < LEVELS.length;
   save.keys += keys;
   save.wins++;
   if (!daily && save.unlocked < levelIndex + 2) save.unlocked = levelIndex + 2;
@@ -272,12 +384,13 @@ function winRound() {
   track('win', 1);
   track('stars', stars);
   if (stars === 3) track('three', 1);
-  result = { stars: stars, coins: coins, keys: keys, time: game.time, daily: daily, first: first };
+  result = { stars: stars, coins: coins, keys: keys, time: game.time, daily: daily, first: first, boss: bossBonus, sticker: sticker };
   persist();
   checkAwards();
 }
 
 function loseRound() {
+  if (puzzleNo >= 0) return;   // puzzles cost nothing to lose
   save.streakBefore = save.streak;
   save.streak = 0;
   loseHeart();
@@ -286,7 +399,7 @@ function loseRound() {
 
 // Leaving a round that has started costs a life and the streak.
 function abandon() {
-  if (game && game.status === 'playing' && game.sent > 0) {
+  if (game && game.status === 'playing' && game.sent > 0 && puzzleNo < 0) {
     save.streak = 0;
     loseHeart();
     persist();
@@ -312,13 +425,16 @@ function handle(ev) {
       buzz(8);
     }
     track('send', 1);
+    fx.hint = null;
     $('hint').hidden = true;
+    if (puzzleNo >= 0) $('time').textContent = movesText();
   } else if (ev.type === 'shot') {
     var x1 = px(game, ev.cell % game.w), y1 = py(game, Math.floor(ev.cell / game.w));
     var x0 = px(game, ev.x), y0 = py(game, ev.y);
     var dist = Math.abs(x1 - x0) + Math.abs(y1 - y0);
-    fx.shots.push({ x0: x0, y0: y0, x1: x1, y1: y1, t: 0, dur: 0.05 + dist / (c * 90), key: ev.color, cell: ev.cell, to: ev.to });
+    fx.shots.push({ x0: x0, y0: y0, x1: x1, y1: y1, t: ev.bonus ? -0.06 : 0, dur: 0.05 + dist / (c * 90), key: ev.color, cell: ev.cell, to: ev.to, bonus: ev.bonus });
     fx.kick[j.id] = 1;
+    if (ev.bonus) sprinkle(x1, y1, 'star', 'Y', 0, -c, 0.5, c * 0.4);
     if (ev.to) {
       save.iceCracked++;
     } else {
@@ -384,6 +500,46 @@ function handle(ev) {
     mode = '';
     $('tip').hidden = true;
     syncBoosts();
+  } else if (ev.type === 'fever') {
+    save.fevers++;
+    track('fever', 1);
+    fx.flash = 0.7;
+    toast('FEVER! Double shots');
+    [523, 659, 784, 1047].forEach(function (f, n) { setTimeout(function () { tone(f, 0.12, 'square', 0.06, 1.2); }, n * 70); });
+    buzz(40);
+    checkAwards();
+  } else if (ev.type === 'feverEnd') {
+    tone(330, 0.25, 'sine', 0.06, 0.6);
+  } else if (ev.type === 'locked') {
+    fx.deny = 1;
+    tone(140, 0.12, 'square', 0.06, 0.8);
+    if (clock - lastLock > 2) toast('Chained! Pop a ' + E(0x1F511) + ' key cube to free it');
+    lastLock = clock;
+  } else if (ev.type === 'unlock') {
+    x = px(game, ev.cell % game.w);
+    y = py(game, Math.floor(ev.cell / game.w));
+    for (var n = 0; n < 10; n++) sprinkle(x, y, 'star', 'Y', (Math.random() - 0.5) * c * 6, (Math.random() - 0.5) * c * 6, 0.6, c * 0.35);
+    if (j) {
+      save.unlocks++;
+      burst(colX(game, ev.col), handY(Math.min(ev.depth, 3)), 'Y', 16, c * 6);
+      toast('Unlocked!');
+    }
+    tone(988, 0.1, 'triangle', 0.1, 1.5);
+    setTimeout(function () { tone(1319, 0.18, 'triangle', 0.1, 1.2); }, 90);
+  } else if (ev.type === 'grow') {
+    ev.cells.forEach(function (cell) {
+      fx.vis[cell] = game.grid[cell];
+      fx.grow[cell] = 0;
+      burst(px(game, cell % game.w), py(game, Math.floor(cell / game.w)), 'G', 3, c * 4);
+    });
+    ev.jellies.forEach(function (m) { burst(colX(game, m.col), frontY(), m.jelly.color, 10, c * 5); });
+    fx.shake = 0.35;
+    tone(110, 0.35, 'sawtooth', 0.08, 1.8);
+    toast(level.name + ' grows back ' + ev.cells.length + ' cubes!');
+    updateBar();
+  } else if (ev.type === 'nomoves') {
+    if (clock - lastFull > 2) toast('No sends left');
+    lastFull = clock;
   } else if (ev.type === 'won') {
     winRound();
   } else if (ev.type === 'lost') {
@@ -409,10 +565,13 @@ function frame(now) {
     steps = save.fast ? 4 : 2;
     for (i = 0; i < steps; i++) game.step(dt * (save.fast ? 2 : 1) / steps);
     while (game.events.length) handle(game.events.shift());
-    if (Math.floor(game.time) !== shownSec) {
+    if (puzzleNo >= 0) {
+      if (shownSec !== -2) { shownSec = -2; $('time').textContent = movesText(); }
+    } else if (Math.floor(game.time) !== shownSec) {
       shownSec = Math.floor(game.time);
       $('time').textContent = clockText(shownSec);
     }
+    if (puzzleNo < 0) updateFever();
   }
   if (game && $('home').hidden) {
     var landed = stepFx(game, dt);
@@ -440,10 +599,13 @@ function frame(now) {
           tone(523, 0.14, 'triangle', 0.12);
           setTimeout(function () { tone(659, 0.14, 'triangle', 0.12); }, 120);
           setTimeout(function () { tone(784, 0.3, 'triangle', 0.12); }, 240);
+          setTimeout(function () { tone(1047, 0.45, 'triangle', 0.1); }, 400);
           for (i = 0; i < 70; i++) burst(Math.random() * view.w, view.cy - view.cell * 3, 'RYBGPCON'.charAt(i % 8), 1, view.cell * 14);
+          // the finished picture comes back to life before the result card
+          startAlive(game, level);
         }
       }
-      if (clock - endTimer > 0.9) showPanel(game.status === 'won');
+      if (clock - endTimer > (game.status === 'won' ? 2.6 : 0.9)) showPanel(game.status === 'won');
     }
     draw(game, clock, mode);
   }
@@ -454,6 +616,8 @@ function frame(now) {
 
 canvas.addEventListener('pointerdown', function (e) {
   e.preventDefault();
+  // a tap during the picture's victory dance skips straight to the result card
+  if (running() && game.status === 'won' && fx.alive && $('panel').hidden && endTimer) endTimer = clock - 3;
   if (!running() || game.status !== 'playing') return;
   var x = e.clientX, y = e.clientY, s, c;
   if (mode === 'bolt') {
@@ -495,7 +659,7 @@ function syncPause() {
   $('tSound').className = save.muted ? 'off' : '';
   $('tSpeed').textContent = save.fast ? '2x' : '1x';
   $('tSpeed').className = save.fast ? '' : 'off';
-  $('qNote').textContent = game && game.sent > 0 ? 'Leaving a round you have started costs a life and ends your win streak.' : '';
+  $('qNote').textContent = game && game.sent > 0 && puzzleNo < 0 ? 'Leaving a round you have started costs a life and ends your win streak.' : '';
 }
 $('bPause').onclick = function () {
   if (!game || game.status !== 'playing') return;
@@ -507,6 +671,7 @@ $('tSound').onclick = function () { save.muted = !save.muted; persist(); syncPau
 $('tSpeed').onclick = function () { save.fast = !save.fast; persist(); syncPause(); };
 $('bRestart').onclick = function () {
   abandon();
+  if (puzzleNo >= 0) { startPuzzle(puzzleNo); return; }
   showHome('map');
   if (canPlay()) openLevel(levelIndex); else openHearts();
 };
@@ -515,6 +680,7 @@ $('bQuit').onclick = function () {
   showHome('map');
 };
 IN_ROUND.forEach(function (id) { $('k-' + id).onclick = function () { tapBoost(id); }; });
+$('k-hint').onclick = tapHint;
 ['map', 'shop', 'up', 'awards'].forEach(function (p) { $('n-' + p).onclick = function () { setPage(p); }; });
 $('mX').onclick = closeModal;
 $('bPlay').onclick = function () {
@@ -533,6 +699,8 @@ $('sDaily').onclick = function () {
   openLevel(DAILY);
 };
 $('sWheel').onclick = openWheel;
+$('sPuzzle').onclick = openPuzzles;
+$('sAlbum').onclick = function () { openAlbum(); };
 
 setInterval(function () {
   if ($('home').hidden) return;
