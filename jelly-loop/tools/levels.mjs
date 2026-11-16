@@ -11,12 +11,17 @@
 // bg    - optional colour that fills the empty cells, so the subject starts out buried
 // mystery - share of jellies dealt face down: their colour shows only at the front of the column
 //
+// locks - jellies dealt CHAINED: padlocked in the hand until a key cube on the picture pops
+// boss  - every tenth level: { every: seconds, grow: cubes } - the picture grows back that many
+//         popped cubes on that beat, and the hand gets jellies with just the ammo for them
+// intro - which new piece this level shows a card for the first time
+//
 // build.mjs turns these into src/levels.js, dealing a hand for each picture and
 // proving with a bot that the level can be won.
 
 export const PICTURES = [
   {
-    // The procedural test board from BoardManager.GenerateSimpleLevel, at phone size.
+    // 1
     name: 'Warm-up', cols: 3, chunk: 12, mix: 0,
     art: [
       'RRRRRRRR',
@@ -31,6 +36,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 2
     name: 'Heart', cols: 3, chunk: 10, mix: 1,
     art: [
       '.RRR...RRR.',
@@ -46,6 +52,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 3
     name: 'Apple Tree', cols: 3, chunk: 10, mix: 1,
     art: [
       '...GGGG...',
@@ -63,6 +70,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 4
     name: 'Flower', cols: 4, chunk: 10, mix: 2, bg: 'C',
     art: [
       '....NNN....',
@@ -80,6 +88,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 5
     name: 'Duck', cols: 4, chunk: 10, mix: 3, bg: 'W',
     art: [
       '....YYYY....',
@@ -97,6 +106,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 6
     name: 'Rocket', cols: 4, chunk: 9, mix: 3, bg: 'K',
     art: [
       '....R....',
@@ -116,6 +126,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 7
     name: 'House', cols: 4, chunk: 10, mix: 4, bg: 'C',
     art: [
       '.....RR.....',
@@ -133,6 +144,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 8
     name: 'Cat', cols: 4, chunk: 10, mix: 4, bg: 'P',
     art: [
       'OO........OO',
@@ -149,6 +161,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 9
     name: 'Fish', cols: 4, chunk: 10, mix: 5, bg: 'B',
     art: [
       '..........OO..',
@@ -164,20 +177,25 @@ export const PICTURES = [
     ]
   },
   {
-    name: 'Rainbow', cols: 4, chunk: 9, mix: 5, bg: 'C',
+    // 10 - BOSS
+    name: 'Slime King', cols: 4, chunk: 10, mix: 4, intro: 'boss', boss: { every: 20, grow: 8 },
     art: [
-      '...RRRRRRRR...',
-      '..RROOOOOORR..',
-      '.RROOYYYYOORR.',
-      'RROOYYGGYYOORR',
-      'RROYYGGGGYYORR',
-      'RROYGGBBGGYORR',
-      'RROYGB..BGYORR',
-      'WWWWGB..BGWWWW',
-      'WWWWW....WWWWW'
+      'CCCYCCYCCYCC',
+      'CCCYYYYYYYCC',
+      'CCCYRYYBYYCC',
+      'CCGGGGGGGGGC',
+      'CGGGGGGGGGGG',
+      'GGWWGGGGWWGG',
+      'GGWKGGGGWKGG',
+      'GGGGGGGGGGGG',
+      'GGGKKKKKKGGG',
+      'GGGKRRRRKGGG',
+      'CGGGGGGGGGGC',
+      'BBBBBBBBBBBB'
     ]
   },
   {
+    // 11
     name: 'Cupcake', cols: 5, chunk: 9, mix: 6, bg: 'C',
     art: [
       '.....RR.....',
@@ -197,6 +215,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 12
     name: 'Sun', cols: 4, chunk: 10, mix: 3, bg: 'C',
     art: [
       '.....YY.....',
@@ -214,6 +233,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 13
     name: 'Ice Cream', cols: 4, chunk: 9, mix: 4, bg: 'B',
     art: [
       '...NNNN...',
@@ -233,6 +253,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 14
     name: 'Ghost', cols: 4, chunk: 10, mix: 4, bg: 'P',
     art: [
       '....WWWW....',
@@ -250,6 +271,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 15
     name: 'Penguin', cols: 4, chunk: 10, mix: 5, bg: 'C',
     art: [
       '....KKK....',
@@ -268,6 +290,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 16
     name: 'Strawberry', cols: 4, chunk: 10, mix: 5, bg: 'W',
     art: [
       '....GGGG....',
@@ -286,6 +309,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 17
     name: 'Sailboat', cols: 4, chunk: 10, mix: 5, bg: 'C',
     art: [
       '......K......',
@@ -303,6 +327,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 18
     name: 'Robot', cols: 5, chunk: 9, mix: 6, bg: 'P',
     art: [
       '.....RR.....',
@@ -321,6 +346,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 19
     name: 'Watermelon', cols: 5, chunk: 9, mix: 6, bg: 'C',
     art: [
       'GWRRRRRRRRRRWG',
@@ -334,22 +360,25 @@ export const PICTURES = [
     ]
   },
   {
-    name: 'Butterfly', cols: 5, chunk: 9, mix: 6, bg: 'C',
+    // 20 - BOSS
+    name: 'Grumpy Cloud', cols: 4, chunk: 10, mix: 6, boss: { every: 20, grow: 10 },
     art: [
-      '.PP.......PP.',
-      'PNNP.....PNNP',
-      'PNYNP...PNYNP',
-      'PNNNNPKPNNNNP',
-      '.PNNNPKPNNNP.',
-      '..PPPPKPPPP..',
-      '.PNNNPKPNNNP.',
-      'PNYNNPKPNNYNP',
-      'PNNNP...PNNNP',
-      '.PPP.....PPP.'
+      'BBBBWWWWBBBBB',
+      'BBBWWWWWWWBBB',
+      'BWWwWWWWWwWWB',
+      'WWWKKWWWKKWWW',
+      'WWWWKWWWKWWWW',
+      'WWWWWWWWWWWWW',
+      'WWWWRRRRRWWWW',
+      'BWWWWWWWWWWWB',
+      'BBBBYBBBYBBBB',
+      'BBBYYBBYYBBBB',
+      'BBYYBBBYBBBBB',
+      'BBBYBBYBBBBBB'
     ]
   },
-  // ---------- 21-30: ice, crates and mystery jellies ----------
   {
+    // 21
     name: 'Ice Pond', cols: 4, chunk: 10, mix: 2, intro: 'ice',
     art: [
       'BBBBBBBBBBBB',
@@ -365,6 +394,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 22
     name: 'Snowman', cols: 4, chunk: 12, mix: 3,
     art: [
       'CCCCKKKCCCC',
@@ -383,6 +413,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 23
     name: 'Treasure Chest', cols: 4, chunk: 10, mix: 3, intro: 'crate',
     art: [
       'CCCCCCCCCCCC',
@@ -399,6 +430,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 24
     name: 'Lighthouse', cols: 4, chunk: 10, mix: 4,
     art: [
       'KKKKKYKKKKK',
@@ -418,6 +450,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 25
     name: 'Mystery Gift', cols: 4, chunk: 10, mix: 3, mystery: 0.35, intro: 'mystery',
     art: [
       'NNNNNYYNNNNN',
@@ -435,6 +468,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 26
     name: 'Castle', cols: 5, chunk: 10, mix: 4, mystery: 0.25,
     art: [
       'CCRCCCCCCCCRCC',
@@ -453,6 +487,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 27
     name: 'Hot Air Balloon', cols: 5, chunk: 10, mix: 4, mystery: 0.3,
     art: [
       'CwwCCCCCCCwwC',
@@ -472,6 +507,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 28
     name: 'Dragon', cols: 5, chunk: 10, mix: 5, mystery: 0.3,
     art: [
       'KKKKKKKKKKKKKKK',
@@ -490,6 +526,7 @@ export const PICTURES = [
     ]
   },
   {
+    // 29
     name: 'Night City', cols: 5, chunk: 9, mix: 5, mystery: 0.25,
     art: [
       'KKYKKKKKKKYKKKK',
@@ -508,27 +545,27 @@ export const PICTURES = [
     ]
   },
   {
-    name: 'Peacock', cols: 5, chunk: 9, mix: 6, mystery: 0.3,
+    // 30 - BOSS
+    name: 'Yeti', cols: 5, chunk: 10, mix: 6, mystery: 0.2, boss: { every: 20, grow: 12 },
     art: [
-      'CCCCBBBBBBBCCCC',
-      'CCBBGGGGGGGBBCC',
-      'CBGGBBBBBBBGGBC',
-      'BGBBPPPPPPPBBGB',
-      'BGBPPGGGGGPPBGB',
-      'BGBPGGbbbGGPBGB',
-      'BGBPGbbYbbGPBGB',
-      'CBGBPGbbbGPBGBC',
-      'CCBGBPPBPPBGBCC',
-      'CCCBGBBKBBGBCCC',
-      'CCCCCBBBBBCCCCC',
-      'CCCCCCBBBCCCCCC',
-      'CCCCCCBOBCCCCCC',
-      'CC####TTT####CC',
-      'GGGGGGGGGGGGGGG'
+      'CCCCWWWWWWCCCC',
+      'CCCWWWWWWWWCCC',
+      'CCWWBBBBBBWWCC',
+      'CCWBBKBBKBBWCC',
+      'CCWBBBBBBBBWCC',
+      'CCWBBWWWWBBWCC',
+      'CWWWBBBBBBWWWC',
+      'WWWWWWWWWWWWWW',
+      'WwWWWWWWWWWWwW',
+      'WWCWWWWWWWWCWW',
+      'WWCWWWWWWWWCWW',
+      'CCCWWWCCWWWCCC',
+      'CCCKKKCCKKKCCC',
+      'wwwwwwwwwwwwww'
     ]
   },
-  // ---------- 31-45: bigger pictures, bigger jellies ----------
   {
+    // 31
     name: 'Octopus', cols: 5, chunk: 9, mix: 5, mystery: 0.3,
     art: [
       'BBBBBNNNNNNBBBBB',
@@ -549,7 +586,8 @@ export const PICTURES = [
     ]
   },
   {
-    name: 'Mushroom', cols: 5, chunk: 9, mix: 5, mystery: 0.3,
+    // 32
+    name: 'Mushroom', cols: 5, chunk: 9, mix: 5, mystery: 0.3, locks: 1, intro: 'lock',
     art: [
       'CCCCCRRRRRCCCCC',
       'CCCRRWWRRRRRCCC',
@@ -569,7 +607,8 @@ export const PICTURES = [
     ]
   },
   {
-    name: 'Owl', cols: 5, chunk: 9, mix: 5, mystery: 0.35,
+    // 33
+    name: 'Owl', cols: 5, chunk: 9, mix: 5, mystery: 0.35, locks: 1,
     art: [
       'KKKyKKKKKKKKyKK',
       'KKTTKKKKKKKTTKK',
@@ -590,7 +629,8 @@ export const PICTURES = [
     ]
   },
   {
-    name: 'Cactus', cols: 5, chunk: 9, mix: 5, mystery: 0.3,
+    // 34
+    name: 'Cactus', cols: 5, chunk: 9, mix: 5, mystery: 0.3, locks: 1,
     art: [
       'YYYYYYNNYYYYYY',
       'YYYYYGGGGYYYYY',
@@ -611,7 +651,8 @@ export const PICTURES = [
     ]
   },
   {
-    name: 'Hamburger', cols: 5, chunk: 10, mix: 5, mystery: 0.3,
+    // 35
+    name: 'Hamburger', cols: 5, chunk: 10, mix: 5, mystery: 0.3, locks: 2,
     art: [
       'CCCCCCCCCCCCCCCC',
       'CCCCTTTTTTTTCCCC',
@@ -630,7 +671,8 @@ export const PICTURES = [
     ]
   },
   {
-    name: 'Saturn', cols: 5, chunk: 10, mix: 5, mystery: 0.35,
+    // 36
+    name: 'Saturn', cols: 5, chunk: 10, mix: 5, mystery: 0.35, locks: 1,
     art: [
       'KKKKKKKKKKKKKyKK',
       'KKyKKKOOOOKKKKKK',
@@ -649,7 +691,8 @@ export const PICTURES = [
     ]
   },
   {
-    name: 'Volcano', cols: 5, chunk: 10, mix: 6, mystery: 0.35,
+    // 37
+    name: 'Volcano', cols: 5, chunk: 10, mix: 6, mystery: 0.35, locks: 2,
     art: [
       'CCCCCCWWWWCCCCCC',
       'CCCCCWWWWWWCCCCC',
@@ -669,7 +712,8 @@ export const PICTURES = [
     ]
   },
   {
-    name: 'Turtle', cols: 5, chunk: 10, mix: 6, mystery: 0.35,
+    // 38
+    name: 'Turtle', cols: 5, chunk: 10, mix: 6, mystery: 0.35, locks: 2,
     art: [
       'BBBBBBBGGBBBBBBB',
       'BBBBBGGGGGGBBBBB',
@@ -688,7 +732,8 @@ export const PICTURES = [
     ]
   },
   {
-    name: 'Pirate Ship', cols: 5, chunk: 10, mix: 6, mystery: 0.35,
+    // 39
+    name: 'Pirate Ship', cols: 5, chunk: 10, mix: 6, mystery: 0.35, locks: 2,
     art: [
       'CCCCCCCKKCCCCCCC',
       'CCCCCCCKWCCCCCCC',
@@ -709,26 +754,29 @@ export const PICTURES = [
     ]
   },
   {
-    name: 'Fox', cols: 5, chunk: 10, mix: 6, mystery: 0.4,
+    // 40 - BOSS
+    name: 'Robo Rex', cols: 5, chunk: 10, mix: 6, mystery: 0.25, boss: { every: 20, grow: 14 },
     art: [
-      'GGOGGGGGGGGGGOGG',
-      'GOOOGGGGGGGGOOOG',
-      'GOWOOGGGGGGOOWOG',
-      'GOWWOOOOOOOOWWOG',
-      'GOOOOOOOOOOOOOOG',
-      'OOOKKOOOOOOKKOOO',
-      'OOOOOOOOOOOOOOOO',
-      'WOOOOOOOOOOOOOOW',
-      'WWOOOOOKKOOOOOWW',
-      'GWWWOOOKKOOOWWWG',
-      'GGWWWWOOOOWWWWGG',
-      'GGGWWWWWWWWWWGGG',
-      'GGGGWWWWWWWWGGGG',
-      'gggggggggggggggg'
+      'KKKKKKKOOOOOOKK',
+      'KKKKKKOOOOOOOOK',
+      'KKKKKKOORROOOOK',
+      'KKKKKKOOOOOOOOO',
+      'KKKKKKOOOWWWWWW',
+      'KKKKKKOOOOOOOOO',
+      'KKKKKOOOOOKKKKK',
+      'KKKKOOOOOOOYKKK',
+      'KOKOOOOOOOOKKKK',
+      'KOOoOOOoOOKKKKK',
+      'KKOOOOOOOKKKKKK',
+      'KKKOOKKOOKKKKKK',
+      'KKKOOKKOOKKKKKK',
+      '#KKOO##OO#KKKK#',
+      'TTTTTTTTTTTTTTT'
     ]
   },
   {
-    name: 'Whale', cols: 5, chunk: 10, mix: 6, mystery: 0.4,
+    // 41
+    name: 'Whale', cols: 5, chunk: 10, mix: 6, mystery: 0.4, locks: 2,
     art: [
       'CCCCCCWCCWCCCCCC',
       'CCCCCCCWWCCCCCCC',
@@ -747,7 +795,8 @@ export const PICTURES = [
     ]
   },
   {
-    name: 'Lantern', cols: 5, chunk: 10, mix: 6, mystery: 0.4,
+    // 42
+    name: 'Lantern', cols: 5, chunk: 10, mix: 6, mystery: 0.4, locks: 2,
     art: [
       'KKKKKKYYKKKKKK',
       'KKKKKKYYKKKKKK',
@@ -768,7 +817,8 @@ export const PICTURES = [
     ]
   },
   {
-    name: 'Crown', cols: 5, chunk: 10, mix: 6, mystery: 0.4,
+    // 43
+    name: 'Crown', cols: 5, chunk: 10, mix: 6, mystery: 0.4, locks: 2,
     art: [
       'CCYCCCCYYCCCCYCC',
       'CCYYCCCYYCCCYYCC',
@@ -786,7 +836,8 @@ export const PICTURES = [
     ]
   },
   {
-    name: 'Cherry Blossom', cols: 5, chunk: 10, mix: 6, mystery: 0.4,
+    // 44
+    name: 'Cherry Blossom', cols: 5, chunk: 10, mix: 6, mystery: 0.4, locks: 2,
     art: [
       'CCNNNCCCCCNNNCCC',
       'CNNnNNCCCNNnNNCC',
@@ -807,7 +858,8 @@ export const PICTURES = [
     ]
   },
   {
-    name: 'Galaxy', cols: 5, chunk: 10, mix: 6, mystery: 0.4,
+    // 45
+    name: 'Galaxy', cols: 5, chunk: 10, mix: 6, mystery: 0.4, locks: 3,
     art: [
       'KKKKKKKPPKKKKKKK',
       'KKyKKKPPPPKKKKyK',
@@ -826,6 +878,78 @@ export const PICTURES = [
       'KKKKKKKPPKKKKKKK',
       '##KKK##KK##KKK##',
       'CCCCCCCCCCCCCCCC'
+    ]
+  },
+  {
+    // 46
+    name: 'Rainbow', cols: 4, chunk: 9, mix: 5, bg: 'C', locks: 2,
+    art: [
+      '...RRRRRRRR...',
+      '..RROOOOOORR..',
+      '.RROOYYYYOORR.',
+      'RROOYYGGYYOORR',
+      'RROYYGGGGYYORR',
+      'RROYGGBBGGYORR',
+      'RROYGB..BGYORR',
+      'WWWWGB..BGWWWW',
+      'WWWWW....WWWWW'
+    ]
+  },
+  {
+    // 47
+    name: 'Butterfly', cols: 5, chunk: 9, mix: 6, bg: 'C', locks: 2,
+    art: [
+      '.PP.......PP.',
+      'PNNP.....PNNP',
+      'PNYNP...PNYNP',
+      'PNNNNPKPNNNNP',
+      '.PNNNPKPNNNP.',
+      '..PPPPKPPPP..',
+      '.PNNNPKPNNNP.',
+      'PNYNNPKPNNYNP',
+      'PNNNP...PNNNP',
+      '.PPP.....PPP.'
+    ]
+  },
+  {
+    // 48
+    name: 'Peacock', cols: 5, chunk: 9, mix: 6, mystery: 0.3, locks: 3,
+    art: [
+      'CCCCBBBBBBBCCCC',
+      'CCBBGGGGGGGBBCC',
+      'CBGGBBBBBBBGGBC',
+      'BGBBPPPPPPPBBGB',
+      'BGBPPGGGGGPPBGB',
+      'BGBPGGbbbGGPBGB',
+      'BGBPGbbYbbGPBGB',
+      'CBGBPGbbbGPBGBC',
+      'CCBGBPPBPPBGBCC',
+      'CCCBGBBKBBGBCCC',
+      'CCCCCBBBBBCCCCC',
+      'CCCCCCBBBCCCCCC',
+      'CCCCCCBOBCCCCCC',
+      'CC####TTT####CC',
+      'GGGGGGGGGGGGGGG'
+    ]
+  },
+  {
+    // 49
+    name: 'Fox', cols: 5, chunk: 10, mix: 6, mystery: 0.4, locks: 3,
+    art: [
+      'GGOGGGGGGGGGGOGG',
+      'GOOOGGGGGGGGOOOG',
+      'GOWOOGGGGGGOOWOG',
+      'GOWWOOOOOOOOWWOG',
+      'GOOOOOOOOOOOOOOG',
+      'OOOKKOOOOOOKKOOO',
+      'OOOOOOOOOOOOOOOO',
+      'WOOOOOOOOOOOOOOW',
+      'WWOOOOOKKOOOOOWW',
+      'GWWWOOOKKOOOWWWG',
+      'GGWWWWOOOOWWWWGG',
+      'GGGWWWWWWWWWWGGG',
+      'GGGGWWWWWWWWGGGG',
+      'gggggggggggggggg'
     ]
   }
 ];

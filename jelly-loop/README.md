@@ -50,8 +50,51 @@ JavaScript and canvas, which runs in any browser and installs as a home-screen a
   column. It breaks when a cube beside it pops; a Bolt or Firework smashes it too.
 - **Mystery jellies** (`R8?` in a hand): grey with a `?` until they reach the front of their
   column. A Grabber can pull one out early, blind.
+- **Chained jellies** (`R8!` in a hand, from level 32): padlocked in the hand, blocking their
+  column, until a **key cube** (a cube with a gold rim and key, listed in a level's `keys`) pops.
+  Each key frees the chained jelly nearest the front.
 - The first round with a new piece opens with a card explaining it. If the quick finish ever
   goes two laps without a pop (something walled in by crates), the round ends as stuck.
+
+### In every round
+
+- **Fever.** Pops in quick succession fill the thin orange meter under the progress bar
+  (`FEVER_HEAT` in `src/core.js`); when it is full, for six seconds every shot pops a second cube
+  down the same lane for free. The loop glows and the screen edges burn. Over the 49 levels it
+  makes the bot about 10% faster and helps a careless player win noticeably more often.
+- **Mega jellies.** From level 3, one jelly a little way back in the hand is gold, wears a crown
+  and carries double ammo (`Game.makeMega`).
+- **Squishy jellies.** A jelly is drawn bigger the more ammo it holds and eases smaller with
+  every shot; on the loop it wobbles, and each shot squashes it flat for a moment.
+- **The picture comes alive.** After a win the finished picture pops back in from the middle and
+  plays its own animation before the result card (`ALIVE` in `src/render.js`): the whale floats
+  and spouts, the volcano shakes and erupts, the octopus waves, the heart beats and lets off
+  hearts, the rocket lifts off, a beaten boss crumbles. Tap to skip.
+
+### Boss levels (every tenth level)
+
+Levels 10, 20, 30 and 40 are bosses drawn for the job: **Slime King**, **Grumpy Cloud**, **Yeti**
+and **Robo Rex** (the pictures that used to be there, Rainbow, Butterfly, Peacock and Fox, are now
+levels 46-49). Endless levels 50, 60, ... are recoloured bosses. A boss shows HP instead of
+"left", and a countdown in the bottom-right corner of the loop: every 20 seconds it grows back
+8 to 14 of the cubes you popped (nearest its body first), and the hand gets a jelly of each colour
+that grew, with exactly the ammo it needs (`Game.regrow`). The first win pays 100 coins more.
+
+### Puzzles
+
+Twelve hand-made boards behind the jigsaw button (`tools/puzzles.mjs`). One seat on the loop and
+three belt places, so each send plays out in full before the next and the round is a pure
+sequence of choices. The build deals each board several ways, finds the fewest sends that clear
+it with a breadth-first search (`Deal.solve`), and keeps the deal random tapping solves least
+often; that minimum is the puzzle's send limit. No lives, boosters or Fever. A hint (30 coins)
+runs the same search from where you are and rings the jelly to send next; it is charged only if a
+way through still exists. A first solve pays 40 coins and a key, and opens the next puzzle.
+
+### Sticker album
+
+Every hand-drawn picture you clear becomes a sticker; three stars make it shiny. Seven pages
+(Animals, Fantasy, Sweet Treats, Nature, Sky & Space, Places, Bosses; `ALBUM` in `src/home.js`)
+each pay a reward once when full. Missing stickers show as a blurred grey preview.
 
 ## Home screen and the rest
 
@@ -60,9 +103,9 @@ Coins are earned only by playing.
 
 - **Map.** Levels as a column of picture cards, the next one lit up, with icons for the pieces
   each level uses. Tap one for its card: picture, pieces, win streak, and pre-round boosters.
-  The 45 hand-drawn levels in `tools/levels.mjs` come first; after them the game deals endless
+  The 49 hand-drawn levels in `tools/levels.mjs` come first; after them the game deals endless
   levels by mirroring and recolouring those pictures (`Deal.variant` in `src/deal.js`), freezing
-  more cubes and hiding more jellies the further you go. Every hand, hand-drawn or endless, is
+  more cubes, hiding and chaining more jellies the further you go, with a boss every tenth level. Every hand, hand-drawn or endless, is
   checked winnable by a bot before you see it.
 - **Jellies grow with the levels.** Each jelly carries one more shot for every four levels in
   (`jellyChunk` in `src/deal.js`): about 10 at the start, 16 by level 30, 21 by level 45, and up
@@ -101,14 +144,17 @@ Coins are earned only by playing.
 - **Daily tasks.** Four a day from `TASKS`, 25 points each; chests at 25, 50 and 100 points.
 - **Daily gift.** A seven-day cycle of rewards (`GIFTS`), one claim a day.
 - **Star Road.** Every three keys opens a step with a reward; the road repeats with bigger rewards.
-- **Awards** (`AWARDS`): 21 goals, each paying once (Full Gallery now means all 45 hand-drawn levels).
-- **Stats** in Settings: levels, stars, wins, best streak, cubes, ice, crates, daily wins, spins.
+- **Awards** (`AWARDS`): 26 goals, each paying once (Full Gallery means all 49 hand-drawn levels;
+  new: Boss Slayer, On Fire, Locksmith, Puzzle Master, Collector).
+- **Stats** in Settings: levels, stars, wins, best streak, fevers, bosses, puzzles, stickers, cubes,
+  ice, crates, daily wins, spins.
 
 Progress lives in the browser's `localStorage` under `jellyloop1`, so it is per device and is lost
 if site data is cleared. Saves from every earlier version are upgraded on load (the old Queue Jump
-upgrade becomes Grabbers, two per level bought). Levels 21-30, then 31-45, were added in front of
-the endless levels: a save already past them keeps its progress, its endless-level stars move up
-to match, and the new levels appear behind it on the map marked NEW.
+upgrade becomes Grabbers, two per level bought). Levels 21-30, then 31-45, then 46-49, were added
+in front of the endless levels: a save already past them keeps its progress, its endless-level
+stars move up to match, and the new levels appear behind it on the map marked NEW. (When the
+bosses took levels 10, 20, 30 and 40, stars earned there stayed where they were.)
 
 ## What differs from the Unity prototype
 
@@ -131,7 +177,7 @@ src/            the game as written: index.html, core.js (rules), deal.js (deals
                 saving), sw.js, icons
 src/levels.js   generated - do not edit
 dist/           minified copy of src/; this is exactly what is deployed
-tools/          levels.mjs (the pictures), build.mjs, make-icons.py
+tools/          levels.mjs (the pictures), puzzles.mjs (the puzzle boards), build.mjs, make-icons.py
 unity-original/ the scripts this was ported from
 ```
 
@@ -145,8 +191,9 @@ node build.mjs                         # deals hands, proves each level winnable
 To add a level, draw it in `tools/levels.mjs` and run the build. For each picture the build finds
 an order that clears it, shuffles that order into queue columns, and has a bot play the result; it
 fails if any level cannot be won. It also prints how often careless play loses, which is the
-difficulty dial (`mix`). Endless levels are dealt the same way in the browser, the first time each
-is opened.
+difficulty dial (`mix`). Every tenth level must be a boss, or the build stops. Endless levels are
+dealt the same way in the browser, the first time each is opened. To add a puzzle, draw it in
+`tools/puzzles.mjs`; the build solves it and sets its send limit.
 
 To try it locally, serve `dist/` with any static file server and open it in a browser.
 

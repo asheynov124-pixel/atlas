@@ -3,7 +3,7 @@
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
 var view = { w: 0, h: 0, cell: 20, cx: 0, cy: 0, handTop: 0, handH: 0, colGap: 0, jr: 0, tr: 20, trayY: 0 };
-var fx = { shots: [], pops: [], bits: [], vis: [], pos: {}, kick: {}, slide: [], shake: 0, deny: 0, flash: 0 };
+var fx = { shots: [], pops: [], bits: [], deco: [], vis: [], pos: {}, kick: {}, sz: {}, grow: {}, slide: [], shake: 0, deny: 0, flash: 0, alive: null, hint: null };
 var UI = 'system-ui,-apple-system,sans-serif';
 
 function layout(g) {
@@ -206,12 +206,17 @@ function drawFace(r) {
   }
 }
 
-function drawJelly(x, y, r, key, ammo, squash, alpha) {
+// deco: '' | 'mega' (gold rim and a crown) | 'lock' (padlocked in the hand)
+function drawJelly(x, y, r, key, ammo, squash, alpha, deco) {
   var col = key === '?' ? MYSTERY : PALETTE[key];
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(1 + squash, 1 - squash);
   ctx.globalAlpha = alpha;
+  if (deco === 'mega') {
+    ctx.shadowColor = 'rgba(253,224,71,.9)';
+    ctx.shadowBlur = r * 0.6;
+  }
   ctx.beginPath();
   ctx.moveTo(-r, r * 0.5);
   ctx.bezierCurveTo(-r, -r * 1.3, r, -r * 1.3, r, r * 0.5);
@@ -221,8 +226,9 @@ function drawJelly(x, y, r, key, ammo, squash, alpha) {
   ctx.closePath();
   ctx.fillStyle = fillFor(key, r);
   ctx.fill();
-  ctx.lineWidth = Math.max(1.5, r * 0.1);
-  ctx.strokeStyle = 'rgba(255,255,255,.9)';
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = Math.max(1.5, r * (deco === 'mega' ? 0.16 : 0.1));
+  ctx.strokeStyle = deco === 'mega' ? '#fde047' : 'rgba(255,255,255,.9)';
   ctx.stroke();
   ctx.fillStyle = 'rgba(255,255,255,.4)';
   ctx.beginPath();
@@ -236,8 +242,98 @@ function drawJelly(x, y, r, key, ammo, squash, alpha) {
     ctx.textBaseline = 'middle';
     ctx.fillText(ammo, 0, r * 0.52);
   }
+  if (deco === 'mega') drawCrown(0, -r * 0.98, r * 0.62);
+  if (deco === 'lock') drawLock(r);
   ctx.restore();
 }
+
+function drawCrown(x, y, w) {
+  ctx.beginPath();
+  ctx.moveTo(x - w / 2, y + w * 0.3);
+  ctx.lineTo(x - w / 2, y - w * 0.12);
+  ctx.lineTo(x - w / 4, y + w * 0.08);
+  ctx.lineTo(x, y - w * 0.3);
+  ctx.lineTo(x + w / 4, y + w * 0.08);
+  ctx.lineTo(x + w / 2, y - w * 0.12);
+  ctx.lineTo(x + w / 2, y + w * 0.3);
+  ctx.closePath();
+  ctx.fillStyle = '#facc15';
+  ctx.fill();
+  ctx.lineWidth = Math.max(1, w * 0.08);
+  ctx.strokeStyle = '#a16207';
+  ctx.stroke();
+  ctx.fillStyle = '#ef4444';
+  ctx.beginPath();
+  ctx.arc(x, y + w * 0.08, w * 0.08, 0, 7);
+  ctx.fill();
+}
+
+// A chained jelly: greyed over, crossed by a chain, with a padlock over its face. The ammo
+// number below stays readable.
+function drawLock(r) {
+  var i;
+  ctx.fillStyle = 'rgba(30,41,59,.45)';
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 1.02, 0, 7);
+  ctx.fill();
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = Math.max(1.5, r * 0.08);
+  for (i = -3; i <= 3; i++) {
+    ctx.beginPath();
+    ctx.ellipse(i * r * 0.3, -r * 0.05 + i * r * 0.12, r * 0.14, r * 0.08, 0.38, 0, 7);
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.arc(0, -r * 0.5, r * 0.19, Math.PI, 0);
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = Math.max(1.5, r * 0.1);
+  ctx.stroke();
+  ctx.fillStyle = '#facc15';
+  roundRect(-r * 0.3, -r * 0.52, r * 0.6, r * 0.44, r * 0.1);
+  ctx.fill();
+  ctx.strokeStyle = '#a16207';
+  ctx.lineWidth = Math.max(1, r * 0.07);
+  ctx.stroke();
+  ctx.fillStyle = '#78350f';
+  ctx.beginPath();
+  ctx.arc(0, -r * 0.32, r * 0.07, 0, 7);
+  ctx.fill();
+}
+
+// The golden key drawn on a key cube.
+function drawKey(x, y, s, time) {
+  var k = s * 0.5;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(-0.6 + Math.sin(time * 3) * 0.08);
+  ctx.strokeStyle = '#78350f';
+  ctx.fillStyle = '#fde047';
+  ctx.lineWidth = Math.max(1, s * 0.06);
+  ctx.beginPath();
+  ctx.arc(-k * 0.38, 0, k * 0.3, 0, 7);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillRect(-k * 0.1, -k * 0.09, k * 0.85, k * 0.18);
+  ctx.strokeRect(-k * 0.1, -k * 0.09, k * 0.85, k * 0.18);
+  ctx.fillRect(k * 0.45, k * 0.05, k * 0.14, k * 0.22);
+  ctx.fillRect(k * 0.62, k * 0.05, k * 0.14, k * 0.16);
+  ctx.fillStyle = '#78350f';
+  ctx.beginPath();
+  ctx.arc(-k * 0.38, 0, k * 0.11, 0, 7);
+  ctx.fill();
+  ctx.restore();
+}
+
+// Squishy jellies: a jelly is drawn bigger the more ammo it holds, and eases smaller with
+// every shot it fires.
+function jellySize(j) {
+  var t = (0.8 + 0.34 * Math.min(1, Math.sqrt(j.ammo / 28))) * (j.mega ? 1.06 : 1);
+  var s = fx.sz[j.id];
+  s = s === undefined ? t : s + (t - s) * 0.12;
+  fx.sz[j.id] = s;
+  return s;
+}
+function decoOf(j) { return j.locked ? 'lock' : j.mega ? 'mega' : ''; }
 
 // The little cart a jelly rides round the loop on.
 function drawCart(x, y, r) {
@@ -260,11 +356,21 @@ function burst(x, y, key, n, power) {
   }
 }
 
+// Particles that float rather than fall: hearts, bubbles, petals, snow, stars, smoke.
+function sprinkle(x, y, kind, key, vx, vy, life, size) {
+  fx.deco.push({ x: x, y: y, vx: vx, vy: vy, life: life, t: 0, kind: kind, key: key, s: size, ph: Math.random() * 6.3 });
+}
+
 // Called when a level starts.
 function resetFx(g) {
   fx.shots = [];
   fx.pops = [];
   fx.bits = [];
+  fx.deco = [];
+  fx.sz = {};
+  fx.grow = {};
+  fx.alive = null;
+  fx.hint = null;
   fx.vis = g.grid.slice();
   fx.pos = {};
   fx.kick = {};
@@ -300,6 +406,19 @@ function stepFx(g, dt) {
     b.y += b.vy * dt;
     if (b.t > b.life) fx.bits.splice(i, 1);
   }
+  for (i = fx.deco.length - 1; i >= 0; i--) {
+    b = fx.deco[i];
+    b.t += dt;
+    if (b.kind === 'drop' || b.kind === 'ember') b.vy += view.cell * 18 * dt;
+    b.x += (b.vx + (b.kind === 'petal' || b.kind === 'snow' ? Math.sin(b.t * 3 + b.ph) * view.cell * 1.2 : 0)) * dt;
+    b.y += b.vy * dt;
+    if (b.t > b.life) fx.deco.splice(i, 1);
+  }
+  for (i in fx.grow) {
+    fx.grow[i] += dt;
+    if (fx.grow[i] > 0.5) delete fx.grow[i];
+  }
+  if (fx.alive) stepAlive(g, dt);
   for (i in fx.kick) fx.kick[i] = Math.max(0, fx.kick[i] - dt * 7);
   for (i = 0; i < fx.slide.length; i++) fx.slide[i] = Math.max(0, fx.slide[i] - dt * 6);
   fx.shake = Math.max(0, fx.shake - dt * 3);
@@ -333,15 +452,26 @@ function draw(g, time, mode) {
   ctx.lineWidth = c * 1.62;
   ctx.strokeStyle = 'rgba(15,23,42,.5)';
   ctx.stroke();
+  var hot = g.fever > 0 && playing;
   ctx.lineWidth = c * 1.62 - 4;
-  ctx.strokeStyle = fx.deny > 0 ? 'rgba(127,29,29,.75)' : g.auto ? 'rgba(49,46,129,.95)' : 'rgba(30,41,59,.9)';
+  ctx.strokeStyle = fx.deny > 0 ? 'rgba(127,29,29,.75)' : hot ? 'rgba(154,52,18,.95)' : g.auto ? 'rgba(49,46,129,.95)' : 'rgba(30,41,59,.9)';
+  if (hot) {
+    ctx.shadowColor = 'rgba(251,146,60,.9)';
+    ctx.shadowBlur = c * (1.2 + 0.6 * Math.sin(time * 14));
+  }
   ctx.stroke();
+  ctx.shadowBlur = 0;
   ctx.setLineDash([c * 0.35, c * 0.85]);
   ctx.lineDashOffset = -time * g.speed * c * (playing ? (g.auto ? AUTO_SPEED : 1) : 0);
   ctx.lineWidth = Math.max(2, c * 0.14);
-  ctx.strokeStyle = g.auto ? 'rgba(253,224,71,.8)' : 'rgba(148,163,184,.55)';
+  ctx.strokeStyle = hot ? 'rgba(253,224,71,.95)' : g.auto ? 'rgba(253,224,71,.8)' : 'rgba(148,163,184,.55)';
   ctx.stroke();
   ctx.setLineDash([]);
+  if (fx.alive) {
+    drawAlive(g, time);
+    ctx.restore();
+    return;
+  }
 
   // tray under the cubes
   roundRect(px(g, -0.72), py(g, -0.72), (g.w + 0.44) * c, (g.h + 0.44) * c, c * 0.45);
@@ -367,13 +497,49 @@ function draw(g, time, mode) {
   ctx.fillStyle = 'rgba(255,255,255,.7)';
   ctx.fillText('SEATS', sx, sy + sr * 0.48);
 
+  // a boss: the seconds until it grows back, at the other bottom corner
+  if (g.boss) {
+    var left = Math.ceil(g.boss.every - g.bossT), bxx = px(g, g.w - 1 + m), warn = left <= 4 && playing;
+    ctx.beginPath();
+    ctx.arc(bxx, sy, sr * (warn ? 1 + 0.08 * Math.sin(time * 16) : 1), 0, 7);
+    ctx.fillStyle = warn ? '#dc2626' : '#7f1d1d';
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255,255,255,.5)';
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.font = '800 ' + Math.round(sr * 0.62) + 'px ' + UI;
+    ctx.fillText(left + 's', bxx, sy - sr * 0.08);
+    ctx.font = '700 ' + Math.max(7, Math.round(sr * 0.32)) + 'px ' + UI;
+    ctx.fillStyle = 'rgba(255,255,255,.75)';
+    ctx.fillText('GROWS', bxx, sy + sr * 0.48);
+  }
+
   // cubes
   var glow = mode === 'bolt' ? 0.5 + 0.5 * Math.sin(time * 8) : 0;
   for (i = 0; i < fx.vis.length; i++) {
     x = px(g, i % g.w);
     y = py(g, Math.floor(i / g.w));
     if (fx.vis[i]) {
-      drawCube(x, y, c * 0.92, fx.vis[i], 1);
+      var gt = fx.grow[i];
+      if (gt !== undefined) {
+        // grown back by the boss: swells in with a green flash
+        drawCube(x, y, c * 0.92 * Math.min(1.15, gt / 0.3), fx.vis[i], 1);
+        ctx.strokeStyle = 'rgba(74,222,128,' + Math.max(0, 1 - gt * 2) + ')';
+        ctx.lineWidth = 3;
+        roundRect(x - c * 0.5, y - c * 0.5, c, c, c * 0.2);
+        ctx.stroke();
+      } else {
+        drawCube(x, y, c * 0.92, fx.vis[i], 1);
+      }
+      if (g.keyCells[i]) {
+        // a key cube: gold rim, so it stands out from its neighbours
+        ctx.strokeStyle = 'rgba(250,204,21,' + (0.75 + 0.25 * Math.sin(time * 5)) + ')';
+        ctx.lineWidth = Math.max(2, c * 0.14);
+        roundRect(x - c * 0.47, y - c * 0.47, c * 0.94, c * 0.94, c * 0.22);
+        ctx.stroke();
+        drawKey(x, y, c * 0.92, time);
+      }
       if (glow && g.grid[i]) {
         ctx.strokeStyle = 'rgba(253,224,71,' + (0.35 + glow * 0.5) + ')';
         ctx.lineWidth = 1.5;
@@ -408,9 +574,9 @@ function draw(g, time, mode) {
     ctx.lineTo(x, y);
     ctx.stroke();
     ctx.globalAlpha = 1;
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = p.bonus ? '#fde047' : '#fff';
     ctx.beginPath();
-    ctx.arc(x, y, c * 0.2, 0, 7);
+    ctx.arc(x, y, c * (p.bonus ? 0.26 : 0.2), 0, 7);
     ctx.fill();
     ctx.fillStyle = PALETTE[p.key][1];
     ctx.beginPath();
@@ -435,7 +601,8 @@ function draw(g, time, mode) {
     j = g.slots[i];
     if (!j) continue;
     q = glide(j.id, slotX(g, i), view.trayY, true);
-    drawJelly(q[0], q[1] + tr * 0.06, tr * 0.8, j.color, j.ammo, playing ? Math.sin(time * 4 + j.id) * 0.04 : 0, 1);
+    drawJelly(q[0], q[1] + tr * 0.06, tr * 0.8 * Math.min(1.12, jellySize(j)), j.color, j.ammo, playing ? Math.sin(time * 4 + j.id) * 0.05 : 0, 1, decoOf(j));
+    if (fx.hint && fx.hint.s === i) drawHint(slotX(g, i), view.trayY, tr * 1.15, time);
   }
 
   // jellies out on the loop, and those waiting to join it
@@ -454,17 +621,11 @@ function draw(g, time, mode) {
     q = glide(j.id, x, y, onLoop);
     k = fx.kick[j.id] || 0;
     drawCart(q[0], q[1], r);
-    drawJelly(q[0], q[1], r * (1 + k * 0.22), j.color, j.ammo, Math.sin(time * 9 + j.id) * 0.05, 1);
+    // wobbles as it rides; each shot squashes it flat for a moment
+    drawJelly(q[0], q[1], r * jellySize(j) * (1 + k * 0.12), j.color, j.ammo, Math.sin(time * 9 + j.id) * 0.08 + k * 0.2, 1, decoOf(j));
   }
 
-  // particles
-  for (i = 0; i < fx.bits.length; i++) {
-    p = fx.bits[i];
-    ctx.globalAlpha = Math.max(0, 1 - p.t / p.life);
-    ctx.fillStyle = PALETTE[p.key][1];
-    ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
-  }
-  ctx.globalAlpha = 1;
+  drawParticles();
 
   // hand: one queue per column, front jelly on top and playable
   var jr = view.jr, seatsFull = g.riders() >= g.maxSeats;
@@ -480,7 +641,7 @@ function draw(g, time, mode) {
       var bob = k === 0 && !seatsFull && playing ? Math.sin(time * 4 + i) * 0.04 : 0;
       var dim = mode === 'grab' ? 1 : k === 0 ? (seatsFull ? 0.55 : 1) : 0.9;
       var hid = col[k].hidden;
-      drawJelly(hx, y, jr * s, hid ? '?' : col[k].color, hid ? '?' : col[k].ammo, bob, dim);
+      drawJelly(hx, y, jr * s * Math.min(1.1, hid ? 1 : jellySize(col[k])), hid ? '?' : col[k].color, hid ? '?' : col[k].ammo, bob, dim, hid ? '' : decoOf(col[k]));
       if (mode === 'grab') {
         ctx.beginPath();
         ctx.arc(hx, y + jr * s * 0.06, jr * s * 0.98, 0, 7);
@@ -492,6 +653,7 @@ function draw(g, time, mode) {
         ctx.setLineDash([]);
       }
     }
+    if (fx.hint && fx.hint.c === i && col.length) drawHint(hx, frontY(), jr * 1.25, time);
     if (col.length - 1 > show) {
       ctx.fillStyle = 'rgba(255,255,255,.7)';
       ctx.font = '700 ' + Math.round(jr * 0.4) + 'px ' + UI;
@@ -506,7 +668,199 @@ function draw(g, time, mode) {
     ctx.fillStyle = 'rgba(253,224,71,' + fx.flash * 0.18 + ')';
     ctx.fillRect(0, 0, view.w, view.h);
   }
+  // Fever: the edges of the screen glow
+  if (hot) {
+    var a = 0.22 + 0.1 * Math.sin(time * 10), e = Math.min(view.w, view.h) * 0.18, gr;
+    gr = ctx.createLinearGradient(0, 0, e, 0);
+    gr.addColorStop(0, 'rgba(249,115,22,' + a + ')');
+    gr.addColorStop(1, 'rgba(249,115,22,0)');
+    ctx.fillStyle = gr;
+    ctx.fillRect(0, 0, e, view.h);
+    gr = ctx.createLinearGradient(view.w, 0, view.w - e, 0);
+    gr.addColorStop(0, 'rgba(249,115,22,' + a + ')');
+    gr.addColorStop(1, 'rgba(249,115,22,0)');
+    ctx.fillStyle = gr;
+    ctx.fillRect(view.w - e, 0, e, view.h);
+  }
   ctx.restore();
+}
+
+// A puzzle hint: a pulsing gold ring round the jelly to send next.
+function drawHint(x, y, r, time) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, r * (1 + 0.08 * Math.sin(time * 8)), 0, 7);
+  ctx.setLineDash([r * 0.3, r * 0.18]);
+  ctx.lineDashOffset = -time * r;
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#fde047';
+  ctx.shadowColor = '#facc15';
+  ctx.shadowBlur = 12;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function heartPath(x, y, s) {
+  ctx.beginPath();
+  ctx.moveTo(x, y + s * 0.35);
+  ctx.bezierCurveTo(x - s, y - s * 0.3, x - s * 0.4, y - s, x, y - s * 0.35);
+  ctx.bezierCurveTo(x + s * 0.4, y - s, x + s, y - s * 0.3, x, y + s * 0.35);
+}
+
+function drawParticles() {
+  var i, p, f;
+  for (i = 0; i < fx.bits.length; i++) {
+    p = fx.bits[i];
+    ctx.globalAlpha = Math.max(0, 1 - p.t / p.life);
+    ctx.fillStyle = PALETTE[p.key][1];
+    ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
+  }
+  for (i = 0; i < fx.deco.length; i++) {
+    p = fx.deco[i];
+    f = p.t / p.life;
+    ctx.globalAlpha = Math.max(0, f < 0.15 ? f / 0.15 : 1 - (f - 0.15) / 0.85);
+    ctx.fillStyle = PALETTE[p.key] ? PALETTE[p.key][1] : p.key;
+    if (p.kind === 'heart') {
+      heartPath(p.x, p.y, p.s);
+      ctx.fill();
+    } else if (p.kind === 'bubble') {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.s, 0, 7);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(255,255,255,.85)';
+      ctx.stroke();
+    } else if (p.kind === 'petal') {
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, p.s, p.s * 0.55, p.t * 3 + p.ph, 0, 7);
+      ctx.fill();
+    } else if (p.kind === 'star') {
+      ctx.beginPath();
+      for (var k = 0; k < 8; k++) {
+        var rr = k % 2 ? p.s * 0.28 : p.s, an = k * Math.PI / 4 + p.t * 2;
+        ctx.lineTo(p.x + Math.cos(an) * rr, p.y + Math.sin(an) * rr);
+      }
+      ctx.closePath();
+      ctx.fill();
+    } else if (p.kind === 'smoke') {
+      ctx.fillStyle = 'rgba(226,232,240,.55)';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.s * (1 + f * 1.5), 0, 7);
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.s, 0, 7);
+      ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ---------- the picture comes alive ----------
+//
+// After a win the finished picture pops back in and plays a little animation of its own:
+// a motion for the cubes and something that drifts off it. Endless levels ('Whale Dusk')
+// use the animation of the picture they are made from.
+
+var ALIVE = {
+  'Warm-up': 'bounce confetti', 'Heart': 'pulse hearts', 'Apple Tree': 'sway confetti', 'Flower': 'sway petals',
+  'Duck': 'float bubbles', 'Rocket': 'rise flame', 'House': 'bounce smoke', 'Cat': 'bounce hearts',
+  'Fish': 'wave bubbles', 'Cupcake': 'bounce confetti', 'Sun': 'pulse stars', 'Ice Cream': 'bounce snow',
+  'Ghost': 'float stars', 'Penguin': 'bounce snow', 'Strawberry': 'bounce hearts', 'Sailboat': 'float bubbles',
+  'Robot': 'bounce stars', 'Watermelon': 'bounce confetti', 'Ice Pond': 'bounce snow', 'Snowman': 'bounce snow',
+  'Treasure Chest': 'bounce stars', 'Lighthouse': 'bounce stars', 'Mystery Gift': 'pulse confetti',
+  'Castle': 'bounce fireworks', 'Hot Air Balloon': 'rise smoke', 'Dragon': 'wave erupt', 'Night City': 'bounce fireworks',
+  'Octopus': 'wave bubbles', 'Mushroom': 'bounce stars', 'Owl': 'bounce stars', 'Cactus': 'sway stars',
+  'Hamburger': 'bounce smoke', 'Saturn': 'float stars', 'Volcano': 'shake erupt', 'Turtle': 'float bubbles',
+  'Pirate Ship': 'float bubbles', 'Whale': 'float spout', 'Lantern': 'float fireworks', 'Crown': 'pulse stars',
+  'Cherry Blossom': 'sway petals', 'Galaxy': 'pulse stars', 'Rainbow': 'bounce confetti', 'Butterfly': 'float petals',
+  'Peacock': 'pulse stars', 'Fox': 'bounce hearts',
+  'Slime King': 'crumble confetti', 'Grumpy Cloud': 'crumble confetti', 'Yeti': 'crumble snow', 'Robo Rex': 'crumble fireworks'
+};
+
+function aliveFor(name) {
+  var best = '', k;
+  for (k in ALIVE) if (name.indexOf(k) === 0 && k.length > best.length) best = k;
+  return (ALIVE[best] || 'bounce confetti').split(' ');
+}
+
+// level: the level just won. The whole picture comes back, cube by cube from the middle out.
+function startAlive(g, lv) {
+  var a = aliveFor(lv.name), i;
+  fx.alive = { t: 0, motion: a[0], fx: a[1], spawn: 0, fall: [] };
+  fx.vis = g.art0.slice();
+  for (i = 0; i < g.grid.length; i++) {
+    if (!fx.vis[i] && lv.art[Math.floor(i / g.w)].charAt(i % g.w) === '#') fx.vis[i] = '#';
+    fx.alive.fall.push(Math.random() * 0.5);
+  }
+}
+
+function stepAlive(g, dt) {
+  var A = fx.alive, c = view.cell, top = py(g, 0), bot = py(g, g.h - 1), mid = view.cx, i, x, y;
+  A.t += dt;
+  A.spawn += dt;
+  var gap = { confetti: 0.05, hearts: 0.12, petals: 0.08, bubbles: 0.08, snow: 0.05, stars: 0.07, spout: 0.025, erupt: 0.02, smoke: 0.09, flame: 0.02, fireworks: 0.45 }[A.fx] || 0.08;
+  if (A.t < 0.45) return;
+  while (A.spawn > gap) {
+    A.spawn -= gap;
+    x = px(g, Math.random() * (g.w - 1));
+    y = py(g, Math.random() * (g.h - 1));
+    if (A.fx === 'confetti') burst(x, top - c, 'RYBGPCON'.charAt(Math.floor(Math.random() * 8)), 2, c * 8);
+    else if (A.fx === 'hearts') sprinkle(x, y, 'heart', Math.random() < 0.5 ? 'N' : 'R', (Math.random() - 0.5) * c, -c * (2 + Math.random() * 2), 1.6, c * (0.35 + Math.random() * 0.3));
+    else if (A.fx === 'petals') sprinkle(px(g, Math.random() * g.w * 1.3 - 2), top - c * 2, 'petal', Math.random() < 0.6 ? 'N' : 'W', c * 0.6, c * (1.5 + Math.random()), 2.4, c * 0.28);
+    else if (A.fx === 'bubbles') sprinkle(x, bot, 'bubble', 'W', (Math.random() - 0.5) * c * 0.6, -c * (2 + Math.random() * 2), 2, c * (0.15 + Math.random() * 0.25));
+    else if (A.fx === 'snow') sprinkle(px(g, Math.random() * (g.w + 4) - 2), top - c * 2, 'snow', 'W', 0, c * (1.2 + Math.random()), 3, c * (0.08 + Math.random() * 0.12));
+    else if (A.fx === 'stars') sprinkle(x, y, 'star', Math.random() < 0.6 ? 'Y' : 'W', 0, -c * 0.3, 0.8, c * (0.25 + Math.random() * 0.25));
+    else if (A.fx === 'spout' || A.fx === 'erupt') {
+      var ex = A.fx === 'spout' ? px(g, (g.w - 1) * 0.5 + (Math.random() - 0.5)) : mid + (Math.random() - 0.5) * c;
+      sprinkle(ex, top, A.fx === 'spout' ? 'drop' : 'ember', A.fx === 'spout' ? (Math.random() < 0.5 ? 'C' : 'W') : 'ROY'.charAt(Math.floor(Math.random() * 3)), (Math.random() - 0.5) * c * 4, -c * (8 + Math.random() * 5), 1.4, c * (0.12 + Math.random() * 0.14));
+    } else if (A.fx === 'smoke') sprinkle(px(g, g.w * 0.25 + Math.random() * g.w * 0.5), top, 'smoke', 'W', (Math.random() - 0.5) * c * 0.5, -c * 1.6, 2, c * 0.3);
+    else if (A.fx === 'flame') sprinkle(mid + (Math.random() - 0.5) * c * 2 + 0, bot + c * 0.6 + aliveShift(g, 0, g.h - 1).dy, 'ember', 'OY'.charAt(Math.floor(Math.random() * 2)), (Math.random() - 0.5) * c * 2, c * (3 + Math.random() * 3), 0.6, c * 0.2);
+    else if (A.fx === 'fireworks') {
+      var fxp = px(g, Math.random() * (g.w - 1)), fyp = top - c * (1 + Math.random() * 2), key = 'RYBGPCON'.charAt(Math.floor(Math.random() * 8));
+      for (i = 0; i < 18; i++) {
+        var an = i * Math.PI / 9;
+        sprinkle(fxp, fyp, 'dot', key, Math.cos(an) * c * 5, Math.sin(an) * c * 5, 0.8, c * 0.12);
+      }
+    }
+  }
+}
+
+// How the cube at (x, y) is moved by the picture's motion at this moment.
+function aliveShift(g, x, y) {
+  var A = fx.alive, t = A.t, c = view.cell, o = { dx: 0, dy: 0, s: 1 }, m = A.motion, h = Math.max(1, g.h - 1);
+  if (t < 0.45) return o;
+  t -= 0.45;
+  if (m === 'bounce') o.dy = -Math.abs(Math.sin(t * 5 - x * 0.35 - y * 0.2)) * c * 0.2;
+  else if (m === 'wave') o.dx = Math.sin(t * 4 + y * 0.6) * c * 0.3 * (0.3 + y / h);
+  else if (m === 'float') o.dy = Math.sin(t * 2.4) * c * 0.5;
+  else if (m === 'pulse') o.s = 1 + 0.12 * Math.max(0, Math.sin(t * 7));
+  else if (m === 'sway') o.dx = Math.sin(t * 2.5) * c * 0.35 * (1 - y / h);
+  else if (m === 'rise') o.dy = -Math.max(0, t - 0.4) * Math.max(0, t - 0.4) * c * 6;
+  else if (m === 'shake') { o.dx = Math.sin(t * 47 + y) * c * 0.1; o.dy = Math.cos(t * 39 + x) * c * 0.06; }
+  return o;
+}
+
+function drawAlive(g, time) {
+  var A = fx.alive, c = view.cell, i, x, y, cx = (g.w - 1) / 2, cy = (g.h - 1) / 2;
+  roundRect(px(g, -0.72), py(g, -0.72), (g.w + 0.44) * c, (g.h + 0.44) * c, c * 0.45);
+  ctx.fillStyle = 'rgba(238,242,255,.94)';
+  ctx.fill();
+  for (i = 0; i < fx.vis.length; i++) {
+    if (!fx.vis[i]) continue;
+    x = i % g.w;
+    y = Math.floor(i / g.w);
+    var delay = Math.sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy)) * 0.035, k = (A.t - delay) / 0.25;
+    if (k <= 0) continue;
+    var pop = k < 1 ? k * (1.25 - 0.25 * k) : 1, o = aliveShift(g, x, y), dy = o.dy, alpha = 1;
+    if (A.motion === 'crumble' && A.t > 1.1 + A.fall[i]) {
+      // a beaten boss falls to pieces
+      var ft = A.t - 1.1 - A.fall[i];
+      dy += ft * ft * c * 14;
+      alpha = Math.max(0, 1 - ft * 0.9);
+    }
+    drawCube(px(g, x) + o.dx, py(g, y) + dy, c * 0.92 * pop * o.s, fx.vis[i], alpha);
+  }
+  drawParticles();
 }
 
 // ---------- what is under a touch ----------

@@ -35,12 +35,19 @@ function clearedCount() { return save.stars.filter(function (n) { return n > 0; 
 function starCount() { return save.stars.reduce(function (a, n) { return a + (n || 0); }, 0); }
 function upgradeCount() { return UPGRADES.reduce(function (a, u) { return a + (save.up[u.id] || 0); }, 0); }
 function firstStars(n) { return save.stars.slice(0, n).reduce(function (a, s) { return a + (s || 0); }, 0); }
+function bossesBeaten() { return [9, 19, 29, 39].filter(function (i) { return save.stars[i] > 0; }).length; }
+function puzzlesSolved() { return Object.keys(save.puzzles || {}).length; }
 
 // An award is earned when have() reaches goal. It pays its coins once.
 var AWARDS = [
   { id: 'first', name: 'First Pop', text: 'Clear a level.', coins: 20, goal: 1, have: clearedCount },
   { id: 'half', name: 'Getting Going', text: 'Clear 10 levels.', coins: 50, goal: 10, have: clearedCount },
-  { id: 'all', name: 'Full Gallery', text: 'Clear the 45 hand-drawn levels.', coins: 200, goal: 45, have: clearedCount },
+  { id: 'all', name: 'Full Gallery', text: 'Clear the 49 hand-drawn levels.', coins: 200, goal: 49, have: clearedCount },
+  { id: 'boss', name: 'Boss Slayer', text: 'Beat the four bosses: levels 10, 20, 30 and 40.', coins: 300, goal: 4, have: bossesBeaten },
+  { id: 'fever', name: 'On Fire', text: 'Reach Fever 25 times.', coins: 60, goal: 25, have: function () { return save.fevers; } },
+  { id: 'keys', name: 'Locksmith', text: 'Free 10 chained jellies.', coins: 60, goal: 10, have: function () { return save.unlocks; } },
+  { id: 'puzzle', name: 'Puzzle Master', text: 'Solve all 12 puzzles.', coins: 250, goal: 12, have: puzzlesSolved },
+  { id: 'album', name: 'Collector', text: 'Complete 3 pages of the sticker album.', coins: 150, goal: 3, have: function () { return pagesDone(); } },
   { id: 'fifty', name: 'Endless Road', text: 'Clear 50 levels.', coins: 300, goal: 50, have: clearedCount },
   { id: 'star10', name: 'Star Pupil', text: 'Collect 10 stars.', coins: 40, goal: 10, have: starCount },
   { id: 'star25', name: 'Constellation', text: 'Collect 25 stars.', coins: 100, goal: 25, have: starCount },
@@ -155,7 +162,8 @@ var TASKS = [
   { id: 'three', text: 'Get 3 stars on {n} levels', ns: [1, 2] },
   { id: 'send', text: 'Send {n} jellies round the loop', ns: [40, 70, 100] },
   { id: 'auto', text: 'Reach {n} quick finishes', ns: [2, 3] },
-  { id: 'spin', text: 'Spin the Lucky Wheel', ns: [1] }
+  { id: 'spin', text: 'Spin the Lucky Wheel', ns: [1] },
+  { id: 'fever', text: 'Reach Fever {n} times', ns: [2, 3, 5] }
 ];
 var TASK_PTS = 25;
 var CHESTS = [
@@ -296,7 +304,7 @@ function dayNum() {
   return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
 }
 
-// ---------- board pieces: ice, crates, mystery jellies ----------
+// ---------- board pieces: ice, crates, mystery and chained jellies, bosses ----------
 
 var PIECES = {
   ice: {
@@ -310,6 +318,14 @@ var PIECES = {
   mystery: {
     name: 'Mystery jellies',
     text: 'A jelly marked ? keeps its colour secret until it reaches the front of its column. A Grabber can pull one out early, but you will not know what you get.'
+  },
+  lock: {
+    name: 'Chained jellies',
+    text: 'A padlocked jelly cannot leave the hand, and it blocks its column. Pop a cube with a golden key on it to free the chained jelly nearest the front.'
+  },
+  boss: {
+    name: 'Boss levels',
+    text: 'Every tenth level is a boss. Every 20 seconds it grows back some of the cubes you popped, and new jellies join your hand to match. Beat it fast! The first win pays 100 coins more.'
   }
 };
 
@@ -319,6 +335,8 @@ function piecesOf(lv) {
   if (/[a-z]/.test(art)) out.push('ice');
   if (art.indexOf('#') >= 0) out.push('crate');
   if ((lv.hand && lv.hand.join(' ').indexOf('?') >= 0) || lv.mystery > 0) out.push('mystery');
+  if ((lv.hand && lv.hand.join(' ').indexOf('!') >= 0) || lv.locks > 0) out.push('lock');
+  if (lv.boss) out.push('boss');
   return out;
 }
 
@@ -331,6 +349,8 @@ function pieceIcon(id, size) {
   ctx.scale(d, d);
   if (id === 'ice') { drawCube(size * 0.3, size * 0.5, size * 0.42, 'b', 1); drawCube(size * 0.72, size * 0.5, size * 0.42, 'B', 1); }
   else if (id === 'crate') drawCube(size / 2, size / 2, size * 0.6, '#', 1);
+  else if (id === 'lock') drawJelly(size / 2, size * 0.52, size * 0.34, 'B', '', 0, 1, 'lock');
+  else if (id === 'boss') { drawCube(size / 2, size * 0.6, size * 0.6, 'G', 1); drawCrown(size / 2, size * 0.2, size * 0.5); }
   else drawJelly(size / 2, size * 0.52, size * 0.34, '?', '?', 0, 1);
   ctx = keep;
   return cv;
@@ -368,7 +388,7 @@ function pieceChips(lv) {
 
 // ---------- daily challenge ----------
 
-var DAILY = -1;
+var DAILY = -1, PUZZLE = -2;
 function dailyIndex() { return 5000 + dayNum() % 1000; }
 function dailyLevel() { return Deal.get(dailyIndex(), LEVELS); }
 function dailyPreview() { return Deal.preview(dailyIndex(), LEVELS); }
@@ -755,6 +775,11 @@ function updateTop() {
   $('sWheel').querySelector('b').hidden = !wheelFree();
   $('sWheel').querySelector('b').textContent = '1';
   $('bPlay').textContent = 'Play - Level ' + save.unlocked;
+  $('sPuzzleT').textContent = puzzlesSolved() + '/' + PUZZLES.length;
+  $('sAlbumT').textContent = stickerCount() + '/' + LEVELS.length;
+  var claim = albumClaimable();
+  $('sAlbum').querySelector('b').hidden = !claim;
+  $('sAlbum').querySelector('b').textContent = claim;
 }
 
 function drawMap() {
@@ -763,12 +788,13 @@ function drawMap() {
   for (i = from; i <= to; i++) {
     if (i > from) map.appendChild(el('div', 'road'));
     var info = Deal.preview(i, LEVELS), stars = save.stars[i] || 0;
-    var card = el('button', 'lvl' + (i < cur ? (stars ? ' done' : ' fresh') : i === cur ? ' now' : ' lock'));
+    var card = el('button', 'lvl' + (i < cur ? (stars ? ' done' : ' fresh') : i === cur ? ' now' : ' lock') + (info.boss ? ' boss' : ''));
     card.appendChild(thumb(info.art, 110));
     card.appendChild(el('strong', '', i + 1));
+    if (info.boss) card.appendChild(el('em', 'bosstag', 'BOSS'));
     if (stars) card.appendChild(starRow(stars));
     else if (i < cur) card.appendChild(el('em', 'tagnew', 'NEW'));
-    if (piecesOf(info).length) card.appendChild(el('span', 'pz', piecesOf(info).map(function (p) { return p === 'ice' ? E(0x2744) : p === 'crate' ? E(0x1F4E6) : '?'; }).join(' ')));
+    if (piecesOf(info).length) card.appendChild(el('span', 'pz', piecesOf(info).filter(function (p) { return p !== 'boss'; }).map(function (p) { return p === 'ice' ? E(0x2744) : p === 'crate' ? E(0x1F4E6) : p === 'lock' ? E(0x1F512) : '?'; }).join(' ')));
     card.onclick = (function (n) {
       return function () {
         if (n <= cur) openLevel(n);
@@ -905,7 +931,7 @@ function openLevel(i) {
   var daily = i === DAILY, info = daily ? dailyPreview() : Deal.preview(i, LEVELS), chosen = {}, free = streakFree();
   free.forEach(function (id) { chosen[id] = true; });
   openModal(function (b) {
-    b.appendChild(el('h1', '', daily ? 'Daily Challenge' : 'Level ' + (i + 1)));
+    b.appendChild(el('h1', '', daily ? 'Daily Challenge' : info.boss ? 'Boss! Level ' + (i + 1) : 'Level ' + (i + 1)));
     var pic = thumb(info.art, 150);
     pic.className = 'pic';
     b.appendChild(pic);
@@ -916,7 +942,8 @@ function openLevel(i) {
         : 'A tougher level, new every day. Win it today for ' + describe(DAILY_PRIZE) + ' and 3 keys.'));
     }
     var big = info.hand ? Math.max.apply(null, info.hand.join(' ').split(' ').map(function (t) { return parseInt(t.slice(1), 10) || 0; })) : info.chunk;
-    b.appendChild(el('p', 'note', 'Jellies here carry up to ' + big + ' shots each.'));
+    b.appendChild(el('p', 'note', 'Jellies here carry up to ' + big + ' shots each.' + (i >= 2 || daily ? ' Look out for the gold Mega jelly with double shots.' : '')));
+    if (info.boss) b.appendChild(el('p', 'note', 'Every ' + info.boss.every + ' seconds ' + info.name + ' grows back ' + info.boss.grow + ' cubes. Beat it for 100 bonus coins the first time.'));
     var chips = pieceChips(info);
     if (chips) b.appendChild(chips);
     var st = el('div', 'streak'), txt = el('div', 'body'), steps = el('div', 'steps');
@@ -1131,10 +1158,12 @@ function openSettings() {
     b.appendChild(s2);
     b.appendChild(el('h3', '', 'How to play'));
     b.appendChild(el('p', 'note', 'Tap a jelly at the front of a column to put it on the loop. It rides once round the picture and pops the outermost cube of its own colour in every row and column it passes. If it still has ammo it lands on the belt; tap it there to send it round again. The loop has 5 seats and the belt 5 places. If a jelly comes back and every place on the belt is taken, you lose the round. When every jelly left fits on the loop at once, the round finishes by itself.'));
-    b.appendChild(el('p', 'note', 'Ice cubes take two hits. Crates block their lanes until a cube next to them pops. Jellies marked ? show their colour at the front of their column.'));
+    b.appendChild(el('p', 'note', 'Ice cubes take two hits. Crates block their lanes until a cube next to them pops. Jellies marked ? show their colour at the front of their column. A padlocked jelly is freed when a cube with a golden key pops.'));
+    b.appendChild(el('p', 'note', 'Pop cubes quickly to fill the Fever meter under the progress bar: when it is full, every shot pops two cubes for a few seconds. One jelly in most hands is a gold Mega jelly with double shots. Every tenth level is a boss that grows back while you play.'));
     b.appendChild(el('h3', '', 'Your stats'));
     var st = el('div', 'stats');
     [['Levels cleared', clearedCount()], ['Stars', starCount()], ['Wins', save.wins], ['Best streak', save.bestStreak],
+     ['Fevers', save.fevers], ['Bosses beaten', bossesBeaten()], ['Puzzles solved', puzzlesSolved()], ['Stickers', stickerCount()],
      ['Cubes popped', save.pops], ['Ice cracked', save.iceCracked], ['Crates broken', save.cratesBroken],
      ['Daily wins', save.dailyWins], ['Wheel spins', save.spins]].forEach(function (r) {
       var cell = el('div', '');
@@ -1151,5 +1180,98 @@ function openSettings() {
       try { localStorage.removeItem('jellyloop1'); } catch (e) { /* ignore */ }
       location.reload();
     }));
+  }, updateTop);
+}
+
+// ---------- puzzles ----------
+
+function puzzleOpen(k) { return k === 0 || !!save.puzzles[k - 1] || !!save.puzzles[k]; }
+
+function openPuzzles() {
+  openModal(function (b) {
+    b.appendChild(el('h1', '', E(0x1F9E9) + ' Puzzles'));
+    b.appendChild(el('p', 'note', 'No luck, no lives: one jelly rides at a time, and you must clear the picture in exactly the sends shown. Each first solve pays 40 coins and a key. Hints cost ' + HINT_COST + ' coins.'));
+    var grid = el('div', 'pgrid');
+    PUZZLES.forEach(function (p, k) {
+      var open = puzzleOpen(k), done = !!save.puzzles[k];
+      var card = el('button', 'pcard' + (done ? ' done' : '') + (open ? '' : ' shut'));
+      card.appendChild(thumb(p.art, 64));
+      card.appendChild(el('strong', '', (k + 1) + '. ' + p.name));
+      card.appendChild(el('small', '', done ? E(0x2705) + ' Solved' : open ? p.moves + ' sends' : E(0x1F512)));
+      card.onclick = function () {
+        if (!open) { toast('Solve puzzle ' + k + ' first'); return; }
+        $('modal').hidden = true;
+        modalClose = null;
+        startPuzzle(k);
+      };
+      grid.appendChild(card);
+    });
+    b.appendChild(grid);
+  }, updateTop);
+}
+
+// ---------- sticker album ----------
+//
+// Every hand-drawn picture cleared is a sticker; three stars make it shiny. A full page
+// pays its reward once.
+
+var ALBUM = [
+  { name: 'Animals', icon: 0x1F43E, list: ['Duck', 'Cat', 'Fish', 'Penguin', 'Owl', 'Turtle', 'Whale', 'Octopus', 'Fox'], reward: { coins: 150, boosts: { bolt: 2 } } },
+  { name: 'Fantasy', icon: 0x1F984, list: ['Butterfly', 'Peacock', 'Dragon', 'Ghost', 'Robot', 'Snowman', 'Mystery Gift', 'Treasure Chest', 'Crown'], reward: { coins: 150, boosts: { wild: 2 } } },
+  { name: 'Sweet Treats', icon: 0x1F9C1, list: ['Heart', 'Cupcake', 'Ice Cream', 'Strawberry', 'Watermelon', 'Hamburger'], reward: { coins: 100, boosts: { grab: 2 } } },
+  { name: 'Nature', icon: 0x1F33F, list: ['Apple Tree', 'Flower', 'Cactus', 'Cherry Blossom', 'Ice Pond', 'Volcano', 'Mushroom'], reward: { coins: 120, boosts: { squish: 2 } } },
+  { name: 'Sky & Space', icon: 0x1FA90, list: ['Sun', 'Rainbow', 'Rocket', 'Saturn', 'Galaxy', 'Hot Air Balloon'], reward: { coins: 100, boosts: { fire: 2 } } },
+  { name: 'Places', icon: 0x1F3F0, list: ['Warm-up', 'House', 'Castle', 'Lighthouse', 'Night City', 'Sailboat', 'Pirate Ship', 'Lantern'], reward: { coins: 120, boosts: { seat: 2 } } },
+  { name: 'Bosses', icon: 0x1F451, list: ['Slime King', 'Grumpy Cloud', 'Yeti', 'Robo Rex'], reward: { coins: 200, boosts: { slot: 2 }, inf: 30 } }
+];
+
+function levelByName(name) {
+  for (var i = 0; i < LEVELS.length; i++) if (LEVELS[i].name === name) return i;
+  return -1;
+}
+function stickerCount() { return save.stars.slice(0, LEVELS.length).filter(function (n) { return n > 0; }).length; }
+function pageHave(pg) { return pg.list.filter(function (n) { return save.stars[levelByName(n)] > 0; }).length; }
+function pagesDone() { return ALBUM.filter(function (pg) { return pageHave(pg) === pg.list.length; }).length; }
+function albumClaimable() {
+  return ALBUM.filter(function (pg, k) { return pageHave(pg) === pg.list.length && !save.albumGot[k]; }).length;
+}
+
+var albumPage = 0;
+function openAlbum(k) {
+  if (k !== undefined) albumPage = k;
+  openModal(function (b) {
+    var pg = ALBUM[albumPage], have = pageHave(pg), full = have === pg.list.length;
+    b.appendChild(el('h1', '', E(0x1F4D2) + ' Sticker Album'));
+    var tabs = el('div', 'atabs');
+    ALBUM.forEach(function (p, n) {
+      var t = btn(n === albumPage ? 'on' : '', E(p.icon), function () { openAlbum(n); });
+      if (pageHave(p) === p.list.length && !save.albumGot[n]) t.appendChild(el('b', '', '!'));
+      tabs.appendChild(t);
+    });
+    b.appendChild(tabs);
+    b.appendChild(el('h3', '', pg.name + '  ' + have + '/' + pg.list.length));
+    var grid = el('div', 'agrid');
+    pg.list.forEach(function (name) {
+      var i = levelByName(name), st = save.stars[i] || 0, cell = el('div', 'sticker' + (st ? ' got' : '') + (st === 3 ? ' shiny' : ''));
+      var pic = thumb(LEVELS[i].art, 70);
+      cell.appendChild(pic);
+      cell.appendChild(el('small', '', st ? name : 'Level ' + (i + 1)));
+      if (st === 3) cell.appendChild(el('i', 'glint', E(0x2728)));
+      grid.appendChild(cell);
+    });
+    b.appendChild(grid);
+    b.appendChild(el('p', 'note', 'Clear a picture to win its sticker. Three stars make it shiny.'));
+    var got = !!save.albumGot[albumPage];
+    var claim = btn('go', got ? 'Page reward collected' : full ? 'Claim ' + describe(pg.reward) : 'Page reward: ' + describe(pg.reward), function () {
+      if (got || !full) return;
+      save.albumGot[albumPage] = 1;
+      grant(pg.reward);
+      toast('Album page complete: ' + describe(pg.reward));
+      tone(784, 0.3, 'triangle', 0.12, 1.3);
+      checkAwards();
+      openAlbum();
+    });
+    claim.disabled = got || !full;
+    b.appendChild(claim);
   }, updateTop);
 }
