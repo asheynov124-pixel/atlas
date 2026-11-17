@@ -29,6 +29,7 @@ changes only grammar and world will fail it.
 | Build | Grammar | Nav treatment | Hero device | Act-sequence shape | Close pattern | Signature move | World | Port |
 |---|---|---|---|---|---|---|---|---|
 | sonny-and-adi | Stationery suite (new: cards in a wedding suite, one paper ground, one photographic full frame at the peak) | Top bar: monogram + suite index (4 jump links) + fixed postmark chrome | Sealed lined envelope; flap folds back, invitation card rises sideways, turns upright, envelope sinks (5 planes, pointer lean) | pin(env) > flow+parallax > pin+iris > pan(timeline) > flow+in > pin; 6 acts, 12.9vh desktop | Reply card holds: live day count, calendar + directions as printed links, garland arch bookend | Postmark that re-stamps per chapter, adds a cancel wave per chapter, stamps YES at the proposal, ends on days-to-go | Their own engagement photos + Zola toile florals, dusty blue on cool paper, Cormorant + Libre Baskerville | 4500 |
+| lens | Live surface (the page is the app running on a saved, labelled copy of Wikipedia; copy in the app's idiom) | The app's own floating tab bar as page nav (jumps) + fixed Trail button with live badge | A live phone surface already in a state (Lens Home, 20 Jul 2026); its feed scrolls with progress; annotations beside it | pin(feed) > flow+in(typing) > pin+reveal(paper wipe, save sheet) > pan(rail behind the phone, synced to Timeline) > pin+reveal(screen opens to window, Story) > flow+in > pin(input); 7 acts, 14.0vh desktop | The app's Search tab with a real input; live link opens the real app on your query; credits | The Trail: records the visitor's own steps, how they arrived, and what they type; navigable sheet; each topic opens in the real app | Lens's own UI tokens (black, gold, New York serif) + public-domain paintings; one paper-theme wipe | 4510 |
 
 
 ---
@@ -41,8 +42,8 @@ act-count-and-length band. The shared columns are what the next build inherits
 as a constraint, so writing them down is the whole point.
 
 - **Stationery suite** grammar, the **envelope-opens hero**, the **postmark** signature move and the **reply-card close** (sonny-and-adi). The iris reveal that opens *from a point inside the photograph* (the ring) is also taken.
+- **Live surface** grammar with the app's tab bar as nav, the **screen-opens-to-window** peak (a reveal from a device's screen rect to the full viewport), the **Trail** signature (a visitor-action recorder with a badge), and the **real-input close** (lens).
 
-Nothing is taken yet.
 
 ---
 
