@@ -1,0 +1,119 @@
+/* ─── Print: one spread per landscape page ─────────────────────────────────── */
+
+@page {
+  size: 11in 8.5in;
+  margin: 0;
+}
+
+.print-book {
+  display: none;
+}
+
+@media screen {
+  /* While preparing to print, lay the book out off screen. */
+  .print-book {
+    display: block;
+    position: absolute;
+    left: -200vw;
+    top: 0;
+    width: 11in;
+    visibility: hidden;
+  }
+}
+
+@media print {
+  html,
+  body,
+  #root {
+    height: auto !important;
+    background: #fff !important;
+    overflow: visible !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .book:not(.print-book),
+  .book::before,
+  .compare,
+  .compare-tray,
+  .who,
+  .side-sheet,
+  .sheet-scrim,
+  .rt-bar {
+    display: none !important;
+  }
+
+  .print-book {
+    display: block !important;
+    position: static !important;
+    visibility: visible !important;
+    width: 11in;
+  }
+
+  .print-page {
+    width: 11in;
+    height: 8.5in;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: var(--paper);
+    break-after: page;
+    page-break-after: always;
+    break-inside: avoid;
+  }
+
+  .print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+}
+
+.print-book .sheet {
+  position: relative;
+  width: 11in !important;
+  aspect-ratio: 3 / 2;
+  container-type: inline-size;
+  container-name: sheet;
+  transition: none;
+}
+
+.print-book .sheet[data-closed] {
+  transform: translateX(-25%);
+}
+
+.print-book .spread--open,
+.print-book .cover {
+  box-shadow: none !important;
+}
+
+.print-book .spread--open::before {
+  display: none;
+}
+
+/* A whisper of the gutter, as an offset press would leave it. */
+.print-book .spread--open::after {
+  opacity: 0.35;
+}
+
+.print-book .turn-zone,
+.print-book .image-tools,
+.print-book .pic__note {
+  display: none !important;
+}
+
+/* Paper is paper: the on-screen grain (an SVG noise, multiplied in) would make the PDF
+   rasterise every page. Real paper supplies its own. */
+.print-book .page::after,
+.print-book .cover::after,
+.print-book .ph::after {
+  display: none !important;
+}
+
+.print-book * {
+  mix-blend-mode: normal !important;
+}

@@ -1,0 +1,156 @@
+/* ─── The leaf slide ────────────────────────────────────────────────────────────
+   A page lifts and slides across the spine, front turning to back as it travels.
+   Everything here moves by transform and opacity alone.                          */
+
+.stage__base {
+  position: absolute;
+  inset: 0;
+}
+
+.turn {
+  position: absolute;
+  inset: 0;
+  z-index: 24;
+  pointer-events: none;
+}
+
+.half {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  overflow: hidden;
+}
+
+.half--left {
+  left: 0;
+}
+
+.half--right {
+  left: 50%;
+}
+
+.half__inner {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 200%;
+  left: 0;
+}
+
+.half--right .half__inner {
+  left: -100%;
+}
+
+/* Inside the leaf, a half fills the leaf. */
+.leaf .half {
+  left: 0;
+  width: 100%;
+}
+
+.turn__stay {
+  position: absolute;
+  inset: 0;
+}
+
+/* The page about to be covered darkens a little as the leaf's shadow reaches it. */
+.turn__dim {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+}
+
+.turn__dim--left {
+  left: 0;
+  background: linear-gradient(90deg, rgb(var(--shade) / 0.02), rgb(var(--shade) / 0.16));
+}
+
+.turn__dim--right {
+  left: 50%;
+  background: linear-gradient(270deg, rgb(var(--shade) / 0.02), rgb(var(--shade) / 0.16));
+}
+
+.leaf {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 50%;
+  will-change: transform;
+}
+
+.leaf__face {
+  position: absolute;
+  inset: 0;
+}
+
+/* The light catching the lifted edge: the hint of a curl. */
+.leaf__sheen {
+  position: absolute;
+  inset: 0;
+}
+
+.leaf--fwd .leaf__sheen {
+  background: linear-gradient(90deg,
+    rgb(255 255 255 / 0.32) 0%,
+    rgb(255 255 255 / 0.07) 7%,
+    rgb(0 0 0 / 0.05) 16%,
+    transparent 34%,
+    transparent 86%,
+    rgb(0 0 0 / 0.08) 100%);
+}
+
+.leaf--back .leaf__sheen {
+  background: linear-gradient(270deg,
+    rgb(255 255 255 / 0.32) 0%,
+    rgb(255 255 255 / 0.07) 7%,
+    rgb(0 0 0 / 0.05) 16%,
+    transparent 34%,
+    transparent 86%,
+    rgb(0 0 0 / 0.08) 100%);
+}
+
+/* The shadow the leaf casts on the page ahead of it. */
+.leaf__cast {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 18%;
+}
+
+.leaf--fwd .leaf__cast {
+  right: 100%;
+  background: linear-gradient(90deg, transparent, rgb(var(--shade) / 0.24));
+}
+
+.leaf--back .leaf__cast {
+  left: 100%;
+  background: linear-gradient(270deg, transparent, rgb(var(--shade) / 0.24));
+}
+
+/* Opening the cover: the endpaper waits under the cover until the cover reaches it. */
+.stage__base--opening .page--verso {
+  visibility: hidden;
+}
+
+.stage__base--opening .spread--open,
+.stage__base--opening .spread--open::before,
+.stage__base--opening .spread--open::after {
+  box-shadow: none;
+  background: none;
+}
+
+/* The copies drawn for a turn need no book shadow of their own: the real one is beneath. */
+.half .spread--open {
+  box-shadow: none !important;
+}
+
+.half .spread--open::before {
+  display: none;
+}
+
+.half,
+.leaf__face {
+  contain: strict;
+}
