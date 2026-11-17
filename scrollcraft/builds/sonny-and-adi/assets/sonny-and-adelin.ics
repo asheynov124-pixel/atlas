@@ -1,0 +1,15 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Sonny and Adelin//Wedding//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:sonny-adelin-wedding-20270408@sonnyandadi
+DTSTAMP:20261117T000000Z
+DTSTART:20270408T223000Z
+DTEND:20270409T040000Z
+SUMMARY:Sonny & Adelin's Wedding
+LOCATION:The Estate at Florentine Gardens\, 97 Rivervale Rd\, River Vale\, NJ 07675
+DESCRIPTION:Ceremony 6:30 pm (please arrive 15 to 20 minutes early). Cocktail hour 7:00 to 8:00 pm. Reception 8:00 pm until midnight. Black tie. Adults only. Complimentary valet parking.
+END:VEVENT
+END:VCALENDAR
