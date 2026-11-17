@@ -1,0 +1,15 @@
+{
+  "id": "cm_witness_list",
+  "name": "Witness list builder",
+  "category": "discovery",
+  "description": "Everyone the record mentions, what each person knows, and the documents that show it.",
+  "input": { "kind": "documents", "filter": "" },
+  "triggers": ["witness list", "who knows"],
+  "steps": [
+    { "id": "s1", "title": "People in each document", "kind": "per_document", "instructions": "List every person named, their role, and what the document shows they know or did, with the line pointer.", "model": "fast", "effort": "low", "tools": [], "output": "list" },
+    { "id": "s2", "title": "Witness list", "kind": "combine", "instructions": "Merge into one witness list: name, role, subjects of knowledge, and the documents that prove it. Flag anyone who appears in conflicting records.", "model": "balanced", "effort": "medium", "tools": [], "output": "table" }
+  ],
+  "rubric": [{ "id": "c1", "text": "Every subject of knowledge is tied to a document." }],
+  "min_score": 0.8, "max_revisions": 2, "budget_usd": 6,
+  "author": "Community sample", "source": "community", "tags": ["discovery"]
+}

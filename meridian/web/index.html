@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Meridian</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%230f5c6b'/%3E%3Cpath d='M4 16h24' stroke='%23fff' stroke-width='2.4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.12/marked.min.js"></script>
+</head>
+<body data-view="workspace" data-tab="canvas">
+
+<!-- ============================== AUTH ============================== -->
+<section id="auth" class="auth" hidden>
+  <div class="auth-card">
+    <div class="brand big"><span class="mark" aria-hidden="true"></span>Meridian</div>
+    <p class="muted" id="auth-sub">Sign in to your firm.</p>
+    <form id="auth-form" class="form">
+      <label id="auth-name-row" hidden>Your name<input id="auth-name" autocomplete="name"></label>
+      <label>Email<input id="auth-email" type="email" autocomplete="username" required></label>
+      <label>Password<input id="auth-password" type="password" autocomplete="current-password" minlength="10" required></label>
+      <button class="primary" id="auth-submit" type="submit">Sign in</button>
+      <p class="small muted" id="auth-note"></p>
+      <p class="small error" id="auth-error" role="alert"></p>
+    </form>
+  </div>
+</section>
+
+<!-- ============================== APP ============================== -->
+<div id="app" hidden>
+<header class="top">
+  <div class="brand"><span class="mark" aria-hidden="true"></span>Meridian</div>
+  <label class="matter-pick"><span class="muted small">Matter</span><select id="matter" aria-label="Matter"></select></label>
+  <nav class="views" aria-label="Views">
+    <button data-view-btn="workspace" class="on">Workspace</button>
+    <button data-view-btn="research">Research</button>
+    <button data-view-btn="drafts">Drafts</button>
+    <button data-view-btn="workflows">Workflows</button>
+    <button data-view-btn="deadlines">Deadlines</button>
+    <button data-view-btn="admin" id="admin-btn" hidden>Admin</button>
+  </nav>
+  <button class="bell" id="bell" title="Pending approvals" aria-label="Pending approvals">🔔<span id="bell-count" class="count" hidden>0</span></button>
+  <span class="badge" id="provider">…</span>
+  <span class="user" id="user"></span>
+  <button class="ghost small" id="logout">Sign out</button>
+</header>
+
+<!-- ---------------------------- Workspace ---------------------------- -->
+<main class="view" id="view-workspace">
+<div class="shell">
+  <aside class="col left" data-zone="runs">
+    <section class="zone"><h2 class="zh">Runs <button class="link" id="new-run">+ New run</button></h2><ul class="runs" id="runs"></ul></section>
+    <section class="zone needs-you" id="needs-you" hidden><h2 class="zh">Needs you</h2><div id="needs-you-list"></div></section>
+    <section class="zone conv">
+      <h2 class="zh">Conversation</h2>
+      <div class="messages" id="messages"></div>
+      <form class="composer" id="composer">
+        <textarea id="prompt" rows="2" placeholder="Ask or delegate…" aria-label="Ask or delegate"></textarea>
+        <div class="composer-row">
+          <label class="tpl"><span class="muted">Workflow</span> <select id="template"><option value="">auto</option></select></label>
+          <button type="button" class="ghost" id="ask">Ask</button>
+          <button type="submit" class="primary" id="delegate">Delegate</button>
+        </div>
+      </form>
+    </section>
+  </aside>
+  <section class="col canvas" data-zone="canvas" id="canvas">
+    <div class="empty" id="canvas-empty">
+      <h1 id="matter-title">Nothing on the canvas yet</h1>
+      <p>Delegate a goal and the result lands here with every fact traceable to its source. Ask a question and Meridian answers from the record, with pin cites.</p>
+      <div class="suggest" id="suggestions"></div>
+      <h3>Documents <span class="muted small" id="docs-count"></span></h3>
+      <div class="dropzone" id="dropzone" tabindex="0">Drop PDFs, emails or text files here to add them to the matter, or <button class="link" id="pick-files">choose files</button>.<input type="file" id="file-input" multiple hidden accept=".pdf,.txt,.md,.eml,.csv,.json,.html,.htm"></div>
+      <table class="docs" id="docs"></table>
+    </div>
+    <article id="canvas-run" hidden>
+      <header class="run-head"><div><p class="eyebrow" id="run-id"></p><h1 id="run-goal"></h1></div><div class="chips" id="run-chips"></div></header>
+      <section class="card" id="plan-card" hidden></section>
+      <section class="card" id="questions" hidden></section>
+      <section class="card" id="progress-live" hidden></section>
+      <section class="doc" id="artifact"></section>
+      <aside class="prov-card" id="prov-card" hidden></aside>
+    </article>
+  </section>
+  <aside class="col right" data-zone="memory">
+    <section class="zone swarm"><h2 class="zh">Swarm <button class="link" id="open-trace" hidden>Open trace</button></h2><div id="swarm-body" class="muted small">Select a run.</div></section>
+    <section class="zone"><h2 class="zh">Approvals <span class="count-inline" id="approvals-count">0</span></h2><div id="approvals-list" class="small muted">Nothing waiting on you.</div></section>
+    <section class="zone"><h2 class="zh">Memory <button class="link" id="explore">Explore</button></h2><div id="memory-summary" class="small"></div></section>
+  </aside>
+</div>
+<nav class="tabs" aria-label="Zones"><button data-tab-btn="runs">Runs</button><button data-tab-btn="canvas" class="on">Canvas</button><button data-tab-btn="memory">Rails</button></nav>
+</main>
+
+<!-- ---------------------------- Research ---------------------------- -->
+<main class="view" id="view-research" hidden>
+  <div class="research">
+    <section class="r-main">
+      <form id="r-form" class="r-search">
+        <input id="r-q" placeholder="Ask a legal question, or type a citation like 142 N.J. 520" autocomplete="off">
+        <div class="seg" role="radiogroup" aria-label="Mode"><button type="button" data-mode="search" class="on">Search</button><button type="button" data-mode="ask">Ask the assistant</button></div>
+        <button class="primary" type="submit">Go</button>
+      </form>
+      <p class="small muted" id="r-status"></p>
+      <div id="r-answer"></div>
+      <details class="trace" id="r-trace" hidden><summary>How Meridian searched</summary><ol id="r-trace-list"></ol></details>
+      <div id="r-results"></div>
+      <section id="r-recs" hidden><h3>Recommended next</h3><div id="r-recs-list"></div></section>
+    </section>
+    <aside class="r-side">
+      <div class="seg wide" role="tablist"><button data-rtab="case" class="on">Opinion</button><button data-rtab="quotes">Quote bank</button><button data-rtab="library">Library</button></div>
+      <div id="rt-case" class="rt"><p class="muted small">Open a case from the results. Select any passage to save it to the quote bank or copy its pin cite.</p></div>
+      <div id="rt-quotes" class="rt" hidden></div>
+      <div id="rt-library" class="rt" hidden></div>
+    </aside>
+  </div>
+  <div class="sel-pop" id="sel-pop" hidden><button class="primary small" id="sel-save">Save quote</button><button class="ghost small" id="sel-copy">Copy with pin cite</button></div>
+</main>
+
+<!-- ---------------------------- Drafts ---------------------------- -->
+<main class="view" id="view-drafts" hidden>
+  <div class="drafts">
+    <aside class="d-list"><button class="primary wide" id="d-new">+ New draft</button><ul id="d-items"></ul></aside>
+    <section class="d-main">
+      <div id="d-empty" class="empty"><h1>Drafting</h1><p>Write here and drag authorities in from the right: verified quotes from the bank, record cites from the matter, or search results. Every inserted cite is a live token that Verify re-checks against the opinion or the record.</p></div>
+      <div id="d-editor-wrap" hidden>
+        <div class="d-head"><input id="d-title" aria-label="Draft title"><span class="small muted" id="d-saved"></span></div>
+        <div class="d-tools" role="toolbar">
+          <button data-cmd="bold" title="Bold"><b>B</b></button><button data-cmd="italic" title="Italic"><i>I</i></button><button data-cmd="h2" title="Heading">H</button><button data-cmd="p" title="Paragraph">¶</button>
+          <span class="sp"></span>
+          <button class="ghost" id="d-verify">Verify citations</button><button class="ghost" id="d-toa">Table of authorities</button><button class="ghost" id="d-export">Export .doc</button><button class="ghost danger" id="d-delete">Delete</button>
+        </div>
+        <div id="d-editor" class="d-editor" contenteditable="true" spellcheck="true" aria-label="Draft"></div>
+        <section id="d-report" class="card" hidden></section>
+      </div>
+    </section>
+    <aside class="d-side">
+      <div class="seg wide" role="tablist"><button data-dtab="quotes" class="on">Quote bank</button><button data-dtab="record">Record</button><button data-dtab="search">Search</button></div>
+      <input id="d-filter" placeholder="Filter…" aria-label="Filter">
+      <div id="d-cards" class="cards"></div>
+    </aside>
+  </div>
+</main>
+
+<!-- ---------------------------- Workflows ---------------------------- -->
+<main class="view" id="view-workflows" hidden>
+  <div class="wf">
+    <section class="wf-start">
+      <button class="wf-mode" id="wf-solo"><b>Build it yourself</b><span>Lay out the steps, tools and rubric.</span></button>
+      <button class="wf-mode" id="wf-ai"><b>Describe it to Meridian</b><span>Say what you want in plain English; get an editable design with the reasoning shown.</span></button>
+      <button class="wf-mode" id="wf-inspire"><b>Start from an example</b><span>Copy a gallery or community workflow and make it yours.</span></button>
+    </section>
+    <section id="wf-recs" class="card" hidden><h3>Recommended for this matter</h3><div id="wf-recs-list" class="chips"></div></section>
+    <div class="seg" role="tablist"><button data-wtab="builtins" class="on">Built-in</button><button data-wtab="mine">Mine</button><button data-wtab="examples">Examples</button><button data-wtab="community">Community</button></div>
+    <div id="wf-grid" class="grid"></div>
+  </div>
+</main>
+
+<!-- ---------------------------- Deadlines ---------------------------- -->
+<main class="view" id="view-deadlines" hidden>
+  <div class="dl">
+    <section class="dl-main">
+      <header class="dl-head"><h1>Deadlines</h1><div class="chips"><button class="ghost" id="dl-scan">Scan documents</button><a class="ghost btn" id="dl-ics">Download calendar (.ics)</a></div></header>
+      <p class="small muted">A second set of eyes on the docket, not the calendar of record. Computed under R. 1:3-1 with the New Jersey court holiday table; every entry shows its math and waits for a partner's approval before it is calendared. <span id="dl-watch"></span></p>
+      <table class="dl-table" id="dl-table"></table>
+      <section id="dl-trip" hidden><h3>Tripwires</h3><div id="dl-trip-list"></div></section>
+    </section>
+    <aside class="dl-side card">
+      <h3>Compute a deadline</h3>
+      <form id="dl-form" class="form">
+        <label>Rule<select id="dl-rule"></select></label>
+        <label>Trigger date<input id="dl-date" type="date" required></label>
+        <label class="check"><input type="checkbox" id="dl-mail"> Served by mail (adds 3 days, R. 1:3-3)</label>
+        <div class="row"><button class="ghost" type="submit">Show the math</button><button class="primary" type="button" id="dl-propose">Propose to calendar</button></div>
+      </form>
+      <div id="dl-math"></div>
+      <details><summary class="small">Court holidays</summary><ul class="small" id="dl-holidays"></ul></details>
+    </aside>
+  </div>
+</main>
+
+<!-- ---------------------------- Admin ---------------------------- -->
+<main class="view" id="view-admin" hidden>
+  <div class="admin">
+    <section class="card"><h3>People</h3><table class="tbl" id="ad-users"></table>
+      <form id="ad-user-form" class="form inline"><input id="ad-u-name" placeholder="Name" required><input id="ad-u-email" type="email" placeholder="Email" required><select id="ad-u-role"><option>associate</option><option>partner</option><option>paralegal</option><option>admin</option></select><input id="ad-u-pw" type="password" placeholder="Temporary password (10+)" minlength="10" required><button class="primary">Add person</button></form></section>
+    <section class="card"><h3>Matters, membership and ethical screens</h3><div id="ad-matters"></div>
+      <form id="ad-matter-form" class="form inline"><input id="ad-m-name" placeholder="Matter name" required><input id="ad-m-client" placeholder="Client"><input id="ad-m-dir" placeholder="Documents folder (optional)"><button class="primary">Open matter</button></form></section>
+    <section class="card"><h3>Audit trail</h3><p class="small" id="ad-chain"></p><div class="row"><a class="ghost btn" id="ad-csv">Export this matter (CSV)</a><a class="ghost btn" id="ad-jsonl">Export this matter (JSONL)</a><a class="ghost btn" id="ad-firm">Export firm-wide (CSV)</a></div><div class="tbl-wrap"><table class="tbl small" id="ad-audit"></table></div></section>
+  </div>
+</main>
+</div>
+
+<div class="overlay" id="overlay" hidden><div class="panel" role="dialog" aria-modal="true" aria-labelledby="overlay-title"><header><h2 id="overlay-title"></h2><button class="ghost" id="overlay-close">Close</button></header><div id="overlay-body"></div></div></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>

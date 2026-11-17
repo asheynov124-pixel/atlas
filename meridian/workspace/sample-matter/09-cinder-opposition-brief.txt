@@ -1,0 +1,24 @@
+PLAINTIFF CINDER FREIGHT CO.'S BRIEF IN OPPOSITION TO DEFENDANT'S CROSS-MOTION FOR PARTIAL SUMMARY JUDGMENT (SAMPLE, FICTIONAL)
+Cinder Freight Co. v. Harbor Logistics, Inc., Docket No. MID-L-002417-26
+
+PRELIMINARY STATEMENT
+Harbor asks the Court to resolve disputed facts on a paper record. It cannot.
+
+POINT I
+HARBOR'S NOTICE OF DEFECT WAS UNTIMELY AND INEFFECTIVE.
+Section 9.2 required written notice within seven days of delivery. Harbor's letter is dated January 29, 2026, but Harbor offers no proof of when it was sent. Cinder's quality log shows the pallets passed inspection on January 20, 2026, before loading. A non-moving party “cannot defeat a motion for summary judgment merely by pointing to any fact in dispute.” Brill v. Guardian Life Ins. Co. of Am., 142 N.J. 520, 529 (1995). Harbor's speculation about damage in transit is exactly that.
+
+POINT II
+THE RATE INCREASE TOOK EFFECT ON FEBRUARY 1, 2026.
+Cinder gave notice on December 15, 2025. Section 4.3 measures the objection period from the date of the notice, not its receipt. See Atlas Packaging, LLC v. Granite Supply Co., No. A-2204-22 (App. Div. Oct. 4, 2024) (slip op. at 6) (rate notice effective on dispatch). Harbor did not object within thirty days.
+
+POINT III
+GENUINE ISSUES OF MATERIAL FACT PRECLUDE SUMMARY JUDGMENT FOR HARBOR.
+The motion judge must consider whether “the competent evidential materials presented, when viewed in the light most favorable to the non-moving party, are sufficient to permit a reasonable jury to resolve the alleged disputed issue in favor of the non-moving party.” Brill, 142 N.J. at 540. And “[i]f there exists a single, unavoidable resolution of the alleged disputed issue of fact, that issue should be considered insufficient to constitute a ‘genuine’ issue.” Brill, 142 N.J. at 523. Here there is no single resolution. At this stage the Court “is not concerned with the ability of plaintiffs to prove the allegation contained in the complaint.” Printing Mart-Morristown v. Sharp Elecs. Corp., 116 N.J. 739, 746 (1989). A court must not “shut a deserving litigant from his trial.” Judson v. Peoples Bank & Trust Co. of Westfield, 17 N.J. 67, 77 (1954).
+
+POINT IV
+HARBOR'S COUNTERCLAIM FOR CONSEQUENTIAL DAMAGES IS BARRED BY SECTION 11.4.
+Section 11.4 of the Master Services Agreement excludes consequential damages. Harbor's claim for lost customer revenue is consequential and fails as a matter of law.
+
+CONCLUSION
+The cross-motion should be denied.
