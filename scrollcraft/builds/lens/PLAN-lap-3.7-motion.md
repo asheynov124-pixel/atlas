@@ -5,6 +5,12 @@ iPhone). Written after building the Lens showcase page with scroll-craft
 (`scrollcraft/builds/lens/`). That build used real Wikipedia data, and in doing
 so found two date bugs and one spelling-suggestion bug in Lens today.
 
+> **Update, 17 Nov 2026.** The showcase page was dropped at Adi's request; the
+> bugs it found (§2) still stand. Release 3.6A2 then shipped the restrained
+> version of the motion: CSS scroll-driven, article page and Lens Timeline only
+> (the photo settles, the reading hairline = M4, the Timeline line draws and
+> events arrive). M1–M3 below are not built and are optional.
+
 ## 1. Goal
 
 Take the four moments that made the showcase feel alive and put them in the
