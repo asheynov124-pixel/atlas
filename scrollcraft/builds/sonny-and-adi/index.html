@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sonny &amp; Adelin · April 8, 2027</title>
+<meta name="description" content="Sonny Del Valle and Adelin Sheynov are getting married on Thursday, April 8, 2027, at The Estate at Florentine Gardens in River Vale, New Jersey.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23263556'/><text x='16' y='21' font-family='Georgia' font-size='14' text-anchor='middle' fill='%23DCE3EE'>S&amp;A</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Libre+Baskerville:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="scrollcraft.css">
+<style>
+  /* Six colours, two faces: the couple's own pair from their Zola theme. */
+  :root {
+    --sc-canvas:     #F5F6F8;
+    --sc-surface:    #FCFCFB;
+    --sc-ink:        #1E2A44;
+    --sc-ink-soft:   #4E5B74;
+    --sc-accent:     #44608C;
+    --sc-accent-ink: #FFFFFF;
+    --sc-font-display: "Cormorant Garamond", "Cormorant", Georgia, serif;
+    --sc-font-text:    "Libre Baskerville", Georgia, serif;
+    --sc-shadow-color: 219 30% 22%;
+
+    --env:      #B4C1D4;  /* envelope paper, the toile's own blue, lifted   */
+    --env-dark: #9DADC4;
+    --liner:    #24335A;
+    --ink-stamp:#4A6593;
+    --card:     #FDFDFB;
+    --bar-h: 64px;
+  }
+
+  body { font-size: clamp(0.98rem, 0.94rem + 0.18vw, 1.06rem); line-height: 1.78; }
+  h1, h2, h3, p, figure, dl, dd { margin: 0; }
+  img { height: auto; }
+
+  .smallcaps {
+    font-family: var(--sc-font-display);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: var(--sc-t-xs);
+    color: var(--sc-ink-soft);
+  }
+  .h2 {
+    font-family: var(--sc-font-display);
+    font-weight: 400;
+    font-size: var(--sc-t-3xl);
+    line-height: 1;
+    letter-spacing: -0.01em;
+    color: var(--sc-ink);
+    text-wrap: balance;
+  }
+  .h2 em, .h3 em { font-style: italic; }
+  .h3 {
+    font-family: var(--sc-font-display);
+    font-weight: 500;
+    font-size: var(--sc-t-xl);
+    line-height: 1.1;
+    color: var(--sc-ink);
+  }
+  .body { color: var(--sc-ink-soft); max-width: 36rem; text-wrap: pretty; }
+  .link {
+    color: var(--sc-accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.3em;
+    font-family: var(--sc-font-display);
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-size: var(--sc-t-sm);
+    padding: 0.6em 0;
+    display: inline-block;
+    transition: color var(--sc-d-fast) var(--sc-ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) { .link:hover { color: var(--sc-ink); } }
+  .link:active { transform: translateY(1px); }
+
+  /* ------------------------------------------------------------ chrome -- */
+  .bar {
+    position: fixed; inset: 0 0 auto 0; z-index: var(--sc-z-chrome);
+    height: var(--bar-h);
+    display: flex; align-items: center; gap: var(--sc-6);
+    padding-inline: var(--sc-gutter);
+    background: color-mix(in oklab, var(--sc-canvas) 88%, transparent);
+    backdrop-filter: saturate(1.1) blur(6px);
+    border-bottom: 1px solid var(--sc-hairline);
+  }
+  .bar__mark {
+    font-family: var(--sc-font-display); font-weight: 500;
+    font-size: 1.45rem; letter-spacing: 0.06em; text-decoration: none; color: var(--sc-ink);
+    white-space: nowrap;
+  }
+  .bar__mark i { font-weight: 400; color: var(--sc-accent); padding-inline: 0.1em; }
+  .bar__nav { display: flex; gap: var(--sc-6); margin-left: auto; margin-right: 128px; }
+  .bar__nav a {
+    font-family: var(--sc-font-display); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.2em; font-size: 0.78rem;
+    color: var(--sc-ink-soft); text-decoration: none; padding: 0.7rem 0; position: relative;
+    white-space: nowrap;
+    transition: color var(--sc-d-fast) var(--sc-ease-out);
+  }
+  .bar__nav a::after {
+    content: ""; position: absolute; left: 0; right: 0.2em; bottom: 0.45rem; height: 1px;
+    background: var(--sc-accent); transform: scaleX(0); transform-origin: left;
+    transition: transform var(--sc-d-base) var(--sc-ease-out);
+  }
+  .bar__nav a[aria-current="true"] { color: var(--sc-ink); }
+  .bar__nav a[aria-current="true"]::after { transform: scaleX(1); }
+  @media (hover: hover) and (pointer: fine) { .bar__nav a:hover { color: var(--sc-ink); } }
+
+  /* The postmark: the signature move. Fixed chrome, re-stamped per chapter. */
+  .postmark {
+    position: fixed; z-index: calc(var(--sc-z-chrome) + 1);
+    top: 10px; right: calc(var(--sc-gutter) - 14px);
+    width: 112px; height: 112px;
+    pointer-events: none;
+    color: var(--ink-stamp);
+    rotate: -9deg;
+  }
+  .postmark svg { width: 100%; height: 100%; overflow: visible; }
+  .postmark__ring { font-family: var(--sc-font-display); font-weight: 600; font-size: 8.4px; letter-spacing: 0.08em; fill: currentColor; text-transform: uppercase; }
+  .postmark__c1 { font-family: var(--sc-font-display); font-weight: 600; font-size: 15px; letter-spacing: 0.06em; fill: currentColor; }
+  .postmark__c2 { font-family: var(--sc-font-display); font-weight: 600; font-size: 9px; letter-spacing: 0.18em; fill: currentColor; }
+  .postmark__face { transform-origin: 60px 60px; opacity: 0.86; }
+  .postmark.is-stamping .postmark__face { animation: stamp 260ms var(--sc-ease-out); }
+  @keyframes stamp {
+    0%   { transform: scale(1.14); opacity: 0.25; }
+    55%  { transform: scale(0.97); opacity: 0.95; }
+    100% { transform: scale(1);    opacity: 0.86; }
+  }
+  .postmark__waves path {
+    fill: none; stroke: currentColor; stroke-width: 1.4; opacity: 0.7;
+    stroke-dasharray: 120; stroke-dashoffset: 120;
+    transition: stroke-dashoffset 520ms var(--sc-ease-out);
+  }
+  .postmark__waves path.on { stroke-dashoffset: 0; }
+
+  /* --------------------------------------------- 1 · the invitation ----- */
+  .inv__stage { background: transparent; }
+  .inv__far {
+    position: absolute; left: 50%; top: -6vh; width: min(1500px, 120vw); max-width: none;
+    translate: -50% 0; opacity: 0.32; filter: blur(1px);
+    pointer-events: none;
+  }
+  .inv__title {
+    position: absolute; left: 50%; top: calc(var(--bar-h) + 7vh);
+    translate: -50% 0; width: min(56rem, 92vw);
+    text-align: center; z-index: 3;
+  }
+  .inv__names {
+    font-family: var(--sc-font-display); font-weight: 400;
+    font-size: clamp(3.2rem, 1.6rem + 6vw, 7.2rem);
+    line-height: 0.96; letter-spacing: -0.015em; color: var(--sc-ink);
+  }
+  .inv__names i { font-weight: 400; color: var(--sc-accent); padding-inline: 0.06em; }
+  .inv__line { margin-top: var(--sc-5); }
+  .inv__line span { white-space: nowrap; }
+
+  .inv__scene { position: absolute; inset: 0; z-index: 4; perspective: 1600px; }
+  .env {
+    position: absolute; left: 50%; top: 0;
+    width: var(--env-w, 600px); height: var(--env-h, 420px);
+    margin-left: calc(var(--env-w, 600px) / -2);
+    perspective: 1400px;
+    will-change: transform;
+  }
+  .env__back {
+    position: absolute; inset: 0; z-index: 1;
+    background: var(--env-dark);
+    border-radius: 3px;
+    box-shadow: var(--sc-e3);
+  }
+  .env__liner {
+    position: absolute; inset: 3.5% 3% 0; overflow: hidden;
+    clip-path: polygon(0 0, 100% 0, 50% 62%);
+  }
+  .env__liner, .env__flap-in {
+    background-color: var(--liner);
+    background-image: url(assets/sprig-l.webp), url(assets/sprig-r.webp);
+    background-size: 34% auto, 34% auto;
+    background-position: 0 0, 17% 50%;
+    background-repeat: repeat;
+    background-blend-mode: normal;
+  }
+  .env__liner::after, .env__flap-in::after { /* knock the print back so it reads as a liner, not a photo */
+    content: ""; position: absolute; inset: 0; background: hsl(222 43% 25% / 0.45);
+  }
+  .env__flap {
+    position: absolute; left: 0; top: 0; width: 100%; height: 58%;
+    transform-origin: 50% 0; transform-style: preserve-3d; z-index: 6;
+  }
+  .env.is-open .env__flap { z-index: 2; }
+  .env__flap-out, .env__flap-in {
+    position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  }
+  .env__flap-out {
+    background: linear-gradient(180deg, #BFCADB 0%, var(--env) 70%);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+  }
+  .env__flap-out::after { /* the fold's soft shadow onto the pocket */
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 70%, hsl(219 30% 30% / 0.10));
+  }
+  .env__flap-in {
+    transform: rotateX(180deg);
+    overflow: hidden;
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  }
+  .env__pocket { position: absolute; inset: 0; z-index: 5; width: 100%; height: 100%; }
+  .env__seal {
+    position: absolute; z-index: 7; left: 50%; top: 58%;
+    width: 15%; aspect-ratio: 1; translate: -50% -50%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 32%, #3A4C77 0%, #24335A 55%, #1A2645 100%);
+    box-shadow: 0 2px 3px hsl(219 40% 12% / 0.35), 0 6px 14px -4px hsl(219 40% 12% / 0.35), inset 0 1px 0 hsl(219 40% 70% / 0.25);
+    display: grid; place-items: center;
+    font-family: var(--sc-font-display); font-weight: 500; color: #DCE3EE;
+    font-size: calc(var(--env-w, 600px) * 0.04); letter-spacing: 0.04em;
+  }
+  .env__seal::before { /* the pressed ring of a wax seal */
+    content: ""; position: absolute; inset: 9%; border-radius: 50%;
+    border: 1px solid hsl(219 40% 80% / 0.35);
+  }
+
+  .card {
+    position: absolute; left: 50%; top: 0; z-index: 3;
+    width: var(--card-w, 500px); height: var(--card-h, 700px);
+    margin-left: calc(var(--card-w, 500px) / -2);
+    container-type: inline-size;
+    background: var(--card);
+    border-radius: 3px;
+    box-shadow: var(--sc-edge), 0 1px 2px hsl(var(--sc-shadow-color) / 0.16), 0 22px 50px -18px hsl(var(--sc-shadow-color) / 0.38);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    padding: 9cqw 8cqw;
+    transform-origin: 50% 50%;
+  }
+  .card::before { /* a fine blind-deboss border, set inside the card edge */
+    content: ""; position: absolute; inset: 3.4cqw; border: 1px solid hsl(219 30% 50% / 0.22); border-radius: 2px; pointer-events: none;
+  }
+  .card__photo {
+    width: 64cqw; aspect-ratio: 660 / 800; overflow: hidden;
+    border-radius: 999px 999px 2px 2px;
+    background: #E7EAEE;
+  }
+  .card__photo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; }
+  .card__kicker { margin-top: 6.5cqw; font-size: 2.9cqw; letter-spacing: 0.3em; }
+  .card__name {
+    font-family: var(--sc-font-display); font-weight: 400; color: var(--sc-ink);
+    font-size: 9.6cqw; line-height: 1.02; letter-spacing: 0.005em; margin-top: 2.6cqw;
+  }
+  .card__amp { font-family: var(--sc-font-display); font-style: italic; color: var(--sc-accent); font-size: 6.4cqw; line-height: 1; margin-top: 1cqw; }
+  .card__amp + .card__name { margin-top: 0.6cqw; }
+  .card__when, .card__where {
+    font-size: 3.9cqw; line-height: 1.6; color: var(--sc-ink-soft); margin-top: 6cqw;
+  }
+  .card__where { margin-top: 3cqw; font-style: italic; }
+
+  .inv__sprig {
+    position: absolute; z-index: 8; bottom: -14vh; width: min(560px, 40vw); max-width: none;
+    pointer-events: none; will-change: transform;
+  }
+  .inv__sprig--l { left: -7vw; }
+  .inv__sprig--r { right: -7vw; }
+
+  /* ----------------------------------------------------- 2 · our story -- */
+  .story { padding-top: clamp(4rem, 9vw, 9rem); }
+  .story__grid {
+    display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: clamp(2.5rem, 7vw, 8rem); align-items: start;
+  }
+  .story__text > .h2 { margin-bottom: var(--sc-7); }
+  .story__p + .story__p { margin-top: var(--sc-7); }
+  .story__p .smallcaps { display: block; margin-bottom: var(--sc-3); color: var(--sc-accent); }
+  .story__p p { color: var(--sc-ink-soft); max-width: 34rem; text-wrap: pretty; }
+  .story__media { position: relative; padding-top: var(--sc-9); }
+  .story__fig { overflow: hidden; border-radius: 2px; box-shadow: var(--sc-e2); background: #E7EAEE; }
+  .story__fig img { width: 100%; height: 100%; object-fit: cover; }
+  .story__fig--a { width: 78%; aspect-ratio: 1067 / 1450; }
+  .story__fig--b { width: 62%; aspect-ratio: 1067 / 1262; margin: -26% 0 0 auto; position: relative; z-index: 2; outline: clamp(8px, 1vw, 14px) solid var(--sc-canvas); }
+  .story figcaption { margin-top: var(--sc-3); }
+
+  /* --------------------------------------------------- 3 · the proposal -- */
+  .yes__stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); align-items: center; gap: clamp(2rem, 5vw, 6rem); padding-inline: var(--sc-gutter); padding-top: var(--bar-h); }
+  .yes__photo {
+    justify-self: end;
+    height: min(78svh, 86vw * 1.39); aspect-ratio: 1067 / 1481;
+    overflow: hidden; border-radius: 2px;
+    clip-path: circle(var(--iris, 1%) at 63.4% 46.2%);
+    background: #E7EAEE;
+    grid-column: 2; grid-row: 1;
+  }
+  .yes__photo img { width: 100%; height: 100%; object-fit: cover; scale: var(--yes-zoom, 1.18); transform-origin: 63.4% 46.2%; }
+  .yes__copy { grid-column: 1; grid-row: 1; display: grid; justify-self: end; width: min(30rem, 100%); }
+  .yes__copy > * { grid-area: 1 / 1; align-self: center; }
+  .yes__lede {
+    font-family: var(--sc-font-display); font-weight: 400; color: var(--sc-ink);
+    font-size: var(--sc-t-2xl); line-height: 1.12; letter-spacing: -0.005em; text-wrap: balance;
+  }
+  .yes__word {
+    font-family: var(--sc-font-display); font-style: italic; font-weight: 400;
+    font-size: clamp(6rem, 3rem + 10vw, 12rem); line-height: 0.85; color: var(--sc-accent);
+    letter-spacing: -0.02em;
+  }
+  .yes__end .body { margin-top: var(--sc-5); max-width: 26rem; }
+
+  /* ------------------------------------------------- 4 · the evening ---- */
+  .eve__stage { display: flex; align-items: center; padding-top: var(--bar-h); }
+  .eve__rail {
+    display: flex; align-items: stretch; width: max-content;
+    padding-inline: var(--sc-gutter) 8vw; gap: clamp(3rem, 6vw, 7rem);
+    position: relative; will-change: transform;
+  }
+  .eve__rail::before { /* the evening's timeline, running the full rail */
+    content: ""; position: absolute; right: 0; top: 7.4rem; height: 1px;
+    left: calc(var(--sc-gutter) + clamp(18rem, 30vw, 30rem) + clamp(3rem, 6vw, 7rem));
+    background: var(--sc-hairline-strong);
+  }
+  .eve__item { width: clamp(17rem, 26vw, 25rem); position: relative; }
+  .eve__lead { width: clamp(18rem, 30vw, 30rem); }
+  .eve__lead .h2 { margin-top: var(--sc-4); }
+  .eve__lead .body { margin-top: var(--sc-5); }
+  .eve__time {
+    font-family: var(--sc-font-display); font-weight: 400; color: var(--sc-ink);
+    font-size: 5.6rem; line-height: 1; letter-spacing: -0.02em; height: 7.4rem;
+    display: flex; align-items: flex-end; padding-bottom: 0.9rem;
+    font-variant-numeric: lining-nums;
+  }
+  .eve__time small { font-size: 0.32em; letter-spacing: 0.16em; text-transform: uppercase; margin-left: 0.4em; color: var(--sc-ink-soft); font-weight: 600; }
+  .eve__item:not(.eve__lead) .h3 { margin-top: var(--sc-5); }
+  .eve__item::after { /* the tick where this hour sits on the line */
+    content: ""; position: absolute; left: 0; top: calc(7.4rem - 4px); width: 9px; height: 9px; border-radius: 50%;
+    background: var(--sc-canvas); border: 1px solid var(--sc-accent);
+  }
+  .eve__lead::after { display: none; }
+  .eve__item .body { margin-top: var(--sc-3); }
+  .eve__where .h3 { margin-top: var(--sc-5); }
+  .eve__where address { font-style: normal; color: var(--sc-ink-soft); margin-top: var(--sc-3); }
+  .eve__where .links { margin-top: var(--sc-4); display: flex; gap: var(--sc-6); flex-wrap: wrap; }
+  @media (prefers-reduced-motion: no-preference) {
+    .eve__item:not(.eve__lead) {
+      opacity: clamp(0.55, calc(var(--sc-p, 0) * 6 - var(--i) + 1.6), 1);
+    }
+  }
+
+  /* --------------------------------------------- 5 · good to know ------- */
+  .det { padding-top: clamp(4rem, 8vw, 8rem); }
+  .det__grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); column-gap: clamp(2.5rem, 7vw, 8rem); row-gap: var(--sc-8); }
+  .det__head { grid-column: 1 / -1; }
+  .det__lead .h2 { font-size: var(--sc-t-2xl); margin-bottom: var(--sc-4); }
+  .det__lead p.body { font-size: var(--sc-t-lg); line-height: 1.7; max-width: 32rem; }
+  .det__list { display: grid; gap: var(--sc-6); align-content: start; }
+  .det__list > div { padding-top: var(--sc-5); border-top: 1px solid var(--sc-hairline); }
+  .det__list dt { margin-bottom: var(--sc-2); }
+  .det__list dd { color: var(--sc-ink-soft); }
+  .det__registry { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); column-gap: clamp(2.5rem, 7vw, 8rem); padding-top: var(--sc-7); border-top: 1px solid var(--sc-hairline-strong); }
+  .det__registry .body { align-self: end; }
+
+  /* --------------------------------------------- 6 · the reply card ----- */
+  .reply__stage { display: grid; place-items: center; padding: calc(var(--bar-h) + 2vh) var(--sc-gutter) 0; }
+  .reply__arch { position: absolute; left: 50%; top: 2vh; width: min(1500px, 125vw); max-width: none; translate: -50% 0; opacity: 0.85; pointer-events: none; }
+  .reply__card {
+    position: relative; z-index: 2;
+    width: min(34rem, 100%); padding: clamp(2.2rem, 5vw, 3.6rem) clamp(1.5rem, 4vw, 3.2rem);
+    background: var(--card); border-radius: 3px; text-align: center;
+    box-shadow: var(--sc-edge), 0 1px 2px hsl(var(--sc-shadow-color) / 0.14), 0 26px 60px -24px hsl(var(--sc-shadow-color) / 0.36);
+  }
+  .reply__card::before { content: ""; position: absolute; inset: 12px; border: 1px solid hsl(219 30% 50% / 0.2); border-radius: 2px; pointer-events: none; }
+  .reply__count { font-family: var(--sc-font-display); font-weight: 400; font-size: var(--sc-t-3xl); line-height: 1; color: var(--sc-ink); margin-top: var(--sc-4); font-variant-numeric: lining-nums tabular-nums; }
+  .reply__count em { font-style: italic; color: var(--sc-accent); }
+  .reply__when { color: var(--sc-ink-soft); margin-top: var(--sc-5); font-size: var(--sc-t-sm); line-height: 1.75; }
+  .reply__actions { margin-top: var(--sc-4); display: flex; justify-content: center; gap: var(--sc-6); flex-wrap: wrap; }
+  .reply__sign { margin-top: var(--sc-4); font-family: var(--sc-font-display); font-style: italic; font-size: var(--sc-t-lg); color: var(--sc-ink); }
+  .reply__foot { position: absolute; bottom: max(1.2rem, env(safe-area-inset-bottom)); left: 0; right: 0; text-align: center; z-index: 2; }
+
+  /* ---------------------------------------------------------- phones ---- */
+  @media (max-width: 860px) {
+    :root { --bar-h: 56px; }
+    .bar { gap: var(--sc-4); }
+    .bar__mark { font-size: 1.2rem; }
+    .bar__nav { gap: var(--sc-4); margin-right: 52px; overflow-x: auto; scrollbar-width: none; }
+    .bar__nav a { font-size: 0.68rem; letter-spacing: 0.14em; padding: 0.9rem 0; }
+    .bar__nav a.hide-sm { display: none; }
+    .postmark { width: 58px; height: 58px; top: 0; right: 4px; }
+    .postmark__waves { display: none; }
+    .inv__title { top: calc(var(--bar-h) + 5svh); }
+    .inv__names { font-size: clamp(2.7rem, 12.5vw, 4rem); }
+    .inv__line { margin-top: var(--sc-4); font-size: var(--sc-t-sm); }
+    .inv__line .sep { display: none; }
+    .inv__line span { display: block; }
+    .inv__sprig { width: 64vw; bottom: -10svh; opacity: 0.9; }
+    .inv__sprig--l { left: -24vw; }
+    .inv__sprig--r { right: -24vw; }
+    .inv__far { width: 200vw; top: -2svh; }
+
+    .story__grid { grid-template-columns: 1fr; }
+    .story__media { padding-top: 0; }
+    .story__fig--a { width: 84%; }
+
+    .yes__stage { grid-template-columns: 1fr; grid-template-rows: 58svh auto; align-content: start; gap: var(--sc-5); padding-top: calc(var(--bar-h) + 2svh); }
+    .yes__photo { grid-column: 1; grid-row: 1; justify-self: center; height: 100%; width: auto; }
+    .yes__copy { grid-column: 1; grid-row: 2; justify-self: start; width: 100%; }
+    .yes__lede { font-size: clamp(1.5rem, 6.4vw, 2rem); }
+    .yes__word { font-size: 5.2rem; }
+    .yes__end .body { margin-top: var(--sc-3); font-size: 0.95rem; }
+
+    .eve__rail { gap: 2.2rem; padding-inline: var(--sc-gutter) 14vw; }
+    .eve__item { width: 74vw; }
+    .eve__lead { width: 80vw; }
+    .eve__rail::before { left: calc(var(--sc-gutter) + 80vw + 2.2rem); }
+    .eve__time { font-size: 4.4rem; }
+
+    .det__grid, .det__registry { grid-template-columns: 1fr; row-gap: var(--sc-6); }
+    .det__registry .body { margin-top: var(--sc-3); }
+  }
+  @media (max-width: 520px) {
+    .bar__nav a.hide-xs { display: none; }
+  }
+
+  /* ---------------------------------------------- reduced motion -------- */
+  @media (prefers-reduced-motion: reduce) {
+    /* No pinned travel for the envelope: the invitation is simply there. */
+    .inv { height: auto !important; }
+    .inv .sc-stage { position: relative; height: auto; overflow: visible; padding: calc(var(--bar-h) + 6vh) var(--sc-gutter) 10vh; display: grid; justify-items: center; }
+    .inv__title { position: relative; left: auto; top: auto; translate: none; }
+    .inv__scene { position: relative; inset: auto; margin-top: var(--sc-7); }
+    .inv__sprig, .inv__far, .env__back, .env__flap, .env__pocket, .env__seal { display: none; }
+    .env { position: relative; left: auto; top: auto; margin: 0 auto; width: auto; height: auto; transform: none !important; }
+    .card { position: relative; left: auto; margin: 0 auto; transform: none !important; }
+    .yes__photo { clip-path: none; }
+    .yes__photo img { scale: 1; }
+    .postmark.is-stamping .postmark__face { animation: none; }
+    .postmark__waves path { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sc-grain" aria-hidden="true"></div>
+
+<header class="bar">
+  <a class="bar__mark" href="#invitation" aria-label="Sonny and Adelin, back to the invitation">S<i>&amp;</i>A</a>
+  <nav class="bar__nav" aria-label="Contents">
+    <a href="#story">Our story</a>
+    <a href="#evening">The evening</a>
+    <a href="#details" class="hide-xs">Good to know</a>
+    <a href="#registry" class="hide-sm">Registry</a>
+  </nav>
+</header>
+
+<div class="postmark" aria-hidden="true">
+  <svg viewBox="0 0 120 120">
+    <g class="postmark__waves" transform="translate(-118 34)">
+      <path d="M0 8 q7.5 -7 15 0 t15 0 t15 0 t15 0 t15 0 t15 0 t15 0"/>
+      <path d="M0 18 q7.5 -7 15 0 t15 0 t15 0 t15 0 t15 0 t15 0 t15 0"/>
+      <path d="M0 28 q7.5 -7 15 0 t15 0 t15 0 t15 0 t15 0 t15 0 t15 0"/>
+      <path d="M0 38 q7.5 -7 15 0 t15 0 t15 0 t15 0 t15 0 t15 0 t15 0"/>
+      <path d="M0 48 q7.5 -7 15 0 t15 0 t15 0 t15 0 t15 0 t15 0 t15 0"/>
+      <path d="M0 58 q7.5 -7 15 0 t15 0 t15 0 t15 0 t15 0 t15 0 t15 0"/>
+    </g>
+    <g class="postmark__face">
+      <defs><path id="pm-ring" d="M60 60 m-43 0 a43 43 0 1 1 86 0 a43 43 0 1 1 -86 0"/></defs>
+      <circle cx="60" cy="60" r="54" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <circle cx="60" cy="60" r="33" fill="none" stroke="currentColor" stroke-width="1"/>
+      <text class="postmark__ring"><textPath href="#pm-ring" textLength="268" lengthAdjust="spacing" data-pm-ring>RIVER VALE · NEW JERSEY · RIVER VALE · NEW JERSEY ·</textPath></text>
+      <text class="postmark__c1" x="60" y="60" text-anchor="middle" data-pm-c1>APR 8</text>
+      <text class="postmark__c2" x="60" y="74" text-anchor="middle" data-pm-c2>2027</text>
+    </g>
+  </svg>
+</div>
+
+<main id="top">
+
+  <!-- 1 · THE INVITATION. Pinned; the envelope opens and the card rises. -->
+  <section id="invitation" class="inv" data-sc-act="pin" data-sc-span="2.2" data-sc-drift="#F5F6F8" data-pm="hero">
+    <div data-sc-stage class="inv__stage">
+      <img class="inv__far" src="assets/arch.webp" width="1680" height="1103" alt="">
+      <div class="inv__title">
+        <h1 class="inv__names">Sonny <i>&amp;</i> Adelin</h1>
+        <p class="inv__line smallcaps"><span>are getting married</span><span class="sep"> · </span><span>April 8, 2027</span><span class="sep"> · </span><span>River Vale, New Jersey</span></p>
+      </div>
+
+      <div class="inv__scene">
+        <div class="env">
+          <div class="env__back" aria-hidden="true"><div class="env__liner"></div></div>
+          <div class="env__flap" aria-hidden="true">
+            <div class="env__flap-out"></div>
+            <div class="env__flap-in"></div>
+          </div>
+          <svg aria-hidden="true" class="env__pocket" viewBox="0 0 100 70" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="pk-l" x1="0" x2="1"><stop offset="0" stop-color="#B9C5D7"/><stop offset="1" stop-color="#ABB9CE"/></linearGradient>
+              <linearGradient id="pk-r" x1="1" x2="0"><stop offset="0" stop-color="#B9C5D7"/><stop offset="1" stop-color="#ABB9CE"/></linearGradient>
+              <linearGradient id="pk-b" y1="1" y2="0" x1="0" x2="0"><stop offset="0" stop-color="#BCC8D9"/><stop offset="1" stop-color="#B0BDD1"/></linearGradient>
+            </defs>
+            <polygon points="0,0 53,41 0,70" fill="url(#pk-l)"/>
+            <polygon points="100,0 47,41 100,70" fill="url(#pk-r)"/>
+            <polygon points="0,70 50,33 100,70" fill="url(#pk-b)" stroke="#8E9FB8" stroke-opacity="0.45" stroke-width="1" vector-effect="non-scaling-stroke"/>
+          </svg>
+          <div class="env__seal" aria-hidden="true">S&amp;A</div>
+          <article class="card" aria-label="The invitation">
+            <figure class="card__photo"><img src="assets/arcade.webp" width="660" height="858" alt="Sonny and Adi standing arm in arm under a limestone colonnade"></figure>
+            <p class="card__kicker smallcaps">The wedding of</p>
+            <p class="card__name">Adelin Sheynov</p>
+            <p class="card__amp" aria-hidden="true">&amp;</p>
+            <p class="card__name"><span class="sr-and" style="position:absolute;clip-path:inset(50%)">and </span>Sonny Del Valle</p>
+            <p class="card__when">Thursday, the eighth of April<br>two thousand twenty-seven<br>at half past six in the evening</p>
+            <p class="card__where">The Estate at Florentine Gardens<br>River Vale, New Jersey</p>
+          </article>
+        </div>
+
+      </div>
+
+      <img class="inv__sprig inv__sprig--l" src="assets/sprig-l.webp" width="740" height="1103" alt="">
+      <img class="inv__sprig inv__sprig--r" src="assets/sprig-r.webp" width="739" height="1103" alt="">
+    </div>
+  </section>
+
+  <!-- 2 · OUR STORY. Their words, in their order. Flow, photos drifting. -->
+  <section id="story" class="story sc-section" data-sc-act="flow" data-sc-drift="#F5F6F8">
+    <div class="sc-wrap story__grid">
+      <div class="story__text">
+        <h2 class="h2">Our <em>story</em></h2>
+        <div class="story__p" data-pm="friendsgiving" data-sc-in data-sc-stagger="60">
+          <span class="smallcaps">A college Friendsgiving</span>
+          <p>It all started with a Friendsgiving dinner during our college years, hosted by our incredible Maid of Honor, Allison. At the time, Sonny had no idea who Adi was. What caught her attention, though, was someone across the room confidently sharing his thoughts and keeping everyone engaged in conversation. Curious, she joined in, and what started as a lively conversation turned into the first chapter of our story.</p>
+        </div>
+        <div class="story__p" data-pm="seven" data-sc-in data-sc-stagger="60">
+          <span class="smallcaps">Seven years</span>
+          <p>Neither of us could have imagined that one lively conversation would turn into seven unforgettable years together. Through every milestone, adventure, challenge, and celebration, we built a relationship rooted in laughter, unwavering support, and a friendship that only grew stronger with time.</p>
+        </div>
+        <div class="story__p" data-pm="forever" data-sc-in data-sc-stagger="60">
+          <span class="smallcaps">The girlfriend forever</span>
+          <p>After seven wonderful years together, Sonny had just about convinced herself she was destined to be “the girlfriend forever.” While friends and family eagerly waited for the proposal, Adi seemed determined to keep everyone, especially Sonny, guessing just a little longer.</p>
+        </div>
+      </div>
+      <div class="story__media">
+        <figure class="story__fig story__fig--a" data-sc-parallax="-0.9">
+          <img src="assets/embrace.webp" width="1067" height="1600" alt="Sonny and Adi embracing in the colonnade, late sun behind them" loading="lazy">
+        </figure>
+        <figure class="story__fig story__fig--b" data-sc-parallax="0.7">
+          <img src="assets/together.webp" width="1067" height="1262" alt="Adi seated on a stone ledge with Sonny's arms wrapped around him from behind" loading="lazy">
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · THE PROPOSAL. The peak: the photograph opens out from the ring. -->
+  <section id="proposal" class="yes" data-sc-act="pin" data-sc-span="3.2" data-sc-drift="#F3F5F8" data-pm="proposal">
+    <div data-sc-stage class="yes__stage">
+      <figure class="yes__photo">
+        <img src="assets/ring.webp" width="1067" height="1481" alt="Sonny's hand resting on Adi's shoulder, wearing her engagement ring">
+      </figure>
+      <div class="yes__copy">
+        <p class="yes__lede" data-sc-cue="0 0.38 0 0.3">Then, in June 2026, during a summer weekend in the Hamptons, Adi finally made his move.</p>
+        <p class="yes__lede" data-sc-cue="0.32 0.68">He got down on one knee and asked Sonny to spend forever with him.</p>
+        <div class="yes__end" data-sc-cue="0.62 1 0.14 0.05">
+          <p class="yes__word" lang="en">Yes.</p>
+          <p class="body">Somehow, through the happy tears and excitement, she managed to say the easiest “yes” of her life.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · THE EVENING. Sideways, hour by hour. -->
+  <section id="evening" class="eve" data-sc-act="pan" data-sc-span="2.6" data-sc-drift="#EEF1F6" data-pm="evening">
+    <div data-sc-stage class="eve__stage">
+      <div class="eve__rail" data-sc-pan="0.02">
+        <div class="eve__item eve__lead">
+          <p class="smallcaps">Thursday, April 8, 2027</p>
+          <h2 class="h2">The <em>evening</em></h2>
+          <p class="body">Ceremony, cocktails and the reception, all at The Estate at Florentine Gardens.</p>
+        </div>
+        <article class="eve__item" style="--i:1">
+          <p class="eve__time">6:30<small>pm</small></p>
+          <h3 class="h3">Ceremony</h3>
+          <p class="body">The ceremony will begin promptly. Please arrive 15 to 20 minutes before it begins.</p>
+        </article>
+        <article class="eve__item" style="--i:2">
+          <p class="eve__time">7:00<small>pm</small></p>
+          <h3 class="h3">Cocktail hour</h3>
+          <p class="body">From 7:00 to 8:00 pm.</p>
+        </article>
+        <article class="eve__item" style="--i:3">
+          <p class="eve__time">8:00<small>pm</small></p>
+          <h3 class="h3">Reception</h3>
+          <p class="body">Until midnight. Wear something that makes you feel ready to dance the night away with us.</p>
+        </article>
+        <div class="eve__item eve__where" style="--i:4">
+          <p class="eve__time" aria-hidden="true"><span class="smallcaps" style="font-size:0.9rem">Where</span></p>
+          <h3 class="h3">The Estate at Florentine Gardens</h3>
+          <address>97 Rivervale Rd<br>River Vale, NJ 07675</address>
+          <p class="links">
+            <a class="link" href="https://www.google.com/maps/search/?api=1&amp;query=The+Estate+at+Florentine+Gardens%2C+97+Rivervale+Rd%2C+River+Vale%2C+NJ+07675" target="_blank" rel="noopener">Directions</a>
+            <a class="link" href="assets/sonny-and-adelin.ics" download>Add to calendar</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · GOOD TO KNOW. Compressed: the administrative card. -->
+  <section id="details" class="det sc-section" data-sc-act="flow" data-sc-drift="#F5F6F8" data-pm="details">
+    <div class="sc-wrap det__grid">
+      <div class="det__lead" data-sc-in data-sc-stagger="60">
+        <p class="smallcaps">A few things to know</p>
+        <h2 class="h2" style="margin-top:var(--sc-4)">Black tie</h2>
+        <p class="body">Our dress code is Black Tie, so we invite you to dress in your formal best. Think tuxedos or dark suits for gentlemen, and floor-length gowns, elegant cocktail dresses, or formal attire for ladies. Most importantly, wear something that makes you feel confident and ready to dance the night away with us!</p>
+      </div>
+      <dl class="det__list" data-sc-in data-sc-stagger="70">
+        <div><dt class="smallcaps">Arrival</dt><dd>The ceremony begins promptly at 6:30 pm. Please arrive 15 to 20 minutes early.</dd></div>
+        <div><dt class="smallcaps">Adults only</dt><dd>Our wedding will be an adults-only celebration. We hope this gives you the opportunity to relax, celebrate, and enjoy an evening with us. Thank you for your understanding. We can’t wait to celebrate together!</dd></div>
+        <div><dt class="smallcaps">Parking</dt><dd>Yes! Complimentary valet parking will be available at the venue for all guests.</dd></div>
+      </dl>
+      <div id="registry" class="det__registry" data-sc-in data-sc-stagger="60" data-pm="registry">
+        <h2 class="h3">Registry</h2>
+        <p class="body">We’ll post our registry here when we’re finished building it. Thank you in advance!</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · THE REPLY CARD. Last element on the page; it holds. -->
+  <section id="reply" class="reply" data-sc-act="pin" data-sc-span="1.25" data-sc-drift="#F5F6F8" data-pm="reply">
+    <div data-sc-stage class="reply__stage">
+      <img class="reply__arch" src="assets/arch.webp" width="1680" height="1103" alt="" loading="lazy">
+      <div class="reply__card">
+        <p class="smallcaps">Until we see you</p>
+        <p class="reply__count" data-sc-cue="0 1 0 0"><span data-days>142</span> <em>days</em></p>
+        <p class="reply__when">Thursday, April 8, 2027, at 6:30 pm<br>The Estate at Florentine Gardens, River Vale, New Jersey</p>
+        <p class="reply__actions">
+          <a class="link" href="assets/sonny-and-adelin.ics" download>Add to calendar</a>
+          <a class="link" href="https://www.google.com/maps/search/?api=1&amp;query=The+Estate+at+Florentine+Gardens%2C+97+Rivervale+Rd%2C+River+Vale%2C+NJ+07675" target="_blank" rel="noopener">Directions</a>
+        </p>
+        <p class="reply__sign">With love, Sonny &amp; Adelin</p>
+      </div>
+      <p class="reply__foot smallcaps">Sonny &amp; Adelin · April 8, 2027 · River Vale, New Jersey</p>
+    </div>
+  </section>
+
+</main>
+
+<script src="scrollcraft.js"></script>
+<script>ScrollCraft.mount(document.body);</script>
+<script>
+/* Page-local choreography. The engine is untouched; everything bespoke reads
+   scroll position itself and writes transforms and custom properties. */
+(function () {
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  var root = document.documentElement;
+  var clamp = function (v, a, b) { return Math.min(b, Math.max(a, v)); };
+  var lerp = function (a, b, t) { return a + (b - a) * t; };
+  var smooth = function (a, b, x) { var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+  var actP = function (el) {
+    var r = el.getBoundingClientRect(), travel = Math.max(r.height - innerHeight, 1);
+    return clamp(-r.top / travel, 0, 1);
+  };
+
+  /* ---------------------------------------------------- the envelope -- */
+  var inv = document.getElementById('invitation');
+  var env = inv.querySelector('.env'), flap = inv.querySelector('.env__flap');
+  var seal = inv.querySelector('.env__seal'), card = inv.querySelector('.card');
+  var parts = inv.querySelectorAll('.env__back, .env__flap, .env__pocket');
+  var title = inv.querySelector('.inv__title'), far = inv.querySelector('.inv__far');
+  var sprigL = inv.querySelector('.inv__sprig--l'), sprigR = inv.querySelector('.inv__sprig--r');
+  var G = {};
+  var mx = 0, my = 0, tmx = 0, tmy = 0;
+
+  function layout() {
+    var vw = innerWidth, vh = innerHeight, phone = vw <= 860;
+    var envW = phone ? Math.min(vw * 0.86, 420) : Math.min(vw * 0.5, 600, vh * 0.8);
+    var envH = envW / 1.42;
+    // the card's FINAL size; inside the envelope it is scaled down to fit sideways
+    var barH = phone ? 56 : 64;
+    var cardH = Math.min((vh - barH) * 0.84, (phone ? vw * 0.9 : vw * 0.5) * 1.4);
+    var cardW = cardH / 1.4;
+    var k = (envW * 0.93) / cardH;
+    if (k * cardW > envH * 0.92) k = (envH * 0.92) / cardW;
+    G = { vw: vw, vh: vh, envW: envW, envH: envH, cardW: cardW, cardH: cardH, k: k,
+          envY: phone ? vh * 0.6 : vh * 0.68, cardY: barH + (vh - barH) / 2, phone: phone };
+    inv.style.setProperty('--env-w', envW + 'px');
+    inv.style.setProperty('--env-h', envH + 'px');
+    inv.style.setProperty('--card-w', cardW + 'px');
+    inv.style.setProperty('--card-h', cardH + 'px');
+  }
+
+  function drawEnvelope(p) {
+    var a = smooth(0.05, 0.27, p);           // flap opens
+    var s = smooth(0.02, 0.10, p);           // seal lifts away first
+    var b = smooth(0.24, 0.50, p);           // card slides up out of the pocket
+    var c = smooth(0.46, 0.84, p);           // card turns upright and comes forward
+    var e = smooth(0.50, 0.86, p);           // envelope sinks away
+    var t = smooth(0.26, 0.52, p);           // title recedes behind the rising card
+
+    var lean = (fine && !reduce) ? 1 : 0;
+    var rx = -my * 3 * lean, ry = mx * 4 * lean;
+
+    // Envelope: centre at envY, sinking and fading once the card is clear.
+    var envTop = G.envY - G.envH / 2 + e * G.vh * 0.62;
+    env.style.transform = 'translate3d(0,' + envTop.toFixed(1) + 'px,0) rotateX(' + rx.toFixed(2) + 'deg) rotateY(' + ry.toFixed(2) + 'deg)';
+    var fade = (1 - smooth(0.62, 0.86, p)).toFixed(3);
+    for (var q = 0; q < parts.length; q++) parts[q].style.opacity = fade;
+    flap.style.transform = 'rotateX(' + (a * 178).toFixed(1) + 'deg)';
+    env.classList.toggle('is-open', a > 0.5);
+    seal.style.opacity = Math.min(1 - s, +fade).toFixed(3);
+    seal.style.transform = 'scale(' + (1 + s * 0.25).toFixed(3) + ') translateY(' + (-s * 10).toFixed(1) + 'px)';
+
+    // Card: starts lying sideways inside, rises clear of the envelope's top
+    // edge, then turns upright and grows to its final size at stage centre.
+    var inside = G.envY + G.envH * 0.01;
+    var clear = G.envY - G.envH / 2 - (G.k * G.cardW) / 2 - G.vh * 0.02;
+    var yB = lerp(inside, clear, b);
+    var y = lerp(yB, G.cardY, c);
+    var rot = lerp(-90, 0, c);
+    var sc = lerp(G.k, 1, c);
+    // the card lives inside the envelope's stacking context (so the pocket can
+    // cover it), so its position is written relative to the envelope's top
+    card.style.transform = 'translate3d(0,' + (y - G.cardH / 2 - envTop).toFixed(1) + 'px,0) rotate(' + rot.toFixed(2) + 'deg) scale(' + sc.toFixed(4) + ')';
+    // inside: under the pocket. Clear of it: above everything.
+    card.style.zIndex = c > 0.001 ? 8 : 3;
+
+    title.style.opacity = (1 - t).toFixed(3);
+    title.style.transform = 'translate3d(0,' + (-t * G.vh * 0.06).toFixed(1) + 'px,0)';
+    far.style.transform = 'translate3d(0,' + (-p * G.vh * 0.08).toFixed(1) + 'px,0)';
+    var sp = p * G.vh * (G.phone ? 0.16 : 0.24);
+    sprigL.style.transform = 'translate3d(' + (-p * 2).toFixed(1) + 'vw,' + (-sp).toFixed(1) + 'px,0) scale(' + (1 + p * 0.08).toFixed(3) + ')';
+    sprigR.style.transform = 'translate3d(' + (p * 2).toFixed(1) + 'vw,' + (-sp).toFixed(1) + 'px,0) scale(' + (1 + p * 0.08).toFixed(3) + ')';
+  }
+
+  /* ---------------------------------------------------- the proposal -- */
+  var yes = document.getElementById('proposal');
+  function drawProposal(p) {
+    // A pinpoint on the diamond, then the frame opens outward from the ring.
+    var r = reduce ? 120 : lerp(2.6, 118, smooth(0.10, 0.62, p));
+    yes.style.setProperty('--iris', r.toFixed(2) + '%');
+    yes.style.setProperty('--yes-zoom', reduce ? 1 : lerp(1.22, 1.0, smooth(0.10, 0.9, p)).toFixed(4));
+  }
+
+  /* ------------------------------------------------------ the postmark -- */
+  var pm = document.querySelector('.postmark');
+  var ringEl = pm.querySelector('[data-pm-ring]'), c1 = pm.querySelector('[data-pm-c1]'), c2 = pm.querySelector('[data-pm-c2]');
+  var waves = pm.querySelectorAll('.postmark__waves path');
+  var seen = {}, seenCount = 0, current = '';
+  var WEDDING = Date.UTC(2027, 3, 8, 22, 30); // 6:30 pm EDT
+  function daysLeft() { return Math.max(0, Math.floor((WEDDING - Date.now()) / 86400000)); }
+  var ring = function (s) { var out = ''; while (out.length < 46) out += s + ' · '; return out; };
+  var STATES = {
+    hero:          { ring: 'River Vale · New Jersey', c1: 'APR 8', c2: '2027' },
+    friendsgiving: { ring: 'Where it started',        c1: 'FRIENDS', c2: 'GIVING' },
+    seven:         { ring: 'Seven unforgettable years', c1: '7', c2: 'YEARS' },
+    forever:       { ring: 'The girlfriend forever',  c1: 'STILL', c2: 'GUESSING' },
+    june:          { ring: 'The Hamptons · June 2026', c1: 'JUN', c2: '2026' },
+    yes:           { ring: 'The Hamptons · June 2026', c1: 'YES', c2: '' },
+    'eve-0':       { ring: 'The Estate at Florentine Gardens', c1: 'APR 8', c2: 'EVENING' },
+    'eve-1':       { ring: 'The Estate at Florentine Gardens', c1: '6:30', c2: 'CEREMONY' },
+    'eve-2':       { ring: 'The Estate at Florentine Gardens', c1: '7:00', c2: 'COCKTAILS' },
+    'eve-3':       { ring: 'The Estate at Florentine Gardens', c1: '8:00', c2: 'RECEPTION' },
+    'eve-4':       { ring: 'The Estate at Florentine Gardens', c1: '97', c2: 'RIVERVALE' },
+    details:       { ring: 'Black tie · Adults only',  c1: 'BLACK', c2: 'TIE' },
+    registry:      { ring: 'Black tie · Adults only',  c1: 'SOON', c2: 'REGISTRY' },
+    reply:         { ring: 'River Vale · New Jersey',  c1: '', c2: 'DAYS TO GO' }
+  };
+  // Which cancellation a state belongs to: each chapter adds one wave, once.
+  var CHAPTER = { hero: 0, friendsgiving: 1, seven: 1, forever: 1, june: 2, yes: 2, 'eve-0': 3, 'eve-1': 3, 'eve-2': 3, 'eve-3': 3, 'eve-4': 3, details: 4, registry: 4, reply: 5 };
+
+  function stampTo(key) {
+    if (key === current) return;
+    current = key;
+    var st = STATES[key];
+    ringEl.textContent = ring(st.ring.toUpperCase());
+    c1.textContent = key === 'reply' ? String(daysLeft()) : st.c1;
+    c2.textContent = st.c2;
+    c1.setAttribute('y', st.c2 ? 60 : 66);
+    c1.style.fontSize = (st.c1.length > 6 ? 12 : key === 'yes' ? 22 : 15) + 'px';
+    c2.style.fontSize = (st.c2.length > 8 ? 7.4 : 9) + 'px';
+    if (!reduce) { pm.classList.remove('is-stamping'); void pm.offsetWidth; pm.classList.add('is-stamping'); }
+    var ch = CHAPTER[key];
+    if (!seen[ch]) { seen[ch] = 1; seenCount++; }
+    for (var i = 0; i < waves.length; i++) waves[i].classList.toggle('on', i < seenCount - 1);
+  }
+
+  var marks = Array.prototype.slice.call(document.querySelectorAll('[data-pm]'));
+  var navLinks = Array.prototype.slice.call(document.querySelectorAll('.bar__nav a'));
+  var evening = document.getElementById('evening');
+
+  function whichState() {
+    var line = innerHeight * 0.5, hit = 'hero', hitEl = null;
+    for (var i = 0; i < marks.length; i++) {
+      var r = marks[i].getBoundingClientRect();
+      if (r.top <= line && r.bottom > line - 1) { hit = marks[i].getAttribute('data-pm'); hitEl = marks[i]; }
+    }
+    if (hit === 'proposal') hit = actP(yes) >= 0.6 ? 'yes' : 'june';
+    if (hit === 'evening') { var ep = actP(evening); hit = 'eve-' + Math.min(4, Math.floor(ep * 5)); }
+    return hit;
+  }
+  function navState() {
+    var ids = ['story', 'evening', 'details', 'registry'], cur = '';
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.getElementById(ids[i]);
+      if (el.getBoundingClientRect().top <= innerHeight * 0.45) cur = ids[i];
+    }
+    if (cur === 'details' || cur === 'registry') {
+      var rr = document.getElementById('registry').getBoundingClientRect();
+      cur = rr.top <= innerHeight * 0.6 ? 'registry' : 'details';
+    }
+    if (document.getElementById('proposal').getBoundingClientRect().top <= innerHeight * 0.45 && cur === 'story') cur = 'story';
+    navLinks.forEach(function (a) { a.setAttribute('aria-current', a.getAttribute('href') === '#' + cur ? 'true' : 'false'); });
+  }
+
+  /* ----------------------------------------------------- countdown ------ */
+  var daysEl = document.querySelector('[data-days]');
+  function tickDays() { daysEl.textContent = daysLeft(); if (current === 'reply') c1.textContent = String(daysLeft()); }
+  tickDays(); setInterval(tickDays, 60000);
+
+  /* ---------------------------------------------------------- loop ------ */
+  if (fine && !reduce) {
+    addEventListener('pointermove', function (e) {
+      tmx = (e.clientX / innerWidth) * 2 - 1; tmy = (e.clientY / innerHeight) * 2 - 1;
+    }, { passive: true });
+  }
+  layout();
+  addEventListener('resize', layout);
+  var lastY = -1, lastMx = 9;
+  function frame() {
+    mx += (tmx - mx) * 0.08; my += (tmy - my) * 0.08;
+    var y = scrollY;
+    if (y !== lastY || Math.abs(mx - lastMx) > 0.001) {
+      if (!reduce) drawEnvelope(actP(inv));
+      drawProposal(actP(yes));
+      stampTo(whichState());
+      navState();
+      lastY = y; lastMx = mx;
+    }
+    requestAnimationFrame(frame);
+  }
+  if (reduce) drawProposal(1);
+  requestAnimationFrame(frame);
+  addEventListener('resize', function () { lastY = -1; });
+})();
+</script>
+</body>
+</html>

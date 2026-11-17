@@ -1,2 +1,7 @@
 node_modules/
 .env
+builds/*/lab/shots/
+builds/*/lab/mobile/
+builds/*/lab/reduced/
+builds/*/lab/look/
+builds/*/src/

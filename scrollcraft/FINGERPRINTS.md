@@ -28,9 +28,8 @@ changes only grammar and world will fail it.
 
 | Build | Grammar | Nav treatment | Hero device | Act-sequence shape | Close pattern | Signature move | World | Port |
 |---|---|---|---|---|---|---|---|---|
+| sonny-and-adi | Stationery suite (new: cards in a wedding suite, one paper ground, one photographic full frame at the peak) | Top bar: monogram + suite index (4 jump links) + fixed postmark chrome | Sealed lined envelope; flap folds back, invitation card rises sideways, turns upright, envelope sinks (5 planes, pointer lean) | pin(env) > flow+parallax > pin+iris > pan(timeline) > flow+in > pin; 6 acts, 12.9vh desktop | Reply card holds: live day count, calendar + directions as printed links, garland arch bookend | Postmark that re-stamps per chapter, adds a cancel wave per chapter, stamps YES at the proposal, ends on days-to-go | Their own engagement photos + Zola toile florals, dusty blue on cool paper, Cormorant + Libre Baskerville | 4500 |
 
-*(empty: your first build has nothing to clear, so build whatever the interview
-points at. From the second onwards, this table is the constraint.)*
 
 ---
 
@@ -40,6 +39,8 @@ Add a bullet here whenever a build claims something a later build should avoid
 reusing: a grammar, a nav treatment, a close pattern, a signature move, an
 act-count-and-length band. The shared columns are what the next build inherits
 as a constraint, so writing them down is the whole point.
+
+- **Stationery suite** grammar, the **envelope-opens hero**, the **postmark** signature move and the **reply-card close** (sonny-and-adi). The iris reveal that opens *from a point inside the photograph* (the ring) is also taken.
 
 Nothing is taken yet.
 
