@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0e0d0c" />
+    <meta name="description" content="A small collection of films, books, music and games worth keeping." />
+    <title>Shelf Mini</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230e0d0c'/%3E%3Crect x='8' y='9' width='4' height='15' fill='%23f3eee6'/%3E%3Crect x='14' y='11' width='4' height='13' fill='%23f3eee6'/%3E%3Crect x='20' y='8' width='4' height='16' fill='%23f2734b'/%3E%3Crect x='6' y='25' width='20' height='2' fill='%23f3eee6'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="js/app.js"></script>
+  </head>
+  <body>
+    <noscript>
+      <p class="page-message">Shelf Mini needs JavaScript to show the collection.</p>
+    </noscript>
+    <p class="page-message" id="file-warning" hidden>
+      Shelf Mini needs to be opened through a local web server, not as a file.
+      See README.md for the one-line command.
+    </p>
+
+    <main class="page">
+      <!-- Collection view -->
+      <section class="view" id="collection-view" aria-labelledby="site-title">
+        <header class="masthead">
+          <h1 class="wordmark" id="site-title">Shelf <span class="wordmark__mini">Mini</span></h1>
+          <p class="masthead__deck">Twelve films, books, records and games worth keeping close.</p>
+        </header>
+
+        <div class="notice" id="storage-notice" role="status" hidden>
+          <svg class="icon notice__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 11v6M12 7.5v.5" />
+          </svg>
+          <p class="notice__text" id="storage-notice-text"></p>
+        </div>
+
+        <form class="controls" id="controls" role="search" aria-label="Search and filter the collection">
+          <div class="controls__row">
+            <div class="search">
+              <label class="visually-hidden" for="search-input">Search titles</label>
+              <svg class="icon search__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <circle cx="10.5" cy="10.5" r="6.5" />
+                <path d="M15.5 15.5 20 20" />
+              </svg>
+              <input
+                class="search__input"
+                id="search-input"
+                type="search"
+                name="q"
+                placeholder="Search titles"
+                autocomplete="off"
+                autocapitalize="none"
+                spellcheck="false"
+                enterkeyhint="search"
+                maxlength="80"
+              />
+              <button class="search__clear" id="search-clear" type="button" aria-label="Clear search" hidden>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M7 7l10 10M17 7 7 17" />
+                </svg>
+              </button>
+            </div>
+
+            <label class="toggle">
+              <input class="toggle__input" id="favorites-toggle" type="checkbox" name="favorites" />
+              <span class="toggle__face">
+                <svg class="icon heart" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M12 20.3 4.6 13a4.7 4.7 0 0 1 6.6-6.7l.8.8.8-.8A4.7 4.7 0 0 1 19.4 13Z" />
+                </svg>
+                <span>Favorites</span>
+                <span class="toggle__count" id="favorites-count"></span>
+              </span>
+            </label>
+          </div>
+
+          <fieldset class="categories">
+            <legend class="visually-hidden">Category</legend>
+            <div class="categories__list" id="category-list"></div>
+          </fieldset>
+        </form>
+
+        <div class="summary" id="summary">
+          <p class="summary__text" id="results-summary" tabindex="-1"></p>
+          <button class="text-button" id="clear-filters" type="button" hidden>Clear filters</button>
+        </div>
+
+        <ul class="grid" id="grid" role="list" aria-label="Collection"></ul>
+
+        <div class="empty" id="empty-state" hidden>
+          <h2 class="empty__title" id="empty-title"></h2>
+          <p class="empty__body" id="empty-body"></p>
+          <div class="empty__actions">
+            <button class="button" id="empty-clear" type="button">Clear search and filters</button>
+            <button class="text-button" id="empty-widen" type="button" hidden></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Detail view -->
+      <article class="view detail" id="detail-view" aria-labelledby="detail-title" hidden>
+        <div class="detail__bar">
+          <button class="back" id="back-button" type="button">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M19 12H5M11 6l-6 6 6 6" />
+            </svg>
+            Back<span class="visually-hidden"> to collection</span>
+          </button>
+        </div>
+
+        <div class="detail__layout">
+          <div class="detail__art" id="detail-art"></div>
+          <div class="detail__body">
+            <p class="detail__eyebrow" id="detail-eyebrow"></p>
+            <h1 class="detail__title" id="detail-title" tabindex="-1"></h1>
+            <p class="detail__credit" id="detail-credit"></p>
+            <p class="detail__format" id="detail-format"></p>
+
+            <div class="detail__actions">
+              <button class="favorite-button" id="favorite-button" type="button" aria-pressed="false">
+                <svg class="icon heart" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M12 20.3 4.6 13a4.7 4.7 0 0 1 6.6-6.7l.8.8.8-.8A4.7 4.7 0 0 1 19.4 13Z" />
+                </svg>
+                <span>Favorite</span>
+              </button>
+              <p class="detail__status" id="favorite-status" role="status"></p>
+            </div>
+            <p class="detail__hint" id="favorite-hint" hidden>
+              Favorites can't be saved in this browser right now, so changes here last only for this visit.
+            </p>
+
+            <p class="detail__description" id="detail-description"></p>
+          </div>
+        </div>
+      </article>
+
+      <div class="visually-hidden" id="announcer" aria-live="polite" aria-atomic="true"></div>
+    </main>
+
+    <template id="card-template">
+      <li class="card">
+        <a class="card__link">
+          <span class="card__art"></span>
+          <span class="card__text">
+            <h2 class="card__title"></h2>
+            <span class="card__meta">
+              <span class="card__category"></span>
+              <span class="card__favorite" hidden>
+                <svg class="icon heart heart--filled" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M12 20.3 4.6 13a4.7 4.7 0 0 1 6.6-6.7l.8.8.8-.8A4.7 4.7 0 0 1 19.4 13Z" />
+                </svg>
+                <span class="visually-hidden">, in Favorites</span>
+              </span>
+            </span>
+          </span>
+        </a>
+      </li>
+    </template>
+
+    <template id="category-template">
+      <label class="category">
+        <input class="category__input" type="radio" name="category" />
+        <span class="category__face"></span>
+      </label>
+    </template>
+
+    <script>
+      // Module scripts are blocked on file:// pages. Say so instead of showing a blank page.
+      // app.js hides this message as soon as it starts.
+      if (location.protocol === 'file:') document.getElementById('file-warning').hidden = false;
+    </script>
+  </body>
+</html>
