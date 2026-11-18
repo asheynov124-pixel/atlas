@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Siege Foundry: One-Minute Defense</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-state="start">
+    <div class="app">
+      <header class="hud" aria-label="Run status">
+        <div class="brand" aria-hidden="true"><span class="brand-mark"></span>Siege Foundry</div>
+        <div class="hud-item"><span class="lbl">Wave</span><span class="val" id="hud-wave">–</span></div>
+        <div class="hud-item">
+          <span class="lbl">Time</span><span class="val"><span id="hud-time">0.0</span><small id="hud-total"></small></span>
+        </div>
+        <div class="hud-item hud-hp" id="hud-hp-wrap">
+          <span class="lbl">Foundry</span>
+          <span class="bar" aria-hidden="true"><span class="fill" id="hud-hp-fill"></span></span>
+          <span class="val" id="hud-hp">100</span>
+        </div>
+        <div class="hud-item hud-cur" id="hud-cur-wrap"><span class="lbl">Ingots</span><span class="val" id="hud-cur">0</span></div>
+        <div class="hud-item hud-gun" id="hud-gun-wrap">
+          <span class="lbl">Cannon</span><span class="val"><span id="hud-dmg">12</span> dmg · every <span id="hud-int">0.55</span> s</span>
+        </div>
+      </header>
+
+      <div class="timeline" id="timeline" aria-hidden="true"></div>
+
+      <main class="stage">
+        <canvas id="field" aria-label="Battlefield: the foundry on the left, enemies advance from the right"></canvas>
+      </main>
+
+      <p class="keys">
+        <kbd>Enter</kbd> start / continue / restart · <kbd>1</kbd> Faster Firing · <kbd>2</kbd> Heavier Shot ·
+        <kbd>R</kbd> restart after a run · the cannon fires by itself
+      </p>
+    </div>
+
+    <!-- START -->
+    <section class="overlay" id="screen-start" role="dialog" aria-modal="true" aria-labelledby="start-title">
+      <div class="panel">
+        <p class="kicker">An industrial siege in sixty seconds</p>
+        <h1 id="start-title">Siege Foundry <span>One-Minute Defense</span></h1>
+        <ol class="howto">
+          <li>The <b>Crucible Cannon</b> fires by itself at the enemy closest to your wall. The gold reticle marks its target.</li>
+          <li>Anything that reaches the iron wall <b class="ember">breaches</b>: it hits the foundry and is destroyed. At 0 health you lose.</li>
+          <li>Survive three waves. Between waves the siege pauses and the furnace pays <b>ingots</b>: spend them on one upgrade.</li>
+        </ol>
+        <div class="start-cols">
+          <div>
+            <h3>The besiegers</h3>
+            <ul class="legend" id="legend"></ul>
+            <p class="legend-note">Damage numbers in <span class="hot">gold</span> landed in full; <span class="steel">steel</span> numbers were cut by armor.</p>
+          </div>
+          <div>
+            <h3>The minute ahead</h3>
+            <ul class="wave-list" id="wave-list"></ul>
+          </div>
+        </div>
+        <div class="actions">
+          <button type="button" class="primary" data-action="start" id="btn-start">Light the furnace</button>
+          <span class="hint">Enter</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- INTERMISSION -->
+    <section class="overlay" id="screen-intermission" role="dialog" aria-modal="true" aria-labelledby="intermission-title" hidden>
+      <div class="panel wide" id="intermission-body"></div>
+    </section>
+
+    <!-- WIN / LOSS -->
+    <section class="overlay" id="screen-end" role="dialog" aria-modal="true" aria-labelledby="end-title" hidden>
+      <div class="panel" id="end-body"></div>
+    </section>
+
+    <div class="sr-only" aria-live="polite" id="live"></div>
+
+    <script src="src/config.js"></script>
+    <script src="src/sim.js"></script>
+    <script src="src/render.js"></script>
+    <script src="src/ui.js"></script>
+    <script src="src/input.js"></script>
+    <script src="src/main.js"></script>
+  </body>
+</html>
