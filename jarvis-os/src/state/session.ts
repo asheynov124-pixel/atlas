@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { HOP_CLOCK, hopStatus, type HopStatus } from '../hop/policy';
 import { NODES, nodeById, type GraphNode } from '../data/corpus';
 import { proposeLeads, type LeadMove } from '../data/lead';
+import { matchesSearch } from '../lib/search';
 
 export interface ActivityItem {
   id: string;
@@ -79,16 +80,6 @@ function reconcileSelection(
     peekId,
     extraIds: nextExtra.filter((id) => id !== selectedId),
   };
-}
-
-export function matchesSearch(n: GraphNode, q: string): boolean {
-  if (!q) return true;
-  return (
-    n.title.toLowerCase().includes(q) ||
-    n.id.toLowerCase().includes(q) ||
-    n.domain.toLowerCase().includes(q) ||
-    n.kind.includes(q)
-  );
 }
 
 export const useSession = create<SessionState>()(

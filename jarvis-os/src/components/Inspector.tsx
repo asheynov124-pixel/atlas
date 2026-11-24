@@ -1,6 +1,7 @@
 import { hopStatus } from '../hop/policy';
 import { NODES } from '../data/corpus';
-import { matchesSearch, useSession } from '../state/session';
+import { matchesSearch } from '../lib/search';
+import { useSession } from '../state/session';
 
 export function Inspector() {
   const clock = useSession((s) => s.clock);
