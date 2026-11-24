@@ -156,8 +156,13 @@ export const useSession = create<SessionState>()(
           return;
         }
         if (action === 'stay') {
+          const keepingExtra = get().extraIds.includes(id) && get().selectedId === id;
           set({ peekId: null });
-          get().pushActivity(`Stayed short of ${node.title}.`, 'info');
+          if (keepingExtra) {
+            get().pushActivity(`Kept viewing ${node.title} as Extra.`, 'info');
+          } else {
+            get().pushActivity(`Stayed short of ${node.title}.`, 'info');
+          }
           return;
         }
         if (action === 'stepPast') {
