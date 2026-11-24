@@ -17,6 +17,8 @@ interface SessionState {
   clock: number;
   selectedId: string | null;
   peekId: string | null;
+  /** Nodes opened as Extra while still sealed — keep them without re-peeking. */
+  extraIds: string[];
   query: string;
   mode: Mode;
   activity: ActivityItem[];
@@ -46,17 +48,47 @@ function reconcileSelection(
   selectedId: string | null,
   clock: number,
   peekId: string | null,
-): { selectedId: string | null; peekId: string | null } {
-  if (!selectedId) return { selectedId, peekId };
+  extraIds: string[],
+): { selectedId: string | null; peekId: string | null; extraIds: string[] } {
+  const nextExtra = extraIds.filter((id) => {
+    const n = nodeById(id);
+    return hopStatus(n, clock) === 'sealed';
+  });
+
+  if (!selectedId) return { selectedId, peekId, extraIds: nextExtra };
+
   const node = nodeById(selectedId);
   const status = hopStatus(node, clock);
   if (status === 'unborn') {
-    return { selectedId: null, peekId: peekId === selectedId ? null : peekId };
+    return {
+      selectedId: null,
+      peekId: peekId === selectedId ? null : peekId,
+      extraIds: nextExtra.filter((id) => id !== selectedId),
+    };
   }
   if (status === 'sealed') {
-    return { selectedId: null, peekId: selectedId };
+    if (nextExtra.includes(selectedId)) {
+      // Already consented Extra — keep the view, do not re-open Peek.
+      return { selectedId, peekId: peekId === selectedId ? null : peekId, extraIds: nextExtra };
+    }
+    return { selectedId: null, peekId: selectedId, extraIds: nextExtra };
   }
-  return { selectedId, peekId };
+  // Became safe — Extra consent no longer needed for this id.
+  return {
+    selectedId,
+    peekId,
+    extraIds: nextExtra.filter((id) => id !== selectedId),
+  };
+}
+
+export function matchesSearch(n: GraphNode, q: string): boolean {
+  if (!q) return true;
+  return (
+    n.title.toLowerCase().includes(q) ||
+    n.id.toLowerCase().includes(q) ||
+    n.domain.toLowerCase().includes(q) ||
+    n.kind.includes(q)
+  );
 }
 
 export const useSession = create<SessionState>()(
@@ -65,6 +97,7 @@ export const useSession = create<SessionState>()(
       clock: HOP_CLOCK.default,
       selectedId: 'product-sense',
       peekId: null,
+      extraIds: [],
       query: '',
       mode: 'lead',
       activity: [
@@ -79,16 +112,16 @@ export const useSession = create<SessionState>()(
 
       setClock: (n) => {
         const clock = clampClock(n);
-        const { selectedId, peekId } = reconcileSelection(get().selectedId, clock, get().peekId);
-        set({ clock, selectedId, peekId });
+        const next = reconcileSelection(get().selectedId, clock, get().peekId, get().extraIds);
+        set({ clock, ...next });
       },
 
       advanceTo: (n) => {
-        const next = clampClock(n);
-        if (next > get().clock) {
-          const { selectedId, peekId } = reconcileSelection(get().selectedId, next, get().peekId);
-          set({ clock: next, selectedId, peekId });
-          get().pushActivity(`Watermark advanced to depth ${next}.`, 'warn');
+        const nextClock = clampClock(n);
+        if (nextClock > get().clock) {
+          const next = reconcileSelection(get().selectedId, nextClock, get().peekId, get().extraIds);
+          set({ clock: nextClock, ...next });
+          get().pushActivity(`Watermark advanced to depth ${nextClock}.`, 'warn');
         }
       },
 
@@ -106,6 +139,11 @@ export const useSession = create<SessionState>()(
         if (status === 'unborn') {
           set({ peekId: id });
           get().pushActivity(`${node.title} is unborn at this depth.`, 'warn');
+          return;
+        }
+        if (get().extraIds.includes(id)) {
+          set({ selectedId: id, peekId: null });
+          get().pushActivity(`Reopened ${node.title} as Extra.`, 'warn');
           return;
         }
         set({ peekId: id });
@@ -128,12 +166,16 @@ export const useSession = create<SessionState>()(
         }
         if (action === 'stepPast') {
           get().advanceTo(node.spoil);
-          set({ selectedId: id, peekId: null });
+          set({
+            selectedId: id,
+            peekId: null,
+            extraIds: get().extraIds.filter((x) => x !== id),
+          });
           get().pushActivity(`Stepped past into ${node.title}.`, 'lead');
           return;
         }
-        // open as extra — view without advancing watermark
-        set({ selectedId: id, peekId: null });
+        const extraIds = get().extraIds.includes(id) ? get().extraIds : [...get().extraIds, id];
+        set({ selectedId: id, peekId: null, extraIds });
         get().pushActivity(`Opened ${node.title} as Extra (watermark unchanged).`, 'warn');
       },
 
@@ -164,9 +206,7 @@ export const useSession = create<SessionState>()(
         }
         set({ query: cmd });
         const match = NODES.find(
-          (n) =>
-            hopStatus(n, get().clock) !== 'unborn' &&
-            (n.title.toLowerCase().includes(lower) || n.id.includes(lower)),
+          (n) => hopStatus(n, get().clock) !== 'unborn' && matchesSearch(n, lower),
         );
         if (match) get().requestOpen(match.id);
       },
@@ -188,7 +228,13 @@ export const useSession = create<SessionState>()(
     }),
     {
       name: 'jarvis-os-session',
-      partialize: (s) => ({ clock: s.clock, selectedId: s.selectedId, mode: s.mode }),
+      partialize: (s) => ({
+        clock: s.clock,
+        selectedId: s.selectedId,
+        mode: s.mode,
+        extraIds: s.extraIds,
+        acceptedLeadId: s.acceptedLeadId,
+      }),
     },
   ),
 );

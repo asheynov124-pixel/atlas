@@ -1,5 +1,5 @@
 import { hopStatus } from '../hop/policy';
-import { NODES, type GraphNode } from './corpus';
+import { NODES, nodeById, type GraphNode } from './corpus';
 
 export type LeadKind = 'learn' | 'capability' | 'build' | 'practice';
 
@@ -35,7 +35,7 @@ export function proposeLeads(clock: number, focusId: string | null): LeadMove[] 
   // Builds stay on the capability-qualified path below — never a bare "Press on" build.
   if (focus && focus.kind !== 'build' && hopStatus(focus, clock) === 'safe') {
     moves.push({
-      id: `focus-${focus.id}`,
+      id: `node-${focus.id}`,
       kind: mapKind(focus.kind),
       headline: `Press on ${focus.title}`,
       why: focus.lead,
@@ -51,7 +51,7 @@ export function proposeLeads(clock: number, focusId: string | null): LeadMove[] 
 
   if (nextLearn && nextLearn.id !== focus?.id) {
     moves.push({
-      id: `learn-${nextLearn.id}`,
+      id: `node-${nextLearn.id}`,
       kind: mapKind(nextLearn.kind),
       headline: `Expand knowledge: ${nextLearn.title}`,
       why: nextLearn.lead,
@@ -65,9 +65,9 @@ export function proposeLeads(clock: number, focusId: string | null): LeadMove[] 
     .filter((n) => n.kind === 'capability')
     .sort((a, b) => a.first - b.first)[0];
 
-  if (nextCap) {
+  if (nextCap && nextCap.id !== focus?.id) {
     moves.push({
-      id: `cap-${nextCap.id}`,
+      id: `node-${nextCap.id}`,
       kind: 'capability',
       headline: `Raise capability: ${nextCap.title}`,
       why: nextCap.lead,
@@ -82,22 +82,26 @@ export function proposeLeads(clock: number, focusId: string | null): LeadMove[] 
       ? focus
       : [...safe].filter((n) => n.kind === 'build').sort((a, b) => a.first - b.first)[0];
 
-  if (build && nextCap) {
-    moves.push({
-      id: `build-${build.id}`,
-      kind: 'build',
-      headline: `Build only if it raises ${nextCap.title}`,
-      why: `${build.title} is an instrument — spawn it when it advances a named capability, not as default output.`,
-      nodeId: build.id,
-      action: build.nextMoves[0] ?? 'Scope the smallest capability-raising cut',
-      instrument: 'Idea → build',
-    });
+  if (build) {
+    const raised = build.raisesCapabilityId ? nodeById(build.raisesCapabilityId) : undefined;
+    const raisedSafe = raised && hopStatus(raised, clock) === 'safe';
+    if (raised && raisedSafe) {
+      moves.push({
+        id: `node-${build.id}`,
+        kind: 'build',
+        headline: `Build only if it raises ${raised.title}`,
+        why: `${build.title} is an instrument for ${raised.title} — spawn it when it advances that capability, not as default output.`,
+        nodeId: build.id,
+        action: build.nextMoves[0] ?? 'Scope the smallest capability-raising cut',
+        instrument: 'Idea → build',
+      });
+    }
   }
 
   if (sealed[0]) {
     const s = sealed.sort((a, b) => KIND_RANK[a.kind] - KIND_RANK[b.kind])[0];
     moves.push({
-      id: `seal-${s.id}`,
+      id: `node-${s.id}`,
       kind: mapKind(s.kind),
       headline: `Frontier sealed: ${s.title}`,
       why: `Past watermark depth ${clock}. Step past only when you want the frontier moved.`,

@@ -10,6 +10,8 @@ Knowledge frontier workspace for **Jarvis**.
 
 ## Quick start (Jarvis HUD)
 
+Requires **Node.js 20.19+** or **22.12+**.
+
 From the repo root:
 
 ```bash

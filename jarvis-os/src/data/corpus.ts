@@ -17,6 +17,8 @@ export interface GraphNode {
   domain: string;
   lead: string;
   nextMoves: string[];
+  /** For builds: the capability this build is allowed to raise */
+  raisesCapabilityId?: string;
   x: number;
   y: number;
 }
@@ -123,6 +125,7 @@ export const NODES: GraphNode[] = [
     description: 'This shell — graph, lead loop, hop gate.',
     first: 4,
     spoil: 4,
+    raisesCapabilityId: 'ship-loop',
     lead: 'Alive as a mock. Next capability: wire Cortex Index without losing the lead loop.',
     nextMoves: ['Keep mock graph honest', 'Add citation contract for Oracle'],
     x: 82,
@@ -201,6 +204,7 @@ export const NODES: GraphNode[] = [
     description: 'Voice I/O reflecting real assistant states.',
     first: 6,
     spoil: 9,
+    raisesCapabilityId: 'open-loop-memory',
     lead: 'Not yet. Capability watermark must clear open-loop memory first.',
     nextMoves: ['Define ring state contract with HUD', 'Keep silent until states are real'],
     x: 90,

@@ -1,6 +1,6 @@
 import { hopStatus } from '../hop/policy';
 import { NODES } from '../data/corpus';
-import { useSession } from '../state/session';
+import { matchesSearch, useSession } from '../state/session';
 
 export function Inspector() {
   const clock = useSession((s) => s.clock);
@@ -14,12 +14,7 @@ export function Inspector() {
   const list = NODES.filter((n) => {
     const status = hopStatus(n, clock);
     if (status === 'unborn') return false;
-    if (!q) return true;
-    return (
-      n.title.toLowerCase().includes(q) ||
-      n.domain.toLowerCase().includes(q) ||
-      n.kind.includes(q)
-    );
+    return matchesSearch(n, q);
   });
 
   const node = selected();

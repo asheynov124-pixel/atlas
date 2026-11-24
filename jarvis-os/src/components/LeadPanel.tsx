@@ -34,6 +34,7 @@ export function LeadPanel() {
             key={m}
             type="button"
             className={`mode-btn ${mode === m ? 'active' : ''}`}
+            aria-pressed={mode === m}
             onClick={() => setMode(m)}
           >
             {m}

@@ -625,6 +625,25 @@ body {
   margin-top: 1rem;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .shell,
+  .inspect-detail,
+  .lead-card,
+  .peek-sheet {
+    animation: none !important;
+  }
+
+  .graph-atmosphere,
+  .ring-core {
+    animation: none !important;
+  }
+
+  .node-row,
+  .vertex circle {
+    transition: none !important;
+  }
+}
+
 @media (max-width: 980px) {
   html,
   body,
