@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Prompt Studio</title>
+  <meta name="description" content="Turn a rough idea into a clear, structured prompt.">
+  <meta name="theme-color" content="#f5f1e8">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f5d50'/%3E%3Cpath d='M9 10h14M9 16h10M9 22h6' stroke='%23fffcf6' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#field-goal">Skip to the goal field</a>
+
+  <div id="banner" class="banner" role="alert" hidden>
+    <div class="banner-inner">
+      <svg class="banner-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5 18 17H2L10 2.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 8v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="10" cy="14.4" r="1" fill="currentColor"/></svg>
+      <p id="banner-text"></p>
+      <button id="banner-close" class="icon-btn" type="button" aria-label="Dismiss this message">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <header class="app-header">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8"/><path d="M9 10h14M9 16h10M9 22h6"/></svg>
+      <div>
+        <h1>Prompt Studio</h1>
+        <p class="tagline">Turn a rough idea into a clear, structured prompt.</p>
+      </div>
+    </div>
+    <button id="new-draft" class="btn btn-secondary" type="button" aria-label="New draft">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>New<span class="wide-only"> draft</span></span>
+    </button>
+  </header>
+
+  <main class="workspace">
+    <!-- 1. Editor -->
+    <section class="card editor" aria-labelledby="editor-title">
+      <div class="card-head">
+        <h2 id="editor-title" tabindex="-1">Your idea</h2>
+        <p id="editing-label" class="meta">New draft</p>
+      </div>
+
+      <form id="prompt-form" novalidate>
+        <div class="field">
+          <div class="label-row">
+            <label for="field-goal">Goal</label>
+            <span class="tag tag-required">Required</span>
+          </div>
+          <p id="goal-hint" class="hint">What do you want to accomplish?</p>
+          <textarea id="field-goal" name="goal" rows="3" required aria-required="true"
+            aria-describedby="goal-hint goal-error"
+            placeholder="e.g. Write a friendly email inviting past customers to our spring open house"></textarea>
+          <p id="goal-error" class="field-error" hidden></p>
+        </div>
+
+        <div class="field">
+          <div class="label-row">
+            <label for="field-audience">Audience</label>
+            <span class="tag">Optional</span>
+          </div>
+          <p id="audience-hint" class="hint">Who is the result for?</p>
+          <textarea id="field-audience" name="audience" rows="2" aria-describedby="audience-hint"
+            placeholder="e.g. Customers who bought from us in the last two years but haven’t visited lately"></textarea>
+        </div>
+
+        <div class="field">
+          <div class="label-row">
+            <label for="field-constraints">Constraints</label>
+            <span class="tag">Optional</span>
+          </div>
+          <p id="constraints-hint" class="hint">Boundaries or requirements to respect. One per line works well.</p>
+          <textarea id="field-constraints" name="constraints" rows="3" aria-describedby="constraints-hint"
+            placeholder="e.g. Under 150 words&#10;No discount codes&#10;Mention free parking"></textarea>
+        </div>
+
+        <div class="field">
+          <div class="label-row">
+            <label for="field-output">Desired output</label>
+            <span class="tag">Optional</span>
+          </div>
+          <p id="output-hint" class="hint">The format and level of detail you want back.</p>
+          <textarea id="field-output" name="output" rows="2" aria-describedby="output-hint"
+            placeholder="e.g. A subject line, then three short paragraphs — warm, not salesy"></textarea>
+        </div>
+      </form>
+    </section>
+
+    <!-- 2. Preview -->
+    <section class="card preview" aria-labelledby="preview-title">
+      <div class="card-head">
+        <h2 id="preview-title">Prompt preview</h2>
+        <button id="copy-btn" class="btn btn-primary" type="button" aria-describedby="copy-hint" disabled>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="7" width="9" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M13 4.5V4a1.5 1.5 0 0 0-1.5-1.5h-6A1.5 1.5 0 0 0 4 4v8a1.5 1.5 0 0 0 1.5 1.5H6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+          Copy prompt
+        </button>
+      </div>
+      <p id="copy-hint" class="hint">Add a goal to enable copying.</p>
+      <p id="copy-status" class="status" role="status" aria-live="polite"></p>
+
+      <div id="preview-empty" class="preview-empty">
+        <p id="preview-empty-text">Start with a goal. Your prompt builds itself here as you type.</p>
+        <button id="example-btn" class="btn btn-quiet" type="button">Try an example</button>
+      </div>
+      <pre id="preview-text" class="preview-text" role="region" aria-label="Prompt text" tabindex="0" hidden></pre>
+      <p id="preview-meta" class="meta preview-meta"></p>
+    </section>
+
+    <!-- 3. Save -->
+    <section class="card save" aria-labelledby="save-title">
+      <div class="card-head">
+        <h2 id="save-title">Save draft</h2>
+        <span id="save-pill" class="pill" hidden></span>
+      </div>
+      <div class="field">
+        <label for="draft-name">Draft name</label>
+        <p id="name-hint" class="hint">A short name you’ll recognise later.</p>
+        <input id="draft-name" type="text" maxlength="80" autocomplete="off" spellcheck="false"
+          aria-describedby="name-hint name-error" placeholder="e.g. Spring open house email">
+        <p id="name-error" class="field-error" hidden></p>
+      </div>
+      <div class="actions">
+        <button id="save-btn" class="btn btn-secondary btn-strong" type="button">Save draft</button>
+        <button id="save-new-btn" class="btn btn-secondary" type="button" hidden>Save as new</button>
+      </div>
+      <p id="save-help" class="hint save-help"></p>
+      <p id="save-status" class="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <!-- 4. Saved drafts -->
+    <section class="card drafts" aria-labelledby="drafts-title">
+      <div class="card-head">
+        <h2 id="drafts-title" tabindex="-1">Saved drafts</h2>
+        <span id="drafts-count" class="meta"></span>
+      </div>
+      <p id="drafts-status" class="status" role="status" aria-live="polite"></p>
+      <p id="drafts-empty" class="drafts-empty">No saved drafts yet. Name your work above and press Save draft — it will stay in this browser.</p>
+      <ul id="drafts-list" class="drafts-list"></ul>
+    </section>
+  </main>
+
+  <dialog id="confirm-dialog" class="dialog" aria-labelledby="confirm-title" aria-describedby="confirm-body">
+    <form method="dialog" class="dialog-inner">
+      <h2 id="confirm-title"></h2>
+      <p id="confirm-body"></p>
+      <div class="actions dialog-actions">
+        <button id="confirm-cancel" class="btn btn-secondary" value="cancel">Cancel</button>
+        <button id="confirm-ok" class="btn btn-primary" value="confirm">OK</button>
+      </div>
+    </form>
+  </dialog>
+
+  <template id="trash-icon">
+    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M8 6V4.5h4V6M6 6l.7 10h6.6L14 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </template>
+
+  <!-- Order matters: each file uses the ones above it. -->
+  <script src="js/prompt.js"></script>
+  <script src="js/drafts.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
