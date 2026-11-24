@@ -101,7 +101,7 @@ export function proposeLeads(clock: number, focusId: string | null): LeadMove[] 
   if (sealed[0]) {
     const s = sealed.sort((a, b) => KIND_RANK[a.kind] - KIND_RANK[b.kind])[0];
     moves.push({
-      id: `node-${s.id}`,
+      id: `peek-${s.id}`,
       kind: mapKind(s.kind),
       headline: `Frontier sealed: ${s.title}`,
       why: `Past watermark depth ${clock}. Step past only when you want the frontier moved.`,

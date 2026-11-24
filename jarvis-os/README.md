@@ -17,7 +17,7 @@ Watermark depth gates nodes: `safe` / `sealed` / `unborn` (see [`src/hop/policy.
 
 ## Run
 
-Requires **Node.js 20.19+** or **22.12+** (Vite 7).
+Requires **Node.js ^20.19** or **≥22.12** (Vite 7; not Node 21 or 22.0–22.11).
 
 ```bash
 cd jarvis-os

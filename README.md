@@ -10,7 +10,7 @@ Knowledge frontier workspace for **Jarvis**.
 
 ## Quick start (Jarvis HUD)
 
-Requires **Node.js 20.19+** or **22.12+**.
+Requires **Node.js ^20.19** or **≥22.12** (not Node 21 or 22.0–22.11).
 
 From the repo root:
 

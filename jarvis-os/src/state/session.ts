@@ -142,6 +142,11 @@ export const useSession = create<SessionState>()(
           return;
         }
         if (get().extraIds.includes(id)) {
+          // Second click while already viewing Extra reopens Peek (Stay / Extra / Step past).
+          if (get().selectedId === id) {
+            set({ peekId: id });
+            return;
+          }
           set({ selectedId: id, peekId: null });
           get().pushActivity(`Reopened ${node.title} as Extra.`, 'warn');
           return;
