@@ -312,11 +312,17 @@ body {
   outline: none;
 }
 
+.vertex:focus-visible circle {
+  stroke: var(--teal);
+  stroke-width: 0.65;
+  filter: drop-shadow(0 0 0.35px rgba(31, 111, 106, 0.9));
+}
+
 .vertex circle {
   fill: #fff;
   stroke: var(--ink);
   stroke-width: 0.35;
-  transition: transform 180ms ease, fill 180ms ease;
+  transition: transform 180ms ease, fill 180ms ease, stroke 180ms ease;
 }
 
 .vertex:hover circle,
@@ -582,24 +588,20 @@ body {
   color: var(--warn);
 }
 
-.peek-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(26, 34, 44, 0.35);
-  display: grid;
-  place-items: end center;
-  padding: 1rem;
-  z-index: 40;
-  animation: shell-in 200ms ease both;
-}
-
 .peek-sheet {
-  width: min(480px, 100%);
+  width: min(480px, calc(100% - 2rem));
+  max-width: 480px;
+  border: 0;
   background: #fff;
   border-radius: 18px 18px 12px 12px;
   padding: 1.2rem 1.2rem 1rem;
   box-shadow: var(--shadow);
+  margin: auto auto 1rem;
   animation: rise 280ms ease both;
+}
+
+.peek-sheet::backdrop {
+  background: rgba(26, 34, 44, 0.35);
 }
 
 .peek-kicker {

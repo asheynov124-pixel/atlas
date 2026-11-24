@@ -32,7 +32,8 @@ export function proposeLeads(clock: number, focusId: string | null): LeadMove[] 
   const moves: LeadMove[] = [];
 
   const focus = focusId ? NODES.find((n) => n.id === focusId) : undefined;
-  if (focus && hopStatus(focus, clock) === 'safe') {
+  // Builds stay on the capability-qualified path below — never a bare "Press on" build.
+  if (focus && focus.kind !== 'build' && hopStatus(focus, clock) === 'safe') {
     moves.push({
       id: `focus-${focus.id}`,
       kind: mapKind(focus.kind),
@@ -76,9 +77,10 @@ export function proposeLeads(clock: number, focusId: string | null): LeadMove[] 
     });
   }
 
-  const build = [...safe]
-    .filter((n) => n.kind === 'build')
-    .sort((a, b) => a.first - b.first)[0];
+  const build =
+    focus?.kind === 'build' && hopStatus(focus, clock) === 'safe'
+      ? focus
+      : [...safe].filter((n) => n.kind === 'build').sort((a, b) => a.first - b.first)[0];
 
   if (build && nextCap) {
     moves.push({

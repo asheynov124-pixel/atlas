@@ -41,6 +41,24 @@ function clampClock(n: number) {
   return Math.min(HOP_CLOCK.max, Math.max(HOP_CLOCK.min, Math.round(n)));
 }
 
+/** Keep selectedId honest when the watermark moves. */
+function reconcileSelection(
+  selectedId: string | null,
+  clock: number,
+  peekId: string | null,
+): { selectedId: string | null; peekId: string | null } {
+  if (!selectedId) return { selectedId, peekId };
+  const node = nodeById(selectedId);
+  const status = hopStatus(node, clock);
+  if (status === 'unborn') {
+    return { selectedId: null, peekId: peekId === selectedId ? null : peekId };
+  }
+  if (status === 'sealed') {
+    return { selectedId: null, peekId: selectedId };
+  }
+  return { selectedId, peekId };
+}
+
 export const useSession = create<SessionState>()(
   persist(
     (set, get) => ({
@@ -59,12 +77,17 @@ export const useSession = create<SessionState>()(
       ],
       acceptedLeadId: null,
 
-      setClock: (n) => set({ clock: clampClock(n) }),
+      setClock: (n) => {
+        const clock = clampClock(n);
+        const { selectedId, peekId } = reconcileSelection(get().selectedId, clock, get().peekId);
+        set({ clock, selectedId, peekId });
+      },
 
       advanceTo: (n) => {
         const next = clampClock(n);
         if (next > get().clock) {
-          set({ clock: next });
+          const { selectedId, peekId } = reconcileSelection(get().selectedId, next, get().peekId);
+          set({ clock: next, selectedId, peekId });
           get().pushActivity(`Watermark advanced to depth ${next}.`, 'warn');
         }
       },
@@ -118,7 +141,7 @@ export const useSession = create<SessionState>()(
       setMode: (m) => set({ mode: m }),
 
       acceptLead: (move) => {
-        set({ acceptedLeadId: move.id, selectedId: move.nodeId, mode: move.kind === 'build' ? 'build' : 'lead' });
+        set({ acceptedLeadId: move.id, mode: move.kind === 'build' ? 'build' : 'lead' });
         get().pushActivity(`Accepted lead: ${move.headline}`, 'lead');
         get().requestOpen(move.nodeId);
       },
