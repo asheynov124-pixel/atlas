@@ -10,8 +10,19 @@ Knowledge frontier workspace for **Jarvis**.
 
 ## Quick start (Jarvis HUD)
 
+From the repo root:
+
+```bash
+npm run install:jarvis
+npm run dev
+```
+
+Or:
+
 ```bash
 cd jarvis-os && npm install && npm run dev
 ```
+
+Then open http://127.0.0.1:5173/
 
 Charter lives in Notion Bot Roster → Jarvis (knowledge & capability north star; idea→build absorbed).

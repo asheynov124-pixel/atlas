@@ -1,0 +1,10 @@
+{
+  "name": "atlas",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix jarvis-os",
+    "build": "npm run build --prefix jarvis-os",
+    "preview": "npm run preview --prefix jarvis-os",
+    "install:jarvis": "npm install --prefix jarvis-os"
+  }
+}
